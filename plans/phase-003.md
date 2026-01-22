@@ -1,5 +1,7 @@
 # Phase 003: CLI Contract - Behavioral Specs
 
+**Root Feature:** `quench-6878`
+
 ## Overview
 
 Establish the behavioral specification test suite for quench's CLI contract. This phase creates black-box tests that verify the CLI adheres to its specification before implementation begins. All tests are marked `#[ignore = "TODO: Phase 005"]` until the CLI skeleton is implemented.
