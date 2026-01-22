@@ -1,6 +1,6 @@
 # Phase 015: File Walking - Specs
 
-**Root Feature:** `quench-6915`
+**Root Feature:** `quench-c2c6`
 
 ## Overview
 
