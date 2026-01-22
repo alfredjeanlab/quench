@@ -18,7 +18,21 @@ Run quality checks on the codebase.
 
 ```bash
 quench check              # All files, fast checks
+quench check src/         # Check specific directory
+quench check src/parser.rs src/lexer.rs  # Check specific files
 ```
+
+### File Arguments
+
+When file or directory arguments are provided, only those paths are checked:
+
+```bash
+quench check src/parser.rs        # Single file
+quench check src/ tests/          # Multiple directories
+quench check **/*.rs              # Shell glob (expanded by shell)
+```
+
+This is useful for quick iteration during development.
 
 ### Scope Flags
 
@@ -66,6 +80,7 @@ quench check --no-cloc --no-escapes  # Skip multiple
 | `--[no-]color` | Color output (default: auto based on TTY) |
 | `--[no-]limit [N]` | Violation limit (default: 15, --no-limit for all) |
 | `--fix` | Auto-fix what can be fixed |
+| `--dry-run` | Show what --fix would change without changing it |
 | `--save <FILE>` | Save metrics to file (CI mode) |
 | `--save-notes` | Save metrics to git notes (CI mode) |
 
@@ -76,8 +91,25 @@ quench check -o json          # JSON output
 quench check --no-limit       # Show all violations
 quench check --limit 50       # Show up to 50
 quench check --fix            # Auto-fix
+quench check --fix --dry-run  # Preview fixes without applying
 quench check --ci --save .quench/baseline.json  # Save metrics
 quench check --ci --save-notes                  # Save to git notes
+```
+
+### Development Flags
+
+Flags for development and debugging:
+
+| Flag | Description |
+|------|-------------|
+| `--config` | Validate config and exit (don't run checks) |
+| `--no-cache` | Disable file cache (always re-check all files) |
+| `--timing` | Show timing breakdown (file walking, pattern matching, etc.) |
+
+```bash
+quench check --config         # Validate quench.toml only
+quench check --no-cache       # Force fresh check, ignore cache
+quench check --timing         # Show where time is spent
 ```
 
 ### Examples

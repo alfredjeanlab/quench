@@ -414,7 +414,14 @@ Quench auto-detects project languages:
 ```bash
 QUENCH_NO_COLOR=1              # Disable color
 QUENCH_CONFIG=/path/to.toml    # Config file location
+QUENCH_LOG=debug               # Enable debug logging (off, error, warn, info, debug, trace)
 ```
+
+**QUENCH_LOG**: When set, quench emits diagnostic output to stderr. Useful for debugging:
+- `debug`: Shows file walking decisions, pattern matches, cache hits/misses
+- `trace`: Extremely verbose, includes per-line processing
+
+Log output goes to stderr and doesn't affect stdout (safe to use with `-o json`).
 
 ## Validation
 

@@ -20,16 +20,18 @@ Within each range, phases use increments of 5 (001, 005, 010...) to allow insert
 - [ ] Spec: check short flags are exactly: -o
 - [ ] Spec: unrecognized flags produce error (not silently ignored)
 - [ ] Spec: unrecognized config keys produce warning
-- [ ] Spec: QUENCH_NO_COLOR and QUENCH_CONFIG are the only env vars
+- [ ] Spec: env vars are exactly: QUENCH_NO_COLOR, QUENCH_CONFIG, QUENCH_LOG
 
 ## Phase 005: Project Foundation - Implementation
 
 - [ ] CLI skeleton with clap (quench, quench help, quench check, quench report, quench init)
 - [ ] Global flags (--help, --version, --config)
+- [ ] File arguments for single-file/directory mode
 - [ ] Config file discovery (current dir, parent dirs, up to git root)
 - [ ] Config parsing with serde/toml
 - [ ] Config version validation (version = 1)
 - [ ] Unknown key warnings (forward compatibility)
+- [ ] QUENCH_LOG env var and tracing setup (off, error, warn, info, debug, trace)
 
 ## Phase 010: Test Fixtures
 
@@ -75,6 +77,8 @@ Within each range, phases use increments of 5 (001, 005, 010...) to allow insert
 - [ ] Spec: violation limit defaults to 15
 - [ ] Spec: --no-limit shows all violations
 - [ ] Spec: --limit N shows N violations
+- [ ] Spec: --config validates config and exits without running checks
+- [ ] Spec: QUENCH_LOG=debug emits diagnostics to stderr
 
 ## Phase 030: Output Infrastructure - Implementation
 
@@ -87,6 +91,7 @@ Within each range, phases use increments of 5 (001, 005, 010...) to allow insert
 - [ ] Exit codes (0 pass, 1 fail, 2 config error, 3 internal error)
 - [ ] Violation limiting (default 15, --limit N, --no-limit)
 - [ ] Streaming output (default) vs buffered (JSON)
+- [ ] --config flag (validate and exit)
 
 ## Phase 035: Check Framework - Specs
 
@@ -393,6 +398,21 @@ Within each range, phases use increments of 5 (001, 005, 010...) to allow insert
 - [ ] `quench check --agents` on fixtures/agents-project detects all violation types
 - [ ] `quench check --agents --fix` syncs files correctly
 - [ ] Snapshot tests for agents output
+
+## Phase 527: Dry-Run Mode - Specs
+
+- [ ] Spec: --dry-run without --fix is an error
+- [ ] Spec: --dry-run shows files that would be modified
+- [ ] Spec: --dry-run shows diff of changes
+- [ ] Spec: --dry-run exits 0 even when fixes needed
+- [ ] Spec: --dry-run does not modify any files
+
+## Phase 528: Dry-Run Mode - Implementation
+
+- [ ] --dry-run flag parsing (requires --fix)
+- [ ] Fix preview collection (file path, before/after content)
+- [ ] Diff output formatting
+- [ ] Suppress actual file writes when --dry-run
 
 ### Dogfooding Milestone 1
 - [ ] Run `quench check` on quench itself (cloc, escapes, agents)
@@ -903,6 +923,21 @@ Within each range, phases use increments of 5 (001, 005, 010...) to allow insert
 
 ---
 
+## Phase 1398: Timing Mode - Specs
+
+- [ ] Spec: --timing shows phase breakdown (discovery, reading, checking, output)
+- [ ] Spec: --timing shows per-check timing
+- [ ] Spec: --timing works with -o json (adds timing field)
+- [ ] Spec: --timing shows file count and cache hit rate
+
+## Phase 1399: Timing Mode - Implementation
+
+- [ ] --timing flag parsing
+- [ ] Phase timing instrumentation (start/end markers)
+- [ ] Per-check timing collection
+- [ ] Cache statistics (hits, misses, hit rate)
+- [ ] Timing output formatter (text and JSON)
+
 ## Phase 1401: Performance - Caching
 
 - [ ] File cache structure (path -> mtime, size, result)
@@ -911,6 +946,7 @@ Within each range, phases use increments of 5 (001, 005, 010...) to allow insert
 - [ ] In-memory cache for single session
 - [ ] Persistent cache (.quench/cache.bin)
 - [ ] Cache invalidation (config change, version change)
+- [ ] --no-cache flag to bypass cache
 
 ## Phase 1405: Performance - File Reading
 

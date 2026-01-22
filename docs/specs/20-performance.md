@@ -9,7 +9,6 @@ Performance is a core design constraint for Quench. This document defines a perf
 | Fast checks (cold) | < 500ms | < 1s | > 2s |
 | Fast checks (warm) | < 100ms | < 200ms | > 500ms |
 | CI checks | < 5s | < 15s | > 30s |
-| Watch mode | < 100ms incremental | < 500ms | > 1s |
 
 **Cold vs Warm:**
 - **Cold:** First run, no cache. File walking + reading + checking all files.
@@ -334,7 +333,7 @@ fn check_file_cached(path: &Path, cache: &FileCache) -> Vec<Violation> {
 
 **Options:**
 - Increase parallelism (more threads)
-- Cache file list across runs (watch mode)
+- Cache file list across runs
 - Pre-filter by file extension before gitignore matching
 
 ### P2: Apply When Pattern Matching is Slow
@@ -355,23 +354,13 @@ fn check_file_cached(path: &Path, cache: &FileCache) -> Vec<Violation> {
 - Use bounded cache with eviction (`moka` instead of `DashMap`)
 - Process files in batches, not all at once
 
-### P4: Apply for Watch Mode Performance
-
-**Symptom:** Incremental checks too slow after file changes.
-
-**Options:**
-- Cache file content by path + mtime
-- Memoize check results per file
-- Only re-walk changed directories (filesystem events)
-
-### P5: Micro-Optimizations (Probably Never Needed)
+### P4: Micro-Optimizations (Likely Not Needed)
 
 **Apply only if profiling shows specific bottleneck:**
 
 - String interning (`lasso`) for repeated paths
 - Arena allocation (`bumpalo`) for per-file temporaries
 - Small string optimization (`smol_str`) for short strings
-- Pool allocators for watch mode buffer reuse
 - Profile-guided optimization (PGO)
 
 **Don't use Salsa.** Salsa is for IDE/LSP tools (rust-analyzer) with complex inter-file dependencies. CLI linters (ripgrep, ruff, biome) don't use it. Simple file-level caching is the right granularity for Quench.
@@ -384,7 +373,6 @@ fn check_file_cached(path: &Path, cache: &FileCache) -> Vec<Violation> {
 |------|--------|------------|
 | Fast checks | < 100MB | 500MB |
 | CI checks | < 500MB | 2GB |
-| Watch mode | < 200MB resident | 1GB |
 
 ### Core Principle: Don't Buffer What You Can Stream
 
@@ -404,7 +392,6 @@ walker.run(|| check_and_emit);
 | Concurrent cache, unbounded | `DashMap` |
 | Concurrent cache, bounded | `moka` with max_capacity |
 | Per-file temporary allocations | `bumpalo` arena (if profiling shows benefit) |
-| Reusable buffers in watch mode | `object_pool` |
 | Repeated strings | `lasso` interner (if profiling shows benefit) |
 
 **Default:** Use simple owned types (`String`, `Vec`, `PathBuf`). Only reach for specialized allocators when measurement proves they help.
