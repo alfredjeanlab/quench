@@ -1,5 +1,7 @@
 # Checkpoint 1A: Pre-Checkpoint Fix - CLI Runs
 
+**Root Feature:** `quench-d48b`
+
 ## Overview
 
 Verify and fix any formatting, lint failures, and failing specs/tests before checkpoint validation. This ensures all Phase 001-040 work is complete and the codebase is in a clean, verifiable state.
