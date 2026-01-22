@@ -19,6 +19,9 @@ thiserror = "2"
 anyhow = "1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+ignore = "0.4"
+memmap2 = "0.9"
+crossbeam-channel = "0.5"
 
 [dev-dependencies]
 assert_cmd = "2"

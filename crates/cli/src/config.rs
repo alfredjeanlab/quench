@@ -43,6 +43,18 @@ pub struct Config {
 pub struct ProjectConfig {
     /// Project name.
     pub name: Option<String>,
+
+    /// Custom ignore patterns.
+    #[serde(default)]
+    pub ignore: IgnoreConfig,
+}
+
+/// Ignore pattern configuration.
+#[derive(Debug, Default, Clone, Deserialize)]
+pub struct IgnoreConfig {
+    /// Glob patterns to ignore (e.g., "*.snapshot", "testdata/", "**/fixtures/**").
+    #[serde(default)]
+    pub patterns: Vec<String>,
 }
 
 /// Currently supported config version.
@@ -50,6 +62,9 @@ pub const SUPPORTED_VERSION: i64 = 1;
 
 /// Known top-level keys in the config.
 const KNOWN_KEYS: &[&str] = &["version", "project", "check"];
+
+/// Known project keys in the config.
+const KNOWN_PROJECT_KEYS: &[&str] = &["name", "ignore"];
 
 /// Load and validate config from a file path.
 pub fn load(path: &Path) -> Result<Config> {
@@ -149,15 +164,39 @@ pub fn parse_with_warnings(content: &str, path: &Path) -> Result<Config> {
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string());
 
+            // Parse ignore patterns
+            let ignore = match t.get("ignore") {
+                Some(toml::Value::Table(ignore_table)) => {
+                    let patterns = ignore_table
+                        .get("patterns")
+                        .and_then(|v| v.as_array())
+                        .map(|arr| {
+                            arr.iter()
+                                .filter_map(|v| v.as_str().map(String::from))
+                                .collect()
+                        })
+                        .unwrap_or_default();
+
+                    // Warn about unknown ignore fields
+                    for key in ignore_table.keys() {
+                        if key != "patterns" {
+                            warn_unknown_key(path, &format!("project.ignore.{}", key));
+                        }
+                    }
+
+                    IgnoreConfig { patterns }
+                }
+                _ => IgnoreConfig::default(),
+            };
+
             // Warn about unknown project fields
-            let known_project_keys: &[&str] = &["name"];
             for key in t.keys() {
-                if !known_project_keys.contains(&key.as_str()) {
+                if !KNOWN_PROJECT_KEYS.contains(&key.as_str()) {
                     warn_unknown_key(path, &format!("project.{}", key));
                 }
             }
 
-            ProjectConfig { name }
+            ProjectConfig { name, ignore }
         }
         _ => ProjectConfig::default(),
     };

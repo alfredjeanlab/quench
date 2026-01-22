@@ -37,6 +37,18 @@ pub struct CheckArgs {
     /// Output format
     #[arg(short, long, default_value = "text")]
     pub output: OutputFormat,
+
+    /// Maximum directory depth to traverse
+    #[arg(long, default_value_t = 100)]
+    pub max_depth: usize,
+
+    /// List scanned files (for debugging)
+    #[arg(long, hide = true)]
+    pub debug_files: bool,
+
+    /// Enable verbose output
+    #[arg(long, short = 'v')]
+    pub verbose: bool,
 }
 
 #[derive(clap::Args)]

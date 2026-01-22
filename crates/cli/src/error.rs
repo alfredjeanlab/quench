@@ -25,6 +25,18 @@ pub enum Error {
     /// Internal error (bug)
     #[error("internal error: {0}")]
     Internal(String),
+
+    /// File exceeds maximum size limit.
+    #[error("file too large: {} ({} bytes, max: {} bytes)", .path.display(), .size, .max_size)]
+    FileTooLarge {
+        path: PathBuf,
+        size: u64,
+        max_size: u64,
+    },
+
+    /// Walker error.
+    #[error("walk error: {message}")]
+    Walk { message: String },
 }
 
 /// Result type using quench Error
@@ -50,6 +62,8 @@ impl From<&Error> for ExitCode {
             Error::Config { .. } | Error::Argument(_) => ExitCode::ConfigError,
             Error::Io { .. } => ExitCode::InternalError,
             Error::Internal(_) => ExitCode::InternalError,
+            Error::FileTooLarge { .. } => ExitCode::CheckFailed,
+            Error::Walk { .. } => ExitCode::InternalError,
         }
     }
 }

@@ -7,6 +7,7 @@ use quench::cli::{CheckArgs, Cli, Command, InitArgs, OutputFormat, ReportArgs};
 use quench::config;
 use quench::discovery;
 use quench::error::ExitCode;
+use quench::walker::{FileWalker, WalkerConfig};
 
 fn init_logging() {
     let filter = EnvFilter::try_from_env("QUENCH_LOG").unwrap_or_else(|_| EnvFilter::new("off"));
@@ -51,10 +52,27 @@ fn run() -> anyhow::Result<()> {
 fn run_check(cli: &Cli, args: &CheckArgs) -> anyhow::Result<()> {
     let cwd = std::env::current_dir()?;
 
-    // Resolve config
-    let config_path = discovery::resolve_config(cli.config.as_deref(), &cwd)?;
+    // Determine root directory
+    let root = if args.paths.is_empty() {
+        cwd.clone()
+    } else {
+        // Canonicalize the path to handle relative paths
+        let path = &args.paths[0];
+        if path.is_absolute() {
+            path.clone()
+        } else {
+            cwd.join(path)
+        }
+    };
 
-    let _config = match &config_path {
+    // Resolve config from root directory (not cwd)
+    let config_path = if cli.config.is_some() {
+        discovery::resolve_config(cli.config.as_deref(), &cwd)?
+    } else {
+        discovery::find_config(&root)
+    };
+
+    let config = match &config_path {
         Some(path) => {
             tracing::debug!("loading config from {}", path.display());
             config::load_with_warnings(path)?
@@ -66,6 +84,50 @@ fn run_check(cli: &Cli, args: &CheckArgs) -> anyhow::Result<()> {
     };
 
     tracing::trace!("check command starting");
+
+    // Configure walker
+    let walker_config = WalkerConfig {
+        max_depth: Some(args.max_depth),
+        ignore_patterns: config.project.ignore.patterns.clone(),
+        ..Default::default()
+    };
+
+    let walker = FileWalker::new(walker_config);
+    let (rx, handle) = walker.walk(&root);
+
+    // Process files
+    if args.debug_files {
+        // Debug mode: just list files
+        for file in rx {
+            // Make paths relative to root for cleaner output
+            let display_path = file.path.strip_prefix(&root).unwrap_or(&file.path);
+            println!("{}", display_path.display());
+        }
+        let stats = handle.join();
+        if args.verbose {
+            eprintln!(
+                "Scanned {} files, {} errors, {} symlink loops",
+                stats.files_found, stats.errors, stats.symlink_loops
+            );
+        }
+        return Ok(());
+    }
+
+    // Collect files for check
+    let files: Vec<_> = rx.iter().collect();
+    let stats = handle.join();
+
+    // Report stats in verbose mode
+    if args.verbose {
+        eprintln!("Max depth limit: {}", args.max_depth);
+        if stats.symlink_loops > 0 {
+            eprintln!("Warning: {} symlink loop(s) detected", stats.symlink_loops);
+        }
+        if stats.errors > 0 {
+            eprintln!("Warning: {} walk error(s)", stats.errors);
+        }
+        eprintln!("Scanned {} files", files.len());
+    }
 
     // For now, just output success
     match args.output {
