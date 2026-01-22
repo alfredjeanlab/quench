@@ -221,34 +221,24 @@ else (--color=auto, default):
 | 2 | Configuration error or invalid arguments |
 | 3 | Internal error (bug in quench) |
 
-## Verbosity Levels
+## Verbosity
 
-### Default (failures only)
+### Default (failures + summary)
 
-Only failing checks produce output.
+Failing checks produce output, followed by a one-line summary:
 
-### Quiet (`-q`)
-
-Exit code only, no output. Useful for scripting.
-
-### Summary (`--summary`)
-
-Add a one-line summary at the end:
 ```
 escapes: FAIL
-  ...
+  src/parser.rs:47: unsafe block without // SAFETY: comment
+    Add a // SAFETY: comment explaining the invariants.
 
-4 checks passed, 2 failed
+4 checks passed, 1 failed
 ```
 
-### Verbose (`-v`)
+When all checks pass, only the summary is shown:
 
-Show passing checks too (for debugging):
 ```
-loc: PASS (4521 source, 3892 test)
-file-size: PASS (max 456 lines)
-escapes: FAIL
-  ...
+5 checks passed
 ```
 
 ## Fix Mode Output (`--fix`)
@@ -269,8 +259,8 @@ escapes: FAIL (not auto-fixable)
 
 To avoid overwhelming agent context with violations, quench limits output by default:
 
-- **Default limit**: 15 violations shown (ordered by ease of fix where possible)
-- **Behavior**: Once limit reached, show count of remaining violations
+- **Default limit**: 15 violations shown
+- **Behavior**: Once limit reached, stop and report
 - **Override**: Use `--limit N` for custom limit, `--no-limit` for all
 
 ```
@@ -279,7 +269,8 @@ escapes: FAIL
     Add a // SAFETY: comment explaining the invariants.
   src/parser.rs:112: .unwrap() in production code
     Handle the error case.
-  ... (8 more violations)
+
+Stopped after 15 violations. Use --no-limit to see all.
 ```
 
 ### Show All (`--no-limit`)
@@ -295,9 +286,8 @@ Full counts are always available in `--ci` mode for metrics storage.
 
 ## Streaming vs Buffered
 
-- **Default**: Stream output as checks complete (better for slow checks)
+- **Text format**: Stream output as checks complete (better for slow checks)
 - **JSON format**: Buffer and output complete JSON at end
-- **`--no-stream`**: Buffer all output, show in consistent order
 
 ## Error Recovery
 

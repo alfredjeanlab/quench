@@ -12,7 +12,7 @@ A fast, configurable quality linting CLI for software projects.
 
 **Human Developers** (secondary)
 - Benefit from same concise output
-- Use `--verbose` or `--summary` when needed
+- Use `--no-limit` to see all violations
 - Configure project-specific rules
 
 **CI Pipelines**

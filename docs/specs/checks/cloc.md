@@ -81,15 +81,20 @@ blocks are counted as test LOC even in source files.
 
 ## Output
 
-### Default (silent)
+### Text Output
 
-LOC check always passes (reporting only). No output by default.
-
-### With `--summary` or `-v`
+LOC metrics are not shown in text output (they're available in JSON for tooling).
+Text output only appears when file size limits are exceeded:
 
 ```
-cloc: 12,453 source / 8,921 test (0.72x)
+cloc: FAIL
+  src/parser.rs: 923 lines (max: 750)
+    Split into smaller modules.
+
+5 checks passed, 1 failed
 ```
+
+When all files are within limits, cloc passes silently and contributes to the summary.
 
 ### Ratio Direction
 

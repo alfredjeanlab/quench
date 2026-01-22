@@ -24,7 +24,8 @@ echo "Checking file sizes..."
 MAX_SOURCE=750
 MAX_TEST=1100
 
-size_failed=0
+source_size_failed=0
+test_size_failed=0
 files=$(rg --files --type rust crates tests 2>/dev/null)
 if [[ -n "$files" ]]; then
     # Batch wc -l call (35x faster than per-file)
@@ -36,24 +37,30 @@ if [[ -n "$files" ]]; then
         # Skip the "total" line from wc -l
         [[ "$file" == "total" ]] && continue
 
-        # Test files: tests/**, *_tests.rs, *_test.rs
-        if [[ "$file" == tests/* || "$file" == *"_tests.rs" || "$file" == *"_test.rs" ]]; then
+        # Test files: tests/**, *_tests.rs, *_test.rs, *_tests/**
+        if [[ "$file" == tests/* || "$file" == *"_tests.rs" || "$file" == *"_test.rs" || "$file" == *"_tests/"* ]]; then
             if [ "$lines" -gt "$MAX_TEST" ]; then
                 echo -e "${RED}$file: $lines lines (max: $MAX_TEST)${NC}"
-                size_failed=1
+                test_size_failed=1
             fi
         else
             if [ "$lines" -gt "$MAX_SOURCE" ]; then
                 echo -e "${RED}$file: $lines lines (max: $MAX_SOURCE)${NC}"
-                size_failed=1
+                source_size_failed=1
             fi
         fi
     done < <(echo "$files" | xargs wc -l)
 fi
 
-if [ $size_failed -eq 0 ]; then
+if [ $source_size_failed -eq 0 ] && [ $test_size_failed -eq 0 ]; then
     echo -e "${GREEN}File sizes OK${NC}"
 else
+    if [ $source_size_failed -eq 1 ]; then
+        echo -e "Split large source files into sibling modules or submodules in a folder; consider refactoring to be more unit testable"
+    fi
+    if [ $test_size_failed -eq 1 ]; then
+        echo -e "Split large test files into a {module}_tests/ folder"
+    fi
     failed=1
 fi
 

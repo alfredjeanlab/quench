@@ -13,6 +13,15 @@ Within each range, phases use increments of 5 (001, 005, 010...) to allow insert
 - [ ] Integration test harness (CLI invocation via assert_cmd)
 - [ ] Snapshot testing setup (insta crate)
 
+## Phase 003: CLI Contract - Specs
+
+- [ ] Spec: CLI commands are exactly: (none), help, check, report, init
+- [ ] Spec: global short flags are exactly: -h, -V, -C
+- [ ] Spec: check short flags are exactly: -o
+- [ ] Spec: unrecognized flags produce error (not silently ignored)
+- [ ] Spec: unrecognized config keys produce warning
+- [ ] Spec: QUENCH_NO_COLOR and QUENCH_CONFIG are the only env vars
+
 ## Phase 005: Project Foundation - Implementation
 
 - [ ] CLI skeleton with clap (quench, quench help, quench check, quench report, quench init)
@@ -55,6 +64,8 @@ Within each range, phases use increments of 5 (001, 005, 010...) to allow insert
 
 - [ ] Spec: text output format matches docs/specs/03-output.md
 - [ ] Spec: JSON output validates against output.schema.json
+- [ ] Spec: JSON output has no additional properties (schema)
+- [ ] Spec: exit codes are exactly 0 (pass), 1 (fail), 2 (config), 3 (internal)
 - [ ] Spec: color disabled when CLAUDE_CODE env var set
 - [ ] Spec: color disabled when not a TTY
 - [ ] Spec: --no-color flag disables color
@@ -79,6 +90,7 @@ Within each range, phases use increments of 5 (001, 005, 010...) to allow insert
 
 ## Phase 035: Check Framework - Specs
 
+- [ ] Spec: check names are exactly: cloc, escapes, agents, docs, tests, git, build, license
 - [ ] Spec: --cloc flag enables only cloc check
 - [ ] Spec: --no-cloc flag disables cloc check
 - [ ] Spec: multiple check flags combine correctly
@@ -112,6 +124,7 @@ Within each range, phases use increments of 5 (001, 005, 010...) to allow insert
 - [ ] Spec: separates source and test files by pattern
 - [ ] Spec: calculates source-to-test ratio
 - [ ] Spec: JSON output includes source_lines, test_lines, ratio
+- [ ] Spec: cloc violation.type is always "file_too_large"
 - [ ] Spec: files over max_lines (750) generate violation
 - [ ] Spec: test files over max_lines_test (1100) generate violation
 - [ ] Spec: files over max_tokens generate violation
@@ -170,6 +183,7 @@ Within each range, phases use increments of 5 (001, 005, 010...) to allow insert
 - [ ] Spec: test code escapes counted separately in metrics
 - [ ] Spec: per-pattern advice shown in violation
 - [ ] Spec: JSON includes source/test breakdown per pattern
+- [ ] Spec: escapes violation.type is one of: missing_comment, forbidden, threshold_exceeded
 
 ## Phase 210: Escapes Check - Pattern Matching
 
@@ -328,6 +342,7 @@ Within each range, phases use increments of 5 (001, 005, 010...) to allow insert
 - [ ] Spec: file over max_lines generates violation
 - [ ] Spec: file over max_tokens generates violation
 - [ ] Spec: JSON includes files_found, in_sync metrics
+- [ ] Spec: agents violation.type is one of: missing_file, out_of_sync, missing_section, forbidden_section, forbidden_table, file_too_large
 
 ## Phase 505: Agents Check - File Detection
 
@@ -399,6 +414,7 @@ Within each range, phases use increments of 5 (001, 005, 010...) to allow insert
 - [ ] Spec: missing required section in spec generates violation
 - [ ] Spec: feature commit without doc change generates violation (CI mode)
 - [ ] Spec: area mapping restricts doc requirement to specific paths
+- [ ] Spec: docs violation.type is one of: missing_section, forbidden_section, broken_toc, broken_link, missing_docs
 
 ## Phase 605: Docs Check - TOC Validation
 
@@ -476,6 +492,7 @@ Within each range, phases use increments of 5 (001, 005, 010...) to allow insert
 - [ ] Spec: placeholder test (#[ignore]) satisfies test requirement
 - [ ] Spec: excluded files (mod.rs, main.rs) don't require tests
 - [ ] Spec: JSON includes source_files_changed, with_test_changes metrics
+- [ ] Spec: tests violation.type is always "missing_tests"
 
 ## Phase 705: Tests Check - Change Detection
 
@@ -524,6 +541,7 @@ Within each range, phases use increments of 5 (001, 005, 010...) to allow insert
 - [ ] Spec: missing format documentation in CLAUDE.md generates violation
 - [ ] Spec: --fix creates .gitmessage template
 - [ ] Spec: --fix configures git commit.template
+- [ ] Spec: git violation.type is one of: invalid_format, invalid_type, invalid_scope, missing_docs
 
 ## Phase 805: Git Check - Message Parsing
 
@@ -663,6 +681,7 @@ Within each range, phases use increments of 5 (001, 005, 010...) to allow insert
 - [ ] Spec: per-package coverage thresholds work
 - [ ] Spec: test time over max_total generates violation
 - [ ] Spec: slowest test over max_test generates violation
+- [ ] Spec: tests CI violation.type is one of: coverage_below_min, time_total_exceeded, time_test_exceeded
 
 ## Phase 955: Tests Check - CI Mode Thresholds
 
@@ -689,6 +708,7 @@ Within each range, phases use increments of 5 (001, 005, 010...) to allow insert
 - [ ] Spec: measures cold build time
 - [ ] Spec: measures hot build time
 - [ ] Spec: build time over threshold generates violation
+- [ ] Spec: build violation.type is one of: size_exceeded, time_cold_exceeded, time_hot_exceeded, missing_target
 
 ## Phase 1005: Build Check - Targets
 
@@ -736,6 +756,7 @@ Within each range, phases use increments of 5 (001, 005, 010...) to allow insert
 - [ ] Spec: --fix adds missing headers
 - [ ] Spec: --fix updates outdated years
 - [ ] Spec: shebang preserved when adding header
+- [ ] Spec: license violation.type is one of: missing_header, outdated_year, wrong_license
 
 ## Phase 1105: License Check - Detection
 
@@ -791,6 +812,7 @@ Within each range, phases use increments of 5 (001, 005, 010...) to allow insert
 - [ ] Spec: --fix updates baseline when metrics improve
 - [ ] Spec: baseline not updated when metrics regress
 - [ ] Spec: per-package ratcheting works
+- [ ] Spec: ratchet violation.type is one of: coverage_regression, escapes_regression, size_regression, time_regression
 
 ## Phase 1205: Ratcheting - Baseline
 
@@ -934,6 +956,7 @@ Within each range, phases use increments of 5 (001, 005, 010...) to allow insert
 - [ ] Spec: auto-detects Shell when *.sh in root/bin/scripts
 - [ ] Spec: auto-detects Claude when CLAUDE.md exists
 - [ ] Spec: auto-detects Cursor when .cursorrules exists
+- [ ] Spec: profile names are exactly: rust, shell, claude, cursor
 
 ## Phase 1505: Init Command - Profile Detection
 
