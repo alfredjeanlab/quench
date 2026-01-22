@@ -1,0 +1,9 @@
+# Insta snapshot configuration
+# https://insta.rs/docs/settings/
+
+# Review mode: require explicit approval
+behavior:
+  review: true
+
+# Glob patterns for test discovery
+test_runner: auto
