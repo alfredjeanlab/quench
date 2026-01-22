@@ -1,0 +1,5 @@
+version = 1
+
+[project]
+name = "rust-workspace"
+packages = ["crates/core", "crates/cli"]

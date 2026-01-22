@@ -1,0 +1,9 @@
+version = 1
+
+[project]
+name = "docs-project"
+
+[check.docs]
+check = "error"
+path = "docs/specs"
+index = "toc"

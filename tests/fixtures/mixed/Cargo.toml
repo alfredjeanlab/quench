@@ -1,0 +1,10 @@
+[package]
+name = "mixed-cli"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "mixed"
+path = "src/main.rs"
+
+[workspace]

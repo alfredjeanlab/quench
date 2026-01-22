@@ -1,0 +1,26 @@
+version = 1
+
+[project]
+name = "agents-project"
+packages = ["crates/api"]
+
+[check.agents]
+check = "error"
+files = ["CLAUDE.md", ".cursorrules"]
+required = ["CLAUDE.md"]
+optional = [".cursorrules"]
+sync = true
+sync_source = "CLAUDE.md"
+tables = "forbid"
+
+[[check.agents.sections.required]]
+name = "Directory Structure"
+advice = "Overview of project layout"
+
+[[check.agents.sections.required]]
+name = "Landing the Plane"
+advice = "Checklist for AI agents"
+
+[check.agents.package]
+optional = ["CLAUDE.md"]
+max_lines = 200
