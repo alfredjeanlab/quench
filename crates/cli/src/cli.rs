@@ -4,6 +4,8 @@ use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
 
+use crate::color::ColorMode;
+
 /// A fast linting tool for AI agents that measures quality signals
 #[derive(Parser)]
 #[command(name = "quench")]
@@ -37,6 +39,26 @@ pub struct CheckArgs {
     /// Output format
     #[arg(short, long, default_value = "text")]
     pub output: OutputFormat,
+
+    /// Color output mode
+    #[arg(long, default_value = "auto", value_name = "WHEN")]
+    pub color: ColorMode,
+
+    /// Disable color output (shorthand for --color=never)
+    #[arg(long)]
+    pub no_color: bool,
+
+    /// Maximum violations to display (default: 15)
+    #[arg(long, default_value_t = 15, value_name = "N")]
+    pub limit: usize,
+
+    /// Show all violations (no limit)
+    #[arg(long)]
+    pub no_limit: bool,
+
+    /// Validate config and exit without running checks
+    #[arg(long = "config-only")]
+    pub config_only: bool,
 
     /// Maximum directory depth to traverse
     #[arg(long, default_value_t = 100)]

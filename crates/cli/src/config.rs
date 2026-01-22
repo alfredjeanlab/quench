@@ -23,6 +23,9 @@ struct FlexibleConfig {
     #[serde(default)]
     project: Option<toml::Value>,
 
+    #[serde(default)]
+    check: Option<toml::Value>,
+
     #[serde(flatten)]
     unknown: std::collections::BTreeMap<String, toml::Value>,
 }
@@ -36,6 +39,64 @@ pub struct Config {
     /// Project configuration.
     #[serde(default)]
     pub project: ProjectConfig,
+
+    /// Check configurations.
+    #[serde(default)]
+    pub check: CheckConfig,
+}
+
+/// Check-specific configurations.
+#[derive(Debug, Default, Deserialize)]
+pub struct CheckConfig {
+    /// Cloc (count lines of code) check configuration.
+    #[serde(default)]
+    pub cloc: ClocConfig,
+}
+
+/// Cloc check configuration.
+#[derive(Debug, Deserialize)]
+pub struct ClocConfig {
+    /// Maximum lines per file (default: 750).
+    #[serde(default = "ClocConfig::default_max_lines")]
+    pub max_lines: usize,
+
+    /// Maximum lines per test file (default: 1100).
+    #[serde(default = "ClocConfig::default_max_lines_test")]
+    pub max_lines_test: usize,
+
+    /// Check level: error, warn, or off.
+    #[serde(default)]
+    pub check: CheckLevel,
+}
+
+impl Default for ClocConfig {
+    fn default() -> Self {
+        Self {
+            max_lines: Self::default_max_lines(),
+            max_lines_test: Self::default_max_lines_test(),
+            check: CheckLevel::default(),
+        }
+    }
+}
+
+impl ClocConfig {
+    fn default_max_lines() -> usize {
+        750
+    }
+
+    fn default_max_lines_test() -> usize {
+        1100
+    }
+}
+
+/// Check level: error, warn, or off.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum CheckLevel {
+    #[default]
+    Error,
+    Warn,
+    Off,
 }
 
 /// Project-level configuration.
@@ -144,13 +205,6 @@ pub fn parse_with_warnings(content: &str, path: &Path) -> Result<Config> {
         }
     }
 
-    // Check unknown keys in check section (if present)
-    if let Some(toml::Value::Table(check_table)) = flexible.unknown.get("check") {
-        for key in check_table.keys() {
-            unknown_keys.insert(format!("check.{}", key));
-        }
-    }
-
     // Warn about unknown keys
     for key in &unknown_keys {
         warn_unknown_key(path, key);
@@ -201,9 +255,61 @@ pub fn parse_with_warnings(content: &str, path: &Path) -> Result<Config> {
         _ => ProjectConfig::default(),
     };
 
+    // Parse check config
+    let check = match flexible.check {
+        Some(toml::Value::Table(t)) => {
+            // Known check types
+            const KNOWN_CHECKS: &[&str] = &[
+                "cloc", "escapes", "agents", "docs", "tests", "git", "build", "license",
+            ];
+
+            // Warn about unknown check types
+            for key in t.keys() {
+                if !KNOWN_CHECKS.contains(&key.as_str()) {
+                    warn_unknown_key(path, &format!("check.{}", key));
+                }
+            }
+
+            // Parse cloc config
+            let cloc = match t.get("cloc") {
+                Some(toml::Value::Table(cloc_table)) => {
+                    let max_lines = cloc_table
+                        .get("max_lines")
+                        .and_then(|v| v.as_integer())
+                        .map(|v| v as usize)
+                        .unwrap_or_else(ClocConfig::default_max_lines);
+
+                    let max_lines_test = cloc_table
+                        .get("max_lines_test")
+                        .and_then(|v| v.as_integer())
+                        .map(|v| v as usize)
+                        .unwrap_or_else(ClocConfig::default_max_lines_test);
+
+                    let check = match cloc_table.get("check").and_then(|v| v.as_str()) {
+                        Some("error") => CheckLevel::Error,
+                        Some("warn") => CheckLevel::Warn,
+                        Some("off") => CheckLevel::Off,
+                        _ => CheckLevel::default(),
+                    };
+
+                    ClocConfig {
+                        max_lines,
+                        max_lines_test,
+                        check,
+                    }
+                }
+                _ => ClocConfig::default(),
+            };
+
+            CheckConfig { cloc }
+        }
+        _ => CheckConfig::default(),
+    };
+
     Ok(Config {
         version: flexible.version,
         project,
+        check,
     })
 }
 

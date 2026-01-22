@@ -6,8 +6,8 @@ name = "violations"
 # Enable all checks with strict settings
 [check.cloc]
 check = "error"
-max_lines = 750
-max_lines_test = 1100
+max_lines = 5      # Very low to trigger multiple violations for testing
+max_lines_test = 5
 
 [check.escapes]
 check = "error"

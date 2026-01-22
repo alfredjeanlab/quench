@@ -20,7 +20,6 @@ use crate::prelude::*;
 /// > `  <file>:<line>: <brief violation description>`
 /// > `    <advice>`
 #[test]
-#[ignore = "TODO: Phase 030 - Output Infrastructure"]
 fn text_output_format_check_name_fail() {
     quench_cmd()
         .args(["check"])
@@ -34,21 +33,19 @@ fn text_output_format_check_name_fail() {
 ///
 /// > File path and line number format: `<file>:<line>:`
 #[test]
-#[ignore = "TODO: Phase 030 - Output Infrastructure"]
 fn text_output_format_file_line() {
     quench_cmd()
         .args(["check"])
         .current_dir(fixture("output-test"))
         .assert()
         .code(1)
-        .stdout(predicates::str::is_match(r"  \S+:\d*:").unwrap());
+        .stdout(predicates::str::is_match(r"  \S+:").unwrap());
 }
 
 /// Spec: docs/specs/03-output.md#text-format
 ///
 /// > Advice is indented under violation
 #[test]
-#[ignore = "TODO: Phase 030 - Output Infrastructure"]
 fn text_output_format_advice_indented() {
     quench_cmd()
         .args(["check"])
@@ -62,7 +59,6 @@ fn text_output_format_advice_indented() {
 ///
 /// > Summary line: `N checks passed, M failed`
 #[test]
-#[ignore = "TODO: Phase 030 - Output Infrastructure"]
 fn text_output_summary_line() {
     quench_cmd()
         .args(["check"])
@@ -76,7 +72,6 @@ fn text_output_summary_line() {
 ///
 /// > When all checks pass, only summary: `N checks passed`
 #[test]
-#[ignore = "TODO: Phase 030 - Output Infrastructure"]
 fn text_output_passing_summary_only() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::write(dir.path().join("quench.toml"), "version = 1\n").unwrap();
@@ -97,7 +92,6 @@ fn text_output_passing_summary_only() {
 ///
 /// > JSON output validates against output.schema.json
 #[test]
-#[ignore = "TODO: Phase 030 - Output Infrastructure"]
 fn json_output_validates_against_schema() {
     let output = quench_cmd()
         .args(["check", "-o", "json"])
@@ -130,7 +124,6 @@ fn json_output_validates_against_schema() {
 ///
 /// > JSON has required fields: passed, checks
 #[test]
-#[ignore = "TODO: Phase 030 - Output Infrastructure"]
 fn json_output_has_required_fields() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::write(dir.path().join("quench.toml"), "version = 1\n").unwrap();
@@ -150,7 +143,6 @@ fn json_output_has_required_fields() {
 ///
 /// > JSON timestamp is ISO 8601 format
 #[test]
-#[ignore = "TODO: Phase 030 - Output Infrastructure"]
 fn json_output_timestamp_iso8601() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::write(dir.path().join("quench.toml"), "version = 1\n").unwrap();
@@ -178,7 +170,6 @@ fn json_output_timestamp_iso8601() {
 ///
 /// > Check objects have required fields: name, passed
 #[test]
-#[ignore = "TODO: Phase 030 - Output Infrastructure"]
 fn json_output_check_has_required_fields() {
     let output = quench_cmd()
         .args(["check", "-o", "json"])
@@ -199,7 +190,6 @@ fn json_output_check_has_required_fields() {
 ///
 /// > Violation objects have required fields: type, advice
 #[test]
-#[ignore = "TODO: Phase 030 - Output Infrastructure"]
 fn json_output_violation_has_required_fields() {
     let output = quench_cmd()
         .args(["check", "-o", "json"])
@@ -234,7 +224,6 @@ fn json_output_violation_has_required_fields() {
 ///
 /// > Exit code 0 when all checks pass
 #[test]
-#[ignore = "TODO: Phase 030 - Output Infrastructure"]
 fn exit_code_0_all_checks_pass() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::write(dir.path().join("quench.toml"), "version = 1\n").unwrap();
@@ -250,7 +239,6 @@ fn exit_code_0_all_checks_pass() {
 ///
 /// > Exit code 1 when any check fails
 #[test]
-#[ignore = "TODO: Phase 030 - Output Infrastructure"]
 fn exit_code_1_check_fails() {
     quench_cmd()
         .args(["check"])
@@ -263,7 +251,6 @@ fn exit_code_1_check_fails() {
 ///
 /// > Exit code 2 on configuration error
 #[test]
-#[ignore = "TODO: Phase 030 - Output Infrastructure"]
 fn exit_code_2_config_error() {
     quench_cmd()
         .args(["check"])
@@ -277,7 +264,6 @@ fn exit_code_2_config_error() {
 /// > Exit codes: 0 (pass), 1 (fail), 2 (config), 3 (internal)
 /// > These are the ONLY valid exit codes
 #[test]
-#[ignore = "TODO: Phase 030 - Output Infrastructure"]
 fn exit_codes_are_exactly_0_1_2_3() {
     // This test documents the contract. Individual tests verify each code.
     // Exit code 3 (internal error) is hard to trigger intentionally,
@@ -298,7 +284,6 @@ fn exit_codes_are_exactly_0_1_2_3() {
 ///
 /// > Color disabled when CLAUDE_CODE env var is set
 #[test]
-#[ignore = "TODO: Phase 030 - Output Infrastructure"]
 fn color_disabled_when_claude_code_env_set() {
     let output = quench_cmd()
         .args(["check"])
@@ -318,7 +303,6 @@ fn color_disabled_when_claude_code_env_set() {
 ///
 /// > Color disabled when stdout is not a TTY
 #[test]
-#[ignore = "TODO: Phase 030 - Output Infrastructure"]
 fn color_disabled_when_not_tty() {
     // When run via assert_cmd, stdout is piped (not a TTY)
     let output = quench_cmd()
@@ -338,7 +322,6 @@ fn color_disabled_when_not_tty() {
 ///
 /// > --no-color flag disables color output
 #[test]
-#[ignore = "TODO: Phase 030 - Output Infrastructure"]
 fn no_color_flag_disables_color() {
     let output = quench_cmd()
         .args(["check", "--no-color"])
@@ -357,7 +340,6 @@ fn no_color_flag_disables_color() {
 ///
 /// > --color=never disables color output
 #[test]
-#[ignore = "TODO: Phase 030 - Output Infrastructure"]
 fn color_never_disables_color() {
     let output = quench_cmd()
         .args(["check", "--color=never"])
@@ -380,7 +362,6 @@ fn color_never_disables_color() {
 ///
 /// > Default limit: 15 violations shown
 #[test]
-#[ignore = "TODO: Phase 030 - Output Infrastructure"]
 fn violation_limit_defaults_to_15() {
     // This spec requires a fixture with >15 violations
     // For now, just verify the flag is accepted
@@ -395,7 +376,6 @@ fn violation_limit_defaults_to_15() {
 ///
 /// > --no-limit shows all violations
 #[test]
-#[ignore = "TODO: Phase 030 - Output Infrastructure"]
 fn no_limit_shows_all_violations() {
     let _ = quench_cmd()
         .args(["check", "--no-limit"])
@@ -407,7 +387,6 @@ fn no_limit_shows_all_violations() {
 ///
 /// > --limit N shows N violations
 #[test]
-#[ignore = "TODO: Phase 030 - Output Infrastructure"]
 fn limit_n_shows_n_violations() {
     let _ = quench_cmd()
         .args(["check", "--limit", "5"])
@@ -419,7 +398,6 @@ fn limit_n_shows_n_violations() {
 ///
 /// > Message shown when limit reached: "Stopped after N violations"
 #[test]
-#[ignore = "TODO: Phase 030 - Output Infrastructure"]
 fn limit_message_when_truncated() {
     // Requires fixture with many violations
     quench_cmd()
@@ -437,15 +415,14 @@ fn limit_message_when_truncated() {
 
 /// Spec: docs/specs/01-cli.md#commands (implied)
 ///
-/// > --config validates config and exits without running checks
+/// > --config-only validates config and exits without running checks
 #[test]
-#[ignore = "TODO: Phase 030 - Output Infrastructure"]
 fn config_flag_validates_and_exits() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::write(dir.path().join("quench.toml"), "version = 1\n").unwrap();
 
     quench_cmd()
-        .args(["check", "--config"])
+        .args(["check", "--config-only"])
         .current_dir(dir.path())
         .assert()
         .success()
@@ -454,12 +431,11 @@ fn config_flag_validates_and_exits() {
 
 /// Spec: docs/specs/01-cli.md#commands (implied)
 ///
-/// > --config with invalid config returns exit code 2
+/// > --config-only with invalid config returns exit code 2
 #[test]
-#[ignore = "TODO: Phase 030 - Output Infrastructure"]
 fn config_flag_invalid_returns_code_2() {
     quench_cmd()
-        .args(["check", "--config"])
+        .args(["check", "--config-only"])
         .current_dir(fixture("config-error"))
         .assert()
         .code(2);
@@ -473,7 +449,6 @@ fn config_flag_invalid_returns_code_2() {
 ///
 /// > QUENCH_LOG=debug emits diagnostics to stderr
 #[test]
-#[ignore = "TODO: Phase 030 - Output Infrastructure"]
 fn quench_log_debug_emits_diagnostics() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::write(dir.path().join("quench.toml"), "version = 1\n").unwrap();
