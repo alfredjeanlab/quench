@@ -44,7 +44,7 @@ fn parses_empty_input() { ... }
 - LOC metrics reflect implementation conciseness, not test volume
 - Integration tests remain in `tests/` as usual
 
-## Development Workflow
+## Development Lifecycle
 
 1. Specs are written from `docs/specs/`, not from implementation
 2. Write specs first, mark unimplemented with `#[ignore = "TODO: Phase N"]`
