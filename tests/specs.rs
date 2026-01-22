@@ -425,7 +425,7 @@ fn check_output_format_snapshot() {
 cloc: FAIL
   src/oversized.rs: file_too_large (15 vs 10)
     Split into smaller modules. 15 lines exceeds 10 line limit.
-0 checks passed, 1 failed
+7 checks passed, 1 failed
 "#
     );
 }

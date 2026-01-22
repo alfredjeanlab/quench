@@ -1392,6 +1392,7 @@ dependencies = [
  "memmap2",
  "predicates",
  "proptest",
+ "rayon",
  "serde",
  "serde_json",
  "tempfile",

@@ -71,6 +71,134 @@ pub struct CheckArgs {
     /// Enable verbose output
     #[arg(long, short = 'v')]
     pub verbose: bool,
+
+    // Check enable flags (run only these checks)
+    /// Run only the cloc check
+    #[arg(long)]
+    pub cloc: bool,
+
+    /// Run only the escapes check
+    #[arg(long)]
+    pub escapes: bool,
+
+    /// Run only the agents check
+    #[arg(long)]
+    pub agents: bool,
+
+    /// Run only the docs check
+    #[arg(long)]
+    pub docs: bool,
+
+    /// Run only the tests check
+    #[arg(long = "tests")]
+    pub tests_check: bool,
+
+    /// Run only the git check
+    #[arg(long)]
+    pub git: bool,
+
+    /// Run only the build check
+    #[arg(long)]
+    pub build: bool,
+
+    /// Run only the license check
+    #[arg(long)]
+    pub license: bool,
+
+    // Check disable flags (skip these checks)
+    /// Skip the cloc check
+    #[arg(long)]
+    pub no_cloc: bool,
+
+    /// Skip the escapes check
+    #[arg(long)]
+    pub no_escapes: bool,
+
+    /// Skip the agents check
+    #[arg(long)]
+    pub no_agents: bool,
+
+    /// Skip the docs check
+    #[arg(long)]
+    pub no_docs: bool,
+
+    /// Skip the tests check
+    #[arg(long)]
+    pub no_tests: bool,
+
+    /// Skip the git check
+    #[arg(long)]
+    pub no_git: bool,
+
+    /// Skip the build check
+    #[arg(long)]
+    pub no_build: bool,
+
+    /// Skip the license check
+    #[arg(long)]
+    pub no_license: bool,
+}
+
+impl CheckArgs {
+    /// Get list of explicitly enabled checks.
+    pub fn enabled_checks(&self) -> Vec<String> {
+        let mut enabled = Vec::new();
+        if self.cloc {
+            enabled.push("cloc".to_string());
+        }
+        if self.escapes {
+            enabled.push("escapes".to_string());
+        }
+        if self.agents {
+            enabled.push("agents".to_string());
+        }
+        if self.docs {
+            enabled.push("docs".to_string());
+        }
+        if self.tests_check {
+            enabled.push("tests".to_string());
+        }
+        if self.git {
+            enabled.push("git".to_string());
+        }
+        if self.build {
+            enabled.push("build".to_string());
+        }
+        if self.license {
+            enabled.push("license".to_string());
+        }
+        enabled
+    }
+
+    /// Get list of explicitly disabled checks.
+    pub fn disabled_checks(&self) -> Vec<String> {
+        let mut disabled = Vec::new();
+        if self.no_cloc {
+            disabled.push("cloc".to_string());
+        }
+        if self.no_escapes {
+            disabled.push("escapes".to_string());
+        }
+        if self.no_agents {
+            disabled.push("agents".to_string());
+        }
+        if self.no_docs {
+            disabled.push("docs".to_string());
+        }
+        if self.no_tests {
+            disabled.push("tests".to_string());
+        }
+        if self.no_git {
+            disabled.push("git".to_string());
+        }
+        if self.no_build {
+            disabled.push("build".to_string());
+        }
+        if self.no_license {
+            disabled.push("license".to_string());
+        }
+        disabled
+    }
 }
 
 #[derive(clap::Args)]

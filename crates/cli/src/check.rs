@@ -1,7 +1,57 @@
 //! Check result types for output formatting.
 
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
+use std::sync::atomic::AtomicUsize;
+
 use serde::Serialize;
-use std::path::PathBuf;
+use serde_json::Value as JsonValue;
+
+use crate::config::Config;
+use crate::walker::WalkedFile;
+
+/// Context passed to all checks during execution.
+pub struct CheckContext<'a> {
+    /// Project root directory.
+    pub root: &'a Path,
+    /// Discovered files from the walker.
+    pub files: &'a [WalkedFile],
+    /// Parsed configuration.
+    pub config: &'a Config,
+    /// Violation limit (None = unlimited).
+    pub limit: Option<usize>,
+    /// Running violation count across all checks.
+    pub violation_count: &'a AtomicUsize,
+}
+
+/// The Check trait defines a single quality check.
+///
+/// Object-safe to allow dynamic dispatch via `Box<dyn Check>`.
+pub trait Check: Send + Sync {
+    /// Unique identifier for this check (e.g., "cloc", "escapes").
+    fn name(&self) -> &'static str;
+
+    /// Human-readable description for help output.
+    fn description(&self) -> &'static str;
+
+    /// Run the check and return results.
+    ///
+    /// Implementations should:
+    /// - Return `CheckResult::skipped()` if prerequisites are missing
+    /// - Respect `ctx.limit` for early termination
+    /// - Handle errors gracefully without panicking
+    fn run(&self, ctx: &CheckContext) -> CheckResult;
+
+    /// Whether this check can auto-fix violations.
+    fn fixable(&self) -> bool {
+        false
+    }
+
+    /// Whether this check is enabled by default in fast mode.
+    fn default_enabled(&self) -> bool {
+        true
+    }
+}
 
 /// A single violation within a check.
 #[derive(Debug, Clone, Serialize)]
@@ -104,6 +154,14 @@ pub struct CheckResult {
     /// List of violations (omitted if empty).
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub violations: Vec<Violation>,
+
+    /// Aggregated metrics for this check.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub metrics: Option<JsonValue>,
+
+    /// Per-package breakdown of metrics.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub by_package: Option<HashMap<String, JsonValue>>,
 }
 
 impl CheckResult {
@@ -115,6 +173,8 @@ impl CheckResult {
             skipped: false,
             error: None,
             violations: Vec::new(),
+            metrics: None,
+            by_package: None,
         }
     }
 
@@ -126,6 +186,8 @@ impl CheckResult {
             skipped: false,
             error: None,
             violations,
+            metrics: None,
+            by_package: None,
         }
     }
 
@@ -137,7 +199,21 @@ impl CheckResult {
             skipped: true,
             error: Some(error.into()),
             violations: Vec::new(),
+            metrics: None,
+            by_package: None,
         }
+    }
+
+    /// Create a result with metrics.
+    pub fn with_metrics(mut self, metrics: JsonValue) -> Self {
+        self.metrics = Some(metrics);
+        self
+    }
+
+    /// Add per-package metrics breakdown.
+    pub fn with_by_package(mut self, by_package: HashMap<String, JsonValue>) -> Self {
+        self.by_package = Some(by_package);
+        self
     }
 }
 
@@ -157,7 +233,8 @@ pub struct CheckOutput {
 impl CheckOutput {
     /// Create output from check results.
     pub fn new(timestamp: String, checks: Vec<CheckResult>) -> Self {
-        let passed = checks.iter().all(|c| c.passed);
+        // Overall passed = all non-skipped checks passed
+        let passed = checks.iter().all(|c| c.passed || c.skipped);
         Self {
             timestamp,
             passed,
