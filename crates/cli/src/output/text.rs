@@ -45,6 +45,22 @@ impl TextFormatter {
         write!(self.stdout, "{}", result.name)?;
         self.stdout.reset()?;
 
+        if result.skipped {
+            // ": SKIP" for skipped checks
+            write!(self.stdout, ": ")?;
+            self.stdout.set_color(&scheme::skip())?;
+            write!(self.stdout, "SKIP")?;
+            self.stdout.reset()?;
+            writeln!(self.stdout)?;
+
+            // Show skip reason
+            if let Some(ref error) = result.error {
+                writeln!(self.stdout, "  {}", error)?;
+            }
+
+            return Ok(false);
+        }
+
         // ": FAIL" in red
         write!(self.stdout, ": ")?;
         self.stdout.set_color(&scheme::fail())?;
@@ -108,16 +124,25 @@ impl TextFormatter {
     /// Write the summary line.
     pub fn write_summary(&mut self, output: &CheckOutput) -> std::io::Result<()> {
         let passed = output.checks.iter().filter(|c| c.passed).count();
-        let failed = output.checks.len() - passed;
+        let skipped = output.checks.iter().filter(|c| c.skipped).count();
+        let failed = output.checks.len() - passed - skipped;
 
-        if failed == 0 {
+        if failed == 0 && skipped == 0 {
             writeln!(
                 self.stdout,
                 "{} check{} passed",
                 passed,
                 if passed == 1 { "" } else { "s" }
             )?;
-        } else {
+        } else if failed == 0 {
+            writeln!(
+                self.stdout,
+                "{} check{} passed, {} skipped",
+                passed,
+                if passed == 1 { "" } else { "s" },
+                skipped
+            )?;
+        } else if skipped == 0 {
             writeln!(
                 self.stdout,
                 "{} check{} passed, {} failed",
@@ -125,15 +150,23 @@ impl TextFormatter {
                 if passed == 1 { "" } else { "s" },
                 failed
             )?;
+        } else {
+            writeln!(
+                self.stdout,
+                "{} check{} passed, {} failed, {} skipped",
+                passed,
+                if passed == 1 { "" } else { "s" },
+                failed,
+                skipped
+            )?;
         }
         Ok(())
     }
 
     /// Write truncation message if applicable.
-    pub fn write_truncation_message(&mut self, total: usize) -> std::io::Result<()> {
+    pub fn write_truncation_message(&mut self, _total: usize) -> std::io::Result<()> {
         if let Some(limit) = self.options.limit
-            && self.truncated
-            && total > limit
+            && self.was_truncated()
         {
             writeln!(
                 self.stdout,
@@ -146,7 +179,12 @@ impl TextFormatter {
 
     /// Check if output was truncated.
     pub fn was_truncated(&self) -> bool {
+        // Truncated if we either explicitly stopped writing, or if we hit the limit
         self.truncated
+            || self
+                .options
+                .limit
+                .is_some_and(|limit| self.violations_shown >= limit)
     }
 
     /// Get the number of violations shown.

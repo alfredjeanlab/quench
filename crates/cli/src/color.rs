@@ -80,6 +80,13 @@ pub mod scheme {
         spec
     }
 
+    /// Yellow "SKIP" indicator.
+    pub fn skip() -> ColorSpec {
+        let mut spec = ColorSpec::new();
+        spec.set_fg(Some(Color::Yellow)).set_bold(true);
+        spec
+    }
+
     /// Cyan file path.
     pub fn path() -> ColorSpec {
         let mut spec = ColorSpec::new();

@@ -76,8 +76,9 @@ fn text_output_passing_summary_only() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::write(dir.path().join("quench.toml"), "version = 1\n").unwrap();
 
+    // Use --no-git to avoid skip message in non-git directory
     quench_cmd()
-        .args(["check"])
+        .args(["check", "--no-git"])
         .current_dir(dir.path())
         .assert()
         .success()
@@ -228,8 +229,9 @@ fn exit_code_0_all_checks_pass() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::write(dir.path().join("quench.toml"), "version = 1\n").unwrap();
 
+    // Use --no-git to avoid skip in non-git directory
     quench_cmd()
-        .args(["check"])
+        .args(["check", "--no-git"])
         .current_dir(dir.path())
         .assert()
         .code(0);
@@ -453,8 +455,9 @@ fn quench_log_debug_emits_diagnostics() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::write(dir.path().join("quench.toml"), "version = 1\n").unwrap();
 
+    // Use --no-git to avoid skip in non-git directory
     quench_cmd()
-        .args(["check"])
+        .args(["check", "--no-git"])
         .current_dir(dir.path())
         .env("QUENCH_LOG", "debug")
         .assert()

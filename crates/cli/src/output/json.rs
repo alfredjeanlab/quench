@@ -29,12 +29,10 @@ impl<W: Write> JsonFormatter<W> {
 
 /// Create CheckOutput with current timestamp.
 pub fn create_output(checks: Vec<CheckResult>) -> CheckOutput {
-    let passed = checks.iter().all(|c| c.passed);
-    CheckOutput {
-        timestamp: Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
-        passed,
+    CheckOutput::new(
+        Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
         checks,
-    }
+    )
 }
 
 #[cfg(test)]

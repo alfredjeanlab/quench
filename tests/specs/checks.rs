@@ -21,7 +21,6 @@ use crate::prelude::*;
 ///
 /// > Built-in checks: cloc, escapes, agents, docs, tests, git, build, license
 #[test]
-#[ignore = "TODO: Phase 040 - Check Framework"]
 fn check_names_are_exactly_8_known_checks() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::write(dir.path().join("quench.toml"), "version = 1\n").unwrap();
@@ -58,7 +57,6 @@ fn check_names_are_exactly_8_known_checks() {
 ///
 /// > Check toggles appear in help: --[no-]cloc, --[no-]escapes, etc.
 #[test]
-#[ignore = "TODO: Phase 040 - Check Framework"]
 fn check_toggles_shown_in_help() {
     quench_cmd()
         .args(["check", "--help"])
@@ -82,7 +80,6 @@ fn check_toggles_shown_in_help() {
 ///
 /// > --cloc: Only run cloc check (implies --no-* for others)
 #[test]
-#[ignore = "TODO: Phase 040 - Check Framework"]
 fn cloc_flag_enables_only_cloc_check() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::write(dir.path().join("quench.toml"), "version = 1\n").unwrap();
@@ -108,7 +105,6 @@ fn cloc_flag_enables_only_cloc_check() {
 ///
 /// > --escapes: Only run escapes check
 #[test]
-#[ignore = "TODO: Phase 040 - Check Framework"]
 fn escapes_flag_enables_only_escapes_check() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::write(dir.path().join("quench.toml"), "version = 1\n").unwrap();
@@ -138,7 +134,6 @@ fn escapes_flag_enables_only_escapes_check() {
 ///
 /// > --no-cloc: Skip cloc check, run all others
 #[test]
-#[ignore = "TODO: Phase 040 - Check Framework"]
 fn no_cloc_flag_disables_cloc_check() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::write(dir.path().join("quench.toml"), "version = 1\n").unwrap();
@@ -165,7 +160,6 @@ fn no_cloc_flag_disables_cloc_check() {
 ///
 /// > --no-escapes: Skip escapes check
 #[test]
-#[ignore = "TODO: Phase 040 - Check Framework"]
 fn no_escapes_flag_disables_escapes_check() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::write(dir.path().join("quench.toml"), "version = 1\n").unwrap();
@@ -191,7 +185,6 @@ fn no_escapes_flag_disables_escapes_check() {
 ///
 /// > --no-docs: Skip docs check
 #[test]
-#[ignore = "TODO: Phase 040 - Check Framework"]
 fn no_docs_flag_disables_docs_check() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::write(dir.path().join("quench.toml"), "version = 1\n").unwrap();
@@ -217,7 +210,6 @@ fn no_docs_flag_disables_docs_check() {
 ///
 /// > --no-tests: Skip tests check
 #[test]
-#[ignore = "TODO: Phase 040 - Check Framework"]
 fn no_tests_flag_disables_tests_check() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::write(dir.path().join("quench.toml"), "version = 1\n").unwrap();
@@ -247,7 +239,6 @@ fn no_tests_flag_disables_tests_check() {
 ///
 /// > Multiple enable flags combine: --cloc --escapes runs both checks
 #[test]
-#[ignore = "TODO: Phase 040 - Check Framework"]
 fn multiple_enable_flags_run_multiple_checks() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::write(dir.path().join("quench.toml"), "version = 1\n").unwrap();
@@ -275,7 +266,6 @@ fn multiple_enable_flags_run_multiple_checks() {
 ///
 /// > Multiple disable flags combine: --no-docs --no-tests skips both
 #[test]
-#[ignore = "TODO: Phase 040 - Check Framework"]
 fn multiple_disable_flags_skip_multiple_checks() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::write(dir.path().join("quench.toml"), "version = 1\n").unwrap();
@@ -303,7 +293,6 @@ fn multiple_disable_flags_skip_multiple_checks() {
 ///
 /// > quench check --no-cloc --no-escapes: Skip multiple checks
 #[test]
-#[ignore = "TODO: Phase 040 - Check Framework"]
 fn no_cloc_no_escapes_skips_both() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::write(dir.path().join("quench.toml"), "version = 1\n").unwrap();
@@ -330,7 +319,6 @@ fn no_cloc_no_escapes_skips_both() {
 ///
 /// > All checks can be disabled except one
 #[test]
-#[ignore = "TODO: Phase 040 - Check Framework"]
 fn all_checks_disabled_except_one() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::write(dir.path().join("quench.toml"), "version = 1\n").unwrap();
@@ -372,7 +360,6 @@ fn all_checks_disabled_except_one() {
 ///
 /// > Check failure doesn't prevent other checks from running
 #[test]
-#[ignore = "TODO: Phase 040 - Check Framework"]
 fn check_failure_doesnt_block_other_checks() {
     // Use fixture that triggers cloc failure (oversized file)
     let output = quench_cmd()
@@ -424,7 +411,6 @@ fn check_failure_doesnt_block_other_checks() {
 ///
 /// > Skipped check shows error message but continues with other checks
 #[test]
-#[ignore = "TODO: Phase 040 - Check Framework"]
 fn skipped_check_shows_error_but_continues() {
     // This test uses a fixture that causes a specific check to skip
     // (e.g., git check in a non-git directory)
@@ -470,7 +456,6 @@ fn skipped_check_shows_error_but_continues() {
 ///
 /// > Skipped check shows in text output with reason
 #[test]
-#[ignore = "TODO: Phase 040 - Check Framework"]
 fn skipped_check_text_output_shows_reason() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::write(dir.path().join("quench.toml"), "version = 1\n").unwrap();
@@ -492,7 +477,6 @@ fn skipped_check_text_output_shows_reason() {
 ///
 /// > Skipped check has `skipped: true` and `error` field in JSON
 #[test]
-#[ignore = "TODO: Phase 040 - Check Framework"]
 fn skipped_check_json_has_required_fields() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::write(dir.path().join("quench.toml"), "version = 1\n").unwrap();
