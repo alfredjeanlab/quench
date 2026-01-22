@@ -1,5 +1,7 @@
 # Phase 002: Benchmark Fixtures
 
+**Root Feature:** `quench-2904`
+
 ## Overview
 
 Create benchmark fixtures and performance tests for quench. This phase establishes the infrastructure needed to measure and track performance against the targets defined in `docs/specs/20-performance.md`:
