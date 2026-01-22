@@ -26,7 +26,8 @@ MAX_TEST=1100
 
 source_size_failed=0
 test_size_failed=0
-files=$(rg --files --type rust crates tests 2>/dev/null)
+# Exclude benchmark fixtures (generated files with intentionally large sizes)
+files=$(rg --files --type rust crates tests --glob '!tests/fixtures/bench-*' 2>/dev/null)
 if [[ -n "$files" ]]; then
     # Batch wc -l call (35x faster than per-file)
     while read -r line; do

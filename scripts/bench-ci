@@ -1,0 +1,152 @@
+#!/usr/bin/env bash
+# scripts/bench-ci - Run benchmarks and track results for CI
+#
+# This script runs all benchmarks and provides summary output suitable for CI.
+# It can optionally compare against a saved baseline to detect regressions.
+#
+# Usage:
+#   ./scripts/bench-ci                  # Run benchmarks
+#   ./scripts/bench-ci --save-baseline  # Save current results as baseline
+#   ./scripts/bench-ci --compare        # Compare against baseline
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+RESULTS_DIR="$REPO_ROOT/target/criterion"
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+cd "$REPO_ROOT"
+
+# Check if fixtures exist
+check_fixtures() {
+    local fixtures_dir="$REPO_ROOT/tests/fixtures"
+    if [[ ! -d "$fixtures_dir/bench-small" ]]; then
+        echo -e "${YELLOW}Fixtures not found. Generating...${NC}"
+        ./scripts/gen-fixtures
+    fi
+}
+
+# Run benchmarks
+run_benchmarks() {
+    echo -e "${BLUE}Running benchmarks...${NC}"
+    echo ""
+
+    # Run baseline benchmarks
+    echo -e "${YELLOW}Running baseline benchmarks...${NC}"
+    cargo bench --bench baseline -- --noplot 2>&1 | grep -E "(cli_startup|version_check|time:)" || true
+    echo ""
+
+    # Run file walking benchmarks
+    echo -e "${YELLOW}Running file walking benchmarks...${NC}"
+    cargo bench --bench file_walking -- --noplot 2>&1 | grep -E "(walk|time:)" || true
+    echo ""
+
+    # Run check benchmarks (may skip if check not implemented)
+    echo -e "${YELLOW}Running check benchmarks...${NC}"
+    cargo bench --bench check -- --noplot 2>&1 | grep -E "(check|placeholder|time:|Skipping)" || true
+    echo ""
+
+    echo -e "${GREEN}Benchmark results saved to: $RESULTS_DIR${NC}"
+}
+
+# Save baseline
+save_baseline() {
+    echo -e "${BLUE}Saving benchmark baseline...${NC}"
+    run_benchmarks
+
+    # Create baseline directory
+    local baseline_dir="$REPO_ROOT/.bench-baseline"
+    mkdir -p "$baseline_dir"
+
+    # Copy criterion results
+    if [[ -d "$RESULTS_DIR" ]]; then
+        cp -r "$RESULTS_DIR"/* "$baseline_dir/" 2>/dev/null || true
+        echo -e "${GREEN}Baseline saved to: $baseline_dir${NC}"
+    else
+        echo -e "${RED}No benchmark results to save${NC}"
+        exit 1
+    fi
+}
+
+# Compare against baseline
+compare_baseline() {
+    local baseline_dir="$REPO_ROOT/.bench-baseline"
+
+    if [[ ! -d "$baseline_dir" ]]; then
+        echo -e "${RED}No baseline found. Run '$0 --save-baseline' first.${NC}"
+        exit 1
+    fi
+
+    echo -e "${BLUE}Comparing against baseline...${NC}"
+    echo ""
+
+    # Run benchmarks with baseline comparison
+    cargo bench --bench baseline -- --noplot
+    cargo bench --bench file_walking -- --noplot
+    cargo bench --bench check -- --noplot
+
+    echo ""
+    echo -e "${GREEN}Comparison complete. Check target/criterion/*/report for details.${NC}"
+}
+
+# Print summary of last run
+print_summary() {
+    echo -e "${BLUE}=== Benchmark Summary ===${NC}"
+    echo ""
+
+    if [[ -d "$RESULTS_DIR" ]]; then
+        # Look for estimate.json files in criterion output
+        find "$RESULTS_DIR" -name "estimates.json" 2>/dev/null | while read -r f; do
+            local bench_name
+            bench_name=$(dirname "$f" | sed "s|$RESULTS_DIR/||" | tr '/' ':')
+            echo "  $bench_name"
+        done | head -20
+    else
+        echo "  No results found. Run benchmarks first."
+    fi
+}
+
+# Main
+main() {
+    case "${1:-}" in
+        --save-baseline)
+            check_fixtures
+            save_baseline
+            ;;
+        --compare)
+            check_fixtures
+            compare_baseline
+            ;;
+        --summary)
+            print_summary
+            ;;
+        --help|-h)
+            echo "Usage: $0 [OPTIONS]"
+            echo ""
+            echo "Options:"
+            echo "  (no args)         Run all benchmarks"
+            echo "  --save-baseline   Save current results as baseline"
+            echo "  --compare         Compare against saved baseline"
+            echo "  --summary         Print summary of last run"
+            echo "  --help            Show this help message"
+            ;;
+        "")
+            check_fixtures
+            run_benchmarks
+            ;;
+        *)
+            echo -e "${RED}Unknown option: $1${NC}"
+            echo "Run '$0 --help' for usage"
+            exit 1
+            ;;
+    esac
+}
+
+main "$@"

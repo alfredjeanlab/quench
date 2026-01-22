@@ -1,4 +1,4 @@
-.PHONY: check build test install clean
+.PHONY: check build test install clean bench bench-ci
 
 # Run all CI checks
 check:
@@ -25,3 +25,13 @@ install:
 # Clean build artifacts
 clean:
 	cargo clean
+
+# Run benchmarks
+bench:
+	cargo bench --bench baseline
+	cargo bench --bench file_walking
+	cargo bench --bench check
+
+# Run benchmarks with CI tracking
+bench-ci:
+	./scripts/bench-ci
