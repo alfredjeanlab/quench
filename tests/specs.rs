@@ -409,16 +409,20 @@ fn env_unknown_vars_ignored() {
 ///
 /// > Text output format snapshot
 #[test]
-#[ignore = "TODO: Phase 030 - Output infrastructure"]
 fn check_output_format_snapshot() {
     let output = quench_cmd()
-        .args(["check", "--cloc"])
-        .current_dir(prelude::fixture("violations"))
+        .args(["check"])
+        .current_dir(prelude::fixture("output-test"))
         .output()
         .expect("command should run");
 
     insta::assert_snapshot!(
         String::from_utf8_lossy(&output.stdout),
-        @"" // Inline snapshot, will be filled on first run
+        @r#"
+cloc: FAIL
+  src/oversized.rs: file_too_large (15 vs 10)
+    Split into smaller modules. 15 lines exceeds 10 line limit.
+0 checks passed, 1 failed
+"#
     );
 }

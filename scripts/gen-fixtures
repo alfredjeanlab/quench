@@ -334,7 +334,10 @@ generate_bench_large() {
     echo -e "${GREEN}Generated bench-large: $file_count files${NC}"
 }
 
-# Generate bench-deep: 1000 files, ~50K LOC, 50+ levels deep
+# Generate bench-deep: 1000 files, ~50K LOC, 120+ levels deep
+# Also creates marker files for depth limit testing:
+# - mid.rs at level 50 (within default 100 limit)
+# - deep.rs at level 120 (beyond default 100 limit)
 generate_bench_deep() {
     local fixture_dir="$FIXTURES_DIR/bench-deep"
     echo -e "${YELLOW}Generating bench-deep...${NC}"
@@ -397,7 +400,26 @@ generate_bench_deep() {
     # Add ignored file in build/
     echo "// ignored build artifact" > "$fixture_dir/build/artifact.rs"
 
-    echo -e "${GREEN}Generated bench-deep: $file_count files, $depth levels${NC}"
+    # Create marker files for depth limit testing
+    # mid.rs at level 50 (within default 100 limit)
+    local mid_path="$fixture_dir"
+    for i in $(seq 1 50); do
+        mid_path="$mid_path/d"
+    done
+    mkdir -p "$mid_path"
+    echo "// Marker file at depth 50 (within default 100 limit)" > "$mid_path/mid.rs"
+    ((file_count++))
+
+    # deep.rs at level 120 (beyond default 100 limit)
+    local deep_path="$fixture_dir"
+    for i in $(seq 1 120); do
+        deep_path="$deep_path/d"
+    done
+    mkdir -p "$deep_path"
+    echo "// Marker file at depth 120 (beyond default 100 limit)" > "$deep_path/deep.rs"
+    ((file_count++))
+
+    echo -e "${GREEN}Generated bench-deep: $file_count files, $depth source levels + marker files at 50/120${NC}"
 }
 
 # Generate bench-large-files: 100 files, ~10MB total, includes 1MB+ files
