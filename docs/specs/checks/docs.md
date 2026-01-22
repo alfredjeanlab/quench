@@ -289,8 +289,7 @@ max_lines = 1000
 
 # Commit checking (CI mode)
 [checks.docs.commit]
-check = "off"
-check = "error"                  # error | warn | off
+check = "off"                    # error | warn | off
 on_commit = ["feat:", "feat(", "feature:", "feature(", "story:", "story("]
 
 # Area mappings (reusable, default: any change in docs/)
