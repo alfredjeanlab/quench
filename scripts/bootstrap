@@ -24,24 +24,36 @@ echo "Checking file sizes..."
 MAX_SOURCE=750
 MAX_TEST=1100
 
-for file in $(rg --files --type rust crates 2>/dev/null); do
-    lines=$(wc -l < "$file" | tr -d ' ')
+size_failed=0
+files=$(rg --files --type rust crates 2>/dev/null)
+if [[ -n "$files" ]]; then
+    # Batch wc -l call (35x faster than per-file)
+    while read -r line; do
+        # Parse "  123 path/to/file.rs" format
+        lines=$(echo "$line" | awk '{print $1}')
+        file=$(echo "$line" | awk '{print $2}')
 
-    if [[ "$file" == *"_tests.rs" ]]; then
-        if [ "$lines" -gt "$MAX_TEST" ]; then
-            echo -e "${RED}$file: $lines lines (max: $MAX_TEST)${NC}"
-            failed=1
-        fi
-    else
-        if [ "$lines" -gt "$MAX_SOURCE" ]; then
-            echo -e "${RED}$file: $lines lines (max: $MAX_SOURCE)${NC}"
-            failed=1
-        fi
-    fi
-done
+        # Skip the "total" line from wc -l
+        [[ "$file" == "total" ]] && continue
 
-if [ $failed -eq 0 ]; then
+        if [[ "$file" == *"_tests.rs" ]]; then
+            if [ "$lines" -gt "$MAX_TEST" ]; then
+                echo -e "${RED}$file: $lines lines (max: $MAX_TEST)${NC}"
+                size_failed=1
+            fi
+        else
+            if [ "$lines" -gt "$MAX_SOURCE" ]; then
+                echo -e "${RED}$file: $lines lines (max: $MAX_SOURCE)${NC}"
+                size_failed=1
+            fi
+        fi
+    done < <(echo "$files" | xargs wc -l)
+fi
+
+if [ $size_failed -eq 0 ]; then
     echo -e "${GREEN}File sizes OK${NC}"
+else
+    failed=1
 fi
 
 # --- Dead code allowances ---

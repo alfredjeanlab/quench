@@ -140,11 +140,58 @@ quench report --no-license    # Exclude license metrics
 Initialize quench configuration.
 
 ```bash
-quench init                   # Create quench.toml
+quench init                   # Auto-detect and create quench.toml
 quench init --force           # Overwrite existing
 ```
 
-Detects project type (Rust, Shell, etc.) and generates appropriate defaults.
+### Profile Selection (Recommended)
+
+Use `--profile` to initialize with opinionated defaults for specific languages and agents:
+
+```bash
+quench init --profile rust              # Rust project defaults
+quench init --profile shell             # Shell project defaults
+quench init --profile rust,shell        # Multi-language project
+quench init --profile claude            # Claude Code agent defaults
+quench init --profile cursor            # Cursor IDE agent defaults
+quench init --profile rust,claude       # Combined language + agent
+```
+
+| Profile | Description |
+|---------|-------------|
+| `rust` | Cargo workspace, clippy escapes, unsafe/unwrap detection |
+| `shell` | Shellcheck integration, set +e/eval escapes |
+| `claude` | CLAUDE.md with required sections, sync setup |
+| `cursor` | .cursorrules with required sections, sync setup |
+
+**Auto-detection**: When no `--profile` is specified, quench detects:
+- Languages from project root (Cargo.toml → rust, *.sh → shell)
+- Agent files from existing files (CLAUDE.md, .cursorrules)
+
+See language-specific defaults:
+- [Rust defaults](langs/rust.md#profile-defaults)
+- [Shell defaults](langs/shell.md#profile-defaults)
+- [Agent file defaults](checks/agents.md#profile-defaults)
+
+### Landing the Plane Auto-Population
+
+When initializing with agent profiles (`claude`, `cursor`), quench will:
+1. Check if a "Landing the Plane" section exists in agent files
+2. If missing, auto-populate with a default checklist
+3. Include language-specific items based on detected/selected profiles
+4. Always include `quench check` as a checklist item
+
+Example auto-generated section:
+```markdown
+## Landing the Plane
+
+Before completing work:
+
+- [ ] Run `quench check`
+- [ ] Run `cargo test` (rust profile)
+- [ ] Run `cargo clippy` (rust profile)
+- [ ] Run `shellcheck` on changed scripts (shell profile)
+```
 
 ## Global Flags
 

@@ -29,6 +29,91 @@ Configure which files are recognized:
 files = ["CLAUDE.md", ".cursorrules"]
 ```
 
+## Profile Defaults
+
+When using [`quench init --profile claude`](../01-cli.md#profile-selection-recommended) or `--profile cursor`, opinionated defaults are configured for agent file validation.
+
+### Claude Profile
+
+```toml
+[check.agents]
+files = ["CLAUDE.md"]
+required = ["CLAUDE.md"]
+sync = true
+sync_source = "CLAUDE.md"
+tables = "forbid"
+max_lines = 500
+max_tokens = 20000
+
+[[check.agents.sections.required]]
+name = "Directory Structure"
+advice = "Overview of project layout and key directories"
+
+[[check.agents.sections.required]]
+name = "Landing the Plane"
+advice = "Checklist for AI agents before completing work"
+```
+
+### Cursor Profile
+
+```toml
+[check.agents]
+files = [".cursorrules"]
+required = [".cursorrules"]
+sync = true
+sync_source = ".cursorrules"
+tables = "forbid"
+max_lines = 500
+max_tokens = 20000
+
+[[check.agents.sections.required]]
+name = "Directory Structure"
+advice = "Overview of project layout and key directories"
+
+[[check.agents.sections.required]]
+name = "Landing the Plane"
+advice = "Checklist for AI agents before completing work"
+```
+
+### Combined Profiles
+
+When both `claude` and `cursor` profiles are used together:
+
+```toml
+[check.agents]
+files = ["CLAUDE.md", ".cursorrules"]
+required = ["CLAUDE.md"]
+optional = [".cursorrules"]
+sync = true
+sync_source = "CLAUDE.md"
+```
+
+### Landing the Plane Auto-Population
+
+During `quench init`, if agent files exist but lack a "Landing the Plane" section, quench auto-populates it with a default checklist:
+
+**Base checklist** (always included):
+```markdown
+## Landing the Plane
+
+Before completing work:
+
+- [ ] Run `quench check`
+```
+
+**Language-specific items** are appended based on detected or selected profiles:
+
+| Profile | Added Items |
+|---------|-------------|
+| `rust` | `cargo fmt --check`, `cargo clippy -- -D warnings`, `cargo test`, `cargo build` |
+| `shell` | `shellcheck scripts/*.sh`, `bats tests/` (if present) |
+
+**Behavior**:
+- If "Landing the Plane" section exists, it is not modified
+- If missing, the section is appended to the agent file
+- `quench check` is always the first item in the checklist
+- Language items follow in detection order
+
 ## Sync Behavior (Default)
 
 **If multiple agent files exist, they are checked for sync by default.**

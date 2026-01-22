@@ -6,6 +6,48 @@ Shell-specific behavior for quench checks.
 
 Detected when `*.sh` files exist in project root, `bin/`, or `scripts/`.
 
+## Profile Defaults
+
+When using [`quench init --profile shell`](../01-cli.md#profile-selection-recommended), the following opinionated defaults are configured:
+
+```toml
+[shell]
+source = ["**/*.sh", "**/*.bash", "bin/*", "scripts/*"]
+tests = ["tests/**/*.bats", "test/**/*.bats", "*_test.sh"]
+
+[shell.suppress]
+check = "forbid"
+
+[shell.suppress.test]
+check = "allow"
+
+[shell.policy]
+lint_changes = "standalone"
+lint_config = [".shellcheckrc"]
+
+[[check.escapes.patterns]]
+pattern = "set +e"
+action = "comment"
+comment = "# OK:"
+advice = "Add a # OK: comment explaining why error checking is disabled."
+
+[[check.escapes.patterns]]
+pattern = "eval "
+action = "comment"
+comment = "# OK:"
+advice = "Add a # OK: comment explaining why eval is safe here."
+
+[[check.escapes.patterns]]
+pattern = "# shellcheck disable="
+action = "forbid"
+in_tests = "allow"
+advice = "Fix the shellcheck warning instead of disabling it."
+```
+
+**Landing the Plane items** (added to agent files when combined with `claude` or `cursor` profile):
+- `shellcheck scripts/*.sh`
+- `bats tests/` (if bats tests exist)
+
 ## Default Patterns
 
 ```toml

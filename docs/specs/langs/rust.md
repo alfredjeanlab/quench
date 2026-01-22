@@ -6,6 +6,57 @@ Rust-specific behavior for quench checks.
 
 Detected when `Cargo.toml` exists in project root.
 
+## Profile Defaults
+
+When using [`quench init --profile rust`](../01-cli.md#profile-selection-recommended), the following opinionated defaults are configured:
+
+```toml
+[rust]
+split_cfg_test = true
+binary_size = true
+build_time = true
+
+[rust.suppress]
+check = "comment"
+
+[rust.suppress.test]
+check = "allow"
+
+[rust.policy]
+lint_changes = "standalone"
+lint_config = ["rustfmt.toml", ".rustfmt.toml", "clippy.toml", ".clippy.toml"]
+
+[[check.escapes.patterns]]
+pattern = "unsafe {"
+action = "comment"
+comment = "// SAFETY:"
+advice = "Add a // SAFETY: comment explaining the invariants."
+
+[[check.escapes.patterns]]
+pattern = ".unwrap()"
+action = "forbid"
+in_tests = "allow"
+advice = "Use ? operator or handle the error explicitly."
+
+[[check.escapes.patterns]]
+pattern = ".expect("
+action = "forbid"
+in_tests = "allow"
+advice = "Use ? operator or handle the error explicitly."
+
+[[check.escapes.patterns]]
+pattern = "mem::transmute"
+action = "comment"
+comment = "// SAFETY:"
+advice = "Add a // SAFETY: comment explaining type compatibility."
+```
+
+**Landing the Plane items** (added to agent files when combined with `claude` or `cursor` profile):
+- `cargo fmt --check`
+- `cargo clippy -- -D warnings`
+- `cargo test`
+- `cargo build`
+
 ## Default Patterns
 
 ```toml
