@@ -1,0 +1,53 @@
+version = 1
+
+[project]
+name = "violations"
+
+# Enable all checks with strict settings
+[check.cloc]
+check = "error"
+max_lines = 750
+max_lines_test = 1100
+
+[check.escapes]
+check = "error"
+
+[[check.escapes.patterns]]
+name = "unwrap"
+pattern = "\\.unwrap\\(\\)"
+action = "forbid"
+
+[[check.escapes.patterns]]
+name = "unsafe"
+pattern = "unsafe\\s*\\{"
+action = "comment"
+comment = "// SAFETY:"
+
+[check.agents]
+check = "error"
+required = ["CLAUDE.md"]
+tables = "forbid"
+
+[[check.agents.sections.required]]
+name = "Landing the Plane"
+advice = "Checklist for AI agents before completing work"
+
+[check.docs]
+check = "error"
+
+[check.docs.toc]
+check = "error"
+
+[check.docs.links]
+check = "error"
+
+[check.tests]
+check = "error"
+
+[check.tests.commit]
+check = "error"
+
+[check.license]
+check = "error"
+license = "MIT"
+copyright = "Test Organization"
