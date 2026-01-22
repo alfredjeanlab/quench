@@ -6,6 +6,7 @@
 
 pub use assert_cmd::prelude::*;
 pub use predicates;
+pub use predicates::prelude::PredicateBooleanExt;
 use std::process::Command;
 
 /// Returns a Command configured to run the quench binary
