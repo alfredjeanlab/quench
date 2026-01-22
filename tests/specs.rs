@@ -8,6 +8,9 @@
 #[path = "specs/prelude.rs"]
 mod prelude;
 
+#[path = "specs/file_walking.rs"]
+mod file_walking;
+
 use prelude::*;
 
 // =============================================================================

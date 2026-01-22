@@ -1,0 +1,4 @@
+//! Snapshot file - should be ignored by *.snapshot pattern.
+//! If scanned, custom ignore patterns are not working.
+
+pub fn snapshot_data() {}

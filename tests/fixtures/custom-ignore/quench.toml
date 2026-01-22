@@ -1,0 +1,11 @@
+version = 1
+
+[project]
+name = "custom-ignore"
+
+[project.ignore]
+patterns = [
+    "*.snapshot",
+    "testdata/",
+    "**/fixtures/**",
+]
