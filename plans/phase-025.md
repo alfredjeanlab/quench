@@ -1,6 +1,6 @@
 # Phase 025: Output Infrastructure - Specs
 
-**Root Feature:** Output formatting and behavioral specifications
+**Root Feature:** `quench-8da2`
 
 ## Overview
 
