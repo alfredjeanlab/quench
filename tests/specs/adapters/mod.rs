@@ -4,5 +4,6 @@
 //!
 //! Reference: docs/specs/10-language-adapters.md
 
+pub mod golang;
 pub mod rust;
 pub mod shell;

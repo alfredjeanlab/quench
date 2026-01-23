@@ -1,0 +1,4 @@
+version = 1
+
+[golang.suppress]
+check = "comment"
