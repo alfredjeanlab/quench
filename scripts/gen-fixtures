@@ -85,12 +85,37 @@ impl Sample${safe_seed} {
 EOF
 
     # Add filler lines to reach target (header is ~45 lines)
+    # Include escape hatch patterns for realistic benchmarking (~2% of lines)
     local header_lines=45
     local remaining=$((lines - header_lines))
     if [[ $remaining -gt 0 ]]; then
         echo "// Additional lines for LOC target"
         for i in $(seq 1 $remaining); do
-            echo "const LINE_${i}: &str = \"value_${i}_${safe_seed}\";"
+            # ~10% of lines have escape patterns (spread across different types)
+            # Use coprime modulos to ensure all pattern types appear
+            local mod11=$((i % 11))
+            local mod13=$((i % 13))
+            local mod17=$((i % 17))
+            local mod19=$((i % 19))
+
+            if [[ $mod11 -eq 0 ]]; then
+                # unwrap with SAFETY comment (justified)
+                echo "// SAFETY: input validated at entry point"
+                echo "const PARSED_${i}: i32 = \"42\".parse::<i32>().unwrap();"
+            elif [[ $mod13 -eq 0 ]]; then
+                # TODO (for count pattern)
+                echo "// TODO: optimize this allocation"
+                echo "const ALLOC_${i}: &str = \"allocated_${i}_${safe_seed}\";"
+            elif [[ $mod17 -eq 0 ]]; then
+                # expect without REASON comment (violation)
+                echo "const EXPECTED_${i}: i32 = \"99\".parse::<i32>().expect(\"valid\");"
+            elif [[ $mod19 -eq 0 ]]; then
+                # FIXME (for count pattern)
+                echo "// FIXME: handle edge cases"
+                echo "const EDGE_${i}: &str = \"edge_${i}_${safe_seed}\";"
+            else
+                echo "const LINE_${i}: &str = \"value_${i}_${safe_seed}\";"
+            fi
         done
     fi
 }
@@ -263,7 +288,40 @@ generate_bench_medium() {
     # Add ignored file in build/
     echo "// ignored build artifact" > "$fixture_dir/build/artifact.rs"
 
-    echo -e "${GREEN}Generated bench-medium: $file_count files${NC}"
+    # Create quench.toml with escapes configuration for benchmarking
+    cat > "$fixture_dir/quench.toml" <<'TOML'
+# Benchmark fixture configuration for escapes check performance testing
+version = 1
+
+[check.escapes]
+check = "warn"
+
+[[check.escapes.patterns]]
+name = "unwrap"
+pattern = '\.unwrap\(\)'
+action = "comment"
+comment = "// SAFETY:"
+
+[[check.escapes.patterns]]
+name = "expect"
+pattern = '\.expect\('
+action = "comment"
+comment = "// REASON:"
+
+[[check.escapes.patterns]]
+name = "unsafe"
+pattern = '\bunsafe\b'
+action = "comment"
+comment = "// SAFETY:"
+
+[[check.escapes.patterns]]
+name = "todo"
+pattern = '\b(TODO|FIXME|XXX)\b'
+action = "count"
+threshold = 100
+TOML
+
+    echo -e "${GREEN}Generated bench-medium: $file_count files with escapes config${NC}"
 }
 
 # Generate bench-large: 5000 files, ~500K LOC, 5-level nesting
