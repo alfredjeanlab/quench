@@ -1,4 +1,4 @@
-.PHONY: check build test install clean bench bench-ci
+.PHONY: check build test install clean bench bench-ci bench-baseline bench-check
 
 # Run all CI checks
 check:
@@ -36,3 +36,13 @@ bench:
 # Run benchmarks with CI tracking
 bench-ci:
 	./scripts/bench-ci
+
+# Save benchmark baseline for regression detection
+bench-baseline:
+	cargo bench --bench adapter -- --save-baseline main
+	cargo bench --bench stress -- --save-baseline main
+
+# Compare benchmarks against baseline
+bench-check:
+	cargo bench --bench adapter -- --baseline main --noplot
+	cargo bench --bench stress -- --baseline main --noplot
