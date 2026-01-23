@@ -1,5 +1,7 @@
 # Phase 528: Dry-Run Mode Implementation
 
+**Root Feature:** `quench-6b51`
+
 ## Overview
 
 Implement a `--dry-run` flag that shows what `--fix` would change without modifying any files. This allows users to preview fix operations before committing to them.
