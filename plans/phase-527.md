@@ -1,5 +1,7 @@
 # Phase 527: Dry-Run Mode - Specs
 
+**Root Feature:** `quench-909f`
+
 ## Overview
 
 Add behavioral specifications for the `--dry-run` flag. This flag allows users to preview what `--fix` would change without actually modifying any files. The specs will be marked with `#[ignore]` until the implementation phase.
