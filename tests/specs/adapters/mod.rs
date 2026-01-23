@@ -5,3 +5,4 @@
 //! Reference: docs/specs/10-language-adapters.md
 
 pub mod rust;
+pub mod shell;
