@@ -65,8 +65,15 @@ pub mod scheme {
         spec
     }
 
-    /// Green "PASS" or "FIXED" indicator.
+    /// Green "PASS" indicator.
     pub fn pass() -> ColorSpec {
+        let mut spec = ColorSpec::new();
+        spec.set_fg(Some(Color::Green)).set_bold(true);
+        spec
+    }
+
+    /// Green "FIXED" indicator.
+    pub fn fixed() -> ColorSpec {
         let mut spec = ColorSpec::new();
         spec.set_fg(Some(Color::Green)).set_bold(true);
         spec

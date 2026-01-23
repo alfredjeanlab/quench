@@ -371,3 +371,130 @@ sync_source = "CLAUDE.md"
     let cursorrules = std::fs::read_to_string(dir.path().join(".cursorrules")).unwrap();
     assert_eq!(cursorrules, "# Source\nContent A");
 }
+
+// =============================================================================
+// TEXT OUTPUT FORMAT SPECS (Phase 525)
+// =============================================================================
+
+/// Spec: docs/specs/checks/agents.md#output
+///
+/// > Missing file shows human-readable description.
+#[test]
+fn agents_missing_file_text_output() {
+    check("agents")
+        .on("agents/missing-file")
+        .fails()
+        .stdout_has("missing required file");
+}
+
+/// Spec: docs/specs/checks/agents.md#output
+///
+/// > Out of sync shows other file name.
+#[test]
+fn agents_out_of_sync_text_output() {
+    check("agents")
+        .on("agents/out-of-sync")
+        .fails()
+        .stdout_has("out of sync with");
+}
+
+/// Spec: docs/specs/checks/agents.md#output
+///
+/// > Missing section includes section name and advice.
+#[test]
+fn agents_missing_section_text_output() {
+    check("agents")
+        .on("agents/missing-section")
+        .fails()
+        .stdout_has("Landing the Plane")
+        .stdout_has("Checklist");
+}
+
+/// Spec: docs/specs/checks/agents.md#output
+///
+/// > Forbidden table shows line number.
+#[test]
+fn agents_forbidden_table_text_output() {
+    let output = check("agents").on("agents/with-table").fails();
+    // Verify line number is present (format: CLAUDE.md:N: forbidden table)
+    let stdout = output.stdout();
+    assert!(
+        stdout.contains(":") && stdout.contains("forbidden table"),
+        "should show file:line: forbidden table, got: {}",
+        stdout
+    );
+}
+
+/// Spec: docs/specs/checks/agents.md#output
+///
+/// > File too large shows value vs threshold.
+#[test]
+fn agents_file_too_large_text_output() {
+    check("agents")
+        .on("agents/oversized-lines")
+        .fails()
+        .stdout_has("vs");
+}
+
+// =============================================================================
+// FIXED STATUS SPECS (Phase 525)
+// =============================================================================
+
+/// Spec: docs/specs/checks/agents.md#fixed
+///
+/// > Running with --fix shows FIXED status when files are synced.
+#[test]
+fn agents_fix_shows_fixed_status() {
+    let dir = temp_project();
+    std::fs::write(
+        dir.path().join("quench.toml"),
+        r#"version = 1
+[check.agents]
+files = ["CLAUDE.md", ".cursorrules"]
+sync = true
+sync_source = "CLAUDE.md"
+"#,
+    )
+    .unwrap();
+    std::fs::write(dir.path().join("CLAUDE.md"), "# Source\nContent A").unwrap();
+    std::fs::write(dir.path().join(".cursorrules"), "# Source\nContent B").unwrap();
+
+    check("agents")
+        .pwd(dir.path())
+        .args(&["--fix"])
+        .passes()
+        .stdout_has("FIXED")
+        .stdout_has("Synced");
+}
+
+/// Spec: docs/specs/checks/agents.md#json-output
+///
+/// > JSON includes fixed:true when --fix applies changes.
+#[test]
+fn agents_fix_json_includes_fixed_field() {
+    let dir = temp_project();
+    std::fs::write(
+        dir.path().join("quench.toml"),
+        r#"version = 1
+[check.agents]
+files = ["CLAUDE.md", ".cursorrules"]
+sync = true
+sync_source = "CLAUDE.md"
+"#,
+    )
+    .unwrap();
+    std::fs::write(dir.path().join("CLAUDE.md"), "# Source\nContent A").unwrap();
+    std::fs::write(dir.path().join(".cursorrules"), "# Source\nContent B").unwrap();
+
+    let result = check("agents")
+        .pwd(dir.path())
+        .args(&["--fix"])
+        .json()
+        .passes();
+
+    assert_eq!(
+        result.require("fixed").as_bool(),
+        Some(true),
+        "should have fixed: true"
+    );
+}

@@ -39,7 +39,7 @@ impl TextFormatter {
     /// Write a single check result (streaming).
     /// Returns true if output was truncated.
     pub fn write_check(&mut self, result: &CheckResult) -> std::io::Result<bool> {
-        if result.passed {
+        if result.passed && !result.fixed {
             return Ok(false); // Silent on pass per spec
         }
 
@@ -47,6 +47,22 @@ impl TextFormatter {
         self.stdout.set_color(&scheme::check_name())?;
         write!(self.stdout, "{}", result.name)?;
         self.stdout.reset()?;
+
+        if result.fixed {
+            // ": FIXED" in green
+            write!(self.stdout, ": ")?;
+            self.stdout.set_color(&scheme::fixed())?;
+            write!(self.stdout, "FIXED")?;
+            self.stdout.reset()?;
+            writeln!(self.stdout)?;
+
+            // Show fix summary
+            if let Some(ref summary) = result.fix_summary {
+                self.write_fix_summary(summary)?;
+            }
+
+            return Ok(false);
+        }
 
         if result.skipped {
             // ": SKIP" for skipped checks
@@ -86,6 +102,22 @@ impl TextFormatter {
         Ok(false)
     }
 
+    fn write_fix_summary(&mut self, summary: &serde_json::Value) -> std::io::Result<()> {
+        if let Some(synced) = summary.get("files_synced").and_then(|s| s.as_array()) {
+            for entry in synced {
+                let file = entry.get("file").and_then(|f| f.as_str()).unwrap_or("?");
+                let source = entry.get("source").and_then(|s| s.as_str()).unwrap_or("?");
+                let sections = entry.get("sections").and_then(|n| n.as_i64()).unwrap_or(0);
+                writeln!(
+                    self.stdout,
+                    "  Synced {} from {} ({} sections updated)",
+                    file, source, sections
+                )?;
+            }
+        }
+        Ok(())
+    }
+
     fn write_violation(&mut self, v: &Violation) -> std::io::Result<()> {
         write!(self.stdout, "  ")?;
 
@@ -115,7 +147,38 @@ impl TextFormatter {
     }
 
     fn format_violation_desc(&self, v: &Violation) -> String {
-        // Format based on violation type and available fields
+        match v.violation_type.as_str() {
+            // Agents check - human-readable descriptions
+            "missing_file" => "missing required file".to_string(),
+            "forbidden_file" => "forbidden file exists".to_string(),
+            "out_of_sync" => {
+                if let Some(ref other) = v.other_file {
+                    format!("out of sync with {}", other.display())
+                } else {
+                    "out of sync".to_string()
+                }
+            }
+            "missing_section" => "missing required section".to_string(),
+            "forbidden_section" => "forbidden section found".to_string(),
+            "forbidden_table" => "forbidden table".to_string(),
+            "forbidden_diagram" => "forbidden box diagram".to_string(),
+            "forbidden_mermaid" => "forbidden mermaid block".to_string(),
+            "file_too_large" => {
+                // Agents check sets value/threshold but not lines
+                // Cloc check sets lines/nonblank - use default format with "lines:" prefix
+                match (v.value, v.threshold, v.lines) {
+                    (Some(val), Some(thresh), None) => {
+                        format!("file too large ({} vs {})", val, thresh)
+                    }
+                    _ => self.format_default_desc(v),
+                }
+            }
+            // Other checks - existing behavior
+            _ => self.format_default_desc(v),
+        }
+    }
+
+    fn format_default_desc(&self, v: &Violation) -> String {
         let base = match (v.value, v.threshold) {
             (Some(val), Some(thresh)) => {
                 // Use labeled format for cloc line violations

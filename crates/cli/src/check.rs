@@ -191,6 +191,10 @@ pub struct CheckResult {
     #[serde(skip_serializing_if = "std::ops::Not::not")]
     pub stub: bool,
 
+    /// True if fixes were applied.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub fixed: bool,
+
     /// Error message if check was skipped.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
@@ -198,6 +202,10 @@ pub struct CheckResult {
     /// List of violations (omitted if empty).
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub violations: Vec<Violation>,
+
+    /// Summary of fixes applied.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fix_summary: Option<JsonValue>,
 
     /// Aggregated metrics for this check.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -216,8 +224,10 @@ impl CheckResult {
             passed: true,
             skipped: false,
             stub: false,
+            fixed: false,
             error: None,
             violations: Vec::new(),
+            fix_summary: None,
             metrics: None,
             by_package: None,
         }
@@ -230,8 +240,10 @@ impl CheckResult {
             passed: false,
             skipped: false,
             stub: false,
+            fixed: false,
             error: None,
             violations,
+            fix_summary: None,
             metrics: None,
             by_package: None,
         }
@@ -244,8 +256,10 @@ impl CheckResult {
             passed: false,
             skipped: true,
             stub: false,
+            fixed: false,
             error: Some(error.into()),
             violations: Vec::new(),
+            fix_summary: None,
             metrics: None,
             by_package: None,
         }
@@ -258,8 +272,26 @@ impl CheckResult {
             passed: true,
             skipped: false,
             stub: true,
+            fixed: false,
             error: None,
             violations: Vec::new(),
+            fix_summary: None,
+            metrics: None,
+            by_package: None,
+        }
+    }
+
+    /// Create a fixed check result.
+    pub fn fixed(name: impl Into<String>, summary: JsonValue) -> Self {
+        Self {
+            name: name.into(),
+            passed: true,
+            skipped: false,
+            stub: false,
+            fixed: true,
+            error: None,
+            violations: Vec::new(),
+            fix_summary: Some(summary),
             metrics: None,
             by_package: None,
         }
@@ -274,6 +306,13 @@ impl CheckResult {
     /// Add per-package metrics breakdown.
     pub fn with_by_package(mut self, by_package: HashMap<String, JsonValue>) -> Self {
         self.by_package = Some(by_package);
+        self
+    }
+
+    /// Mark this result as having fixes applied.
+    pub fn with_fix_summary(mut self, summary: JsonValue) -> Self {
+        self.fixed = true;
+        self.fix_summary = Some(summary);
         self
     }
 }

@@ -159,8 +159,10 @@ impl CheckRunner {
                         passed,
                         skipped: result.skipped,
                         stub: result.stub,
+                        fixed: result.fixed,
                         error: result.error,
                         violations: all_violations,
+                        fix_summary: result.fix_summary,
                         metrics: result.metrics,
                         by_package: result.by_package,
                     }

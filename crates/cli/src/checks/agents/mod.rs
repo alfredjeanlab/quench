@@ -56,6 +56,7 @@ impl Check for AgentsCheck {
 
         let mut violations = Vec::new();
         let mut files_missing: Vec<String> = Vec::new();
+        let mut fixes = FixSummary::default();
 
         // Check required files exist at root
         check_required_files(ctx, config, &mut violations, &mut files_missing);
@@ -65,7 +66,7 @@ impl Check for AgentsCheck {
 
         // Check sync if enabled
         let in_sync = if config.sync {
-            check_sync(ctx, config, &detected, &mut violations)
+            check_sync(ctx, config, &detected, &mut violations, &mut fixes)
         } else {
             true
         };
@@ -88,14 +89,23 @@ impl Check for AgentsCheck {
             })
             .collect();
 
+        // Update in_sync metric based on whether we fixed things
+        let final_in_sync = in_sync || !fixes.is_empty();
+
         let metrics = json!({
             "files_found": files_found,
             "files_missing": files_missing,
-            "in_sync": in_sync,
+            "in_sync": final_in_sync,
         });
 
+        // Determine result based on violations and fixes
         let result = if violations.is_empty() {
-            CheckResult::passed(self.name())
+            if !fixes.is_empty() {
+                // Fixes were applied and no remaining violations
+                CheckResult::fixed(self.name(), fixes.to_json())
+            } else {
+                CheckResult::passed(self.name())
+            }
         } else {
             CheckResult::failed(self.name(), violations)
         };
@@ -174,12 +184,52 @@ fn check_forbidden_files(
     }
 }
 
+/// Track fixes applied during check execution.
+#[derive(Debug, Default)]
+struct FixSummary {
+    files_synced: Vec<SyncedFile>,
+}
+
+#[derive(Debug)]
+struct SyncedFile {
+    file: String,
+    source: String,
+    sections: usize,
+}
+
+impl FixSummary {
+    fn add_sync(&mut self, file: String, source: String, sections: usize) {
+        self.files_synced.push(SyncedFile {
+            file,
+            source,
+            sections,
+        });
+    }
+
+    fn is_empty(&self) -> bool {
+        self.files_synced.is_empty()
+    }
+
+    fn to_json(&self) -> serde_json::Value {
+        json!({
+            "files_synced": self.files_synced.iter().map(|f| {
+                json!({
+                    "file": f.file,
+                    "source": f.source,
+                    "sections": f.sections,
+                })
+            }).collect::<Vec<_>>()
+        })
+    }
+}
+
 /// Check synchronization between agent files.
 fn check_sync(
     ctx: &CheckContext,
     config: &AgentsConfig,
     detected: &[DetectedFile],
     violations: &mut Vec<Violation>,
+    fixes: &mut FixSummary,
 ) -> bool {
     // Get root-scope files only
     let root_files: Vec<_> = detected.iter().filter(|f| f.scope == Scope::Root).collect();
@@ -232,19 +282,21 @@ fn check_sync(
         let comparison = compare_files(&source_content, &target_content);
 
         if !comparison.in_sync {
-            // If fix mode is enabled, sync the target file from source
-            if ctx.fix && std::fs::write(&target_file.path, &source_content).is_ok() {
-                // File was fixed, no violation needed
-                continue;
-            }
-
-            all_in_sync = false;
-
             let target_name = target_file
                 .path
                 .file_name()
                 .map(|n| n.to_string_lossy().to_string())
                 .unwrap_or_else(|| target_file.path.display().to_string());
+
+            // If fix mode is enabled, sync the target file from source
+            if ctx.fix && std::fs::write(&target_file.path, &source_content).is_ok() {
+                // Track the fix
+                let section_count = comparison.differences.len();
+                fixes.add_sync(target_name, source_name.to_string(), section_count);
+                continue;
+            }
+
+            all_in_sync = false;
 
             for diff in comparison.differences {
                 let advice = match diff.diff_type {
