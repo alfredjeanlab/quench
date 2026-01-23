@@ -86,33 +86,36 @@ fn file_metrics_empty_file_tokens() {
 }
 
 // =============================================================================
-// PATTERN MATCHER TESTS
+// ADAPTER/PATTERN TESTS
 // =============================================================================
 
+use crate::adapter::{Adapter, FileKind, GenericAdapter};
+
 #[parameterized(
-    test_dirs_matches_tests = { &["**/tests/**", "**/test/**"], "/project/tests/foo.rs", true },
-    test_dirs_matches_nested = { &["**/tests/**", "**/test/**"], "/project/tests/sub/bar.rs", true },
-    test_dirs_matches_crate = { &["**/tests/**", "**/test/**"], "/project/crate/tests/test.rs", true },
-    test_dirs_matches_test = { &["**/tests/**", "**/test/**"], "/project/test/foo.rs", true },
-    test_dirs_excludes_src_lib = { &["**/tests/**", "**/test/**"], "/project/src/lib.rs", false },
-    test_dirs_excludes_src_main = { &["**/tests/**", "**/test/**"], "/project/src/main.rs", false },
-    suffix_matches_test_rs = { &["**/*_test.*", "**/*_tests.*", "**/*.test.*", "**/*.spec.*"], "/project/src/foo_test.rs", true },
-    suffix_matches_tests_rs = { &["**/*_test.*", "**/*_tests.*", "**/*.test.*", "**/*.spec.*"], "/project/src/foo_tests.rs", true },
-    suffix_matches_test_js = { &["**/*_test.*", "**/*_tests.*", "**/*.test.*", "**/*.spec.*"], "/project/src/foo.test.js", true },
-    suffix_matches_spec_ts = { &["**/*_test.*", "**/*_tests.*", "**/*.test.*", "**/*.spec.*"], "/project/src/foo.spec.ts", true },
-    suffix_excludes_lib = { &["**/*_test.*", "**/*_tests.*", "**/*.test.*", "**/*.spec.*"], "/project/src/lib.rs", false },
-    suffix_excludes_testing = { &["**/*_test.*", "**/*_tests.*", "**/*.test.*", "**/*.spec.*"], "/project/src/testing.rs", false },
-    prefix_matches_test_utils = { &["**/test_*.*"], "/project/src/test_utils.rs", true },
-    prefix_matches_test_helpers = { &["**/test_*.*"], "/project/test_helpers.py", true },
-    prefix_excludes_testing = { &["**/test_*.*"], "/project/src/testing.rs", false },
-    prefix_excludes_contest = { &["**/test_*.*"], "/project/src/contest.rs", false },
+    test_dirs_matches_tests = { &["**/tests/**", "**/test/**"], "tests/foo.rs", true },
+    test_dirs_matches_nested = { &["**/tests/**", "**/test/**"], "tests/sub/bar.rs", true },
+    test_dirs_matches_crate = { &["**/tests/**", "**/test/**"], "crate/tests/test.rs", true },
+    test_dirs_matches_test = { &["**/tests/**", "**/test/**"], "test/foo.rs", true },
+    test_dirs_excludes_src_lib = { &["**/tests/**", "**/test/**"], "src/lib.rs", false },
+    test_dirs_excludes_src_main = { &["**/tests/**", "**/test/**"], "src/main.rs", false },
+    suffix_matches_test_rs = { &["**/*_test.*", "**/*_tests.*", "**/*.test.*", "**/*.spec.*"], "src/foo_test.rs", true },
+    suffix_matches_tests_rs = { &["**/*_test.*", "**/*_tests.*", "**/*.test.*", "**/*.spec.*"], "src/foo_tests.rs", true },
+    suffix_matches_test_js = { &["**/*_test.*", "**/*_tests.*", "**/*.test.*", "**/*.spec.*"], "src/foo.test.js", true },
+    suffix_matches_spec_ts = { &["**/*_test.*", "**/*_tests.*", "**/*.test.*", "**/*.spec.*"], "src/foo.spec.ts", true },
+    suffix_excludes_lib = { &["**/*_test.*", "**/*_tests.*", "**/*.test.*", "**/*.spec.*"], "src/lib.rs", false },
+    suffix_excludes_testing = { &["**/*_test.*", "**/*_tests.*", "**/*.test.*", "**/*.spec.*"], "src/testing.rs", false },
+    prefix_matches_test_utils = { &["**/test_*.*"], "src/test_utils.rs", true },
+    prefix_matches_test_helpers = { &["**/test_*.*"], "test_helpers.py", true },
+    prefix_excludes_testing = { &["**/test_*.*"], "src/testing.rs", false },
+    prefix_excludes_contest = { &["**/test_*.*"], "src/contest.rs", false },
 )]
-fn pattern_matcher_test_file(patterns: &[&str], path: &str, expected: bool) {
+fn adapter_test_file_classification(patterns: &[&str], path: &str, expected: bool) {
     let owned: Vec<String> = patterns.iter().map(|s| (*s).to_string()).collect();
-    let matcher = PatternMatcher::new(&owned, &[]);
-    let root = Path::new("/project");
+    let adapter = GenericAdapter::new(&[], &owned);
+    let file_kind = adapter.classify(Path::new(path));
+    let is_test = file_kind == FileKind::Test;
     assert_eq!(
-        matcher.is_test_file(Path::new(path), root),
+        is_test,
         expected,
         "path {} with patterns {:?} should be {}",
         path,
@@ -126,8 +129,8 @@ fn pattern_matcher_test_file(patterns: &[&str], path: &str, expected: bool) {
     excludes_nested = { "**/generated/**", "/project/src/generated/bar.rs", true },
     allows_regular = { "**/generated/**", "/project/src/lib.rs", false },
 )]
-fn pattern_matcher_exclusion(pattern: &str, path: &str, expected: bool) {
-    let matcher = PatternMatcher::new(&[], &[pattern.to_string()]);
+fn exclude_matcher_exclusion(pattern: &str, path: &str, expected: bool) {
+    let matcher = ExcludeMatcher::new(&[pattern.to_string()]);
     let root = Path::new("/project");
     assert_eq!(
         matcher.is_excluded(Path::new(path), root),
@@ -174,7 +177,8 @@ fn file_metrics_tokens_exact_math() {
 fn bench_pattern_matching() {
     use std::path::PathBuf;
 
-    let matcher = PatternMatcher::new(
+    let adapter = GenericAdapter::new(
+        &[],
         &[
             "**/tests/**".into(),
             "**/test/**".into(),
@@ -184,18 +188,16 @@ fn bench_pattern_matching() {
             "**/*.spec.*".into(),
             "**/test_*.*".into(),
         ],
-        &["**/vendor/**".into()],
     );
 
-    let root = Path::new("/project");
     let paths: Vec<PathBuf> = (0..1000)
-        .map(|i| PathBuf::from(format!("/project/src/module_{}.rs", i)))
+        .map(|i| PathBuf::from(format!("src/module_{}.rs", i)))
         .collect();
 
     let start = std::time::Instant::now();
     for _ in 0..100 {
         for path in &paths {
-            let _ = matcher.is_test_file(path, root);
+            let _ = adapter.classify(path);
         }
     }
     let elapsed = start.elapsed();

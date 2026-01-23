@@ -1,3 +1,4 @@
+pub mod adapter;
 pub mod cache;
 pub mod check;
 pub mod checks;
