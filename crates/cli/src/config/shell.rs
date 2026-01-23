@@ -44,7 +44,6 @@ impl ShellConfig {
         vec![
             "tests/**/*.bats".to_string(),
             "test/**/*.bats".to_string(),
-            "*_test.sh".to_string(),
             "**/*_test.sh".to_string(),
         ]
     }
