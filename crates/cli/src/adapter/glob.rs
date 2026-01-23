@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
 //! Glob pattern utilities.
 
 use globset::{Glob, GlobSet, GlobSetBuilder};

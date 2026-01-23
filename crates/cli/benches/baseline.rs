@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
 //! Baseline benchmarks for quench performance tracking.
 //!
 //! These benchmarks establish performance baselines for:

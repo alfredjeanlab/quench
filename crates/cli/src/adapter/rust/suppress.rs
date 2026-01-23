@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
 //! Suppress attribute parsing.
 //!
 //! Parses #[allow(...)] and #[expect(...)] attributes in Rust source.

@@ -1,4 +1,6 @@
 #!/bin/bash
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Alfred Jean LLC
 # Generates deeply nested directory structure for depth limit testing
 
 set -euo pipefail

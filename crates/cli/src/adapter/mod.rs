@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
 //! Language adapters provide language-specific behavior for checks.
 //!
 //! See docs/specs/10-language-adapters.md for specification.

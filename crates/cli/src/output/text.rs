@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
 //! Text output formatter.
 //!
 //! Format per docs/specs/03-output.md#text-format:

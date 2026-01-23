@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
 //! JSON output formatter.
 //!
 //! Produces output conforming to docs/specs/output.schema.json.

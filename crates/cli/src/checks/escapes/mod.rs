@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
 //! Escapes (escape hatches) check.
 //!
 //! Detects patterns that bypass type safety or error handling.
@@ -266,10 +269,11 @@ impl Check for EscapesCheck {
 
                 for m in unique_matches {
                     // Check if line is in test code (file-level OR inline #[cfg(test)])
+                    // Note: m.line is 1-indexed, but is_test_line expects 0-indexed
                     let is_test_code = is_test_file
-                        || cfg_info
-                            .as_ref()
-                            .is_some_and(|info| info.is_test_line(m.line as usize));
+                        || cfg_info.as_ref().is_some_and(|info| {
+                            info.is_test_line(m.line.saturating_sub(1) as usize)
+                        });
 
                     // Always track metrics (both source and test)
                     metrics.increment(&pattern.name, is_test_code);

@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Alfred Jean LLC
 # scripts/bootstrap - Quality checks not yet implemented in quench
 
 set -euo pipefail

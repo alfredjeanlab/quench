@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Alfred Jean LLC
 # scripts/gen-stress-fixture - Generate stress test fixtures for performance testing
 #
 # Creates fixtures that exercise edge cases:

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
 //! Shared unit test utilities.
 //!
 //! Provides common helpers for unit tests in the cli crate.

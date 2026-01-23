@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Alfred Jean LLC
 # scripts/bench-ci - Run benchmarks and track results for CI
 #
 # This script runs all benchmarks and provides summary output suitable for CI.

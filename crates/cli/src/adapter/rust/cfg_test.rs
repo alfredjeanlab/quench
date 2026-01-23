@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
 //! #[cfg(test)] block detection.
 //!
 //! Parses Rust source files to identify line ranges inside #[cfg(test)] blocks.

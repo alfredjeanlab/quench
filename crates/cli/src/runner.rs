@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
 //! Parallel check runner with error recovery and caching.
 //!
 //! Runs checks in parallel using rayon, isolating errors so one

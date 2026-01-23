@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
 //! Stress benchmarks for Rust adapter edge cases.
 //!
 //! Tests performance under pathological conditions:

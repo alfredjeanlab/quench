@@ -1,4 +1,6 @@
 #!/bin/bash
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Alfred Jean LLC
 # Generates an 800-line Rust file for testing cloc violations
 
 cat << 'HEADER'

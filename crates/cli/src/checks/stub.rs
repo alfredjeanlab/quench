@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
 //! Stub check implementation for unimplemented checks.
 
 use crate::check::{Check, CheckContext, CheckResult};

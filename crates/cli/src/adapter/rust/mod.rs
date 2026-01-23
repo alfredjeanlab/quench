@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
 //! Rust language adapter.
 //!
 //! Provides Rust-specific behavior for checks:

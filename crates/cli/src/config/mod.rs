@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
 //! Configuration parsing and validation.
 //!
 //! Handles quench.toml parsing with version validation and unknown key warnings.

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
 //! Comment detection utilities for escape pattern checking.
 
 /// Check if there's a justifying comment for a pattern match.

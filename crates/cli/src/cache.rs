@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
 //! File-level caching for check results.
 //!
 //! Caches check violations per file using mtime+size as cache key.

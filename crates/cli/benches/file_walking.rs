@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
 //! File walking benchmarks.
 //!
 //! Measures file discovery performance using the `ignore` crate's

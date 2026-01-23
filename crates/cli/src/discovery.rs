@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
 //! Config file discovery.
 //!
 //! Walks from the current directory up to the git root looking for quench.toml.

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
 //! Generic language adapter (fallback).
 //!
 //! Uses patterns from [project] config for file classification.

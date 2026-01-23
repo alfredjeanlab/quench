@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
 //! Lint policy checking.
 //!
 //! Checks that lint configuration changes follow the project's policy.

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
 //! Cloc (count lines of code) check.
 //!
 //! Validates file size limits per docs/specs/checks/cloc.md.

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
 //! Parallel file walking with gitignore support.
 //!
 //! Uses the `ignore` crate for efficient, parallel file discovery

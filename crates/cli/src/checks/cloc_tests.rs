@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
 //! Unit tests for the cloc check.
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
