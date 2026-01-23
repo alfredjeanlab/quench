@@ -9,6 +9,35 @@ Agent markdown files provide context to AI coding agents. This check ensures:
 - Content follows token-efficient conventions
 - Files stay in sync with each other (default behavior)
 
+## Zero-Config Defaults
+
+With no configuration, the agents check applies these defaults:
+
+| Setting | Default | Rationale |
+|---------|---------|-----------|
+| `files` | CLAUDE.md, AGENTS.md, .cursorrules, .cursorignore, .cursor/rules/*.md[c] | All recognized agent files |
+| `required` | `["*"]` | At least one agent file must exist |
+| `sync` | `true` | Keep multiple agent files consistent |
+| `tables` | `forbid` | Tables waste tokens |
+| `box_diagrams` | `allow` | ASCII diagrams are often useful |
+| `mermaid` | `allow` | Mermaid blocks are often useful |
+| `max_lines` | `500` | Encourage concise context |
+| `max_tokens` | `20000` | Token-aware limit for LLM context |
+| `sections.required` | "Directory Structure", "Landing the Plane" | Essential sections for AI agents |
+
+**The `"*"` wildcard** means "at least one of the detected agent files must exist". This ensures projects have some agent context without mandating a specific file.
+
+**Default required sections** ensure agent files contain the minimum context AI agents need:
+- **Directory Structure**: Overview of project layout
+- **Landing the Plane**: Checklist before completing work
+
+**Disable size limits** if needed:
+```toml
+[check.agents]
+max_lines = false
+max_tokens = false
+```
+
 ## Agent Files
 
 Quench recognizes these agent context files:
@@ -114,22 +143,28 @@ Before completing work:
 - `quench check` is always the first item in the checklist
 - Language items follow in detection order
 
-## Sync Behavior (Default)
+## Sync Behavior
 
-**If multiple agent files exist, they are checked for sync by default.**
+**Sync is enabled by default** (`sync = true`). When multiple agent files exist at the same scope, they are compared section-by-section.
 
-This happens regardless of whether files are `required` or optional:
+Sync behavior:
 - If CLAUDE.md and .cursorrules both exist → check they're in sync
 - If only one exists → no sync check needed
 - If neither exists but one is required → fail on missing file
 
 ```toml
 [check.agents]
-# Sync check is ON by default when multiple files exist
+# Sync is ON by default - disable if files should differ
 sync = true
 
 # Which file is the source of truth for --fix (default: first in `files` list)
 # sync_source = "CLAUDE.md"
+```
+
+**Disable sync** if agent files should have different content:
+```toml
+[check.agents]
+sync = false
 ```
 
 **Auto-fix behavior**:
@@ -142,11 +177,25 @@ sync = true
 Configure which files must exist at each scope:
 
 ```toml
+[check.agents]
+# Wildcard: at least one agent file must exist (default)
+required = ["*"]
+
+# Or require specific files
+required = ["CLAUDE.md"]
+
+# Or require nothing
+required = []
+```
+
+Per-scope configuration:
+
+```toml
 [check.agents.root]
 # At project root
 required = ["CLAUDE.md"]              # Must exist
 optional = [".cursorrules"]           # Checked if present, not required
-forbid = []                        # Must not exist
+forbid = []                           # Must not exist
 
 [check.agents.package]
 # At each package

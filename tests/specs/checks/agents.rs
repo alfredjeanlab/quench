@@ -361,15 +361,16 @@ sync_source = "CLAUDE.md"
 "#,
     )
     .unwrap();
-    std::fs::write(dir.path().join("CLAUDE.md"), "# Source\nContent A").unwrap();
-    std::fs::write(dir.path().join(".cursorrules"), "# Source\nContent B").unwrap();
+    let source = "# Source\n\n## Directory Structure\n\nLayout.\n\n## Landing the Plane\n\n- Done\n";
+    std::fs::write(dir.path().join("CLAUDE.md"), source).unwrap();
+    std::fs::write(dir.path().join(".cursorrules"), "# Different content").unwrap();
 
     // Run with --fix
     check("agents").pwd(dir.path()).args(&["--fix"]).passes();
 
     // Verify files are now synced
     let cursorrules = std::fs::read_to_string(dir.path().join(".cursorrules")).unwrap();
-    assert_eq!(cursorrules, "# Source\nContent A");
+    assert_eq!(cursorrules, source);
 }
 
 // =============================================================================
@@ -456,8 +457,9 @@ sync_source = "CLAUDE.md"
 "#,
     )
     .unwrap();
-    std::fs::write(dir.path().join("CLAUDE.md"), "# Source\nContent A").unwrap();
-    std::fs::write(dir.path().join(".cursorrules"), "# Source\nContent B").unwrap();
+    let source = "# Source\n\n## Directory Structure\n\nLayout.\n\n## Landing the Plane\n\n- Done\n";
+    std::fs::write(dir.path().join("CLAUDE.md"), source).unwrap();
+    std::fs::write(dir.path().join(".cursorrules"), "# Different content").unwrap();
 
     check("agents")
         .pwd(dir.path())
@@ -483,8 +485,9 @@ sync_source = "CLAUDE.md"
 "#,
     )
     .unwrap();
-    std::fs::write(dir.path().join("CLAUDE.md"), "# Source\nContent A").unwrap();
-    std::fs::write(dir.path().join(".cursorrules"), "# Source\nContent B").unwrap();
+    let source = "# Source\n\n## Directory Structure\n\nLayout.\n\n## Landing the Plane\n\n- Done\n";
+    std::fs::write(dir.path().join("CLAUDE.md"), source).unwrap();
+    std::fs::write(dir.path().join(".cursorrules"), "# Different content").unwrap();
 
     let result = check("agents")
         .pwd(dir.path())

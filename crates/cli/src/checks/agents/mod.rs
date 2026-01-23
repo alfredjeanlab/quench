@@ -59,7 +59,7 @@ impl Check for AgentsCheck {
         let mut fixes = FixSummary::default();
 
         // Check required files exist at root
-        check_required_files(ctx, config, &mut violations, &mut files_missing);
+        check_required_files(ctx, config, &detected, &mut violations, &mut files_missing);
 
         // Check forbidden files don't exist at root
         check_forbidden_files(ctx, config, &detected, &mut violations);
@@ -122,6 +122,7 @@ impl Check for AgentsCheck {
 fn check_required_files(
     ctx: &CheckContext,
     config: &AgentsConfig,
+    detected: &[DetectedFile],
     violations: &mut Vec<Violation>,
     files_missing: &mut Vec<String>,
 ) {
@@ -132,8 +133,22 @@ fn check_required_files(
         &config.required
     };
 
+    // Count root-scope detected files
+    let root_files: Vec<_> = detected.iter().filter(|f| f.scope == Scope::Root).collect();
+
     for filename in required {
-        if !file_exists_at_root(ctx.root, filename) {
+        if filename == "*" {
+            // Wildcard: at least one agent file must exist at root
+            if root_files.is_empty() {
+                files_missing.push("(any agent file)".to_string());
+                violations.push(Violation::file_only(
+                    "(project root)",
+                    "missing_file",
+                    "No agent context file found. Create CLAUDE.md or .cursorrules at project root."
+                        .to_string(),
+                ));
+            }
+        } else if !file_exists_at_root(ctx.root, filename) {
             files_missing.push(filename.clone());
             violations.push(Violation::file_only(
                 filename,

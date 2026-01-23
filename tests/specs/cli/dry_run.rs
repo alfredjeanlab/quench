@@ -13,6 +13,12 @@
 
 use crate::prelude::*;
 
+/// Valid source content with required sections.
+const SOURCE: &str = "# Source\n\n## Directory Structure\n\nLayout.\n\n## Landing the Plane\n\n- Done\n";
+
+/// Different target content (will need syncing).
+const TARGET: &str = "# Target\n\n## Different\n\nContent B\n";
+
 // =============================================================================
 // ERROR HANDLING SPECS
 // =============================================================================
@@ -51,8 +57,8 @@ sync_source = "CLAUDE.md"
 "#,
     )
     .unwrap();
-    std::fs::write(dir.path().join("CLAUDE.md"), "# Source\nContent A").unwrap();
-    std::fs::write(dir.path().join(".cursorrules"), "# Target\nContent B").unwrap();
+    std::fs::write(dir.path().join("CLAUDE.md"), SOURCE).unwrap();
+    std::fs::write(dir.path().join(".cursorrules"), TARGET).unwrap();
 
     cli()
         .pwd(dir.path())
@@ -74,11 +80,12 @@ fn dry_run_shows_diff_of_changes() {
 files = ["CLAUDE.md", ".cursorrules"]
 sync = true
 sync_source = "CLAUDE.md"
+sections.required = []
 "#,
     )
     .unwrap();
-    std::fs::write(dir.path().join("CLAUDE.md"), "# Source\nContent A").unwrap();
-    std::fs::write(dir.path().join(".cursorrules"), "# Target\nContent B").unwrap();
+    std::fs::write(dir.path().join("CLAUDE.md"), SOURCE).unwrap();
+    std::fs::write(dir.path().join(".cursorrules"), TARGET).unwrap();
 
     // Diff output should show both old and new content
     cli()
@@ -86,7 +93,7 @@ sync_source = "CLAUDE.md"
         .args(&["--fix", "--dry-run"])
         .passes()
         .stdout_has("Content B") // Old content (being removed)
-        .stdout_has("Content A"); // New content (being added)
+        .stdout_has("Landing the Plane"); // New content (being added)
 }
 
 // =============================================================================
@@ -109,8 +116,8 @@ sync_source = "CLAUDE.md"
 "#,
     )
     .unwrap();
-    std::fs::write(dir.path().join("CLAUDE.md"), "# Source\nContent A").unwrap();
-    std::fs::write(dir.path().join(".cursorrules"), "# Target\nContent B").unwrap();
+    std::fs::write(dir.path().join("CLAUDE.md"), SOURCE).unwrap();
+    std::fs::write(dir.path().join(".cursorrules"), TARGET).unwrap();
 
     // Files are out of sync, fixes are needed, but --dry-run exits 0
     cli().pwd(dir.path()).args(&["--fix", "--dry-run"]).passes(); // passes() expects exit code 0
@@ -136,16 +143,13 @@ sync_source = "CLAUDE.md"
 "#,
     )
     .unwrap();
-    std::fs::write(dir.path().join("CLAUDE.md"), "# Source\nContent A").unwrap();
-    std::fs::write(dir.path().join(".cursorrules"), "# Target\nContent B").unwrap();
+    std::fs::write(dir.path().join("CLAUDE.md"), SOURCE).unwrap();
+    std::fs::write(dir.path().join(".cursorrules"), TARGET).unwrap();
 
     // Run with --dry-run
     cli().pwd(dir.path()).args(&["--fix", "--dry-run"]).passes();
 
     // Verify .cursorrules was NOT modified
     let content = std::fs::read_to_string(dir.path().join(".cursorrules")).unwrap();
-    assert_eq!(
-        content, "# Target\nContent B",
-        "file should not be modified"
-    );
+    assert_eq!(content, TARGET, "file should not be modified");
 }

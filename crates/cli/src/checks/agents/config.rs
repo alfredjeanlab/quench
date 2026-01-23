@@ -53,8 +53,8 @@ pub struct AgentsConfig {
     #[serde(default = "AgentsConfig::default_files")]
     pub files: Vec<String>,
 
-    /// Files that must exist (root scope).
-    #[serde(default)]
+    /// Files that must exist (root scope). Use "*" to require any one file.
+    #[serde(default = "AgentsConfig::default_required")]
     pub required: Vec<String>,
 
     /// Files checked if present (root scope).
@@ -65,8 +65,8 @@ pub struct AgentsConfig {
     #[serde(default)]
     pub forbid: Vec<String>,
 
-    /// Enable file synchronization checking.
-    #[serde(default)]
+    /// Enable file synchronization checking (default: true).
+    #[serde(default = "AgentsConfig::default_sync")]
     pub sync: bool,
 
     /// Source file for synchronization (other files should match this).
@@ -89,12 +89,12 @@ pub struct AgentsConfig {
     #[serde(default = "ContentRule::allow")]
     pub mermaid: ContentRule,
 
-    /// Maximum lines per file (root scope, None to disable).
-    #[serde(default)]
+    /// Maximum lines per file (root scope, default: 500, None to disable).
+    #[serde(default = "AgentsConfig::default_max_lines")]
     pub max_lines: Option<usize>,
 
-    /// Maximum tokens per file (root scope, None to disable).
-    #[serde(default)]
+    /// Maximum tokens per file (root scope, default: 20000, None to disable).
+    #[serde(default = "AgentsConfig::default_max_tokens")]
     pub max_tokens: Option<usize>,
 
     /// Root scope settings (overrides flat config).
@@ -115,17 +115,17 @@ impl Default for AgentsConfig {
         Self {
             check: CheckLevel::default(),
             files: Self::default_files(),
-            required: Vec::new(),
+            required: Self::default_required(),
             optional: Vec::new(),
             forbid: Vec::new(),
-            sync: false,
+            sync: Self::default_sync(),
             sync_source: None,
             sections: SectionsConfig::default(),
             tables: ContentRule::default(),
             box_diagrams: ContentRule::allow(),
             mermaid: ContentRule::allow(),
-            max_lines: None,
-            max_tokens: None,
+            max_lines: Self::default_max_lines(),
+            max_tokens: Self::default_max_tokens(),
             root: None,
             package: None,
             module: None,
@@ -144,6 +144,26 @@ impl AgentsConfig {
             ".cursor/rules/*.md".to_string(),
             ".cursor/rules/*.mdc".to_string(),
         ]
+    }
+
+    /// Default required files ("*" = at least one agent file must exist).
+    fn default_required() -> Vec<String> {
+        vec!["*".to_string()]
+    }
+
+    /// Default sync setting (true - keep agent files in sync).
+    fn default_sync() -> bool {
+        true
+    }
+
+    /// Default max lines per file (500).
+    fn default_max_lines() -> Option<usize> {
+        Some(500)
+    }
+
+    /// Default max tokens per file (20000).
+    fn default_max_tokens() -> Option<usize> {
+        Some(20000)
     }
 }
 
@@ -172,15 +192,40 @@ pub struct AgentsScopeConfig {
 }
 
 /// Section validation configuration.
-#[derive(Debug, Default, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct SectionsConfig {
     /// Required sections (simple form: names only, or extended form with advice).
-    #[serde(default)]
+    #[serde(default = "SectionsConfig::default_required")]
     pub required: Vec<RequiredSection>,
 
     /// Forbidden sections (supports globs like "Test*").
     #[serde(default)]
     pub forbid: Vec<String>,
+}
+
+impl Default for SectionsConfig {
+    fn default() -> Self {
+        Self {
+            required: Self::default_required(),
+            forbid: Vec::new(),
+        }
+    }
+}
+
+impl SectionsConfig {
+    /// Default required sections for agent files.
+    fn default_required() -> Vec<RequiredSection> {
+        vec![
+            RequiredSection {
+                name: "Directory Structure".to_string(),
+                advice: Some("Overview of project layout and key directories".to_string()),
+            },
+            RequiredSection {
+                name: "Landing the Plane".to_string(),
+                advice: Some("Checklist for AI agents before completing work".to_string()),
+            },
+        ]
+    }
 }
 
 /// A required section with optional advice.

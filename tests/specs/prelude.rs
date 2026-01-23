@@ -461,10 +461,15 @@ pub fn fixture(name: &str) -> std::path::PathBuf {
         .join(name)
 }
 
-/// Creates a temp directory with quench.toml (version = 1)
+/// Creates a temp directory with quench.toml and minimal CLAUDE.md
 pub fn temp_project() -> tempfile::TempDir {
     let dir = tempfile::tempdir().unwrap();
     std::fs::write(dir.path().join("quench.toml"), "version = 1\n").unwrap();
+    std::fs::write(
+        dir.path().join("CLAUDE.md"),
+        "# Project\n\n## Directory Structure\n\nMinimal.\n\n## Landing the Plane\n\n- Done\n",
+    )
+    .unwrap();
     dir
 }
 
