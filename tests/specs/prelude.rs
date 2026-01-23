@@ -7,6 +7,7 @@
 pub use assert_cmd::prelude::*;
 pub use predicates;
 pub use predicates::prelude::PredicateBooleanExt;
+use std::path::Path;
 use std::process::Command;
 
 /// Returns a Command configured to run the quench binary
@@ -62,4 +63,44 @@ pub fn fixture(name: &str) -> std::path::PathBuf {
         .join("tests")
         .join("fixtures")
         .join(name)
+}
+
+/// Creates a temp directory with quench.toml (version = 1)
+pub fn temp_project() -> tempfile::TempDir {
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(dir.path().join("quench.toml"), "version = 1\n").unwrap();
+    dir
+}
+
+/// Run quench check with JSON output, return parsed JSON
+#[allow(dead_code)] // KEEP UNTIL: More specs use this helper
+pub fn check_json(dir: &Path) -> serde_json::Value {
+    let output = quench_cmd()
+        .args(["check", "-o", "json"])
+        .current_dir(dir)
+        .output()
+        .unwrap();
+    serde_json::from_slice(&output.stdout).unwrap()
+}
+
+/// Run quench check with args, return parsed JSON
+pub fn check_json_with_args(dir: &Path, args: &[&str]) -> serde_json::Value {
+    let mut cmd_args = vec!["check", "-o", "json"];
+    cmd_args.extend(args);
+    let output = quench_cmd()
+        .args(&cmd_args)
+        .current_dir(dir)
+        .output()
+        .unwrap();
+    serde_json::from_slice(&output.stdout).unwrap()
+}
+
+/// Extract check names from JSON output
+pub fn check_names(json: &serde_json::Value) -> Vec<&str> {
+    json.get("checks")
+        .and_then(|v| v.as_array())
+        .unwrap()
+        .iter()
+        .filter_map(|c| c.get("name").and_then(|n| n.as_str()))
+        .collect()
 }

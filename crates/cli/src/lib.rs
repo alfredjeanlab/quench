@@ -17,3 +17,6 @@ pub use config::IgnoreConfig;
 pub use error::{Error, ExitCode, Result};
 pub use reader::{FileContent, FileReader, ReadStrategy};
 pub use walker::{FileWalker, WalkStats, WalkedFile, WalkerConfig};
+
+#[cfg(test)]
+pub mod test_utils;

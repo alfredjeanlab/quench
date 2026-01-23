@@ -12,6 +12,7 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
 use crate::prelude::*;
+use yare::parameterized;
 
 // =============================================================================
 // Check Names
@@ -78,52 +79,24 @@ fn check_toggles_shown_in_help() {
 
 /// Spec: docs/specs/01-cli.md#check-toggles
 ///
-/// > --cloc: Only run cloc check (implies --no-* for others)
-#[test]
-fn cloc_flag_enables_only_cloc_check() {
-    let dir = tempfile::tempdir().unwrap();
-    std::fs::write(dir.path().join("quench.toml"), "version = 1\n").unwrap();
+/// > --<check>: Only run that check (implies --no-* for others)
+#[parameterized(
+    cloc = { "cloc" },
+    escapes = { "escapes" },
+    agents = { "agents" },
+    docs = { "docs" },
+    tests = { "tests" },
+    git = { "git" },
+    build = { "build" },
+    license = { "license" },
+)]
+fn enable_flag_runs_only_that_check(check_name: &str) {
+    let dir = temp_project();
+    let json = check_json_with_args(dir.path(), &[&format!("--{}", check_name)]);
+    let names = check_names(&json);
 
-    let output = quench_cmd()
-        .args(["check", "--cloc", "-o", "json"])
-        .current_dir(dir.path())
-        .output()
-        .unwrap();
-
-    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-    let checks = json.get("checks").and_then(|v| v.as_array()).unwrap();
-
-    assert_eq!(checks.len(), 1, "only one check should run");
-    assert_eq!(
-        checks[0].get("name").and_then(|n| n.as_str()),
-        Some("cloc"),
-        "check should be cloc"
-    );
-}
-
-/// Spec: docs/specs/01-cli.md#check-toggles
-///
-/// > --escapes: Only run escapes check
-#[test]
-fn escapes_flag_enables_only_escapes_check() {
-    let dir = tempfile::tempdir().unwrap();
-    std::fs::write(dir.path().join("quench.toml"), "version = 1\n").unwrap();
-
-    let output = quench_cmd()
-        .args(["check", "--escapes", "-o", "json"])
-        .current_dir(dir.path())
-        .output()
-        .unwrap();
-
-    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-    let checks = json.get("checks").and_then(|v| v.as_array()).unwrap();
-
-    assert_eq!(checks.len(), 1, "only one check should run");
-    assert_eq!(
-        checks[0].get("name").and_then(|n| n.as_str()),
-        Some("escapes"),
-        "check should be escapes"
-    );
+    assert_eq!(names.len(), 1, "only one check should run");
+    assert_eq!(names[0], check_name);
 }
 
 // =============================================================================
@@ -132,103 +105,33 @@ fn escapes_flag_enables_only_escapes_check() {
 
 /// Spec: docs/specs/01-cli.md#check-toggles
 ///
-/// > --no-cloc: Skip cloc check, run all others
-#[test]
-fn no_cloc_flag_disables_cloc_check() {
-    let dir = tempfile::tempdir().unwrap();
-    std::fs::write(dir.path().join("quench.toml"), "version = 1\n").unwrap();
+/// > --no-<check>: Skip that check, run all others
+#[parameterized(
+    cloc = { "cloc" },
+    escapes = { "escapes" },
+    agents = { "agents" },
+    docs = { "docs" },
+    tests = { "tests" },
+    git = { "git" },
+    build = { "build" },
+    license = { "license" },
+)]
+fn disable_flag_skips_that_check(check_name: &str) {
+    let dir = temp_project();
+    let json = check_json_with_args(dir.path(), &[&format!("--no-{}", check_name)]);
+    let names = check_names(&json);
 
-    let output = quench_cmd()
-        .args(["check", "--no-cloc", "-o", "json"])
-        .current_dir(dir.path())
-        .output()
-        .unwrap();
-
-    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-    let checks = json.get("checks").and_then(|v| v.as_array()).unwrap();
-
-    let names: Vec<&str> = checks
-        .iter()
-        .filter_map(|c| c.get("name").and_then(|n| n.as_str()))
-        .collect();
-
-    assert!(!names.contains(&"cloc"), "cloc should not be present");
-    assert_eq!(names.len(), 7, "7 checks should run (all except cloc)");
-}
-
-/// Spec: docs/specs/01-cli.md#check-toggles
-///
-/// > --no-escapes: Skip escapes check
-#[test]
-fn no_escapes_flag_disables_escapes_check() {
-    let dir = tempfile::tempdir().unwrap();
-    std::fs::write(dir.path().join("quench.toml"), "version = 1\n").unwrap();
-
-    let output = quench_cmd()
-        .args(["check", "--no-escapes", "-o", "json"])
-        .current_dir(dir.path())
-        .output()
-        .unwrap();
-
-    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-    let checks = json.get("checks").and_then(|v| v.as_array()).unwrap();
-
-    let names: Vec<&str> = checks
-        .iter()
-        .filter_map(|c| c.get("name").and_then(|n| n.as_str()))
-        .collect();
-
-    assert!(!names.contains(&"escapes"), "escapes should not be present");
-}
-
-/// Spec: docs/specs/01-cli.md#check-toggles
-///
-/// > --no-docs: Skip docs check
-#[test]
-fn no_docs_flag_disables_docs_check() {
-    let dir = tempfile::tempdir().unwrap();
-    std::fs::write(dir.path().join("quench.toml"), "version = 1\n").unwrap();
-
-    let output = quench_cmd()
-        .args(["check", "--no-docs", "-o", "json"])
-        .current_dir(dir.path())
-        .output()
-        .unwrap();
-
-    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-    let checks = json.get("checks").and_then(|v| v.as_array()).unwrap();
-
-    let names: Vec<&str> = checks
-        .iter()
-        .filter_map(|c| c.get("name").and_then(|n| n.as_str()))
-        .collect();
-
-    assert!(!names.contains(&"docs"), "docs should not be present");
-}
-
-/// Spec: docs/specs/01-cli.md#check-toggles
-///
-/// > --no-tests: Skip tests check
-#[test]
-fn no_tests_flag_disables_tests_check() {
-    let dir = tempfile::tempdir().unwrap();
-    std::fs::write(dir.path().join("quench.toml"), "version = 1\n").unwrap();
-
-    let output = quench_cmd()
-        .args(["check", "--no-tests", "-o", "json"])
-        .current_dir(dir.path())
-        .output()
-        .unwrap();
-
-    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-    let checks = json.get("checks").and_then(|v| v.as_array()).unwrap();
-
-    let names: Vec<&str> = checks
-        .iter()
-        .filter_map(|c| c.get("name").and_then(|n| n.as_str()))
-        .collect();
-
-    assert!(!names.contains(&"tests"), "tests should not be present");
+    assert!(
+        !names.contains(&check_name),
+        "{} should not be present",
+        check_name
+    );
+    assert_eq!(
+        names.len(),
+        7,
+        "7 checks should run (all except {})",
+        check_name
+    );
 }
 
 // =============================================================================

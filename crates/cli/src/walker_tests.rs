@@ -1,19 +1,21 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
 use super::*;
+use crate::test_utils::create_tree;
 use std::fs;
 use tempfile::TempDir;
-
-fn create_test_tree(dir: &Path) {
-    fs::create_dir_all(dir.join("src")).unwrap();
-    fs::write(dir.join("src/lib.rs"), "fn main() {}").unwrap();
-    fs::write(dir.join("src/test.rs"), "fn test() {}").unwrap();
-}
+use yare::parameterized;
 
 #[test]
 fn walks_simple_directory() {
     let tmp = TempDir::new().unwrap();
-    create_test_tree(tmp.path());
+    create_tree(
+        tmp.path(),
+        &[
+            ("src/lib.rs", "fn main() {}"),
+            ("src/test.rs", "fn test() {}"),
+        ],
+    );
 
     let walker = FileWalker::new(WalkerConfig::default());
     let (files, stats) = walker.walk_collect(tmp.path());
@@ -25,7 +27,13 @@ fn walks_simple_directory() {
 #[test]
 fn respects_gitignore() {
     let tmp = TempDir::new().unwrap();
-    create_test_tree(tmp.path());
+    create_tree(
+        tmp.path(),
+        &[
+            ("src/lib.rs", "fn main() {}"),
+            ("src/test.rs", "fn test() {}"),
+        ],
+    );
 
     // Add .gitignore
     fs::write(tmp.path().join(".gitignore"), "*.rs\n").unwrap();
@@ -49,14 +57,13 @@ fn respects_gitignore() {
 #[test]
 fn respects_depth_limit() {
     let tmp = TempDir::new().unwrap();
-
-    // Create nested structure: level1/level2/level3/file.rs
-    let deep = tmp.path().join("level1/level2/level3");
-    fs::create_dir_all(&deep).unwrap();
-    fs::write(deep.join("file.rs"), "fn f() {}").unwrap();
-
-    // Shallow file
-    fs::write(tmp.path().join("shallow.rs"), "fn s() {}").unwrap();
+    create_tree(
+        tmp.path(),
+        &[
+            ("level1/level2/level3/file.rs", "fn f() {}"),
+            ("shallow.rs", "fn s() {}"),
+        ],
+    );
 
     let walker = FileWalker::new(WalkerConfig {
         max_depth: Some(2),
@@ -74,9 +81,13 @@ fn respects_depth_limit() {
 #[test]
 fn custom_ignore_patterns() {
     let tmp = TempDir::new().unwrap();
-    fs::create_dir_all(tmp.path().join("src")).unwrap();
-    fs::write(tmp.path().join("src/lib.rs"), "fn main() {}").unwrap();
-    fs::write(tmp.path().join("src/test.snapshot"), "snapshot").unwrap();
+    create_tree(
+        tmp.path(),
+        &[
+            ("src/lib.rs", "fn main() {}"),
+            ("src/test.snapshot", "snapshot"),
+        ],
+    );
 
     let walker = FileWalker::new(WalkerConfig {
         ignore_patterns: vec!["*.snapshot".to_string()],
@@ -116,12 +127,14 @@ fn collects_file_size() {
 #[test]
 fn tracks_file_depth() {
     let tmp = TempDir::new().unwrap();
-
-    // Create nested structure
-    fs::create_dir_all(tmp.path().join("a/b")).unwrap();
-    fs::write(tmp.path().join("root.txt"), "root").unwrap();
-    fs::write(tmp.path().join("a/level1.txt"), "level1").unwrap();
-    fs::write(tmp.path().join("a/b/level2.txt"), "level2").unwrap();
+    create_tree(
+        tmp.path(),
+        &[
+            ("root.txt", "root"),
+            ("a/level1.txt", "level1"),
+            ("a/b/level2.txt", "level2"),
+        ],
+    );
 
     let walker = FileWalker::new(WalkerConfig {
         git_ignore: false,
@@ -199,55 +212,42 @@ fn should_use_sequential_on_small_directory() {
     );
 }
 
-#[test]
-fn force_parallel_overrides_heuristic() {
+#[parameterized(
+    force_parallel = { true, false, true },
+    force_sequential = { false, true, false },
+)]
+fn force_flags_override_heuristic(force_parallel: bool, force_sequential: bool, expected: bool) {
     let tmp = TempDir::new().unwrap();
-
-    // Create a small directory that would normally use sequential
-    fs::write(tmp.path().join("file.txt"), "content").unwrap();
+    create_tree(tmp.path(), &[("file.txt", "content")]);
 
     let walker = FileWalker::new(WalkerConfig {
-        force_parallel: true,
+        force_parallel,
+        force_sequential,
         ..Default::default()
     });
 
-    assert!(
+    assert_eq!(
         walker.should_use_parallel(tmp.path()),
-        "force_parallel should override heuristic"
-    );
-}
-
-#[test]
-fn force_sequential_overrides_heuristic() {
-    let tmp = TempDir::new().unwrap();
-
-    // Create many top-level entries that would normally use parallel
-    for i in 0..150 {
-        fs::write(tmp.path().join(format!("file{}.txt", i)), "content").unwrap();
-    }
-
-    let walker = FileWalker::new(WalkerConfig {
-        force_sequential: true,
-        ..Default::default()
-    });
-
-    assert!(
-        !walker.should_use_parallel(tmp.path()),
-        "force_sequential should override heuristic"
+        expected,
+        "force_parallel={} force_sequential={} should give {}",
+        force_parallel,
+        force_sequential,
+        expected
     );
 }
 
 #[test]
 fn parallel_and_sequential_produce_same_files() {
     let tmp = TempDir::new().unwrap();
-
-    // Create a test directory structure
-    fs::create_dir_all(tmp.path().join("src")).unwrap();
-    fs::create_dir_all(tmp.path().join("tests")).unwrap();
-    fs::write(tmp.path().join("src/main.rs"), "fn main() {}").unwrap();
-    fs::write(tmp.path().join("src/lib.rs"), "pub fn lib() {}").unwrap();
-    fs::write(tmp.path().join("tests/test.rs"), "#[test] fn t() {}").unwrap();
-    fs::write(tmp.path().join("README.md"), "# Readme").unwrap();
+    create_tree(
+        tmp.path(),
+        &[
+            ("src/main.rs", "fn main() {}"),
+            ("src/lib.rs", "pub fn lib() {}"),
+            ("tests/test.rs", "#[test] fn t() {}"),
+            ("README.md", "# Readme"),
+        ],
+    );
 
     // Walk with force_parallel
     let walker_parallel = FileWalker::new(WalkerConfig {
