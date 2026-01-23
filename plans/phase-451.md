@@ -1,5 +1,7 @@
 # Phase 451: Go Adapter Behavioral Specs
 
+**Root Feature:** `quench-333a`
+
 ## Overview
 
 Write behavioral specs for the Go language adapter, testing detection, default patterns, escape patterns, suppress directives, and lint policy enforcement. All specs will be marked with `#[ignore = "TODO: Phase 455+"]` for future implementation.
