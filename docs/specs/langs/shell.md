@@ -14,7 +14,7 @@ the following opinionated defaults are configured:
 ```toml
 [shell]
 source = ["**/*.sh", "**/*.bash", "bin/*", "scripts/*"]
-tests = ["tests/**/*.bats", "test/**/*.bats", "*_test.sh"]
+tests = ["tests/**/*.bats", "test/**/*.bats", "**/*_test.sh"]
 
 [shell.suppress]
 check = "forbid"
@@ -54,7 +54,7 @@ advice = "Fix the shellcheck warning instead of disabling it."
 ```toml
 [shell]
 source = ["**/*.sh", "**/*.bash"]
-tests = ["tests/**/*.bats", "test/**/*.bats", "*_test.sh"]
+tests = ["tests/**/*.bats", "test/**/*.bats", "**/*_test.sh"]
 ```
 
 ## Test Code Detection
@@ -122,7 +122,7 @@ Coverage targets resolve against `[shell].source` patterns.
 [shell]
 # Source/test patterns (defaults shown)
 # source = ["**/*.sh", "**/*.bash"]
-# tests = ["tests/**/*.bats", "test/**/*.bats", "*_test.sh"]
+# tests = ["tests/**/*.bats", "test/**/*.bats", "**/*_test.sh"]
 
 [shell.suppress]
 check = "forbid"

@@ -58,7 +58,7 @@ See [langs/shell.md](langs/shell.md) for full Shell configuration.
 ```toml
 [shell]
 # source = ["**/*.sh", "**/*.bash"]
-# tests = ["tests/**/*.bats", "*_test.sh"]
+# tests = ["tests/**/*.bats", "test/**/*.bats", "**/*_test.sh"]
 
 [shell.suppress]
 check = "forbid"               # forbid | comment | allow
