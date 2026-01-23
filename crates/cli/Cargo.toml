@@ -65,5 +65,9 @@ harness = false
 name = "adapter"
 harness = false
 
+[[bench]]
+name = "stress"
+harness = false
+
 [lints]
 workspace = true

@@ -1,0 +1,226 @@
+#!/usr/bin/env bash
+# scripts/gen-stress-fixture - Generate stress test fixtures for performance testing
+#
+# Creates fixtures that exercise edge cases:
+# - Large files (10K-50K lines)
+# - Many #[cfg(test)] blocks per file
+# - Large workspaces (50 packages)
+# - Deep module nesting (20 levels)
+#
+# Usage:
+#   ./scripts/gen-stress-fixture [fixture_dir]
+#   ./scripts/gen-stress-fixture                     # Default: tests/fixtures/stress-rust
+#   ./scripts/gen-stress-fixture tests/fixtures/stress-rust
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+FIXTURE_DIR="${1:-$REPO_ROOT/tests/fixtures/stress-rust}"
+
+# Colors for output
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+echo -e "${YELLOW}Generating stress test fixtures...${NC}"
+echo "  Directory: $FIXTURE_DIR"
+
+# Clean and create fixture directory
+rm -rf "$FIXTURE_DIR"
+mkdir -p "$FIXTURE_DIR"
+
+# === Large Files ===
+echo "Generating large-files fixture..."
+mkdir -p "$FIXTURE_DIR/large-files/src"
+cat > "$FIXTURE_DIR/large-files/Cargo.toml" << 'TOML'
+[package]
+name = "large-files"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# Stress test fixture - auto-generated
+TOML
+
+# Generate 10K and 50K line files
+for lines in 10000 50000; do
+    FILE="$FIXTURE_DIR/large-files/src/file_${lines}.rs"
+    echo "//! File with $lines lines for stress testing" > "$FILE"
+    echo "" >> "$FILE"
+
+    # Generate blocks of ~12 lines each (function + cfg test)
+    blocks=$((lines / 12))
+    for i in $(seq 1 $blocks); do
+        cat >> "$FILE" << RUST
+pub fn func_$i() -> i32 {
+    let x = $i;
+    let y = x * 2;
+    x + y
+}
+
+#[cfg(test)]
+mod tests_$i {
+    #[test]
+    fn test_func_$i() {}
+}
+
+RUST
+    done
+done
+
+# Create lib.rs
+cat > "$FIXTURE_DIR/large-files/src/lib.rs" << 'RUST'
+//! Large files stress test
+pub mod file_10000;
+pub mod file_50000;
+RUST
+
+echo "  Generated large-files: 10K and 50K line files"
+
+# === Many #[cfg(test)] blocks ===
+echo "Generating many-cfg-test fixture..."
+mkdir -p "$FIXTURE_DIR/many-cfg-test/src"
+cat > "$FIXTURE_DIR/many-cfg-test/Cargo.toml" << 'TOML'
+[package]
+name = "many-cfg-test"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# Stress test fixture - auto-generated
+TOML
+
+FILE="$FIXTURE_DIR/many-cfg-test/src/lib.rs"
+echo "//! File with many #[cfg(test)] blocks" > "$FILE"
+for i in $(seq 1 50); do
+    cat >> "$FILE" << RUST
+
+pub fn func_$i() -> i32 { $i }
+
+#[cfg(test)]
+mod tests_$i {
+    use super::*;
+    #[test]
+    fn test_func_$i() {
+        assert_eq!(func_$i(), $i);
+    }
+}
+RUST
+done
+
+echo "  Generated many-cfg-test: 50 #[cfg(test)] blocks"
+
+# === Large Workspace (50 packages) ===
+echo "Generating many-packages fixture..."
+mkdir -p "$FIXTURE_DIR/many-packages/crates"
+cat > "$FIXTURE_DIR/many-packages/Cargo.toml" << 'TOML'
+[workspace]
+members = ["crates/*"]
+resolver = "2"
+
+# Stress test fixture - auto-generated
+TOML
+
+for pkg in $(seq 1 50); do
+    PKG_DIR="$FIXTURE_DIR/many-packages/crates/pkg_$pkg"
+    mkdir -p "$PKG_DIR/src"
+    cat > "$PKG_DIR/Cargo.toml" << TOML
+[package]
+name = "pkg_$pkg"
+version = "0.1.0"
+edition = "2021"
+publish = false
+TOML
+    # 20 source files per package = 1000 total
+    for f in $(seq 1 20); do
+        cat > "$PKG_DIR/src/mod_$f.rs" << RUST
+pub fn func() -> i32 { $f }
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test() { assert_eq!(super::func(), $f); }
+}
+RUST
+    done
+    # lib.rs
+    {
+        echo "//! Package $pkg"
+        for f in $(seq 1 20); do
+            echo "pub mod mod_$f;"
+        done
+    } > "$PKG_DIR/src/lib.rs"
+done
+
+echo "  Generated many-packages: 50 packages × 20 files = 1000 files"
+
+# === Deep Nesting ===
+echo "Generating deep-nesting fixture..."
+mkdir -p "$FIXTURE_DIR/deep-nesting/src"
+cat > "$FIXTURE_DIR/deep-nesting/Cargo.toml" << 'TOML'
+[package]
+name = "deep-nesting"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# Stress test fixture - auto-generated
+TOML
+
+# Create 20 levels of nested modules
+CURRENT="$FIXTURE_DIR/deep-nesting/src"
+echo "pub mod level_1;" > "$CURRENT/lib.rs"
+for level in $(seq 1 20); do
+    NEXT="$CURRENT/level_$level"
+    mkdir -p "$NEXT"
+    if [ $level -lt 20 ]; then
+        echo "pub mod level_$((level + 1));" > "$NEXT/mod.rs"
+    else
+        echo "pub fn deepest() -> i32 { $level }" > "$NEXT/mod.rs"
+    fi
+    CURRENT="$NEXT"
+done
+
+echo "  Generated deep-nesting: 20 levels of module nesting"
+
+# === quench.toml for each ===
+for dir in large-files many-cfg-test many-packages deep-nesting; do
+    cat > "$FIXTURE_DIR/$dir/quench.toml" << 'TOML'
+# Stress test fixture configuration
+version = 1
+
+[check.cloc]
+check = "warn"
+max_lines = 100000
+max_lines_test = 100000
+
+# Disable token limit for stress testing large files
+[check.cloc.max_tokens]
+
+[check.escapes]
+check = "warn"
+TOML
+done
+
+# === .gitignore for stress fixtures ===
+cat > "$FIXTURE_DIR/.gitignore" << 'EOF'
+# Stress fixtures are generated, don't track
+**/target/
+**/Cargo.lock
+EOF
+
+# Summary
+echo ""
+echo -e "${GREEN}Generated stress test fixtures at $FIXTURE_DIR${NC}"
+echo ""
+echo "Fixtures:"
+echo "  large-files/   - 10K and 50K line files"
+echo "  many-cfg-test/ - 50 #[cfg(test)] blocks"
+echo "  many-packages/ - 50 packages, 1000 files total"
+echo "  deep-nesting/  - 20 levels of module nesting"
+echo ""
+
+total_rs=$(find "$FIXTURE_DIR" -name '*.rs' | wc -l | tr -d ' ')
+echo "Total .rs files: $total_rs"

@@ -57,6 +57,22 @@ if [ $failed -eq 0 ]; then
     echo -e "${GREEN}Test conventions OK${NC}"
 fi
 
+# --- Performance smoke test ---
+echo ""
+echo "Running performance smoke test..."
+
+# Only run if bench-rust fixture exists and release binary is available
+if [ -d "tests/fixtures/bench-rust" ] && [ -f "target/release/quench" ]; then
+    if timeout 5s ./target/release/quench check tests/fixtures/bench-rust > /dev/null 2>&1; then
+        echo -e "${GREEN}Performance smoke test passed${NC}"
+    else
+        echo -e "${RED}ERROR: Performance smoke test failed (timeout or error)${NC}"
+        failed=1
+    fi
+else
+    echo "Skipping performance smoke test (requires release build and bench-rust fixture)"
+fi
+
 # --- Summary ---
 echo ""
 if [ $failed -eq 0 ]; then
