@@ -20,7 +20,6 @@ use crate::prelude::*;
 ///
 /// > rust | Cargo.toml exists | **/*.rs
 #[test]
-#[ignore = "TODO: Phase 302 - Rust Adapter Implementation"]
 fn rust_adapter_auto_detected_when_cargo_toml_present() {
     // Project has Cargo.toml but no quench.toml [rust] section
     // Should still apply Rust defaults
@@ -40,24 +39,22 @@ fn rust_adapter_auto_detected_when_cargo_toml_present() {
 ///
 /// > source = ["**/*.rs"]
 #[test]
-#[ignore = "TODO: Phase 302 - Rust Adapter Implementation"]
 fn rust_adapter_default_source_pattern_matches_rs_files() {
     let cloc = check("cloc").on("rust/auto-detect").json().passes();
     let metrics = cloc.require("metrics");
 
     // Should count .rs files as source
-    let source_loc = metrics
-        .get("source_loc")
+    let source_lines = metrics
+        .get("source_lines")
         .and_then(|v| v.as_u64())
         .unwrap_or(0);
-    assert!(source_loc > 0, "should count .rs files as source");
+    assert!(source_lines > 0, "should count .rs files as source");
 }
 
 /// Spec: docs/specs/langs/rust.md#default-patterns
 ///
 /// > ignore = ["target/"]
 #[test]
-#[ignore = "TODO: Phase 302 - Rust Adapter Implementation"]
 fn rust_adapter_default_ignores_target_directory() {
     // Fixture has files in target/ that should be ignored
     let cloc = check("cloc").on("rust/auto-detect").json().passes();
@@ -82,7 +79,6 @@ fn rust_adapter_default_ignores_target_directory() {
 /// > Detected when Cargo.toml exists in project root.
 /// > Auto-detects workspace packages from Cargo.toml [workspace] members.
 #[test]
-#[ignore = "TODO: Phase 302 - Rust Adapter Implementation"]
 fn rust_adapter_detects_workspace_packages_from_cargo_toml() {
     // Fixture has Cargo.toml with [workspace] members = ["crates/*"]
     let cloc = check("cloc").on("rust/workspace-auto").json().passes();

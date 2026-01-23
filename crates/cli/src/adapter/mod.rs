@@ -7,8 +7,10 @@ use std::path::Path;
 use std::sync::Arc;
 
 pub mod generic;
+pub mod rust;
 
 pub use generic::GenericAdapter;
+pub use rust::RustAdapter;
 
 /// File classification result.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -112,6 +114,41 @@ impl AdapterRegistry {
 impl Default for AdapterRegistry {
     fn default() -> Self {
         Self::new(Arc::new(GenericAdapter::with_defaults()))
+    }
+}
+
+// =============================================================================
+// PROJECT LANGUAGE DETECTION
+// =============================================================================
+
+/// Detect project language from marker files.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ProjectLanguage {
+    Rust,
+    Generic,
+}
+
+/// Detect project language by checking for marker files.
+pub fn detect_language(root: &Path) -> ProjectLanguage {
+    if root.join("Cargo.toml").exists() {
+        return ProjectLanguage::Rust;
+    }
+    ProjectLanguage::Generic
+}
+
+impl AdapterRegistry {
+    /// Create a registry pre-populated with detected adapters.
+    pub fn for_project(root: &Path) -> Self {
+        let mut registry = Self::new(Arc::new(GenericAdapter::with_defaults()));
+
+        match detect_language(root) {
+            ProjectLanguage::Rust => {
+                registry.register(Arc::new(RustAdapter::new()));
+            }
+            ProjectLanguage::Generic => {}
+        }
+
+        registry
     }
 }
 

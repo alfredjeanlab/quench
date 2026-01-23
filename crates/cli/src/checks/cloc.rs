@@ -9,7 +9,7 @@ use std::sync::atomic::Ordering;
 use globset::{Glob, GlobSet, GlobSetBuilder};
 use serde_json::json;
 
-use crate::adapter::{Adapter, FileKind, GenericAdapter};
+use crate::adapter::{AdapterRegistry, FileKind};
 use crate::check::{Check, CheckContext, CheckResult, Violation};
 use crate::config::CheckLevel;
 
@@ -34,15 +34,9 @@ impl Check for ClocCheck {
             return CheckResult::passed(self.name());
         }
 
-        // Build adapter for file classification
-        // Use project-level patterns if configured, otherwise fall back to cloc config
-        let project_config = &ctx.config.project;
-        let test_patterns = if project_config.tests.is_empty() {
-            &cloc_config.test_patterns
-        } else {
-            &project_config.tests
-        };
-        let adapter = GenericAdapter::new(&project_config.source, test_patterns);
+        // Build adapter registry for file classification
+        // Uses language-specific adapter when detected (e.g., Rust adapter for Cargo.toml projects)
+        let registry = AdapterRegistry::for_project(ctx.root);
 
         // Build pattern matcher for exclude patterns only
         let exclude_matcher = ExcludeMatcher::new(&cloc_config.exclude);
@@ -69,7 +63,7 @@ impl Check for ClocCheck {
                     let line_count = metrics.nonblank_lines;
                     let token_count = metrics.tokens;
                     let relative_path = file.path.strip_prefix(ctx.root).unwrap_or(&file.path);
-                    let file_kind = adapter.classify(relative_path);
+                    let file_kind = registry.classify(relative_path);
                     let is_test = file_kind == FileKind::Test;
                     let is_excluded = exclude_matcher.is_excluded(&file.path, ctx.root);
 
@@ -173,9 +167,12 @@ impl Check for ClocCheck {
 
         // Add per-package metrics if packages are configured
         if !package_metrics.is_empty() {
+            let package_names = &ctx.config.workspace.package_names;
             let by_package: HashMap<String, serde_json::Value> = package_metrics
                 .into_iter()
-                .map(|(name, metrics)| {
+                .map(|(path, metrics)| {
+                    // Use package name from mapping if available, otherwise use path
+                    let name = package_names.get(&path).cloned().unwrap_or(path);
                     let ratio = metrics.ratio();
                     (
                         name,

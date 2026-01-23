@@ -5,6 +5,7 @@ use std::sync::Arc;
 use clap::{CommandFactory, Parser};
 use tracing_subscriber::{EnvFilter, fmt};
 
+use quench::adapter::{ProjectLanguage, detect_language, rust::CargoWorkspace};
 use quench::cache::{self, CACHE_FILE_NAME, FileCache};
 use quench::checks;
 use quench::cli::{CheckArgs, Cli, Command, InitArgs, OutputFormat, ReportArgs};
@@ -87,7 +88,7 @@ fn run_check(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
         discovery::find_config(&root)
     };
 
-    let config = match &config_path {
+    let mut config = match &config_path {
         Some(path) => {
             tracing::debug!("loading config from {}", path.display());
             config::load_with_warnings(path)?
@@ -105,10 +106,89 @@ fn run_check(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
 
     tracing::trace!("check command starting");
 
-    // Configure walker
+    // Configure walker with language-specific ignore patterns
+    let mut ignore_patterns = config.project.ignore.patterns.clone();
+
+    // Add language-specific patterns and auto-detect workspace packages
+    match detect_language(&root) {
+        ProjectLanguage::Rust => {
+            // Ignore target/ directory for Rust projects
+            if !ignore_patterns.iter().any(|p| p.contains("target")) {
+                ignore_patterns.push("target".to_string());
+            }
+
+            // Auto-detect workspace packages if not configured
+            if config.workspace.packages.is_empty() {
+                let workspace = CargoWorkspace::from_root(&root);
+                if workspace.is_workspace {
+                    // For workspaces, expand member patterns to get both paths and names
+                    for pattern in &workspace.member_patterns {
+                        if pattern.contains('*') {
+                            // Expand glob patterns
+                            if let Some(base) = pattern.strip_suffix("/*") {
+                                let dir = root.join(base);
+                                if let Ok(entries) = std::fs::read_dir(&dir) {
+                                    for entry in entries.flatten() {
+                                        if entry.path().is_dir() {
+                                            let rel_path = format!(
+                                                "{}/{}",
+                                                base,
+                                                entry.file_name().to_string_lossy()
+                                            );
+                                            // Read package name from Cargo.toml
+                                            let cargo_toml = entry.path().join("Cargo.toml");
+                                            if let Ok(content) =
+                                                std::fs::read_to_string(&cargo_toml)
+                                                && let Ok(value) = content.parse::<toml::Value>()
+                                                && let Some(name) = value
+                                                    .get("package")
+                                                    .and_then(|p| p.get("name"))
+                                                    .and_then(|n| n.as_str())
+                                            {
+                                                config
+                                                    .workspace
+                                                    .package_names
+                                                    .insert(rel_path.clone(), name.to_string());
+                                            }
+                                            config.workspace.packages.push(rel_path);
+                                        }
+                                    }
+                                }
+                            }
+                        } else {
+                            // Direct path to package
+                            let pkg_dir = root.join(pattern);
+                            let cargo_toml = pkg_dir.join("Cargo.toml");
+                            if let Ok(content) = std::fs::read_to_string(&cargo_toml)
+                                && let Ok(value) = content.parse::<toml::Value>()
+                                && let Some(name) = value
+                                    .get("package")
+                                    .and_then(|p| p.get("name"))
+                                    .and_then(|n| n.as_str())
+                            {
+                                config
+                                    .workspace
+                                    .package_names
+                                    .insert(pattern.clone(), name.to_string());
+                            }
+                            config.workspace.packages.push(pattern.clone());
+                        }
+                    }
+                    config.workspace.packages.sort();
+                    tracing::debug!(
+                        "auto-detected workspace packages: {:?}",
+                        config.workspace.packages
+                    );
+                    tracing::debug!("package names: {:?}", config.workspace.package_names);
+                }
+            }
+        }
+        ProjectLanguage::Generic => {}
+    }
+
     let walker_config = WalkerConfig {
         max_depth: Some(args.max_depth),
-        ignore_patterns: config.project.ignore.patterns.clone(),
+        ignore_patterns,
         ..Default::default()
     };
 

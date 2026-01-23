@@ -58,6 +58,11 @@ pub struct WorkspaceConfig {
     /// Package directories within the workspace.
     #[serde(default)]
     pub packages: Vec<String>,
+
+    /// Package name lookup (path -> name).
+    /// Auto-populated when detecting Rust workspaces.
+    #[serde(default)]
+    pub package_names: std::collections::HashMap<String, String>,
 }
 
 /// Check-specific configurations.
@@ -433,7 +438,10 @@ pub fn parse_with_warnings(content: &str, path: &Path) -> Result<Config> {
                 })
                 .unwrap_or_default();
 
-            WorkspaceConfig { packages }
+            WorkspaceConfig {
+                packages,
+                package_names: std::collections::HashMap::new(),
+            }
         }
         _ => WorkspaceConfig::default(),
     };
