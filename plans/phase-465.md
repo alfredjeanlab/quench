@@ -1,5 +1,7 @@
 # Phase 465: Go Adapter - Suppress
 
+**Root Feature:** `quench-1034`
+
 Implement Go `//nolint` directive detection and policies for the escapes check.
 
 ## Overview
