@@ -2,5 +2,16 @@ version = 1
 
 [check.cloc]
 exclude = ["tests/fixtures/cloc/**"]
-advice = "Can the code be made more concise? If not, split large source files into sibling modules or submodules in a folder; consider refactoring to be more unit testable."
-advice_test = "Can tests be parameterized using `yare` to be more concise? If not, split large test files into a {module}_tests/ folder."
+advice = """
+Can the code be made more concise?
+
+If not, split large source files into sibling modules or submodules in a folder;
+consider refactoring to be more unit testable.
+
+Avoid picking and removing individual lines to satistfy the linter,
+prefer properly refactoring out testable code blocks.
+"""
+advice_test = """
+Can tests be parameterized using `yare` to be more concise?
+If not, split large test files into a {module}_tests/ folder.
+""""

@@ -515,5 +515,8 @@ metric = "nonblank"
     // value should equal nonblank, not total lines
     let value = v.get("value").and_then(|v| v.as_i64()).unwrap();
     let nonblank = v.get("nonblank").and_then(|v| v.as_i64()).unwrap();
-    assert_eq!(value, nonblank, "metric=nonblank should use nonblank for value");
+    assert_eq!(
+        value, nonblank,
+        "metric=nonblank should use nonblank for value"
+    );
 }

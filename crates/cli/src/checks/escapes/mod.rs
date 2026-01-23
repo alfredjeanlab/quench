@@ -3,6 +3,9 @@
 //! Detects patterns that bypass type safety or error handling.
 //! See docs/specs/checks/escape-hatches.md.
 
+mod comment;
+mod patterns;
+
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
 use std::sync::atomic::Ordering;
@@ -10,15 +13,19 @@ use std::sync::atomic::Ordering;
 use serde_json::{Value as JsonValue, json};
 
 use crate::adapter::{
-    CfgTestInfo, EscapePattern as AdapterEscapePattern, FileKind, GenericAdapter, ProjectLanguage,
-    RustAdapter, detect_language, parse_suppress_attrs,
+    CfgTestInfo, FileKind, GenericAdapter, ProjectLanguage, RustAdapter, detect_language,
+    parse_suppress_attrs,
 };
 use crate::check::{Check, CheckContext, CheckResult, Violation};
 use crate::config::{
-    CheckLevel, EscapeAction, EscapePattern as ConfigEscapePattern, LintChangesPolicy, RustConfig,
-    SuppressConfig, SuppressLevel,
+    CheckLevel, EscapeAction, LintChangesPolicy, RustConfig, SuppressConfig, SuppressLevel,
 };
-use crate::pattern::{CompiledPattern, PatternError};
+use crate::pattern::CompiledPattern;
+
+use comment::has_justification_comment;
+use patterns::{
+    compile_merged_patterns, default_test_patterns, get_adapter_escape_patterns, merge_patterns,
+};
 
 /// Compiled escape pattern ready for matching.
 struct CompiledEscapePattern {
@@ -422,106 +429,6 @@ fn format_comment_advice(custom_advice: &str, comment_pattern: &str) -> String {
     }
 }
 
-/// Search upward from a line for a required comment pattern.
-///
-/// Searches:
-/// 1. Same line as the match (pattern must be at start of inline comment)
-/// 2. Preceding lines, stopping at non-blank/non-comment lines
-///
-/// The pattern must appear at the start of a comment's content, not embedded
-/// within other text. For example, `// SAFETY:` embedded inside
-/// `// VIOLATION: missing // SAFETY: comment` should NOT match.
-///
-/// Returns true if comment pattern is found at a valid comment boundary.
-fn has_justification_comment(content: &str, match_line: u32, comment_pattern: &str) -> bool {
-    let lines: Vec<&str> = content.lines().collect();
-    let line_idx = (match_line - 1) as usize;
-
-    // Check same line first - look for pattern at start of inline comment
-    if line_idx < lines.len() {
-        let line = lines[line_idx];
-        if let Some(comment_start) = find_comment_start(line) {
-            let comment = &line[comment_start..];
-            if comment_starts_with_pattern(comment, comment_pattern) {
-                return true;
-            }
-        }
-    }
-
-    // Search upward through comments and blank lines
-    if line_idx > 0 {
-        for i in (0..line_idx).rev() {
-            let line = lines[i].trim();
-
-            // Check for comment pattern at start of comment
-            if is_comment_line(line) && comment_starts_with_pattern(line, comment_pattern) {
-                return true;
-            }
-
-            // Stop at non-blank, non-comment lines
-            if !line.is_empty() && !is_comment_line(line) {
-                break;
-            }
-        }
-    }
-
-    false
-}
-
-/// Check if comment content starts with the pattern (after comment marker).
-///
-/// Normalizes both the comment and pattern by stripping comment markers,
-/// then checks if the comment content starts with the pattern content.
-fn comment_starts_with_pattern(comment: &str, pattern: &str) -> bool {
-    let comment_content = strip_comment_markers(comment);
-    let pattern_content = strip_comment_markers(pattern);
-    comment_content.starts_with(&pattern_content)
-}
-
-/// Strip comment markers and leading whitespace to get the content.
-fn strip_comment_markers(s: &str) -> String {
-    let trimmed = s.trim();
-    // Strip various comment markers
-    let content = trimmed
-        .strip_prefix("///")
-        .or_else(|| trimmed.strip_prefix("//!"))
-        .or_else(|| trimmed.strip_prefix("//"))
-        .or_else(|| trimmed.strip_prefix("/*"))
-        .or_else(|| trimmed.strip_prefix('#'))
-        .or_else(|| trimmed.strip_prefix("--"))
-        .or_else(|| trimmed.strip_prefix(";;"))
-        .or_else(|| trimmed.strip_prefix('*'))
-        .unwrap_or(trimmed);
-    content.trim_start().to_string()
-}
-
-/// Find the start of a comment in a line (returns byte offset of comment marker).
-fn find_comment_start(line: &str) -> Option<usize> {
-    // Find // comment (most common)
-    if let Some(pos) = line.find("//") {
-        return Some(pos);
-    }
-    // Find # comment (shell/Python) - avoid matching # in strings
-    if let Some(pos) = line.find('#') {
-        // Simple heuristic: # at start or preceded by whitespace
-        if pos == 0 || line.as_bytes().get(pos.saturating_sub(1)) == Some(&b' ') {
-            return Some(pos);
-        }
-    }
-    None
-}
-
-/// Check if a line is a comment line (language-agnostic heuristics).
-fn is_comment_line(line: &str) -> bool {
-    let trimmed = line.trim();
-    trimmed.starts_with("//")      // C-style
-        || trimmed.starts_with('#')   // Shell/Python/Ruby
-        || trimmed.starts_with("/*")  // C block comment start
-        || trimmed.starts_with('*')   // C block comment continuation
-        || trimmed.starts_with("--")  // SQL/Lua
-        || trimmed.starts_with(";;") // Lisp
-}
-
 /// Classify file as source or test using a pre-built adapter.
 fn classify_file(adapter: &GenericAdapter, path: &Path, root: &Path) -> FileKind {
     use crate::adapter::Adapter;
@@ -558,115 +465,6 @@ fn find_package(path: &Path, root: &Path, packages: &[String]) -> Option<String>
     }
 
     None
-}
-
-/// Default test patterns for file classification.
-fn default_test_patterns() -> Vec<String> {
-    vec![
-        "**/tests/**".to_string(),
-        "**/test/**".to_string(),
-        "**/benches/**".to_string(),
-        "benches/**".to_string(),
-        "**/test_utils.*".to_string(),
-        "test_utils.*".to_string(),
-        "**/*_test.*".to_string(),
-        "**/*_tests.*".to_string(),
-        "**/*.test.*".to_string(),
-        "**/*.spec.*".to_string(),
-    ]
-}
-
-/// Get escape patterns from the adapter for the detected language.
-fn get_adapter_escape_patterns(root: &Path) -> Vec<ConfigEscapePattern> {
-    use crate::adapter::Adapter;
-
-    let mut patterns = Vec::new();
-
-    // Check project language and get adapter defaults
-    match detect_language(root) {
-        ProjectLanguage::Rust => {
-            let rust_adapter = RustAdapter::new();
-            patterns.extend(convert_adapter_patterns(rust_adapter.default_escapes()));
-        }
-        ProjectLanguage::Shell => {
-            // Shell escape patterns will be added in Phase 406
-        }
-        ProjectLanguage::Generic => {
-            // No default patterns for generic projects
-        }
-    }
-
-    patterns
-}
-
-/// Convert adapter escape patterns to config format.
-fn convert_adapter_patterns(adapter_patterns: &[AdapterEscapePattern]) -> Vec<ConfigEscapePattern> {
-    adapter_patterns
-        .iter()
-        .map(|p| ConfigEscapePattern {
-            name: p.name.to_string(),
-            pattern: p.pattern.to_string(),
-            action: adapter_action_to_config(p.action),
-            comment: p.comment.map(String::from),
-            advice: Some(p.advice.to_string()),
-            threshold: 0,
-        })
-        .collect()
-}
-
-/// Convert adapter EscapeAction to config EscapeAction.
-fn adapter_action_to_config(action: crate::adapter::EscapeAction) -> EscapeAction {
-    match action {
-        crate::adapter::EscapeAction::Count => EscapeAction::Count,
-        crate::adapter::EscapeAction::Comment => EscapeAction::Comment,
-        crate::adapter::EscapeAction::Forbid => EscapeAction::Forbid,
-    }
-}
-
-/// Merge user config patterns with adapter defaults.
-/// User patterns override defaults by name.
-fn merge_patterns(
-    config_patterns: &[ConfigEscapePattern],
-    adapter_patterns: &[ConfigEscapePattern],
-) -> Vec<ConfigEscapePattern> {
-    let mut merged = Vec::new();
-    let config_names: HashSet<_> = config_patterns.iter().map(|p| &p.name).collect();
-
-    // Add adapter defaults not overridden by config
-    for pattern in adapter_patterns {
-        if !config_names.contains(&pattern.name) {
-            merged.push(pattern.clone());
-        }
-    }
-
-    // Add all config patterns (they take precedence)
-    merged.extend(config_patterns.iter().cloned());
-
-    merged
-}
-
-/// Compile merged patterns into matchers.
-fn compile_merged_patterns(
-    patterns: &[ConfigEscapePattern],
-) -> Result<Vec<CompiledEscapePattern>, PatternError> {
-    patterns
-        .iter()
-        .map(|p| {
-            let matcher = CompiledPattern::compile(&p.pattern)?;
-            let advice = p
-                .advice
-                .clone()
-                .unwrap_or_else(|| default_advice(&p.action));
-            Ok(CompiledEscapePattern {
-                name: p.name.clone(),
-                matcher,
-                action: p.action,
-                advice,
-                comment: p.comment.clone(),
-                threshold: p.threshold,
-            })
-        })
-        .collect()
 }
 
 /// Check if a file is a source code file (for escape pattern checking).
@@ -899,5 +697,5 @@ fn check_suppress_violations(
 }
 
 #[cfg(test)]
-#[path = "escapes_tests.rs"]
+#[path = "mod_tests.rs"]
 mod tests;

@@ -14,6 +14,15 @@ use crate::adapter::{AdapterRegistry, FileKind, RustAdapter};
 use crate::check::{Check, CheckContext, CheckResult, Violation};
 use crate::config::{CheckLevel, LineMetric};
 
+/// Parameters for creating a line-count violation.
+struct LineViolationInfo {
+    metric: LineMetric,
+    value: usize,
+    threshold: usize,
+    total_lines: usize,
+    nonblank_lines: usize,
+}
+
 /// The cloc check validates file size limits.
 pub struct ClocCheck;
 
@@ -141,7 +150,8 @@ impl Check for ClocCheck {
                         }
                         if file_test_lines > 0 {
                             pkg.test_files += 1;
-                            pkg.test_tokens += token_count * file_test_lines / nonblank_lines.max(1);
+                            pkg.test_tokens +=
+                                token_count * file_test_lines / nonblank_lines.max(1);
                         }
                     }
 
@@ -161,17 +171,20 @@ impl Check for ClocCheck {
                         };
 
                         if line_count > max_lines {
+                            let info = LineViolationInfo {
+                                metric: cloc_config.metric,
+                                value: line_count,
+                                threshold: max_lines,
+                                total_lines,
+                                nonblank_lines,
+                            };
                             match try_create_line_violation(
                                 ctx,
                                 &file.path,
                                 is_test,
                                 &cloc_config.advice,
                                 &cloc_config.advice_test,
-                                cloc_config.metric,
-                                line_count,
-                                max_lines,
-                                total_lines,
-                                nonblank_lines,
+                                &info,
                             ) {
                                 Some(v) => violations.push(v),
                                 None => break,
@@ -325,11 +338,7 @@ fn try_create_line_violation(
     is_test: bool,
     advice: &str,
     advice_test: &str,
-    metric: LineMetric,
-    value: usize,
-    threshold: usize,
-    total_lines: usize,
-    nonblank_lines: usize,
+    info: &LineViolationInfo,
 ) -> Option<Violation> {
     let current = ctx.violation_count.fetch_add(1, Ordering::SeqCst);
     if let Some(limit) = ctx.limit
@@ -342,15 +351,15 @@ fn try_create_line_violation(
     let advice = if is_test { advice_test } else { advice };
 
     // Use violation type that indicates which metric was checked
-    let violation_type = match metric {
+    let violation_type = match info.metric {
         LineMetric::Lines => "file_too_large",
         LineMetric::Nonblank => "file_too_large_nonblank",
     };
 
     Some(
         Violation::file_only(display_path, violation_type, advice)
-            .with_threshold(value as i64, threshold as i64)
-            .with_line_counts(total_lines as i64, nonblank_lines as i64),
+            .with_threshold(info.value as i64, info.threshold as i64)
+            .with_line_counts(info.total_lines as i64, info.nonblank_lines as i64),
     )
 }
 

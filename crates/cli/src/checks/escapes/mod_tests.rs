@@ -6,6 +6,8 @@
 use super::*;
 use yare::parameterized;
 
+use comment::{is_comment_line, strip_comment_markers};
+
 #[parameterized(
     same_line = { "unsafe { code } // SAFETY: reason", 1, true },
     preceding_line = { "// SAFETY: reason\nunsafe { code }", 2, true },
