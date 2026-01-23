@@ -2,6 +2,8 @@
 //!
 //! Parses `# shellcheck disable=SC2034,SC2086` comments in shell scripts.
 
+use crate::adapter::common::suppress::{CommentStyle, check_justification_comment};
+
 /// Shellcheck suppress directive found in source code.
 #[derive(Debug, Clone)]
 pub struct ShellcheckSuppress {
@@ -28,8 +30,12 @@ pub fn parse_shellcheck_suppresses(
 
         // Match # shellcheck disable=...
         if let Some(codes) = parse_shellcheck_disable(trimmed) {
-            let (has_comment, comment_text) =
-                check_justification_comment(&lines, line_idx, comment_pattern);
+            let (has_comment, comment_text) = check_justification_comment(
+                &lines,
+                line_idx,
+                comment_pattern,
+                &CommentStyle::SHELL,
+            );
 
             suppresses.push(ShellcheckSuppress {
                 line: line_idx,
@@ -70,51 +76,6 @@ fn parse_shellcheck_disable(line: &str) -> Option<Vec<String>> {
     }
 
     Some(codes)
-}
-
-/// Check if there's a justification comment above the directive.
-fn check_justification_comment(
-    lines: &[&str],
-    directive_line: usize,
-    required_pattern: Option<&str>,
-) -> (bool, Option<String>) {
-    // Look at preceding lines for a comment
-    let mut check_line = directive_line;
-
-    while check_line > 0 {
-        check_line -= 1;
-        let line = lines[check_line].trim();
-
-        // Stop at blank lines or non-comment code
-        if line.is_empty() {
-            break;
-        }
-
-        // Check for comment (but not shellcheck directive itself)
-        if line.starts_with('#') && !line.contains("shellcheck") {
-            let comment_text = line.trim_start_matches('#').trim();
-
-            // If a specific pattern is required, check for it
-            if let Some(pattern) = required_pattern {
-                let pattern_prefix = pattern.trim_start_matches('#').trim();
-                if comment_text.starts_with(pattern_prefix) || line.starts_with(pattern) {
-                    return (true, Some(comment_text.to_string()));
-                }
-                // Continue looking for the pattern
-                continue;
-            }
-
-            // Any non-empty comment counts as justification
-            if !comment_text.is_empty() {
-                return (true, Some(comment_text.to_string()));
-            }
-        } else if !line.starts_with('#') {
-            // Stop at non-comment line
-            break;
-        }
-    }
-
-    (false, None)
 }
 
 #[cfg(test)]

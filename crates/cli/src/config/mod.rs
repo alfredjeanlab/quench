@@ -142,6 +142,16 @@ impl RustPolicyConfig {
     }
 }
 
+impl crate::adapter::common::policy::PolicyConfig for RustPolicyConfig {
+    fn lint_changes(&self) -> LintChangesPolicy {
+        self.lint_changes
+    }
+
+    fn lint_config(&self) -> &[String] {
+        &self.lint_config
+    }
+}
+
 /// Lint changes policy.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize)]
 #[serde(rename_all = "lowercase")]

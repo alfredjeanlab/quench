@@ -112,3 +112,13 @@ impl ShellPolicyConfig {
         vec![".shellcheckrc".to_string()]
     }
 }
+
+impl crate::adapter::common::policy::PolicyConfig for ShellPolicyConfig {
+    fn lint_changes(&self) -> super::LintChangesPolicy {
+        self.lint_changes
+    }
+
+    fn lint_config(&self) -> &[String] {
+        &self.lint_config
+    }
+}
