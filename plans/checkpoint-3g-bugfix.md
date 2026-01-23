@@ -1,5 +1,7 @@
 # Checkpoint 3G: Bug Fixes - Verification Complete
 
+**Root Feature:** `quench-e690`
+
 ## Overview
 
 Verification checkpoint to ensure all recent refactors from checkpoints 3C-3F are working correctly and all tests pass. This checkpoint validates the stability of the escapes check implementation.
