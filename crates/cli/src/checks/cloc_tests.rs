@@ -117,6 +117,42 @@ fn count_nonblank_lines_with_trailing_newline() {
     assert_eq!(count, 3);
 }
 
+#[test]
+fn count_nonblank_lines_crlf_endings() {
+    // Windows-style line endings
+    let mut file = NamedTempFile::new().unwrap();
+    write!(file, "line1\r\nline2\r\n\r\nline3").unwrap();
+    file.flush().unwrap();
+
+    let count = count_nonblank_lines(file.path()).unwrap();
+    assert_eq!(count, 3); // Should handle CRLF correctly
+}
+
+#[test]
+fn count_nonblank_lines_mixed_endings() {
+    // Mixed LF and CRLF
+    let mut file = NamedTempFile::new().unwrap();
+    write!(file, "line1\nline2\r\nline3\n").unwrap();
+    file.flush().unwrap();
+
+    let count = count_nonblank_lines(file.path()).unwrap();
+    assert_eq!(count, 3);
+}
+
+#[test]
+fn count_nonblank_lines_unicode_whitespace() {
+    // Non-breaking space (U+00A0) should still be whitespace
+    let mut file = NamedTempFile::new().unwrap();
+    writeln!(file, "content").unwrap();
+    writeln!(file, "\u{00A0}").unwrap(); // non-breaking space only
+    writeln!(file, "more").unwrap();
+    file.flush().unwrap();
+
+    let count = count_nonblank_lines(file.path()).unwrap();
+    // Note: Rust's trim() handles unicode whitespace
+    assert_eq!(count, 2);
+}
+
 // =============================================================================
 // PATTERN MATCHER TESTS
 // =============================================================================
@@ -177,6 +213,21 @@ fn pattern_matcher_excludes_patterns() {
 
     // Regular files should not be excluded
     assert!(!matcher.is_excluded(Path::new("/project/src/lib.rs"), root));
+}
+
+#[test]
+fn pattern_matcher_identifies_test_prefix() {
+    let matcher = PatternMatcher::new(&["**/test_*.*".to_string()], &[]);
+
+    let root = Path::new("/project");
+
+    // Files with test_ prefix should match
+    assert!(matcher.is_test_file(Path::new("/project/src/test_utils.rs"), root));
+    assert!(matcher.is_test_file(Path::new("/project/test_helpers.py"), root));
+
+    // Regular source files should not match
+    assert!(!matcher.is_test_file(Path::new("/project/src/testing.rs"), root));
+    assert!(!matcher.is_test_file(Path::new("/project/src/contest.rs"), root));
 }
 
 // =============================================================================
