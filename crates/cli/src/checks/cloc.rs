@@ -129,16 +129,14 @@ impl Check for ClocCheck {
 
                             let display_path =
                                 file.path.strip_prefix(ctx.root).unwrap_or(&file.path);
+                            let advice = if is_test {
+                                cloc_config.advice_test.clone()
+                            } else {
+                                cloc_config.advice.clone()
+                            };
                             violations.push(
-                                Violation::file_only(
-                                    display_path,
-                                    "file_too_large",
-                                    format!(
-                                        "Split into smaller modules. {} tokens exceeds {} token limit.",
-                                        token_count, max_tokens
-                                    ),
-                                )
-                                .with_threshold(token_count as i64, max_tokens as i64),
+                                Violation::file_only(display_path, "file_too_large", advice)
+                                    .with_threshold(token_count as i64, max_tokens as i64),
                             );
                         }
                     }

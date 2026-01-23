@@ -176,7 +176,7 @@ fn cloc_fails_on_source_file_over_max_lines() {
             v.get("file")
                 .and_then(|f| f.as_str())
                 .unwrap()
-                .contains("big.rs")
+                .ends_with("big.rs")
         }),
         "violation should reference oversized file"
     );
@@ -198,7 +198,7 @@ fn cloc_fails_on_test_file_over_max_lines_test() {
             v.get("file")
                 .and_then(|f| f.as_str())
                 .unwrap()
-                .contains("big_test.rs")
+                .ends_with("big_test.rs")
         }),
         "violation should reference oversized test file"
     );
@@ -214,15 +214,13 @@ fn cloc_fails_on_file_over_max_tokens() {
 
     assert_eq!(cloc.get("passed").and_then(|v| v.as_bool()), Some(false));
 
+    // Fixture has max_tokens = 100, verify a violation with that threshold exists
     let violations = cloc.get("violations").and_then(|v| v.as_array()).unwrap();
     assert!(
         violations.iter().any(|v| {
-            v.get("advice")
-                .and_then(|a| a.as_str())
-                .unwrap()
-                .contains("token")
+            v.get("threshold").and_then(|t| t.as_i64()) == Some(100)
         }),
-        "violation should mention tokens"
+        "should have violation with token threshold (100)"
     );
 }
 
@@ -246,7 +244,7 @@ fn cloc_source_violation_has_default_advice() {
         .find(|v| {
             v.get("file")
                 .and_then(|f| f.as_str())
-                .map(|f| !f.contains("test"))
+                .map(|f| !f.contains("_test.rs") && !f.contains("/tests/"))
                 .unwrap_or(false)
         })
         .expect("should have source file violation");
@@ -276,7 +274,7 @@ fn cloc_test_violation_has_default_advice() {
         .find(|v| {
             v.get("file")
                 .and_then(|f| f.as_str())
-                .map(|f| f.contains("test"))
+                .map(|f| f.contains("_test.rs") || f.contains("/tests/"))
                 .unwrap_or(false)
         })
         .expect("should have test file violation");
@@ -295,7 +293,6 @@ fn cloc_test_violation_has_default_advice() {
 ///
 /// > advice = "..." - custom advice for source file violations
 #[test]
-#[ignore = "TODO: Phase 110 - Custom advice configuration"]
 fn cloc_uses_custom_advice_for_source() {
     let dir = temp_project();
     std::fs::write(
@@ -327,7 +324,6 @@ advice = "Custom source advice here."
 ///
 /// > advice_test = "..." - custom advice for test file violations
 #[test]
-#[ignore = "TODO: Phase 110 - Custom advice configuration"]
 fn cloc_uses_custom_advice_for_test() {
     let dir = temp_project();
     std::fs::write(
@@ -375,7 +371,7 @@ fn cloc_excluded_patterns_dont_generate_violations() {
         for v in violations {
             let file = v.get("file").and_then(|f| f.as_str()).unwrap_or("");
             assert!(
-                !file.contains("generated"),
+                !file.contains("/generated/"),
                 "excluded files should not appear in violations"
             );
         }
