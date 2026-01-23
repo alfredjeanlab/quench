@@ -162,3 +162,159 @@ fn from_ignore_config() {
     let walker = FileWalker::from_ignore_config(&ignore);
     assert_eq!(walker.config.ignore_patterns, ignore.patterns);
 }
+
+// Adaptive parallel/sequential tests
+
+#[test]
+fn should_use_parallel_on_large_directory() {
+    let tmp = TempDir::new().unwrap();
+
+    // Create many top-level entries (threshold/10 = 100 by default)
+    for i in 0..150 {
+        fs::write(tmp.path().join(format!("file{}.txt", i)), "content").unwrap();
+    }
+
+    let walker = FileWalker::new(WalkerConfig::default());
+    assert!(
+        walker.should_use_parallel(tmp.path()),
+        "expected parallel mode for directory with {} entries",
+        150
+    );
+}
+
+#[test]
+fn should_use_sequential_on_small_directory() {
+    let tmp = TempDir::new().unwrap();
+
+    // Create few top-level entries (less than threshold/10 = 100)
+    for i in 0..10 {
+        fs::write(tmp.path().join(format!("file{}.txt", i)), "content").unwrap();
+    }
+
+    let walker = FileWalker::new(WalkerConfig::default());
+    assert!(
+        !walker.should_use_parallel(tmp.path()),
+        "expected sequential mode for directory with {} entries",
+        10
+    );
+}
+
+#[test]
+fn force_parallel_overrides_heuristic() {
+    let tmp = TempDir::new().unwrap();
+
+    // Create a small directory that would normally use sequential
+    fs::write(tmp.path().join("file.txt"), "content").unwrap();
+
+    let walker = FileWalker::new(WalkerConfig {
+        force_parallel: true,
+        ..Default::default()
+    });
+
+    assert!(
+        walker.should_use_parallel(tmp.path()),
+        "force_parallel should override heuristic"
+    );
+}
+
+#[test]
+fn force_sequential_overrides_heuristic() {
+    let tmp = TempDir::new().unwrap();
+
+    // Create many top-level entries that would normally use parallel
+    for i in 0..150 {
+        fs::write(tmp.path().join(format!("file{}.txt", i)), "content").unwrap();
+    }
+
+    let walker = FileWalker::new(WalkerConfig {
+        force_sequential: true,
+        ..Default::default()
+    });
+
+    assert!(
+        !walker.should_use_parallel(tmp.path()),
+        "force_sequential should override heuristic"
+    );
+}
+
+#[test]
+fn parallel_and_sequential_produce_same_files() {
+    let tmp = TempDir::new().unwrap();
+
+    // Create a test directory structure
+    fs::create_dir_all(tmp.path().join("src")).unwrap();
+    fs::create_dir_all(tmp.path().join("tests")).unwrap();
+    fs::write(tmp.path().join("src/main.rs"), "fn main() {}").unwrap();
+    fs::write(tmp.path().join("src/lib.rs"), "pub fn lib() {}").unwrap();
+    fs::write(tmp.path().join("tests/test.rs"), "#[test] fn t() {}").unwrap();
+    fs::write(tmp.path().join("README.md"), "# Readme").unwrap();
+
+    // Walk with force_parallel
+    let walker_parallel = FileWalker::new(WalkerConfig {
+        force_parallel: true,
+        git_ignore: false,
+        hidden: false,
+        ..Default::default()
+    });
+    let (parallel_files, parallel_stats) = walker_parallel.walk_collect(tmp.path());
+
+    // Walk with force_sequential
+    let walker_sequential = FileWalker::new(WalkerConfig {
+        force_sequential: true,
+        git_ignore: false,
+        hidden: false,
+        ..Default::default()
+    });
+    let (sequential_files, sequential_stats) = walker_sequential.walk_collect(tmp.path());
+
+    // Same number of files
+    assert_eq!(
+        parallel_files.len(),
+        sequential_files.len(),
+        "parallel and sequential should find same number of files"
+    );
+
+    // Same stats
+    assert_eq!(
+        parallel_stats.files_found, sequential_stats.files_found,
+        "file counts should match"
+    );
+
+    // Same file paths (sorted for comparison since order may differ)
+    let mut parallel_paths: Vec<_> = parallel_files.iter().map(|f| &f.path).collect();
+    let mut sequential_paths: Vec<_> = sequential_files.iter().map(|f| &f.path).collect();
+    parallel_paths.sort();
+    sequential_paths.sort();
+
+    assert_eq!(
+        parallel_paths, sequential_paths,
+        "parallel and sequential should find identical files"
+    );
+}
+
+#[test]
+fn custom_parallel_threshold() {
+    let tmp = TempDir::new().unwrap();
+
+    // Create 20 top-level entries
+    for i in 0..20 {
+        fs::write(tmp.path().join(format!("file{}.txt", i)), "content").unwrap();
+    }
+
+    // With default threshold (1000), should be sequential (need 100 entries)
+    let walker_default = FileWalker::new(WalkerConfig::default());
+    assert!(
+        !walker_default.should_use_parallel(tmp.path()),
+        "default threshold should use sequential for 20 entries"
+    );
+
+    // With lower threshold (100), should be parallel (need 10 entries)
+    let walker_low = FileWalker::new(WalkerConfig {
+        parallel_threshold: 100,
+        ..Default::default()
+    });
+    assert!(
+        walker_low.should_use_parallel(tmp.path()),
+        "low threshold should use parallel for 20 entries"
+    );
+}

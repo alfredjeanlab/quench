@@ -143,6 +143,47 @@ No performance optimizations required at this time. The implementation exceeds a
 | bench-deep | 1059 | 1000 files, 55+ directory levels |
 | bench-large-files | 102 | 100 files including 5 files >1MB |
 
+---
+
+## Checkpoint 1E: Optimization Results
+
+**Applied:** Adaptive parallel/sequential walker threshold
+
+### Implementation
+
+Added automatic selection between parallel and sequential file walking based on a quick heuristic:
+- Count top-level directory entries as proxy for total files
+- If top-level entries ≥ threshold/10 (default: 100), use parallel walking
+- Otherwise, use sequential walking to avoid thread pool overhead
+
+Configuration options added to `WalkerConfig`:
+- `parallel_threshold: usize` - Files threshold (default: 1000)
+- `force_parallel: bool` - Force parallel mode for testing
+- `force_sequential: bool` - Force sequential mode for testing
+
+### File Walking Improvements
+
+| Fixture | Before (Parallel) | After (Adaptive) | Improvement |
+|---------|-------------------|------------------|-------------|
+| bench-small | 3.11ms | 0.41ms | 87% faster |
+| bench-medium | 3.65ms | 1.56ms | 57% faster |
+| bench-large | 8.63ms | 7.86ms | 9% faster |
+| bench-deep | 9.61ms | 10.38ms | ~baseline |
+| bench-large-files | 3.03ms | 0.42ms | 86% faster |
+
+**Note:** The "After" column shows the result with the adaptive walker, which automatically selects sequential mode for small/medium fixtures and parallel mode for large fixtures.
+
+### P2 Item Status
+
+- [x] **Parallel walking threshold**: Implemented adaptive threshold (1000 files) that automatically selects the optimal walking strategy.
+
+### Verification
+
+All quality gates pass:
+- `cargo test -p quench walker`: 14 tests passing (6 new)
+- `cargo test --all`: 112 unit tests passing
+- `make check`: All checks pass (fmt, clippy, test, build, bootstrap, audit, deny)
+
 ## Appendix: Raw Criterion Output
 
 Baseline saved to `.bench-baseline` for future regression detection.
