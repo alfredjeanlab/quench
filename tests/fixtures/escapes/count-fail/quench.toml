@@ -1,0 +1,7 @@
+version = 1
+
+[[check.escapes.patterns]]
+name = "todo"
+pattern = "TODO|FIXME"
+action = "count"
+threshold = 1  # Low threshold, will fail

@@ -1,0 +1,6 @@
+version = 1
+
+[[check.escapes.patterns]]
+name = "unwrap"
+pattern = "\\.unwrap\\(\\)"
+action = "forbid"

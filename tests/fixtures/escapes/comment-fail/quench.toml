@@ -1,0 +1,7 @@
+version = 1
+
+[[check.escapes.patterns]]
+name = "unsafe"
+pattern = "unsafe\\s*\\{"
+action = "comment"
+comment = "// SAFETY:"

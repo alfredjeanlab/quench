@@ -1,0 +1,13 @@
+version = 1
+
+[[check.escapes.patterns]]
+name = "unwrap"
+pattern = "\\.unwrap\\(\\)"
+action = "count"
+threshold = 100  # High threshold to pass
+
+[[check.escapes.patterns]]
+name = "todo"
+pattern = "TODO"
+action = "count"
+threshold = 100

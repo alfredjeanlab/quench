@@ -16,6 +16,9 @@ mod cli_toggles;
 #[path = "specs/checks/cloc.rs"]
 mod checks_cloc;
 
+#[path = "specs/checks/escapes.rs"]
+mod checks_escapes;
+
 // output/
 #[path = "specs/output/format.rs"]
 mod output_format;
