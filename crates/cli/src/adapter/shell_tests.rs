@@ -55,3 +55,43 @@ fn extensions_include_sh_bash_bats() {
     assert!(exts.contains(&"bash"), "should include bash");
     assert!(exts.contains(&"bats"), "should include bats");
 }
+
+// =============================================================================
+// DEFAULT ESCAPE PATTERNS
+// =============================================================================
+
+#[test]
+fn default_escapes_returns_patterns() {
+    let adapter = ShellAdapter::new();
+    let escapes = adapter.default_escapes();
+    assert!(!escapes.is_empty(), "should return escape patterns");
+}
+
+#[test]
+fn default_escapes_includes_set_plus_e() {
+    let adapter = ShellAdapter::new();
+    let escapes = adapter.default_escapes();
+    let found = escapes.iter().any(|p| p.name == "set_plus_e");
+    assert!(found, "should include set_plus_e pattern");
+}
+
+#[test]
+fn default_escapes_includes_eval() {
+    let adapter = ShellAdapter::new();
+    let escapes = adapter.default_escapes();
+    let found = escapes.iter().any(|p| p.name == "eval");
+    assert!(found, "should include eval pattern");
+}
+
+#[test]
+fn escape_patterns_use_ok_comment() {
+    let adapter = ShellAdapter::new();
+    for pattern in adapter.default_escapes() {
+        assert_eq!(
+            pattern.comment,
+            Some("# OK:"),
+            "pattern {} should require # OK: comment",
+            pattern.name
+        );
+    }
+}

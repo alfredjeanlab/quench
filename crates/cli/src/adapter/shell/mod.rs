@@ -3,6 +3,7 @@
 //! Provides Shell-specific behavior for checks:
 //! - File classification (source vs test)
 //! - Default patterns for shell scripts
+//! - Default escape patterns (set +e, eval)
 //!
 //! See docs/specs/langs/shell.md for specification.
 
@@ -11,7 +12,25 @@ use std::path::Path;
 use globset::GlobSet;
 
 use super::glob::build_glob_set;
-use super::{Adapter, FileKind};
+use super::{Adapter, EscapeAction, EscapePattern, FileKind};
+
+/// Default escape patterns for Shell.
+const SHELL_ESCAPE_PATTERNS: &[EscapePattern] = &[
+    EscapePattern {
+        name: "set_plus_e",
+        pattern: r"set \+e",
+        action: EscapeAction::Comment,
+        comment: Some("# OK:"),
+        advice: "Add a # OK: comment explaining why error checking is disabled.",
+    },
+    EscapePattern {
+        name: "eval",
+        pattern: r"\beval\s",
+        action: EscapeAction::Comment,
+        comment: Some("# OK:"),
+        advice: "Add a # OK: comment explaining why eval is safe here.",
+    },
+];
 
 /// Shell language adapter.
 pub struct ShellAdapter {
@@ -61,6 +80,10 @@ impl Adapter for ShellAdapter {
         }
 
         FileKind::Other
+    }
+
+    fn default_escapes(&self) -> &'static [EscapePattern] {
+        SHELL_ESCAPE_PATTERNS
     }
 }
 

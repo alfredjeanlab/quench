@@ -182,7 +182,6 @@ fn shell_adapter_default_test_pattern_matches_test_sh_files() {
 ///
 /// > set +e | comment | # OK:
 #[test]
-#[ignore = "TODO: Phase 402 - Shell Adapter Implementation"]
 fn shell_adapter_set_plus_e_without_ok_comment_fails() {
     check("escapes")
         .on("shell/set-e-fail")
@@ -195,7 +194,6 @@ fn shell_adapter_set_plus_e_without_ok_comment_fails() {
 ///
 /// > set +e | comment | # OK:
 #[test]
-#[ignore = "TODO: Phase 402 - Shell Adapter Implementation"]
 fn shell_adapter_set_plus_e_with_ok_comment_passes() {
     check("escapes").on("shell/set-e-ok").passes();
 }
@@ -204,7 +202,6 @@ fn shell_adapter_set_plus_e_with_ok_comment_passes() {
 ///
 /// > eval | comment | # OK:
 #[test]
-#[ignore = "TODO: Phase 402 - Shell Adapter Implementation"]
 fn shell_adapter_eval_without_ok_comment_fails() {
     check("escapes")
         .on("shell/eval-fail")
@@ -217,7 +214,6 @@ fn shell_adapter_eval_without_ok_comment_fails() {
 ///
 /// > eval | comment | # OK:
 #[test]
-#[ignore = "TODO: Phase 402 - Shell Adapter Implementation"]
 fn shell_adapter_eval_with_ok_comment_passes() {
     check("escapes").on("shell/eval-ok").passes();
 }
@@ -226,7 +222,6 @@ fn shell_adapter_eval_with_ok_comment_passes() {
 ///
 /// > set +e and eval allowed in test code without comment
 #[test]
-#[ignore = "TODO: Phase 402 - Shell Adapter Implementation"]
 fn shell_adapter_escape_patterns_allowed_in_tests() {
     let dir = temp_project();
     std::fs::create_dir_all(dir.path().join("scripts")).unwrap();

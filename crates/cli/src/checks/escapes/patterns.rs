@@ -4,7 +4,8 @@ use std::collections::HashSet;
 use std::path::Path;
 
 use crate::adapter::{
-    EscapePattern as AdapterEscapePattern, ProjectLanguage, RustAdapter, detect_language,
+    EscapePattern as AdapterEscapePattern, ProjectLanguage, RustAdapter, ShellAdapter,
+    detect_language,
 };
 use crate::config::{EscapeAction, EscapePattern as ConfigEscapePattern};
 use crate::pattern::{CompiledPattern, PatternError};
@@ -40,7 +41,8 @@ pub(super) fn get_adapter_escape_patterns(root: &Path) -> Vec<ConfigEscapePatter
             patterns.extend(convert_adapter_patterns(rust_adapter.default_escapes()));
         }
         ProjectLanguage::Shell => {
-            // Shell escape patterns will be added in Phase 406
+            let shell_adapter = ShellAdapter::new();
+            patterns.extend(convert_adapter_patterns(shell_adapter.default_escapes()));
         }
         ProjectLanguage::Generic => {
             // No default patterns for generic projects
