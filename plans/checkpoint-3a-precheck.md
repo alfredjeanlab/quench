@@ -1,5 +1,7 @@
 # Checkpoint 3A: Pre-Checkpoint Fix - Escapes Works
 
+**Root Feature:** `quench-0dc9`
+
 ## Overview
 
 Verification checkpoint to confirm the escapes check implementation is complete and all quality gates pass. This checkpoint validates that Phases 205, 210, 215, and 220 have been successfully implemented with no regressions.
