@@ -20,7 +20,7 @@ use crate::check::Violation;
 
 /// Cache version for invalidation on format changes.
 /// Incremented when check logic changes (e.g., counting nonblank vs all lines).
-pub const CACHE_VERSION: u32 = 5;
+pub const CACHE_VERSION: u32 = 6;
 
 /// Cache file name within .quench directory.
 pub const CACHE_FILE_NAME: &str = "cache.bin";
