@@ -3,13 +3,12 @@
 use std::sync::Arc;
 
 use clap::{CommandFactory, Parser};
-use termcolor::ColorChoice;
 use tracing_subscriber::{EnvFilter, fmt};
 
 use quench::cache::{self, CACHE_FILE_NAME, FileCache};
 use quench::checks;
 use quench::cli::{CheckArgs, Cli, Command, InitArgs, OutputFormat, ReportArgs};
-use quench::color::is_no_color_env;
+use quench::color::{is_no_color_env, resolve_color};
 use quench::config;
 use quench::discovery;
 use quench::error::ExitCode;
@@ -213,11 +212,7 @@ fn run_check(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
     let total_violations = output.total_violations();
 
     // Resolve color mode
-    let color_choice = if args.no_color || is_no_color_env() {
-        ColorChoice::Never
-    } else {
-        args.color.resolve()
-    };
+    let color_choice = resolve_color(args.color, args.no_color || is_no_color_env());
 
     // Set up formatter options
     let limit = if args.no_limit {

@@ -1,9 +1,9 @@
 //! Color detection and terminal styling.
 //!
 //! Detection logic per docs/specs/03-output.md#colorization:
-//! 1. --color=always → use color
-//! 2. --color=never → no color
-//! 3. --color=auto (default):
+//! 1. --no-color → no color
+//! 2. --color → use color
+//! 3. default:
 //!    - If not stdout.is_tty() → no color
 //!    - If CLAUDE_CODE, CODEX, CI, or CURSOR env var set → no color
 //!    - Else → use color
@@ -11,35 +11,24 @@
 use std::io::IsTerminal;
 use termcolor::ColorChoice;
 
-/// Color mode from CLI flags.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, clap::ValueEnum)]
-pub enum ColorMode {
-    /// Always use color.
-    Always,
-    /// Never use color.
-    Never,
-    /// Auto-detect based on TTY and environment.
-    #[default]
-    Auto,
-}
-
-impl ColorMode {
-    /// Resolve to termcolor's ColorChoice.
-    pub fn resolve(self) -> ColorChoice {
-        match self {
-            ColorMode::Always => ColorChoice::Always,
-            ColorMode::Never => ColorChoice::Never,
-            ColorMode::Auto => {
-                if !std::io::stdout().is_terminal() {
-                    return ColorChoice::Never;
-                }
-                if is_agent_environment() {
-                    return ColorChoice::Never;
-                }
-                ColorChoice::Auto
-            }
-        }
+/// Resolve color choice from CLI flags.
+///
+/// Priority: no_color > force_color > auto-detect
+pub fn resolve_color(force_color: bool, no_color: bool) -> ColorChoice {
+    if no_color {
+        return ColorChoice::Never;
     }
+    if force_color {
+        return ColorChoice::Always;
+    }
+    // Auto-detect
+    if !std::io::stdout().is_terminal() {
+        return ColorChoice::Never;
+    }
+    if is_agent_environment() {
+        return ColorChoice::Never;
+    }
+    ColorChoice::Auto
 }
 
 /// Check if running in an AI agent environment.

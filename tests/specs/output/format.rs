@@ -263,19 +263,6 @@ fn no_color_flag_disables_color() {
         .stdout_lacks("\x1b[");
 }
 
-/// Spec: docs/specs/03-output.md#colorization
-///
-/// > --color=never disables color output
-#[test]
-fn color_never_disables_color() {
-    // No ANSI escape codes in output
-    cli()
-        .on("output-test")
-        .args(&["--color=never"])
-        .exits(1)
-        .stdout_lacks("\x1b[");
-}
-
 // =============================================================================
 // Violation Limits
 // =============================================================================

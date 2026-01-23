@@ -4,13 +4,19 @@ use super::*;
 use termcolor::Color;
 
 #[test]
-fn color_mode_always_resolves_to_always() {
-    assert_eq!(ColorMode::Always.resolve(), ColorChoice::Always);
+fn resolve_color_force_returns_always() {
+    assert_eq!(resolve_color(true, false), ColorChoice::Always);
 }
 
 #[test]
-fn color_mode_never_resolves_to_never() {
-    assert_eq!(ColorMode::Never.resolve(), ColorChoice::Never);
+fn resolve_color_no_color_returns_never() {
+    assert_eq!(resolve_color(false, true), ColorChoice::Never);
+}
+
+#[test]
+fn resolve_color_no_color_takes_priority_over_force() {
+    // no_color wins even when force_color is also set
+    assert_eq!(resolve_color(true, true), ColorChoice::Never);
 }
 
 #[test]

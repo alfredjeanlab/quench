@@ -189,11 +189,11 @@ JSON is pipe-friendly: `quench check -o json | jq '.checks[] | select(.passed ==
 ### Detection Logic
 
 ```
-if --color=always:
-    use color
-elif --color=never:
+if --no-color:
     no color
-else (--color=auto, default):
+elif --color:
+    use color
+else (default):
     if not stdout.is_tty():
         no color
     elif env.CLAUDE_CODE or env.CODEX or env.CI:
