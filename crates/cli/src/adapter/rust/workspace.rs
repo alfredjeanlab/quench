@@ -78,20 +78,23 @@ fn expand_workspace_members(patterns: &[String], root: &Path) -> Vec<String> {
     let mut packages = Vec::new();
 
     for pattern in patterns {
-        // Handle glob patterns like "crates/*"
         if pattern.contains('*') {
+            // Handle glob patterns
             if let Some(base) = pattern.strip_suffix("/*") {
-                let dir = root.join(base);
-                if let Ok(entries) = fs::read_dir(&dir) {
-                    for entry in entries.flatten() {
-                        if entry.path().is_dir()
-                            && let Some(name) = read_package_name(&entry.path())
-                        {
-                            packages.push(name);
-                        }
-                    }
+                // Single-level glob: crates/*
+                expand_single_level(root, base, &mut packages);
+            } else if let Some(base) = pattern.strip_suffix("/**") {
+                // Recursive glob: crates/** (treat as single level for now)
+                // Most workspaces use ** as a future-proofing pattern
+                expand_single_level(root, base, &mut packages);
+            } else if pattern.ends_with("/*") || pattern.contains("/*") {
+                // Pattern like path/to/* - extract base
+                if let Some(pos) = pattern.rfind("/*") {
+                    let base = &pattern[..pos];
+                    expand_single_level(root, base, &mut packages);
                 }
             }
+            // Other glob patterns are not supported - skip silently
         } else {
             // Direct path to package
             let pkg_dir = root.join(pattern);
@@ -103,6 +106,20 @@ fn expand_workspace_members(patterns: &[String], root: &Path) -> Vec<String> {
 
     packages.sort();
     packages
+}
+
+/// Expand a single-level directory to find packages.
+fn expand_single_level(root: &Path, base: &str, packages: &mut Vec<String>) {
+    let dir = root.join(base);
+    if let Ok(entries) = fs::read_dir(&dir) {
+        for entry in entries.flatten() {
+            if entry.path().is_dir()
+                && let Some(name) = read_package_name(&entry.path())
+            {
+                packages.push(name);
+            }
+        }
+    }
 }
 
 /// Read package name from a directory's Cargo.toml.

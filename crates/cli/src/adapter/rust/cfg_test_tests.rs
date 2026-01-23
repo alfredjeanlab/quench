@@ -152,3 +152,180 @@ mod tests {
     assert_eq!(info.test_ranges.len(), 1);
     assert!(info.is_test_line(10)); // closing brace
 }
+
+#[test]
+fn raw_string_with_braces() {
+    // Raw strings containing braces should not affect brace counting
+    let content = r#"
+fn source() {}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_raw_string() {
+        let s = r"{ not a real brace }";
+        assert!(true);
+    }
+}
+"#;
+    let info = CfgTestInfo::parse(content);
+
+    assert_eq!(info.test_ranges.len(), 1);
+    assert!(info.is_test_line(3)); // #[cfg(test)]
+    assert!(info.is_test_line(10)); // closing brace of mod tests
+}
+
+#[test]
+fn raw_string_with_hashes() {
+    // Raw strings with hash delimiters
+    let content = r###"
+fn source() {}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test() {
+        let s = r#"{ braces } and "quotes""#;
+        let t = r##"more { braces }"##;
+        assert!(true);
+    }
+}
+"###;
+    let info = CfgTestInfo::parse(content);
+
+    assert_eq!(info.test_ranges.len(), 1);
+    assert!(info.is_test_line(3)); // #[cfg(test)]
+    assert!(info.is_test_line(11)); // closing brace
+}
+
+#[test]
+fn char_literal_with_brace() {
+    // Character literals containing braces
+    let content = r#"
+fn source() {}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_char() {
+        let open = '{';
+        let close = '}';
+        assert_eq!(open, '{');
+    }
+}
+"#;
+    let info = CfgTestInfo::parse(content);
+
+    assert_eq!(info.test_ranges.len(), 1);
+    assert!(info.is_test_line(3)); // #[cfg(test)]
+    assert!(info.is_test_line(11)); // closing brace
+}
+
+#[test]
+fn char_literal_with_escaped_quote() {
+    // Escaped quote in char literal shouldn't confuse parser
+    let content = r#"
+fn source() {}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test() {
+        let quote = '\'';
+        let brace = '{';
+        assert!(true);
+    }
+}
+"#;
+    let info = CfgTestInfo::parse(content);
+
+    assert_eq!(info.test_ranges.len(), 1);
+    assert!(info.is_test_line(10)); // closing brace
+}
+
+#[test]
+fn mixed_string_types() {
+    // Mix of regular strings, raw strings, and char literals
+    let content = r###"
+fn source() {}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test() {
+        let a = "{ regular }";
+        let b = r"{ raw }";
+        let c = r#"{ raw # }"#;
+        let d = '{';
+        let e = '}';
+        assert!(true);
+    }
+}
+"###;
+    let info = CfgTestInfo::parse(content);
+
+    assert_eq!(info.test_ranges.len(), 1);
+    assert!(info.is_test_line(14)); // closing brace
+}
+
+#[test]
+fn lifetime_not_confused_with_char() {
+    // Lifetimes should not be confused with char literals
+    let content = r#"
+fn source<'a>(x: &'a str) -> &'a str { x }
+
+#[cfg(test)]
+mod tests {
+    fn helper<'a>(x: &'a str) -> &'a str {
+        x
+    }
+}
+"#;
+    let info = CfgTestInfo::parse(content);
+
+    assert_eq!(info.test_ranges.len(), 1);
+    assert!(!info.is_test_line(1)); // source function
+    assert!(info.is_test_line(3)); // #[cfg(test)]
+}
+
+#[test]
+fn nested_raw_strings() {
+    // Raw strings can contain quote characters
+    let content = r####"
+fn source() {}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test() {
+        let s = r#"contains "quotes" and { braces }"#;
+        assert!(true);
+    }
+}
+"####;
+    let info = CfgTestInfo::parse(content);
+
+    assert_eq!(info.test_ranges.len(), 1);
+}
+
+#[test]
+fn empty_string_and_char() {
+    // Edge case: empty-ish strings
+    let content = r#"
+fn source() {}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test() {
+        let s = "";
+        let c = ' ';
+        let brace_str = "{}";
+        assert!(true);
+    }
+}
+"#;
+    let info = CfgTestInfo::parse(content);
+
+    assert_eq!(info.test_ranges.len(), 1);
+}

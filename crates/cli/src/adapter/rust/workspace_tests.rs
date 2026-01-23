@@ -90,3 +90,25 @@ fn no_cargo_toml() {
     assert!(workspace.packages.is_empty());
     assert!(workspace.member_patterns.is_empty());
 }
+
+#[test]
+fn expands_double_star_pattern() {
+    // Test that ** patterns are handled (treated as single level)
+    let dir = TempDir::new().unwrap();
+
+    // Create workspace with ** pattern
+    create_workspace(
+        dir.path(),
+        r#"[workspace]
+members = ["crates/**"]
+"#,
+    );
+
+    // Create a crate
+    std::fs::create_dir_all(dir.path().join("crates")).unwrap();
+    create_package(&dir.path().join("crates"), "foo");
+
+    let workspace = CargoWorkspace::from_root(dir.path());
+    assert!(workspace.is_workspace);
+    assert!(workspace.packages.contains(&"foo".to_string()));
+}
