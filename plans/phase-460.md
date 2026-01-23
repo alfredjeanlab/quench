@@ -1,5 +1,7 @@
 # Phase 460: Go Adapter - Escape Patterns
 
+**Root Feature:** `quench-c294`
+
 ## Overview
 
 Implement Go-specific escape hatch patterns that require justification comments. This phase adds detection for `unsafe.Pointer`, `//go:linkname`, and `//go:noescape` patterns with corresponding comment requirements.
