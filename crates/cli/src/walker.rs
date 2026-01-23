@@ -44,7 +44,21 @@ pub struct WalkerConfig {
 
     /// Number of threads (0 = auto).
     pub threads: usize,
+
+    /// Minimum file count estimate for parallel walking (default: 1000).
+    /// Below this threshold, single-threaded walking is used to avoid thread overhead.
+    pub parallel_threshold: usize,
+
+    /// Force parallel mode regardless of heuristic.
+    pub force_parallel: bool,
+
+    /// Force sequential mode regardless of heuristic.
+    pub force_sequential: bool,
 }
+
+/// Default threshold for switching from sequential to parallel walking.
+/// Based on benchmarks: parallel overhead exceeds benefits for <1000 files.
+pub const DEFAULT_PARALLEL_THRESHOLD: usize = 1000;
 
 impl Default for WalkerConfig {
     fn default() -> Self {
@@ -54,6 +68,9 @@ impl Default for WalkerConfig {
             git_ignore: true,
             hidden: true, // Skip hidden files by default
             threads: 0,   // Auto-detect
+            parallel_threshold: DEFAULT_PARALLEL_THRESHOLD,
+            force_parallel: false,
+            force_sequential: false,
         }
     }
 }
@@ -109,10 +126,38 @@ impl FileWalker {
         })
     }
 
+    /// Determine whether to use parallel walking based on heuristics.
+    ///
+    /// Uses a quick count of top-level directory entries as a proxy for total file count.
+    /// For small codebases, single-threaded walking avoids thread pool overhead.
+    fn should_use_parallel(&self, root: &Path) -> bool {
+        // Force flags take precedence
+        if self.config.force_parallel {
+            return true;
+        }
+        if self.config.force_sequential {
+            return false;
+        }
+
+        // Quick heuristic: count top-level entries.
+        // If > threshold / 10, likely a large codebase worth parallelizing.
+        // This avoids scanning the entire tree just to decide the walking strategy.
+        let entry_count = std::fs::read_dir(root)
+            .map(|entries| entries.count())
+            .unwrap_or(0);
+
+        entry_count >= self.config.parallel_threshold / 10
+    }
+
     /// Walk the given root directory, returning a receiver of discovered files.
     ///
     /// Files are streamed through the channel as they're discovered.
     /// Returns (receiver, handle) where the handle can be joined to get stats.
+    ///
+    /// Automatically selects parallel or sequential walking based on heuristics:
+    /// - For small directories (<1000 files estimated), uses sequential walking
+    ///   to avoid thread pool initialization overhead.
+    /// - For large directories, uses parallel walking for better throughput.
     pub fn walk(&self, root: &Path) -> (Receiver<WalkedFile>, WalkHandle) {
         let (tx, rx) = bounded(1000);
 
@@ -147,9 +192,25 @@ impl FileWalker {
             }
         }
 
+        let use_parallel = self.should_use_parallel(root);
+
+        let handle = if use_parallel {
+            Self::walk_parallel(builder, tx)
+        } else {
+            Self::walk_sequential(builder, tx)
+        };
+
+        (rx, handle)
+    }
+
+    /// Run parallel walker in a background thread.
+    fn walk_parallel(
+        builder: WalkBuilder,
+        tx: crossbeam_channel::Sender<WalkedFile>,
+    ) -> WalkHandle {
         let walker = builder.build_parallel();
 
-        // Track stats atomically
+        // Track stats atomically for parallel access
         let files_found = Arc::new(AtomicUsize::new(0));
         let errors = Arc::new(AtomicUsize::new(0));
         let symlink_loops = Arc::new(AtomicUsize::new(0));
@@ -158,7 +219,6 @@ impl FileWalker {
         let stats_errors = Arc::clone(&errors);
         let stats_loops = Arc::clone(&symlink_loops);
 
-        // Run walker in background
         let handle = std::thread::spawn(move || {
             walker.run(|| {
                 let tx = tx.clone();
@@ -166,46 +226,39 @@ impl FileWalker {
                 let errors = Arc::clone(&stats_errors);
                 let symlink_loops = Arc::clone(&stats_loops);
 
-                Box::new(move |entry| {
-                    match entry {
-                        Ok(entry) => {
-                            // Skip directories
-                            let is_file = entry.file_type().map(|t| t.is_file()).unwrap_or(false);
+                Box::new(move |entry| match entry {
+                    Ok(entry) => {
+                        let is_file = entry.file_type().map(|t| t.is_file()).unwrap_or(false);
 
-                            if !is_file {
-                                return WalkState::Continue;
-                            }
-
-                            // Get metadata for size
-                            let size = entry.metadata().map(|m| m.len()).unwrap_or(0);
-
-                            let depth = entry.depth();
-                            let walked = WalkedFile {
-                                path: entry.into_path(),
-                                size,
-                                depth,
-                            };
-
-                            files_found.fetch_add(1, Ordering::Relaxed);
-
-                            // Send through channel (blocking if full)
-                            if tx.send(walked).is_err() {
-                                return WalkState::Quit;
-                            }
-
-                            WalkState::Continue
+                        if !is_file {
+                            return WalkState::Continue;
                         }
-                        Err(err) => {
-                            // Check for symlink loop
-                            if is_loop_error(&err) {
-                                tracing::warn!("Symlink loop detected: {}", err);
-                                symlink_loops.fetch_add(1, Ordering::Relaxed);
-                            } else {
-                                tracing::warn!("Walk error: {}", err);
-                                errors.fetch_add(1, Ordering::Relaxed);
-                            }
-                            WalkState::Continue
+
+                        let size = entry.metadata().map(|m| m.len()).unwrap_or(0);
+                        let depth = entry.depth();
+                        let walked = WalkedFile {
+                            path: entry.into_path(),
+                            size,
+                            depth,
+                        };
+
+                        files_found.fetch_add(1, Ordering::Relaxed);
+
+                        if tx.send(walked).is_err() {
+                            return WalkState::Quit;
                         }
+
+                        WalkState::Continue
+                    }
+                    Err(err) => {
+                        if is_loop_error(&err) {
+                            tracing::warn!("Symlink loop detected: {}", err);
+                            symlink_loops.fetch_add(1, Ordering::Relaxed);
+                        } else {
+                            tracing::warn!("Walk error: {}", err);
+                            errors.fetch_add(1, Ordering::Relaxed);
+                        }
+                        WalkState::Continue
                     }
                 })
             });
@@ -218,7 +271,66 @@ impl FileWalker {
             }
         });
 
-        (rx, WalkHandle { handle })
+        WalkHandle { handle }
+    }
+
+    /// Run sequential walker in a background thread.
+    /// Avoids thread pool overhead for small directories.
+    fn walk_sequential(
+        builder: WalkBuilder,
+        tx: crossbeam_channel::Sender<WalkedFile>,
+    ) -> WalkHandle {
+        let walker = builder.build();
+
+        let handle = std::thread::spawn(move || {
+            let mut files_found = 0usize;
+            let mut errors = 0usize;
+            let mut symlink_loops = 0usize;
+
+            for entry in walker {
+                match entry {
+                    Ok(entry) => {
+                        let is_file = entry.file_type().map(|t| t.is_file()).unwrap_or(false);
+
+                        if !is_file {
+                            continue;
+                        }
+
+                        let size = entry.metadata().map(|m| m.len()).unwrap_or(0);
+                        let depth = entry.depth();
+                        let walked = WalkedFile {
+                            path: entry.into_path(),
+                            size,
+                            depth,
+                        };
+
+                        files_found += 1;
+
+                        if tx.send(walked).is_err() {
+                            break;
+                        }
+                    }
+                    Err(err) => {
+                        if is_loop_error(&err) {
+                            tracing::warn!("Symlink loop detected: {}", err);
+                            symlink_loops += 1;
+                        } else {
+                            tracing::warn!("Walk error: {}", err);
+                            errors += 1;
+                        }
+                    }
+                }
+            }
+
+            WalkStats {
+                files_found,
+                errors,
+                symlink_loops,
+                ..Default::default()
+            }
+        });
+
+        WalkHandle { handle }
     }
 
     /// Walk and collect all files (convenience method for small directories).
