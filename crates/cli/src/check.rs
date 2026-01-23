@@ -42,11 +42,6 @@ pub trait Check: Send + Sync {
     /// - Handle errors gracefully without panicking
     fn run(&self, ctx: &CheckContext) -> CheckResult;
 
-    /// Whether this check can auto-fix violations.
-    fn fixable(&self) -> bool {
-        false
-    }
-
     /// Whether this check is enabled by default in fast mode.
     fn default_enabled(&self) -> bool {
         true
