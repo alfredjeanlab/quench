@@ -1,0 +1,5 @@
+version = 1
+
+[check.cloc]
+max_lines = 10
+exclude = ["**/generated/**"]

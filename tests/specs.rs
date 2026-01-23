@@ -20,6 +20,9 @@ mod output;
 #[path = "specs/checks.rs"]
 mod checks;
 
+#[path = "specs/cloc.rs"]
+mod cloc;
+
 use prelude::*;
 
 // =============================================================================

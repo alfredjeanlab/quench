@@ -104,3 +104,13 @@ pub fn check_names(json: &serde_json::Value) -> Vec<&str> {
         .filter_map(|c| c.get("name").and_then(|n| n.as_str()))
         .collect()
 }
+
+/// Find a check by name in JSON output
+pub fn find_check<'a>(json: &'a serde_json::Value, name: &str) -> &'a serde_json::Value {
+    json.get("checks")
+        .and_then(|v| v.as_array())
+        .unwrap()
+        .iter()
+        .find(|c| c.get("name").and_then(|n| n.as_str()) == Some(name))
+        .unwrap_or_else(|| panic!("check '{}' not found in output", name))
+}
