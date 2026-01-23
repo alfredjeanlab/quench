@@ -317,3 +317,318 @@ allow = ["SC2034"]
 
     check("escapes").pwd(dir.path()).passes();
 }
+
+// =============================================================================
+// LINT CONFIG POLICY SPECS
+// =============================================================================
+
+/// Spec: docs/specs/langs/shell.md#policy
+///
+/// > lint_changes = "standalone" - lint config changes must be standalone PRs
+#[test]
+fn shell_adapter_lint_config_changes_with_source_fails_standalone_policy() {
+    let dir = temp_project();
+
+    // Setup quench.toml with standalone policy
+    std::fs::write(
+        dir.path().join("quench.toml"),
+        r#"
+version = 1
+[shell.policy]
+lint_changes = "standalone"
+lint_config = [".shellcheckrc"]
+"#,
+    )
+    .unwrap();
+
+    // Initialize git repo
+    std::process::Command::new("git")
+        .args(["init"])
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+
+    std::process::Command::new("git")
+        .args(["config", "user.email", "test@test.com"])
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+
+    std::process::Command::new("git")
+        .args(["config", "user.name", "Test"])
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+
+    // Create initial commit with source
+    std::fs::create_dir_all(dir.path().join("scripts")).unwrap();
+    std::fs::write(
+        dir.path().join("scripts/build.sh"),
+        "#!/bin/bash\necho 'building'\n",
+    )
+    .unwrap();
+
+    std::process::Command::new("git")
+        .args(["add", "-A"])
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+
+    std::process::Command::new("git")
+        .args(["commit", "-m", "initial"])
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+
+    // Add both lint config and source changes
+    std::fs::write(dir.path().join(".shellcheckrc"), "enable=all\n").unwrap();
+    std::fs::write(
+        dir.path().join("scripts/build.sh"),
+        "#!/bin/bash\necho 'building'\necho 'more'\n",
+    )
+    .unwrap();
+
+    std::process::Command::new("git")
+        .args(["add", "-A"])
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+
+    // Check with --base HEAD should detect mixed changes
+    check("escapes")
+        .pwd(dir.path())
+        .args(&["--base", "HEAD"])
+        .fails()
+        .stdout_has("lint config")
+        .stdout_has("separate PR");
+}
+
+/// Spec: docs/specs/langs/shell.md#policy
+///
+/// > lint_config = [".shellcheckrc"] files that trigger standalone requirement
+#[test]
+fn shell_adapter_lint_config_standalone_passes() {
+    let dir = temp_project();
+
+    // Setup quench.toml with standalone policy
+    std::fs::write(
+        dir.path().join("quench.toml"),
+        r#"
+version = 1
+[shell.policy]
+lint_changes = "standalone"
+lint_config = [".shellcheckrc"]
+"#,
+    )
+    .unwrap();
+
+    // Initialize git repo
+    std::process::Command::new("git")
+        .args(["init"])
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+
+    std::process::Command::new("git")
+        .args(["config", "user.email", "test@test.com"])
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+
+    std::process::Command::new("git")
+        .args(["config", "user.name", "Test"])
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+
+    // Create initial commit
+    std::fs::create_dir_all(dir.path().join("scripts")).unwrap();
+    std::fs::write(
+        dir.path().join("scripts/build.sh"),
+        "#!/bin/bash\necho 'building'\n",
+    )
+    .unwrap();
+
+    std::process::Command::new("git")
+        .args(["add", "-A"])
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+
+    std::process::Command::new("git")
+        .args(["commit", "-m", "initial"])
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+
+    // Add ONLY lint config change (no source changes)
+    std::fs::write(dir.path().join(".shellcheckrc"), "enable=all\n").unwrap();
+
+    std::process::Command::new("git")
+        .args(["add", "-A"])
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+
+    // Should pass - only lint config changed
+    check("escapes")
+        .pwd(dir.path())
+        .args(&["--base", "HEAD"])
+        .passes();
+}
+
+/// Spec: docs/specs/langs/shell.md#policy
+///
+/// > Policy is disabled when lint_changes = "none"
+#[test]
+fn shell_adapter_lint_policy_disabled_allows_mixed_changes() {
+    let dir = temp_project();
+
+    // Setup quench.toml with policy disabled
+    std::fs::write(
+        dir.path().join("quench.toml"),
+        r#"
+version = 1
+[shell.policy]
+lint_changes = "none"
+"#,
+    )
+    .unwrap();
+
+    // Initialize git repo
+    std::process::Command::new("git")
+        .args(["init"])
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+
+    std::process::Command::new("git")
+        .args(["config", "user.email", "test@test.com"])
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+
+    std::process::Command::new("git")
+        .args(["config", "user.name", "Test"])
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+
+    // Create initial commit
+    std::fs::create_dir_all(dir.path().join("scripts")).unwrap();
+    std::fs::write(
+        dir.path().join("scripts/build.sh"),
+        "#!/bin/bash\necho 'building'\n",
+    )
+    .unwrap();
+
+    std::process::Command::new("git")
+        .args(["add", "-A"])
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+
+    std::process::Command::new("git")
+        .args(["commit", "-m", "initial"])
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+
+    // Add both lint config and source changes
+    std::fs::write(dir.path().join(".shellcheckrc"), "enable=all\n").unwrap();
+    std::fs::write(
+        dir.path().join("scripts/build.sh"),
+        "#!/bin/bash\necho 'building'\necho 'more'\n",
+    )
+    .unwrap();
+
+    std::process::Command::new("git")
+        .args(["add", "-A"])
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+
+    // Should pass - policy is disabled
+    check("escapes")
+        .pwd(dir.path())
+        .args(&["--base", "HEAD"])
+        .passes();
+}
+
+/// Spec: docs/specs/langs/shell.md#policy
+///
+/// > Source-only changes pass the standalone policy
+#[test]
+fn shell_adapter_source_only_changes_pass_standalone_policy() {
+    let dir = temp_project();
+
+    // Setup quench.toml with standalone policy
+    std::fs::write(
+        dir.path().join("quench.toml"),
+        r#"
+version = 1
+[shell.policy]
+lint_changes = "standalone"
+lint_config = [".shellcheckrc"]
+"#,
+    )
+    .unwrap();
+
+    // Initialize git repo
+    std::process::Command::new("git")
+        .args(["init"])
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+
+    std::process::Command::new("git")
+        .args(["config", "user.email", "test@test.com"])
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+
+    std::process::Command::new("git")
+        .args(["config", "user.name", "Test"])
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+
+    // Create initial commit
+    std::fs::create_dir_all(dir.path().join("scripts")).unwrap();
+    std::fs::write(
+        dir.path().join("scripts/build.sh"),
+        "#!/bin/bash\necho 'building'\n",
+    )
+    .unwrap();
+
+    std::process::Command::new("git")
+        .args(["add", "-A"])
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+
+    std::process::Command::new("git")
+        .args(["commit", "-m", "initial"])
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+
+    // Add ONLY source changes (no lint config)
+    std::fs::write(
+        dir.path().join("scripts/build.sh"),
+        "#!/bin/bash\necho 'building'\necho 'more'\n",
+    )
+    .unwrap();
+
+    std::process::Command::new("git")
+        .args(["add", "-A"])
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+
+    // Should pass - only source changed
+    check("escapes")
+        .pwd(dir.path())
+        .args(&["--base", "HEAD"])
+        .passes();
+}

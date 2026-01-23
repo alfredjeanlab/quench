@@ -15,12 +15,15 @@ use std::path::Path;
 
 use globset::GlobSet;
 
+mod policy;
 mod suppress;
 
+pub use policy::{ShellPolicyCheckResult, check_lint_policy};
 pub use suppress::{ShellcheckSuppress, parse_shellcheck_suppresses};
 
 use super::glob::build_glob_set;
 use super::{Adapter, EscapeAction, EscapePattern, FileKind};
+use crate::config::ShellPolicyConfig;
 
 /// Default escape patterns for Shell.
 const SHELL_ESCAPE_PATTERNS: &[EscapePattern] = &[
@@ -92,6 +95,19 @@ impl Adapter for ShellAdapter {
 
     fn default_escapes(&self) -> &'static [EscapePattern] {
         SHELL_ESCAPE_PATTERNS
+    }
+}
+
+impl ShellAdapter {
+    /// Check lint policy against changed files.
+    ///
+    /// Returns policy check result with violation details.
+    pub fn check_lint_policy(
+        &self,
+        changed_files: &[&Path],
+        policy: &ShellPolicyConfig,
+    ) -> ShellPolicyCheckResult {
+        policy::check_lint_policy(changed_files, policy, |p| self.classify(p))
     }
 }
 

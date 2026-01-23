@@ -7,6 +7,7 @@
 //! See docs/specs/checks/escape-hatches.md.
 
 mod comment;
+mod lint_policy;
 mod patterns;
 mod shell_suppress;
 
@@ -16,14 +17,9 @@ use std::sync::atomic::Ordering;
 
 use serde_json::{Value as JsonValue, json};
 
-use crate::adapter::{
-    CfgTestInfo, FileKind, GenericAdapter, ProjectLanguage, RustAdapter, detect_language,
-    parse_suppress_attrs,
-};
+use crate::adapter::{CfgTestInfo, FileKind, GenericAdapter, parse_suppress_attrs};
 use crate::check::{Check, CheckContext, CheckResult, Violation};
-use crate::config::{
-    CheckLevel, EscapeAction, LintChangesPolicy, RustConfig, SuppressConfig, SuppressLevel,
-};
+use crate::config::{CheckLevel, EscapeAction, SuppressConfig, SuppressLevel};
 
 use crate::pattern::CompiledPattern;
 use shell_suppress::check_shell_suppress_violations;
@@ -167,11 +163,8 @@ impl Check for EscapesCheck {
             return CheckResult::passed(self.name());
         }
 
-        // Check lint policy for Rust projects (only when --base is provided)
-        let mut policy_violations = Vec::new();
-        if detect_language(ctx.root) == ProjectLanguage::Rust {
-            policy_violations = check_lint_policy(ctx, &ctx.config.rust);
-        }
+        // Check lint policy for language-specific projects (only when --base is provided)
+        let policy_violations = lint_policy::check_lint_policy(ctx);
 
         // Get adapter default patterns for the detected language
         let adapter_patterns = get_adapter_escape_patterns(ctx.root);
@@ -549,56 +542,6 @@ fn is_shell_file(path: &Path) -> bool {
         .and_then(|e| e.to_str())
         .map(|e| matches!(e.to_lowercase().as_str(), "sh" | "bash" | "bats"))
         .unwrap_or(false)
-}
-
-/// Check lint policy and generate violations.
-fn check_lint_policy(ctx: &CheckContext, rust_config: &RustConfig) -> Vec<Violation> {
-    let mut violations = Vec::new();
-
-    // Policy only applies when comparing against a base
-    let Some(changed_files) = ctx.changed_files else {
-        return violations;
-    };
-
-    // Check if standalone policy is enabled
-    if rust_config.policy.lint_changes != LintChangesPolicy::Standalone {
-        return violations;
-    }
-
-    let adapter = RustAdapter::new();
-    let file_refs: Vec<&Path> = changed_files.iter().map(|p| p.as_path()).collect();
-    let result = adapter.check_lint_policy(&file_refs, &rust_config.policy);
-
-    if result.standalone_violated {
-        // Create a single policy violation
-        violations.push(Violation {
-            file: None,
-            line: None,
-            violation_type: "lint_policy".to_string(),
-            advice: format!(
-                "Changed lint config: {}\nAlso changed source: {}\nSubmit lint config changes in a separate PR.",
-                result.changed_lint_config.join(", "),
-                truncate_list(&result.changed_source, 3),
-            ),
-            value: None,
-            threshold: None,
-            pattern: Some("lint_changes = standalone".to_string()),
-            lines: None,
-            nonblank: None,
-        });
-    }
-
-    violations
-}
-
-/// Truncate a list for display, showing "and N more" if needed.
-fn truncate_list(items: &[String], max: usize) -> String {
-    if items.len() <= max {
-        items.join(", ")
-    } else {
-        let shown: Vec<_> = items.iter().take(max).cloned().collect();
-        format!("{} and {} more", shown.join(", "), items.len() - max)
-    }
 }
 
 /// Check suppress attributes in a Rust file.

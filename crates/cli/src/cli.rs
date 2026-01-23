@@ -279,6 +279,52 @@ pub fn rust_landing_items() -> &'static [&'static str] {
     ]
 }
 
+/// Default Shell profile configuration for quench init.
+pub fn shell_profile_defaults() -> String {
+    r##"[shell]
+source = ["**/*.sh", "**/*.bash"]
+tests = ["tests/**/*.bats", "test/**/*.bats", "*_test.sh", "**/*_test.sh"]
+
+[shell.suppress]
+check = "comment"
+comment = "# OK:"
+
+[shell.suppress.test]
+check = "allow"
+
+[shell.policy]
+lint_changes = "standalone"
+lint_config = [".shellcheckrc"]
+
+[[check.escapes.patterns]]
+name = "set_plus_e"
+pattern = "set \\+e"
+action = "comment"
+comment = "# OK:"
+advice = "Add a # OK: comment explaining why error checking is disabled."
+
+[[check.escapes.patterns]]
+name = "eval"
+pattern = "\\beval\\s"
+action = "comment"
+comment = "# OK:"
+advice = "Add a # OK: comment explaining why eval is safe here."
+
+[[check.escapes.patterns]]
+name = "rm_rf"
+pattern = "rm\\s+-rf"
+action = "comment"
+comment = "# OK:"
+advice = "Add a # OK: comment explaining the rm -rf is safe."
+"##
+    .to_string()
+}
+
+/// Shell-specific Landing the Plane checklist items.
+pub fn shell_landing_items() -> &'static [&'static str] {
+    &["shellcheck **/*.sh", "bats tests/"]
+}
+
 #[cfg(test)]
 #[path = "cli_tests.rs"]
 mod tests;
