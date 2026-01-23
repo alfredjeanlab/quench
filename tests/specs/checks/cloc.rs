@@ -414,3 +414,41 @@ fn cloc_json_includes_token_metrics() {
     );
     assert!(metrics.get("test_tokens").is_some(), "missing test_tokens");
 }
+
+// =============================================================================
+// OUTPUT FORMAT SPECS
+// =============================================================================
+
+/// Spec: docs/specs/checks/cloc.md#text-output
+///
+/// > Text output shows violations with file path, line count, and advice
+#[test]
+fn cloc_text_output_format_on_violation() {
+    check("cloc")
+        .on("cloc/oversized-source")
+        .fails()
+        .stdout_has("cloc: FAIL")
+        .stdout_has("big.rs")
+        .stdout_has("file_too_large")
+        .stdout_has("750");
+}
+
+/// Spec: docs/specs/checks/cloc.md#json-output
+///
+/// > JSON output includes all required fields for violations
+#[test]
+fn cloc_json_violation_structure_complete() {
+    let cloc = check("cloc").on("cloc/oversized-source").json().fails();
+    let violations = cloc.require("violations").as_array().unwrap();
+
+    assert!(!violations.is_empty(), "should have violations");
+
+    // Each violation must have all required fields
+    for violation in violations {
+        assert!(violation.get("file").is_some(), "missing file");
+        assert!(violation.get("type").is_some(), "missing type");
+        assert!(violation.get("value").is_some(), "missing value");
+        assert!(violation.get("threshold").is_some(), "missing threshold");
+        assert!(violation.get("advice").is_some(), "missing advice");
+    }
+}
