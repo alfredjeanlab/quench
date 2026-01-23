@@ -192,6 +192,27 @@ fn rust_adapter_external_test_modules_detected_via_file_patterns() {
     );
 }
 
+/// Spec: docs/specs/langs/rust.md#supported-patterns
+///
+/// > Multi-line #[cfg(test)] attributes should be detected
+#[test]
+#[ignore = "FIXME: multi-line #[cfg(test)] not yet supported"]
+fn rust_adapter_multiline_cfg_test_detected() {
+    let cloc = check("cloc").on("rust/multiline-cfg-test").json().passes();
+    let metrics = cloc.require("metrics");
+
+    let test_lines = metrics
+        .get("test_lines")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(0);
+
+    // Multi-line #[cfg(test)] block should be counted as test LOC
+    assert!(
+        test_lines > 0,
+        "multi-line #[cfg(test)] blocks should be counted as test LOC"
+    );
+}
+
 // =============================================================================
 // ESCAPE PATTERN SPECS
 // =============================================================================
@@ -445,6 +466,30 @@ forbid = ["unsafe_code"]
     .unwrap();
 
     check("escapes").pwd(dir.path()).fails();
+}
+
+/// Spec: docs/specs/langs/rust.md#supported-patterns
+///
+/// > Multi-line #[allow(...)] attributes should be detected
+#[test]
+#[ignore = "FIXME: multi-line #[allow(...)] not yet supported"]
+fn rust_adapter_multiline_allow_detected() {
+    // multiline-allow fixture has multi-line #[allow(dead_code, unused_variables)]
+    // with check = "forbid", so it should fail if detected
+    check("escapes").on("rust/multiline-allow").fails();
+}
+
+/// Spec: docs/specs/langs/rust.md#supported-patterns
+///
+/// > #[allow(...)] inside macro_rules! definitions should be detected
+#[test]
+fn rust_adapter_allow_in_macro_rules_detected() {
+    // macro-escape fixture has #[allow(dead_code)] inside a macro_rules! definition
+    // with check = "forbid", so it should fail
+    check("escapes")
+        .on("rust/macro-escape")
+        .fails()
+        .stdout_has("#[allow(dead_code)]");
 }
 
 // =============================================================================

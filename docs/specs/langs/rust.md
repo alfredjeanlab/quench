@@ -113,6 +113,37 @@ Similarly:
 
 For test correlation, changes to `#[cfg(test)]` blocks satisfy the test requirement.
 
+### Supported Patterns
+
+```rust
+// Single-line attribute
+#[cfg(test)]
+mod tests { }
+
+// Multi-line attribute
+#[cfg(
+    test
+)]
+mod tests { }
+```
+
+### Limitations
+
+**Macro-generated test blocks**: `#[cfg(test)]` attributes inside macro definitions are not detected for test LOC counting:
+
+```rust
+macro_rules! make_tests {
+    () => {
+        #[cfg(test)]
+        mod tests {
+            #[test]
+            fn it_works() {}
+        }
+    };
+}
+make_tests!();  // #[cfg(test)] inside macro not detected
+```
+
 ## Default Escape Patterns
 
 | Pattern | Action | Comment Required |
@@ -133,6 +164,29 @@ Controls `#[allow(...)]` and `#[expect(...)]` attributes.
 | `"allow"` | Always allowed |
 
 Default: `"comment"` for source, `"allow"` for test code.
+
+### Supported Patterns
+
+```rust
+// Single-line attribute
+#[allow(dead_code)]
+fn unused() {}
+
+// Multi-line attribute
+#[allow(
+    dead_code,
+    unused_variables
+)]
+fn unused() {}
+
+// Attribute inside macro_rules (the definition requires justification, not call sites)
+macro_rules! allow_unused {
+    ($item:item) => {
+        #[allow(dead_code)]  // ← this usage requires a comment
+        $item
+    };
+}
+```
 
 ```toml
 [rust.suppress]
