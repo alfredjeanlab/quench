@@ -32,14 +32,17 @@ const SHELL_ESCAPE_PATTERNS: &[EscapePattern] = &[
         pattern: r"set \+e",
         action: EscapeAction::Comment,
         comment: Some("# OK:"),
-        advice: "Add a # OK: comment explaining why error checking is disabled.",
+        advice: "Most bash scripts should use 'set -e' to exit on errors. \
+                 Consider adding it to this script. \
+                 If error checking was intentionally disabled, add a # OK: comment explaining why.",
     },
     EscapePattern {
         name: "eval",
         pattern: r"\beval\s",
         action: EscapeAction::Comment,
         comment: Some("# OK:"),
-        advice: "Add a # OK: comment explaining why eval is safe here.",
+        advice: "eval can execute arbitrary code and is a common source of injection vulnerabilities. \
+                 If this usage is safe, add a # OK: comment explaining why.",
     },
 ];
 
