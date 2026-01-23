@@ -9,6 +9,7 @@ use std::sync::atomic::Ordering;
 use globset::{Glob, GlobSet, GlobSetBuilder};
 use serde_json::json;
 
+use crate::adapter::{Adapter, FileKind, GenericAdapter};
 use crate::check::{Check, CheckContext, CheckResult, Violation};
 use crate::config::CheckLevel;
 
@@ -33,8 +34,18 @@ impl Check for ClocCheck {
             return CheckResult::passed(self.name());
         }
 
-        // Build pattern matchers
-        let matcher = PatternMatcher::new(&cloc_config.test_patterns, &cloc_config.exclude);
+        // Build adapter for file classification
+        // Use project-level patterns if configured, otherwise fall back to cloc config
+        let project_config = &ctx.config.project;
+        let test_patterns = if project_config.tests.is_empty() {
+            &cloc_config.test_patterns
+        } else {
+            &project_config.tests
+        };
+        let adapter = GenericAdapter::new(&project_config.source, test_patterns);
+
+        // Build pattern matcher for exclude patterns only
+        let exclude_matcher = ExcludeMatcher::new(&cloc_config.exclude);
 
         let mut violations = Vec::new();
         let mut source_lines: usize = 0;
@@ -57,8 +68,10 @@ impl Check for ClocCheck {
                 Ok(metrics) => {
                     let line_count = metrics.nonblank_lines;
                     let token_count = metrics.tokens;
-                    let is_test = matcher.is_test_file(&file.path, ctx.root);
-                    let is_excluded = matcher.is_excluded(&file.path, ctx.root);
+                    let relative_path = file.path.strip_prefix(ctx.root).unwrap_or(&file.path);
+                    let file_kind = adapter.classify(relative_path);
+                    let is_test = file_kind == FileKind::Test;
+                    let is_excluded = exclude_matcher.is_excluded(&file.path, ctx.root);
 
                     // Accumulate global metrics
                     if is_test {
@@ -226,36 +239,23 @@ fn file_package(path: &Path, root: &Path, packages: &[String]) -> Option<String>
     None
 }
 
-/// Pattern matcher for test file and exclude patterns.
-struct PatternMatcher {
-    test_patterns: GlobSet,
+/// Pattern matcher for exclude patterns.
+struct ExcludeMatcher {
     exclude_patterns: GlobSet,
 }
 
-impl PatternMatcher {
-    /// Create a new pattern matcher from config patterns.
-    fn new(test_patterns: &[String], exclude_patterns: &[String]) -> Self {
+impl ExcludeMatcher {
+    /// Create a new exclude matcher from config patterns.
+    fn new(exclude_patterns: &[String]) -> Self {
         Self {
-            test_patterns: build_glob_set(test_patterns),
             exclude_patterns: build_glob_set(exclude_patterns),
         }
     }
 
-    /// Convert absolute path to relative for pattern matching.
-    /// Falls back to the full path if not under root.
-    fn relative_path<'a>(path: &'a Path, root: &Path) -> &'a Path {
-        path.strip_prefix(root).unwrap_or(path)
-    }
-
-    /// Check if a file matches test patterns.
-    fn is_test_file(&self, path: &Path, root: &Path) -> bool {
-        self.test_patterns.is_match(Self::relative_path(path, root))
-    }
-
     /// Check if a file should be excluded from violations.
     fn is_excluded(&self, path: &Path, root: &Path) -> bool {
-        self.exclude_patterns
-            .is_match(Self::relative_path(path, root))
+        let relative = path.strip_prefix(root).unwrap_or(path);
+        self.exclude_patterns.is_match(relative)
     }
 }
 
