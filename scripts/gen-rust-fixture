@@ -1,0 +1,273 @@
+#!/usr/bin/env bash
+# scripts/gen-rust-fixture - Generate Rust-specific benchmark fixture
+#
+# Creates a Cargo workspace with:
+# - Multiple packages exercising Rust adapter features
+# - #[cfg(test)] blocks for inline test detection
+# - #[allow(...)] and #[expect(...)] attributes
+# - Realistic distribution of source vs test files
+#
+# Usage:
+#   ./scripts/gen-rust-fixture [fixture_dir] [package_count] [files_per_package]
+#   ./scripts/gen-rust-fixture                     # Default: 5 packages, 100 files/pkg
+#   ./scripts/gen-rust-fixture tests/fixtures/bench-rust 5 100
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+FIXTURE_DIR="${1:-$REPO_ROOT/tests/fixtures/bench-rust}"
+PACKAGE_COUNT="${2:-5}"
+FILES_PER_PACKAGE="${3:-100}"
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+echo -e "${YELLOW}Generating Rust benchmark fixture...${NC}"
+echo "  Directory: $FIXTURE_DIR"
+echo "  Packages: $PACKAGE_COUNT"
+echo "  Files per package: $FILES_PER_PACKAGE"
+
+# Clean and create fixture directory
+rm -rf "$FIXTURE_DIR"
+mkdir -p "$FIXTURE_DIR/crates"
+
+# Create workspace Cargo.toml
+cat > "$FIXTURE_DIR/Cargo.toml" << 'TOML'
+[workspace]
+members = ["crates/*"]
+resolver = "2"
+
+# Benchmark fixture workspace - auto-generated
+# DO NOT EDIT - regenerate with ./scripts/gen-rust-fixture
+TOML
+
+# Generate packages
+for pkg in $(seq 1 "$PACKAGE_COUNT"); do
+    PKG_DIR="$FIXTURE_DIR/crates/pkg_$pkg"
+    mkdir -p "$PKG_DIR/src" "$PKG_DIR/tests"
+
+    # Package Cargo.toml
+    cat > "$PKG_DIR/Cargo.toml" << TOML
+[package]
+name = "pkg_$pkg"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# Benchmark fixture package - auto-generated
+TOML
+
+    # Generate source files with #[cfg(test)] blocks
+    for i in $(seq 1 "$FILES_PER_PACKAGE"); do
+        # Vary attributes across files for realistic distribution
+        # ~30% have #[allow(dead_code)]
+        # ~20% have #[allow(unused_variables)]
+        # ~10% have #[expect(...)] with reason
+        # ~5% have clippy lints
+        local_attrs=""
+        if (( i % 3 == 0 )); then
+            local_attrs="#[allow(dead_code)]
+"
+        fi
+        if (( i % 5 == 0 )); then
+            local_attrs="${local_attrs}#[allow(unused_variables)]
+"
+        fi
+        if (( i % 10 == 0 )); then
+            local_attrs="${local_attrs}#[expect(unused_mut, reason = \"benchmark fixture\")]
+"
+        fi
+        if (( i % 20 == 0 )); then
+            local_attrs="${local_attrs}#![allow(clippy::needless_return)]
+"
+        fi
+
+        cat > "$PKG_DIR/src/module_$i.rs" << RUST
+//! Auto-generated module for Rust adapter benchmarking.
+//!
+//! Package: pkg_$pkg, Module: $i
+${local_attrs}
+use std::collections::HashMap;
+
+/// Process an item by converting to uppercase.
+#[allow(dead_code)]
+pub fn process_item(item: &str) -> String {
+    item.to_uppercase()
+}
+
+/// Transform data by doubling values.
+#[allow(unused_variables)]
+pub fn transform_data(data: &[i32]) -> Vec<i32> {
+    data.iter().map(|x| x * 2).collect()
+}
+
+/// Calculate a value with complex logic.
+pub fn calculate(a: i32, b: i32) -> i32 {
+    let result = a + b;
+    if result > 100 {
+        result - 50
+    } else {
+        result * 2
+    }
+}
+
+/// A sample struct for benchmarking.
+#[derive(Debug, Clone, Default)]
+pub struct Sample {
+    pub id: u64,
+    pub name: String,
+    pub data: Vec<u8>,
+    pub metadata: HashMap<String, String>,
+}
+
+impl Sample {
+    /// Create a new instance.
+    pub fn new(id: u64, name: impl Into<String>) -> Self {
+        Self {
+            id,
+            name: name.into(),
+            data: Vec::new(),
+            metadata: HashMap::new(),
+        }
+    }
+
+    /// Get the ID.
+    pub fn id(&self) -> u64 {
+        self.id
+    }
+
+    /// Add metadata.
+    pub fn add_meta(&mut self, key: impl Into<String>, value: impl Into<String>) {
+        self.metadata.insert(key.into(), value.into());
+    }
+}
+
+// Source code with inline tests - exercises #[cfg(test)] parsing
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_process_item() {
+        assert_eq!(process_item("hello"), "HELLO");
+        assert_eq!(process_item("World"), "WORLD");
+    }
+
+    #[test]
+    fn test_transform_data() {
+        let result = transform_data(&[1, 2, 3]);
+        assert_eq!(result, vec![2, 4, 6]);
+    }
+
+    #[test]
+    fn test_calculate() {
+        assert_eq!(calculate(10, 20), 60); // (30) * 2
+        assert_eq!(calculate(60, 50), 60); // 110 - 50
+    }
+
+    #[test]
+    fn test_sample_new() {
+        let s = Sample::new(42, "test");
+        assert_eq!(s.id(), 42);
+    }
+}
+RUST
+
+        # Pad to ~100 lines per file for consistent LOC count
+        for _ in $(seq 1 10); do
+            echo "// padding line for benchmark fixture - pkg_$pkg module_$i" >> "$PKG_DIR/src/module_$i.rs"
+        done
+    done
+
+    # Create lib.rs that imports modules
+    {
+        echo "//! Package pkg_$pkg - benchmark fixture"
+        echo "//!"
+        echo "//! Auto-generated with $FILES_PER_PACKAGE modules for Rust adapter benchmarking."
+        echo ""
+        for i in $(seq 1 "$FILES_PER_PACKAGE"); do
+            echo "pub mod module_$i;"
+        done
+    } > "$PKG_DIR/src/lib.rs"
+
+    # Generate dedicated test files in tests/
+    cat > "$PKG_DIR/tests/integration.rs" << RUST
+//! Integration tests for pkg_$pkg
+#![allow(clippy::unwrap_used)]
+
+use pkg_$pkg::module_1;
+
+#[test]
+fn integration_process_item() {
+    let result = module_1::process_item("integration");
+    assert_eq!(result, "INTEGRATION");
+}
+
+#[test]
+fn integration_transform_data() {
+    let data = vec![10, 20, 30];
+    let result = module_1::transform_data(&data);
+    assert_eq!(result, vec![20, 40, 60]);
+}
+RUST
+
+    echo "  Generated pkg_$pkg: $FILES_PER_PACKAGE modules + integration tests"
+done
+
+# Create quench.toml
+cat > "$FIXTURE_DIR/quench.toml" << 'TOML'
+# Benchmark fixture configuration for Rust adapter performance testing
+version = 1
+
+[check.cloc]
+check = "error"
+max_lines = 200
+max_lines_test = 500
+
+[check.escapes]
+check = "warn"
+
+[[check.escapes.patterns]]
+name = "unwrap"
+pattern = '\.unwrap\(\)'
+action = "comment"
+comment = "// SAFETY:"
+
+[[check.escapes.patterns]]
+name = "expect"
+pattern = '\.expect\('
+action = "comment"
+comment = "// REASON:"
+
+[rust]
+lint_changes = "standalone"
+TOML
+
+# Create .gitignore
+cat > "$FIXTURE_DIR/.gitignore" << 'EOF'
+/target/
+Cargo.lock
+*.swp
+*.swo
+.idea/
+.vscode/
+EOF
+
+# Summary
+total_files=$((PACKAGE_COUNT * FILES_PER_PACKAGE + PACKAGE_COUNT * 2 + PACKAGE_COUNT))
+echo ""
+echo -e "${GREEN}Generated Rust benchmark fixture at $FIXTURE_DIR${NC}"
+echo "  Packages: $PACKAGE_COUNT"
+echo "  Source files per package: $FILES_PER_PACKAGE"
+echo "  Total .rs files: ~$total_files"
+echo "  Features exercised:"
+echo "    - Cargo workspace with members"
+echo "    - #[cfg(test)] blocks in source files"
+echo "    - #[allow(...)] and #[expect(...)] attributes"
+echo "    - Dedicated test files in tests/"
+echo "    - quench.toml with escapes config"
