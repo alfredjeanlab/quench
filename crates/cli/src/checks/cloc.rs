@@ -96,49 +96,36 @@ impl Check for ClocCheck {
                         };
 
                         if line_count > max_lines {
-                            // Check violation limit
-                            let current = ctx.violation_count.fetch_add(1, Ordering::SeqCst);
-                            if let Some(limit) = ctx.limit
-                                && current >= limit
-                            {
-                                break;
+                            match try_create_violation(
+                                ctx,
+                                &file.path,
+                                is_test,
+                                &cloc_config.advice,
+                                &cloc_config.advice_test,
+                                line_count,
+                                max_lines,
+                            ) {
+                                Some(v) => violations.push(v),
+                                None => break,
                             }
-
-                            let display_path =
-                                file.path.strip_prefix(ctx.root).unwrap_or(&file.path);
-                            let advice = if is_test {
-                                cloc_config.advice_test.clone()
-                            } else {
-                                cloc_config.advice.clone()
-                            };
-                            violations.push(
-                                Violation::file_only(display_path, "file_too_large", advice)
-                                    .with_threshold(line_count as i64, max_lines as i64),
-                            );
                         }
 
                         // Token limit check
                         if let Some(max_tokens) = cloc_config.max_tokens
                             && token_count > max_tokens
                         {
-                            let current = ctx.violation_count.fetch_add(1, Ordering::SeqCst);
-                            if let Some(limit) = ctx.limit
-                                && current >= limit
-                            {
-                                break;
+                            match try_create_violation(
+                                ctx,
+                                &file.path,
+                                is_test,
+                                &cloc_config.advice,
+                                &cloc_config.advice_test,
+                                token_count,
+                                max_tokens,
+                            ) {
+                                Some(v) => violations.push(v),
+                                None => break,
                             }
-
-                            let display_path =
-                                file.path.strip_prefix(ctx.root).unwrap_or(&file.path);
-                            let advice = if is_test {
-                                cloc_config.advice_test.clone()
-                            } else {
-                                cloc_config.advice.clone()
-                            };
-                            violations.push(
-                                Violation::file_only(display_path, "file_too_large", advice)
-                                    .with_threshold(token_count as i64, max_tokens as i64),
-                            );
                         }
                     }
                 }
@@ -224,6 +211,9 @@ impl PackageMetrics {
 }
 
 /// Determine which package a file belongs to.
+///
+/// Uses `.ok()?` for strip_prefix because if the path isn't under root,
+/// it semantically cannot belong to any configured package.
 fn file_package(path: &Path, root: &Path, packages: &[String]) -> Option<String> {
     let relative = path.strip_prefix(root).ok()?;
 
@@ -251,16 +241,21 @@ impl PatternMatcher {
         }
     }
 
+    /// Convert absolute path to relative for pattern matching.
+    /// Falls back to the full path if not under root.
+    fn relative_path<'a>(path: &'a Path, root: &Path) -> &'a Path {
+        path.strip_prefix(root).unwrap_or(path)
+    }
+
     /// Check if a file matches test patterns.
     fn is_test_file(&self, path: &Path, root: &Path) -> bool {
-        let relative = path.strip_prefix(root).unwrap_or(path);
-        self.test_patterns.is_match(relative)
+        self.test_patterns.is_match(Self::relative_path(path, root))
     }
 
     /// Check if a file should be excluded from violations.
     fn is_excluded(&self, path: &Path, root: &Path) -> bool {
-        let relative = path.strip_prefix(root).unwrap_or(path);
-        self.exclude_patterns.is_match(relative)
+        self.exclude_patterns
+            .is_match(Self::relative_path(path, root))
     }
 }
 
@@ -275,6 +270,33 @@ fn build_glob_set(patterns: &[String]) -> GlobSet {
         }
     }
     builder.build().unwrap_or_else(|_| GlobSet::empty())
+}
+
+/// Check violation limit and create a violation if under the limit.
+/// Returns `Some(violation)` if under limit, `None` if limit exceeded.
+fn try_create_violation(
+    ctx: &CheckContext,
+    file_path: &Path,
+    is_test: bool,
+    advice: &str,
+    advice_test: &str,
+    value: usize,
+    threshold: usize,
+) -> Option<Violation> {
+    let current = ctx.violation_count.fetch_add(1, Ordering::SeqCst);
+    if let Some(limit) = ctx.limit
+        && current >= limit
+    {
+        return None;
+    }
+
+    let display_path = file_path.strip_prefix(ctx.root).unwrap_or(file_path);
+    let advice = if is_test { advice_test } else { advice };
+
+    Some(
+        Violation::file_only(display_path, "file_too_large", advice)
+            .with_threshold(value as i64, threshold as i64),
+    )
 }
 
 /// Check if a file is a source code file (for LOC counting).
