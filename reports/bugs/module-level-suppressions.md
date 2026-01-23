@@ -21,9 +21,11 @@ Users cannot use module-level `#![allow(...)]` attributes to suppress lints for 
 
 The suppression parser in `crates/cli/src/adapter/rust/suppress.rs` checks for lines starting with `#[allow(` or `#[expect(`, which doesn't match `#![...]` syntax. Support would require:
 
-1. Updating `parse_suppress_line()` to recognize `#![...]` patterns
-2. Determining the scope/applicability of module-level suppressions
-3. Adding tests for module-level suppression handling
+1. Updating docs/specs to document this behavior is supported
+2. Adding "block-box" tests/specs for the correct behavior 
+3. Updating `parse_suppress_line()` to recognize `#![...]` patterns
+4. Determining the scope/applicability of module-level suppressions
+5. Adding crate-level tests for module-level suppression handling
 
 ### Files Involved
 

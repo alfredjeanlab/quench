@@ -63,6 +63,11 @@ pub struct SuppressScopeConfig {
 
 Then update `check_suppress_violations()` to check per-lint patterns before falling back to global pattern.
 
+## Testing
+
+- Requires "black box" tests in `tests/specs`
+- Requires crate-level tests
+
 ## Impact
 
 Users expecting fine-grained comment requirements per lint code cannot achieve this configuration, and quench silently accepts the config without enforcing it.
