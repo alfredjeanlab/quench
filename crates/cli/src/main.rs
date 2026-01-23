@@ -192,6 +192,12 @@ fn run_check(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
                 }
             }
         }
+        ProjectLanguage::Go => {
+            // Ignore vendor/ directory for Go projects
+            if !ignore_patterns.iter().any(|p| p.contains("vendor")) {
+                ignore_patterns.push("vendor".to_string());
+            }
+        }
         ProjectLanguage::Shell => {
             // No special ignore patterns for Shell projects
         }

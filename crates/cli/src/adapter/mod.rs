@@ -12,6 +12,7 @@ use std::sync::Arc;
 pub mod common;
 pub mod generic;
 pub mod glob;
+pub mod go;
 pub mod rust;
 pub mod shell;
 
@@ -21,6 +22,7 @@ pub use glob::build_glob_set;
 pub use shell::{ShellAdapter, ShellcheckSuppress, parse_shellcheck_suppresses};
 
 pub use generic::GenericAdapter;
+pub use go::{GoAdapter, NolintDirective, parse_go_mod, parse_nolint_directives};
 pub use rust::{CfgTestInfo, RustAdapter, parse_suppress_attrs};
 
 /// File classification result.
@@ -138,6 +140,7 @@ impl Default for AdapterRegistry {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ProjectLanguage {
     Rust,
+    Go,
     Shell,
     Generic,
 }
@@ -146,6 +149,10 @@ pub enum ProjectLanguage {
 pub fn detect_language(root: &Path) -> ProjectLanguage {
     if root.join("Cargo.toml").exists() {
         return ProjectLanguage::Rust;
+    }
+
+    if root.join("go.mod").exists() {
+        return ProjectLanguage::Go;
     }
 
     // Check for Shell project markers: *.sh in root, bin/, or scripts/
@@ -200,6 +207,9 @@ impl AdapterRegistry {
         match detect_language(root) {
             ProjectLanguage::Rust => {
                 registry.register(Arc::new(RustAdapter::new()));
+            }
+            ProjectLanguage::Go => {
+                registry.register(Arc::new(GoAdapter::new()));
             }
             ProjectLanguage::Shell => {
                 registry.register(Arc::new(ShellAdapter::new()));

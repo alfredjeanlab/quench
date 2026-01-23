@@ -5,14 +5,15 @@
 
 use std::path::Path;
 
-use crate::adapter::{ProjectLanguage, RustAdapter, ShellAdapter, detect_language};
+use crate::adapter::{GoAdapter, ProjectLanguage, RustAdapter, ShellAdapter, detect_language};
 use crate::check::{CheckContext, Violation};
-use crate::config::{LintChangesPolicy, RustConfig, ShellConfig};
+use crate::config::{GoConfig, LintChangesPolicy, RustConfig, ShellConfig};
 
 /// Check lint policy and return any violations.
 pub fn check_lint_policy(ctx: &CheckContext) -> Vec<Violation> {
     match detect_language(ctx.root) {
         ProjectLanguage::Rust => check_rust_lint_policy(ctx, &ctx.config.rust),
+        ProjectLanguage::Go => check_go_lint_policy(ctx, &ctx.config.go),
         ProjectLanguage::Shell => check_shell_lint_policy(ctx, &ctx.config.shell),
         ProjectLanguage::Generic => Vec::new(),
     }
@@ -30,6 +31,25 @@ fn check_rust_lint_policy(ctx: &CheckContext, rust_config: &RustConfig) -> Vec<V
     let adapter = RustAdapter::new();
     let file_refs: Vec<&Path> = changed_files.iter().map(|p| p.as_path()).collect();
     let result = adapter.check_lint_policy(&file_refs, &rust_config.policy);
+    make_policy_violation(
+        result.standalone_violated,
+        &result.changed_lint_config,
+        &result.changed_source,
+    )
+}
+
+/// Check Go lint policy and generate violations.
+fn check_go_lint_policy(ctx: &CheckContext, go_config: &GoConfig) -> Vec<Violation> {
+    if go_config.policy.lint_changes != LintChangesPolicy::Standalone {
+        return Vec::new();
+    }
+    let Some(changed_files) = ctx.changed_files else {
+        return Vec::new();
+    };
+
+    let adapter = GoAdapter::new();
+    let file_refs: Vec<&Path> = changed_files.iter().map(|p| p.as_path()).collect();
+    let result = adapter.check_lint_policy(&file_refs, &go_config.policy);
     make_policy_violation(
         result.standalone_violated,
         &result.changed_lint_config,

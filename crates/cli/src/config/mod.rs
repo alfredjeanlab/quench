@@ -5,6 +5,7 @@
 //!
 //! Handles quench.toml parsing with version validation and unknown key warnings.
 
+mod go;
 mod parse;
 mod shell;
 
@@ -13,12 +14,13 @@ use std::path::Path;
 
 use serde::Deserialize;
 
+pub use go::{GoConfig, GoPolicyConfig, GoSuppressConfig};
 pub use shell::{ShellConfig, ShellPolicyConfig, ShellSuppressConfig};
 
 use crate::error::{Error, Result};
 use parse::{
-    parse_agents_config, parse_cloc_config, parse_escapes_config, parse_rust_config,
-    parse_shell_config, warn_unknown_key,
+    parse_agents_config, parse_cloc_config, parse_escapes_config, parse_go_config,
+    parse_rust_config, parse_shell_config, warn_unknown_key,
 };
 
 pub use crate::checks::agents::config::{AgentsConfig, AgentsScopeConfig};
@@ -45,6 +47,12 @@ struct FlexibleConfig {
 
     #[serde(default)]
     rust: Option<toml::Value>,
+
+    #[serde(default)]
+    go: Option<toml::Value>,
+
+    #[serde(default)]
+    golang: Option<toml::Value>,
 
     #[serde(default)]
     shell: Option<toml::Value>,
@@ -74,6 +82,10 @@ pub struct Config {
     /// Rust-specific configuration.
     #[serde(default)]
     pub rust: RustConfig,
+
+    /// Go-specific configuration.
+    #[serde(default)]
+    pub go: GoConfig,
 
     /// Shell-specific configuration.
     #[serde(default)]
@@ -479,7 +491,16 @@ pub struct IgnoreConfig {
 pub const SUPPORTED_VERSION: i64 = 1;
 
 /// Known top-level keys in the config.
-const KNOWN_KEYS: &[&str] = &["version", "project", "workspace", "check", "rust", "shell"];
+const KNOWN_KEYS: &[&str] = &[
+    "version",
+    "project",
+    "workspace",
+    "check",
+    "rust",
+    "go",
+    "golang",
+    "shell",
+];
 
 /// Known project keys in the config.
 const KNOWN_PROJECT_KEYS: &[&str] = &["name", "source", "tests", "ignore"];
@@ -696,6 +717,9 @@ pub fn parse_with_warnings(content: &str, path: &Path) -> Result<Config> {
     // Parse rust config
     let rust = parse_rust_config(flexible.rust.as_ref());
 
+    // Parse go config (supports both "go" and "golang" keys)
+    let go = parse_go_config(flexible.go.as_ref().or(flexible.golang.as_ref()));
+
     // Parse shell config
     let shell = parse_shell_config(flexible.shell.as_ref());
 
@@ -705,6 +729,7 @@ pub fn parse_with_warnings(content: &str, path: &Path) -> Result<Config> {
         workspace,
         check,
         rust,
+        go,
         shell,
     })
 }

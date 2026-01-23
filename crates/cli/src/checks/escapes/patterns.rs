@@ -7,7 +7,7 @@ use std::collections::HashSet;
 use std::path::Path;
 
 use crate::adapter::{
-    EscapePattern as AdapterEscapePattern, ProjectLanguage, RustAdapter, ShellAdapter,
+    EscapePattern as AdapterEscapePattern, GoAdapter, ProjectLanguage, RustAdapter, ShellAdapter,
     detect_language,
 };
 use crate::config::{EscapeAction, EscapePattern as ConfigEscapePattern};
@@ -42,6 +42,10 @@ pub(super) fn get_adapter_escape_patterns(root: &Path) -> Vec<ConfigEscapePatter
         ProjectLanguage::Rust => {
             let rust_adapter = RustAdapter::new();
             patterns.extend(convert_adapter_patterns(rust_adapter.default_escapes()));
+        }
+        ProjectLanguage::Go => {
+            let go_adapter = GoAdapter::new();
+            patterns.extend(convert_adapter_patterns(go_adapter.default_escapes()));
         }
         ProjectLanguage::Shell => {
             let shell_adapter = ShellAdapter::new();

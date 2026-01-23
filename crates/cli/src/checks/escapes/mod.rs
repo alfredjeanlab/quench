@@ -7,6 +7,7 @@
 //! See docs/specs/checks/escape-hatches.md.
 
 mod comment;
+mod go_suppress;
 mod lint_policy;
 mod patterns;
 mod shell_suppress;
@@ -22,6 +23,7 @@ use crate::check::{Check, CheckContext, CheckResult, Violation};
 use crate::config::{CheckLevel, EscapeAction, SuppressConfig, SuppressLevel};
 
 use crate::pattern::CompiledPattern;
+use go_suppress::check_go_suppress_violations;
 use shell_suppress::check_shell_suppress_violations;
 
 use comment::{has_justification_comment, is_match_in_comment};
@@ -261,6 +263,23 @@ impl Check for EscapesCheck {
                     &mut limit_reached,
                 );
                 violations.extend(shell_violations);
+
+                if limit_reached {
+                    break;
+                }
+            }
+
+            // Check for Go nolint directive violations
+            if is_go_file(&file.path) {
+                let go_violations = check_go_suppress_violations(
+                    ctx,
+                    relative,
+                    &content,
+                    &ctx.config.go.suppress,
+                    is_test_file,
+                    &mut limit_reached,
+                );
+                violations.extend(go_violations);
 
                 if limit_reached {
                     break;
@@ -557,6 +576,14 @@ fn is_shell_file(path: &Path) -> bool {
     path.extension()
         .and_then(|e| e.to_str())
         .map(|e| matches!(e.to_lowercase().as_str(), "sh" | "bash" | "bats"))
+        .unwrap_or(false)
+}
+
+/// Check if a file is a Go source file.
+fn is_go_file(path: &Path) -> bool {
+    path.extension()
+        .and_then(|e| e.to_str())
+        .map(|e| e.eq_ignore_ascii_case("go"))
         .unwrap_or(false)
 }
 

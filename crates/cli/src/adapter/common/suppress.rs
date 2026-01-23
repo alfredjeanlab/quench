@@ -18,6 +18,12 @@ impl CommentStyle {
         directive_patterns: &["#["],
     };
 
+    /// Go comment style: `//` prefix, `//go:` directives.
+    pub const GO: Self = Self {
+        prefix: "//",
+        directive_patterns: &["//go:", "//nolint"],
+    };
+
     /// Shell comment style: `#` prefix, `shellcheck` directives.
     pub const SHELL: Self = Self {
         prefix: "#",
