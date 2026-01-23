@@ -223,21 +223,31 @@ else (default):
 
 ### Default (failures + summary)
 
-Failing checks produce output, followed by a one-line summary:
+Failing checks produce output, followed by a summary listing each check by status:
 
 ```
 escapes: FAIL
   src/parser.rs:47: unsafe block without // SAFETY: comment
     Add a // SAFETY: comment explaining the invariants.
 
-4 checks passed, 1 failed
+PASS: cloc, agents, docs, tests
+FAIL: escapes
 ```
 
-When all checks pass, only the summary is shown:
+When all checks pass, only the PASS line is shown:
 
 ```
-5 checks passed
+PASS: cloc, escapes, agents, docs, tests
 ```
+
+When checks are skipped, they appear on a SKIP line:
+
+```
+PASS: cloc, escapes, agents, docs, tests, build, license
+SKIP: git
+```
+
+Stub checks (not yet implemented) are omitted from the summary entirely.
 
 ## Fix Mode Output (`--fix`)
 
@@ -250,7 +260,8 @@ escapes: FAIL (not auto-fixable)
   src/parser.rs:47: unsafe block without // SAFETY: comment
     Add a // SAFETY: comment explaining the invariants.
 
-1 check fixed, 1 failed
+FIXED: agent
+FAIL: escapes
 ```
 
 ## Violation Limits (Agent-First)

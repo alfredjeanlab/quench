@@ -147,6 +147,10 @@ pub struct CheckResult {
     #[serde(skip_serializing_if = "std::ops::Not::not")]
     pub skipped: bool,
 
+    /// True if check is a stub (not yet implemented).
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub stub: bool,
+
     /// Error message if check was skipped.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
@@ -171,6 +175,7 @@ impl CheckResult {
             name: name.into(),
             passed: true,
             skipped: false,
+            stub: false,
             error: None,
             violations: Vec::new(),
             metrics: None,
@@ -184,6 +189,7 @@ impl CheckResult {
             name: name.into(),
             passed: false,
             skipped: false,
+            stub: false,
             error: None,
             violations,
             metrics: None,
@@ -197,7 +203,22 @@ impl CheckResult {
             name: name.into(),
             passed: false,
             skipped: true,
+            stub: false,
             error: Some(error.into()),
+            violations: Vec::new(),
+            metrics: None,
+            by_package: None,
+        }
+    }
+
+    /// Create a stub check result (not yet implemented).
+    pub fn stub(name: impl Into<String>) -> Self {
+        Self {
+            name: name.into(),
+            passed: true,
+            skipped: false,
+            stub: true,
+            error: None,
             violations: Vec::new(),
             metrics: None,
             by_package: None,

@@ -149,6 +149,7 @@ impl CheckRunner {
                         name: result.name,
                         passed,
                         skipped: result.skipped,
+                        stub: result.stub,
                         error: result.error,
                         violations: all_violations,
                         metrics: result.metrics,

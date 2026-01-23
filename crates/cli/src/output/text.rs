@@ -121,44 +121,35 @@ impl TextFormatter {
         }
     }
 
-    /// Write the summary line.
+    /// Write the summary listing each check by status.
     pub fn write_summary(&mut self, output: &CheckOutput) -> std::io::Result<()> {
-        let passed = output.checks.iter().filter(|c| c.passed).count();
-        let skipped = output.checks.iter().filter(|c| c.skipped).count();
-        let failed = output.checks.len() - passed - skipped;
+        let passed: Vec<_> = output
+            .checks
+            .iter()
+            .filter(|c| c.passed && !c.stub)
+            .map(|c| c.name.as_str())
+            .collect();
+        let failed: Vec<_> = output
+            .checks
+            .iter()
+            .filter(|c| !c.passed && !c.skipped && !c.stub)
+            .map(|c| c.name.as_str())
+            .collect();
+        let skipped: Vec<_> = output
+            .checks
+            .iter()
+            .filter(|c| c.skipped && !c.stub)
+            .map(|c| c.name.as_str())
+            .collect();
 
-        if failed == 0 && skipped == 0 {
-            writeln!(
-                self.stdout,
-                "{} check{} passed",
-                passed,
-                if passed == 1 { "" } else { "s" }
-            )?;
-        } else if failed == 0 {
-            writeln!(
-                self.stdout,
-                "{} check{} passed, {} skipped",
-                passed,
-                if passed == 1 { "" } else { "s" },
-                skipped
-            )?;
-        } else if skipped == 0 {
-            writeln!(
-                self.stdout,
-                "{} check{} passed, {} failed",
-                passed,
-                if passed == 1 { "" } else { "s" },
-                failed
-            )?;
-        } else {
-            writeln!(
-                self.stdout,
-                "{} check{} passed, {} failed, {} skipped",
-                passed,
-                if passed == 1 { "" } else { "s" },
-                failed,
-                skipped
-            )?;
+        if !passed.is_empty() {
+            writeln!(self.stdout, "PASS: {}", passed.join(", "))?;
+        }
+        if !failed.is_empty() {
+            writeln!(self.stdout, "FAIL: {}", failed.join(", "))?;
+        }
+        if !skipped.is_empty() {
+            writeln!(self.stdout, "SKIP: {}", skipped.join(", "))?;
         }
         Ok(())
     }

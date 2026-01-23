@@ -54,18 +54,19 @@ fn text_output_format_advice_indented() {
 
 /// Spec: docs/specs/03-output.md#verbosity
 ///
-/// > Summary line: `N checks passed, M failed` or `N checks passed`
+/// > Summary lists checks by status: `PASS: check1, check2` and `FAIL: check3`
 #[test]
-fn text_output_summary_line() {
+fn text_output_summary_lists_checks_by_status() {
     cli()
         .on("output-test")
         .exits(1)
-        .stdout_has(predicates::str::is_match(r"(?m)^\d+ checks? passed, \d+ failed$").unwrap());
+        .stdout_has(predicates::str::is_match(r"(?m)^PASS: [a-z, ]+$").unwrap())
+        .stdout_has(predicates::str::is_match(r"(?m)^FAIL: [a-z, ]+$").unwrap());
 }
 
 /// Spec: docs/specs/03-output.md#verbosity
 ///
-/// > When all checks pass, only summary: `N checks passed`
+/// > When all checks pass, only PASS line: `PASS: check1, check2, ...`
 #[test]
 fn text_output_passing_summary_only() {
     let dir = temp_project();
@@ -73,7 +74,7 @@ fn text_output_passing_summary_only() {
         .pwd(dir.path())
         .args(&["--no-git"])
         .passes()
-        .stdout_has(predicates::str::is_match(r"^\d+ checks? passed\n?$").unwrap());
+        .stdout_has(predicates::str::is_match(r"^PASS: [a-z, ]+\n?$").unwrap());
 }
 
 // =============================================================================

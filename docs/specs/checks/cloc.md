@@ -92,7 +92,8 @@ cloc: FAIL
     Can the code be made more concise? If not, split large source files into sibling modules
     or submodules in a folder; consider refactoring to be more unit testable.
 
-5 checks passed, 1 failed
+PASS: escapes, agents, docs, tests
+FAIL: cloc
 ```
 
 When all files are within limits, cloc passes silently and contributes to the summary.

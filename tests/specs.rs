@@ -433,7 +433,8 @@ fn check_output_format_exact() {
 cloc: FAIL
   src/oversized.rs: file_too_large (14 vs 10)
     Can the code be made more concise? If not, split large source files into sibling modules or submodules in a folder; consider refactoring to be more unit testable.
-7 checks passed, 1 failed
+PASS: escapes, agents, docs, tests, git, build, license
+FAIL: cloc
 ";
 
     assert_eq!(
