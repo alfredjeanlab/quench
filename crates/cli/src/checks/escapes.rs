@@ -7,6 +7,8 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::sync::atomic::Ordering;
 
+use serde_json::{Value as JsonValue, json};
+
 use crate::adapter::{FileKind, GenericAdapter};
 use crate::check::{Check, CheckContext, CheckResult, Violation};
 use crate::config::{CheckLevel, EscapeAction, EscapesConfig};
@@ -24,26 +26,106 @@ struct CompiledEscapePattern {
     threshold: usize,
 }
 
-/// Track counts per pattern.
-struct PatternCounts {
-    counts: HashMap<String, usize>,
+/// Metrics tracked during escapes check.
+#[derive(Default)]
+struct EscapesMetrics {
+    /// Counts per pattern for source files.
+    source: HashMap<String, usize>,
+    /// Counts per pattern for test files.
+    test: HashMap<String, usize>,
+    /// Per-package breakdown (only if workspace configured).
+    packages: HashMap<String, PackageMetrics>,
 }
 
-impl PatternCounts {
+#[derive(Default)]
+struct PackageMetrics {
+    source: HashMap<String, usize>,
+    test: HashMap<String, usize>,
+}
+
+impl EscapesMetrics {
     fn new() -> Self {
-        Self {
-            counts: HashMap::new(),
+        Self::default()
+    }
+
+    fn increment(&mut self, pattern_name: &str, is_test: bool) {
+        let map = if is_test {
+            &mut self.test
+        } else {
+            &mut self.source
+        };
+        *map.entry(pattern_name.to_string()).or_insert(0) += 1;
+    }
+
+    fn increment_package(&mut self, package: &str, pattern_name: &str, is_test: bool) {
+        let pkg = self.packages.entry(package.to_string()).or_default();
+        let map = if is_test {
+            &mut pkg.test
+        } else {
+            &mut pkg.source
+        };
+        *map.entry(pattern_name.to_string()).or_insert(0) += 1;
+    }
+
+    fn source_count(&self, pattern_name: &str) -> usize {
+        self.source.get(pattern_name).copied().unwrap_or(0)
+    }
+
+    /// Convert to JSON metrics structure.
+    fn to_json(&self, pattern_names: &[String]) -> JsonValue {
+        // Include all configured patterns, even with 0 count
+        let mut source_obj = serde_json::Map::new();
+        let mut test_obj = serde_json::Map::new();
+
+        for name in pattern_names {
+            source_obj.insert(
+                name.clone(),
+                json!(self.source.get(name).copied().unwrap_or(0)),
+            );
+            test_obj.insert(
+                name.clone(),
+                json!(self.test.get(name).copied().unwrap_or(0)),
+            );
         }
+
+        json!({
+            "source": source_obj,
+            "test": test_obj
+        })
     }
 
-    fn increment(&mut self, pattern_name: &str) -> usize {
-        let count = self.counts.entry(pattern_name.to_string()).or_insert(0);
-        *count += 1;
-        *count
-    }
+    /// Convert to by_package structure (only if packages exist).
+    fn to_by_package(&self, pattern_names: &[String]) -> Option<HashMap<String, JsonValue>> {
+        if self.packages.is_empty() {
+            return None;
+        }
 
-    fn get(&self, pattern_name: &str) -> usize {
-        self.counts.get(pattern_name).copied().unwrap_or(0)
+        let mut result = HashMap::new();
+        for (pkg_name, pkg_metrics) in &self.packages {
+            let mut source_obj = serde_json::Map::new();
+            let mut test_obj = serde_json::Map::new();
+
+            for name in pattern_names {
+                source_obj.insert(
+                    name.clone(),
+                    json!(pkg_metrics.source.get(name).copied().unwrap_or(0)),
+                );
+                test_obj.insert(
+                    name.clone(),
+                    json!(pkg_metrics.test.get(name).copied().unwrap_or(0)),
+                );
+            }
+
+            result.insert(
+                pkg_name.clone(),
+                json!({
+                    "source": source_obj,
+                    "test": test_obj
+                }),
+            );
+        }
+
+        Some(result)
     }
 }
 
@@ -77,6 +159,12 @@ impl Check for EscapesCheck {
             Err(e) => return CheckResult::skipped(self.name(), e.to_string()),
         };
 
+        // Collect pattern names for metrics output
+        let pattern_names: Vec<String> = patterns.iter().map(|p| p.name.clone()).collect();
+
+        // Get workspace packages for by_package tracking
+        let packages = &ctx.config.workspace.packages;
+
         // Use project test patterns or defaults
         let test_patterns = if ctx.config.project.tests.is_empty() {
             default_test_patterns()
@@ -85,7 +173,7 @@ impl Check for EscapesCheck {
         };
 
         let mut violations = Vec::new();
-        let mut source_counts = PatternCounts::new();
+        let mut metrics = EscapesMetrics::new();
         let mut limit_reached = false;
 
         for file in ctx.files {
@@ -108,14 +196,20 @@ impl Check for EscapesCheck {
 
             // Classify file as source or test
             let is_test = classify_file(&file.path, ctx.root, &test_patterns) == FileKind::Test;
+            let package = find_package(&file.path, ctx.root, packages);
 
             // Find matches for each pattern
             for pattern in &patterns {
                 let matches = pattern.matcher.find_all_with_lines(&content);
 
                 for m in matches {
-                    // Test code: count but don't report violations
-                    // (Metrics will be added in Phase 220)
+                    // Always track metrics (both source and test)
+                    metrics.increment(&pattern.name, is_test);
+                    if let Some(ref pkg) = package {
+                        metrics.increment_package(pkg, &pattern.name, is_test);
+                    }
+
+                    // Test code: tracked in metrics but no violations
                     if is_test {
                         continue;
                     }
@@ -124,7 +218,6 @@ impl Check for EscapesCheck {
                     match pattern.action {
                         EscapeAction::Count => {
                             // Just count - threshold check happens after all files
-                            source_counts.increment(&pattern.name);
                         }
                         EscapeAction::Comment => {
                             let comment_pattern =
@@ -172,10 +265,10 @@ impl Check for EscapesCheck {
             }
         }
 
-        // Check count thresholds after scanning all files
+        // Check count thresholds after scanning all files (uses metrics)
         for pattern in &patterns {
             if pattern.action == EscapeAction::Count {
-                let count = source_counts.get(&pattern.name);
+                let count = metrics.source_count(&pattern.name);
                 if count > pattern.threshold
                     && let Some(v) = create_threshold_violation(
                         ctx,
@@ -190,10 +283,21 @@ impl Check for EscapesCheck {
             }
         }
 
-        if violations.is_empty() {
+        // Build result with metrics
+        let result = if violations.is_empty() {
             CheckResult::passed(self.name())
         } else {
             CheckResult::failed(self.name(), violations)
+        };
+
+        // Add metrics to result
+        let result = result.with_metrics(metrics.to_json(&pattern_names));
+
+        // Add by_package if workspace configured
+        if let Some(by_package) = metrics.to_by_package(&pattern_names) {
+            result.with_by_package(by_package)
+        } else {
+            result
         }
     }
 
@@ -339,6 +443,37 @@ fn classify_file(path: &Path, root: &Path, test_patterns: &[String]) -> FileKind
     let adapter = GenericAdapter::new(&[], test_patterns);
     let relative = path.strip_prefix(root).unwrap_or(path);
     adapter.classify(relative)
+}
+
+/// Find which package a file belongs to, if any.
+fn find_package(path: &Path, root: &Path, packages: &[String]) -> Option<String> {
+    let relative = path.strip_prefix(root).ok()?;
+    let relative_str = relative.to_string_lossy();
+
+    // Check if file is under any package directory
+    for pkg in packages {
+        // Handle wildcard patterns like "crates/*"
+        let prefix = pkg.trim_end_matches("/*");
+        if relative_str.starts_with(prefix) {
+            // Extract package name from path
+            let rest = relative_str.strip_prefix(prefix)?.trim_start_matches('/');
+            let parts: Vec<&str> = rest.split('/').collect();
+
+            if pkg.ends_with("/*") {
+                // Wildcard: first component after prefix is package name
+                if let Some(name) = parts.first()
+                    && !name.is_empty()
+                {
+                    return Some((*name).to_string());
+                }
+            } else {
+                // Exact path: use the last component of the pattern
+                return Some(pkg.split('/').next_back().unwrap_or(pkg).to_string());
+            }
+        }
+    }
+
+    None
 }
 
 /// Default test patterns for file classification.

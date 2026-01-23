@@ -52,7 +52,6 @@ fn escapes_reports_line_number_of_match() {
 ///
 /// > Just count occurrences.
 #[test]
-#[ignore = "TODO: Phase 220 - Escapes Metrics"]
 fn escapes_count_action_counts_occurrences() {
     let escapes = check("escapes").on("escapes/count-ok").json().passes();
     let metrics = escapes.require("metrics");
@@ -175,7 +174,6 @@ fn escapes_forbid_action_allowed_in_test_code() {
 ///
 /// > Escape hatches are counted separately for source and test code.
 #[test]
-#[ignore = "TODO: Phase 220 - Escapes Metrics"]
 fn escapes_test_code_counted_separately_in_metrics() {
     let escapes = check("escapes").on("escapes/metrics").json().passes();
     let metrics = escapes.require("metrics");
@@ -231,7 +229,6 @@ advice = "Use .context() from anyhow instead."
 ///
 /// > metrics: { source: {...}, test: {...} }
 #[test]
-#[ignore = "TODO: Phase 220 - Escapes Metrics"]
 fn escapes_json_includes_source_test_breakdown_per_pattern() {
     let escapes = check("escapes").on("escapes/metrics").json().passes();
     let metrics = escapes.require("metrics");
