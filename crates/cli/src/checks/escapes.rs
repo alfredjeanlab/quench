@@ -3,7 +3,7 @@
 //! Detects patterns that bypass type safety or error handling.
 //! See docs/specs/checks/escape-hatches.md.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::Path;
 use std::sync::atomic::Ordering;
 
@@ -202,7 +202,16 @@ impl Check for EscapesCheck {
             for pattern in &patterns {
                 let matches = pattern.matcher.find_all_with_lines(&content);
 
-                for m in matches {
+                // Deduplicate matches by line - keep only first match per line
+                // This prevents duplicate violations when pattern appears multiple
+                // times on same line (e.g., in code AND in a comment)
+                let mut seen_lines = HashSet::new();
+                let unique_matches: Vec<_> = matches
+                    .into_iter()
+                    .filter(|m| seen_lines.insert(m.line))
+                    .collect();
+
+                for m in unique_matches {
                     // Always track metrics (both source and test)
                     metrics.increment(&pattern.name, is_test);
                     if let Some(ref pkg) = package {
@@ -393,17 +402,27 @@ fn format_comment_advice(custom_advice: &str, comment_pattern: &str) -> String {
 /// Search upward from a line for a required comment pattern.
 ///
 /// Searches:
-/// 1. Same line as the match
+/// 1. Same line as the match (pattern must be at start of inline comment)
 /// 2. Preceding lines, stopping at non-blank/non-comment lines
 ///
-/// Returns true if comment pattern is found.
+/// The pattern must appear at the start of a comment's content, not embedded
+/// within other text. For example, `// SAFETY:` embedded inside
+/// `// VIOLATION: missing // SAFETY: comment` should NOT match.
+///
+/// Returns true if comment pattern is found at a valid comment boundary.
 fn has_justification_comment(content: &str, match_line: u32, comment_pattern: &str) -> bool {
     let lines: Vec<&str> = content.lines().collect();
     let line_idx = (match_line - 1) as usize;
 
-    // Check same line first
-    if line_idx < lines.len() && lines[line_idx].contains(comment_pattern) {
-        return true;
+    // Check same line first - look for pattern at start of inline comment
+    if line_idx < lines.len() {
+        let line = lines[line_idx];
+        if let Some(comment_start) = find_comment_start(line) {
+            let comment = &line[comment_start..];
+            if comment_starts_with_pattern(comment, comment_pattern) {
+                return true;
+            }
+        }
     }
 
     // Search upward through comments and blank lines
@@ -411,8 +430,8 @@ fn has_justification_comment(content: &str, match_line: u32, comment_pattern: &s
         for i in (0..line_idx).rev() {
             let line = lines[i].trim();
 
-            // Check for comment pattern
-            if line.contains(comment_pattern) {
+            // Check for comment pattern at start of comment
+            if is_comment_line(line) && comment_starts_with_pattern(line, comment_pattern) {
                 return true;
             }
 
@@ -424,6 +443,49 @@ fn has_justification_comment(content: &str, match_line: u32, comment_pattern: &s
     }
 
     false
+}
+
+/// Check if comment content starts with the pattern (after comment marker).
+///
+/// Normalizes both the comment and pattern by stripping comment markers,
+/// then checks if the comment content starts with the pattern content.
+fn comment_starts_with_pattern(comment: &str, pattern: &str) -> bool {
+    let comment_content = strip_comment_markers(comment);
+    let pattern_content = strip_comment_markers(pattern);
+    comment_content.starts_with(&pattern_content)
+}
+
+/// Strip comment markers and leading whitespace to get the content.
+fn strip_comment_markers(s: &str) -> String {
+    let trimmed = s.trim();
+    // Strip various comment markers
+    let content = trimmed
+        .strip_prefix("///")
+        .or_else(|| trimmed.strip_prefix("//!"))
+        .or_else(|| trimmed.strip_prefix("//"))
+        .or_else(|| trimmed.strip_prefix("/*"))
+        .or_else(|| trimmed.strip_prefix('#'))
+        .or_else(|| trimmed.strip_prefix("--"))
+        .or_else(|| trimmed.strip_prefix(";;"))
+        .or_else(|| trimmed.strip_prefix('*'))
+        .unwrap_or(trimmed);
+    content.trim_start().to_string()
+}
+
+/// Find the start of a comment in a line (returns byte offset of comment marker).
+fn find_comment_start(line: &str) -> Option<usize> {
+    // Find // comment (most common)
+    if let Some(pos) = line.find("//") {
+        return Some(pos);
+    }
+    // Find # comment (shell/Python) - avoid matching # in strings
+    if let Some(pos) = line.find('#') {
+        // Simple heuristic: # at start or preceded by whitespace
+        if pos == 0 || line.as_bytes().get(pos.saturating_sub(1)) == Some(&b' ') {
+            return Some(pos);
+        }
+    }
+    None
 }
 
 /// Check if a line is a comment line (language-agnostic heuristics).

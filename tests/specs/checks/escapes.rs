@@ -347,3 +347,117 @@ fn escapes_json_metrics_structure_complete() {
     assert!(source.is_object(), "source should be object");
     assert!(test.is_object(), "test should be object");
 }
+
+// =============================================================================
+// EDGE CASE SPECS - Checkpoint 3C Fixes
+// =============================================================================
+
+/// Spec: Edge case - pattern in both code and comment
+///
+/// > When escape pattern appears in code AND in a comment on the same line,
+/// > only one violation should be reported for that line.
+#[test]
+fn escapes_single_violation_per_line_even_with_pattern_in_comment() {
+    let dir = temp_project();
+    std::fs::write(
+        dir.path().join("quench.toml"),
+        r#"
+version = 1
+[[check.escapes.patterns]]
+name = "unwrap"
+pattern = "\\.unwrap\\(\\)"
+action = "forbid"
+"#,
+    )
+    .unwrap();
+    std::fs::create_dir_all(dir.path().join("src")).unwrap();
+    // Pattern appears twice on same line: in code AND in comment
+    std::fs::write(
+        dir.path().join("src/lib.rs"),
+        "pub fn f() { None::<i32>.unwrap() } // using .unwrap() here\n",
+    )
+    .unwrap();
+
+    let escapes = check("escapes").pwd(dir.path()).json().fails();
+    let violations = escapes.require("violations").as_array().unwrap();
+
+    // Should only have ONE violation, not two
+    assert_eq!(
+        violations.len(),
+        1,
+        "should have exactly one violation, not multiple for same line"
+    );
+}
+
+/// Spec: Edge case - embedded comment pattern
+///
+/// > Comment pattern embedded in other text should NOT satisfy the requirement.
+/// > For example, `// VIOLATION: missing // SAFETY:` should not match `// SAFETY:`.
+#[test]
+fn escapes_comment_embedded_in_text_does_not_satisfy() {
+    let dir = temp_project();
+    std::fs::write(
+        dir.path().join("quench.toml"),
+        r#"
+version = 1
+[[check.escapes.patterns]]
+name = "unsafe"
+pattern = "unsafe\\s*\\{"
+action = "comment"
+comment = "// SAFETY:"
+"#,
+    )
+    .unwrap();
+    std::fs::create_dir_all(dir.path().join("src")).unwrap();
+    // The // SAFETY: is embedded in another comment, not at comment start
+    std::fs::write(
+        dir.path().join("src/lib.rs"),
+        "unsafe { }  // VIOLATION: missing // SAFETY: comment\n",
+    )
+    .unwrap();
+
+    // This should FAIL because the embedded // SAFETY: should not count
+    let escapes = check("escapes").pwd(dir.path()).json().fails();
+    let violations = escapes.require("violations").as_array().unwrap();
+
+    assert!(
+        !violations.is_empty(),
+        "should have violation - embedded pattern should not satisfy requirement"
+    );
+    assert!(
+        violations
+            .iter()
+            .any(|v| { v.get("type").and_then(|t| t.as_str()) == Some("missing_comment") }),
+        "should be missing_comment violation"
+    );
+}
+
+/// Spec: Edge case - comment at start is valid
+///
+/// > Comment pattern at start of inline comment should satisfy requirement.
+#[test]
+fn escapes_comment_at_start_of_inline_comment_satisfies() {
+    let dir = temp_project();
+    std::fs::write(
+        dir.path().join("quench.toml"),
+        r#"
+version = 1
+[[check.escapes.patterns]]
+name = "unsafe"
+pattern = "unsafe\\s*\\{"
+action = "comment"
+comment = "// SAFETY:"
+"#,
+    )
+    .unwrap();
+    std::fs::create_dir_all(dir.path().join("src")).unwrap();
+    // The // SAFETY: is at start of the inline comment
+    std::fs::write(
+        dir.path().join("src/lib.rs"),
+        "unsafe { }  // SAFETY: pointer is valid\n",
+    )
+    .unwrap();
+
+    // This should PASS
+    check("escapes").pwd(dir.path()).passes();
+}

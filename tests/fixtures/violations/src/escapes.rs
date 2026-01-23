@@ -2,17 +2,17 @@
 
 /// Function using unwrap (forbidden in production code).
 pub fn risky_parse(input: &str) -> i32 {
-    input.parse().unwrap()  // VIOLATION: .unwrap() forbidden
+    input.parse().unwrap()  // VIOLATION: unwrap forbidden in source
 }
 
 /// Function using expect (also forbidden).
 pub fn risky_get(map: &std::collections::HashMap<String, i32>, key: &str) -> i32 {
-    *map.get(key).expect("key must exist")  // VIOLATION: .expect() forbidden
+    *map.get(key).expect("key must exist")  // VIOLATION: expect forbidden in source
 }
 
 /// Unsafe block without SAFETY comment.
 pub fn unsafe_op(ptr: *const i32) -> i32 {
-    unsafe { *ptr }  // VIOLATION: unsafe without // SAFETY: comment
+    unsafe { *ptr }  // VIOLATION: unsafe block requires SAFETY comment
 }
 
 /// Proper unsafe with SAFETY comment (should pass).
