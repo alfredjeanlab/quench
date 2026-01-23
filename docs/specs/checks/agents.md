@@ -28,7 +28,7 @@ With no configuration, the agents check applies these defaults:
 **The `"*"` wildcard** means "at least one of the detected agent files must exist". This ensures projects have some agent context without mandating a specific file.
 
 **Default required sections** ensure agent files contain the minimum context AI agents need:
-- **Directory Structure**: Overview of project layout
+- **Directory Structure**: Overview of project layout (supports both box-drawing and indentation formats)
 - **Landing the Plane**: Checklist before completing work
 
 **Disable size limits** if needed:

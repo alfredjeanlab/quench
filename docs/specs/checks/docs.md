@@ -16,14 +16,25 @@ Validates that directory tree structures in markdown files reference existing fi
 
 ### What Gets Validated
 
-Fenced code blocks containing directory trees:
+Fenced code blocks containing directory trees. Both formats are supported:
 
+**Box-drawing format:**
 ~~~markdown
 ```
 src/
 ├── parser.rs
 ├── lexer.rs
 └── lib.rs
+```
+~~~
+
+**Indentation format** (spaces or tabs):
+~~~markdown
+```
+src/
+  parser.rs
+  lexer.rs
+  lib.rs
 ```
 ~~~
 
@@ -125,8 +136,9 @@ index = "auto"                             # auto | toc | linked | exists
 
 ### TOC Format
 
-A fenced code block with a directory tree structure:
+A fenced code block with a directory tree structure. Both formats are supported:
 
+**Box-drawing format:**
 ~~~markdown
 ```
 docs/specs/
@@ -137,6 +149,20 @@ docs/specs/
 │   └── tests.md
 └── langs/
     └── rust.md
+```
+~~~
+
+**Indentation format:**
+~~~markdown
+```
+docs/specs/
+  00-overview.md        # Problem, philosophy
+  01-cli.md             # Commands and flags
+  checks/
+    agents.md
+    tests.md
+  langs/
+    rust.md
 ```
 ~~~
 
