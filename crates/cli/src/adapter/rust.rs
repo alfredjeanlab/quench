@@ -14,7 +14,40 @@ use std::path::Path;
 use globset::{Glob, GlobSet, GlobSetBuilder};
 use toml::Value;
 
-use super::{Adapter, FileKind};
+use super::{Adapter, EscapeAction, EscapePattern, FileKind};
+
+/// Default escape patterns for Rust.
+const RUST_ESCAPE_PATTERNS: &[EscapePattern] = &[
+    EscapePattern {
+        name: "unsafe",
+        pattern: r"unsafe\s*\{",
+        action: EscapeAction::Comment,
+        comment: Some("// SAFETY:"),
+        advice: "Add a // SAFETY: comment explaining the invariants.",
+    },
+    EscapePattern {
+        name: "unwrap",
+        pattern: r"\.unwrap\(\)",
+        action: EscapeAction::Forbid,
+        comment: None,
+        advice: "Use ? operator or handle the error explicitly.",
+    },
+    EscapePattern {
+        name: "expect",
+        pattern: r"\.expect\(",
+        action: EscapeAction::Forbid,
+        comment: None,
+        advice: "Use ? operator or handle the error explicitly.",
+    },
+    EscapePattern {
+        name: "transmute",
+        // SAFETY: This string literal defines the pattern; it's not actual transmute usage.
+        pattern: r"mem::transmute",
+        action: EscapeAction::Comment,
+        comment: Some("// SAFETY:"),
+        advice: "Add a // SAFETY: comment explaining type compatibility.",
+    },
+];
 
 /// Rust language adapter.
 pub struct RustAdapter {
@@ -76,6 +109,10 @@ impl Adapter for RustAdapter {
         }
 
         FileKind::Other
+    }
+
+    fn default_escapes(&self) -> &'static [EscapePattern] {
+        RUST_ESCAPE_PATTERNS
     }
 }
 

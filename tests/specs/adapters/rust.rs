@@ -178,7 +178,6 @@ mod tests {
 ///
 /// > unsafe { } | comment | // SAFETY:
 #[test]
-#[ignore = "TODO: Phase 302 - Rust Adapter Implementation"]
 fn rust_adapter_unsafe_without_safety_comment_fails() {
     check("escapes")
         .on("rust/unsafe-fail")
@@ -191,7 +190,6 @@ fn rust_adapter_unsafe_without_safety_comment_fails() {
 ///
 /// > unsafe { } | comment | // SAFETY:
 #[test]
-#[ignore = "TODO: Phase 302 - Rust Adapter Implementation"]
 fn rust_adapter_unsafe_with_safety_comment_passes() {
     check("escapes").on("rust/unsafe-ok").passes();
 }
@@ -200,7 +198,6 @@ fn rust_adapter_unsafe_with_safety_comment_passes() {
 ///
 /// > .unwrap() | forbid | -
 #[test]
-#[ignore = "TODO: Phase 302 - Rust Adapter Implementation"]
 fn rust_adapter_unwrap_in_source_code_fails() {
     let escapes = check("escapes").on("rust/unwrap-source").json().fails();
     let violations = escapes.require("violations").as_array().unwrap();
@@ -217,7 +214,6 @@ fn rust_adapter_unwrap_in_source_code_fails() {
 ///
 /// > Always allowed in test code.
 #[test]
-#[ignore = "TODO: Phase 302 - Rust Adapter Implementation"]
 fn rust_adapter_unwrap_in_test_code_allowed() {
     // .unwrap() only appears in test files or #[cfg(test)] blocks
     check("escapes").on("rust/unwrap-test").passes();
@@ -227,7 +223,6 @@ fn rust_adapter_unwrap_in_test_code_allowed() {
 ///
 /// > .expect( | forbid | -
 #[test]
-#[ignore = "TODO: Phase 302 - Rust Adapter Implementation"]
 fn rust_adapter_expect_in_source_code_fails() {
     let dir = temp_project();
     std::fs::write(
@@ -249,7 +244,6 @@ fn rust_adapter_expect_in_source_code_fails() {
 ///
 /// > mem::transmute | comment | // SAFETY:
 #[test]
-#[ignore = "TODO: Phase 302 - Rust Adapter Implementation"]
 fn rust_adapter_transmute_without_safety_comment_fails() {
     let dir = temp_project();
     std::fs::write(

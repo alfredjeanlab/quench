@@ -274,6 +274,8 @@ impl ProjectConfig {
         vec![
             "**/tests/**".to_string(),
             "**/test/**".to_string(),
+            "**/benches/**".to_string(),
+            "**/test_utils.*".to_string(),
             "**/*_test.*".to_string(),
             "**/*_tests.*".to_string(),
             "**/*.test.*".to_string(),

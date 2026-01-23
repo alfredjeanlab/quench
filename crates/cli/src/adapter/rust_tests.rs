@@ -291,6 +291,68 @@ pub fn multiply(a: i32, b: i32) -> i32 {
     }
 }
 
+mod default_escapes {
+    use super::*;
+    use crate::adapter::{Adapter, EscapeAction};
+
+    #[test]
+    fn returns_four_default_patterns() {
+        let adapter = RustAdapter::new();
+        let patterns = adapter.default_escapes();
+        assert_eq!(patterns.len(), 4);
+    }
+
+    #[test]
+    fn unsafe_pattern_requires_safety_comment() {
+        let adapter = RustAdapter::new();
+        let patterns = adapter.default_escapes();
+        let unsafe_pattern = patterns.iter().find(|p| p.name == "unsafe").unwrap();
+
+        assert_eq!(unsafe_pattern.action, EscapeAction::Comment);
+        assert_eq!(unsafe_pattern.comment, Some("// SAFETY:"));
+    }
+
+    #[test]
+    fn unwrap_pattern_is_forbidden() {
+        let adapter = RustAdapter::new();
+        let patterns = adapter.default_escapes();
+        let unwrap_pattern = patterns.iter().find(|p| p.name == "unwrap").unwrap();
+
+        assert_eq!(unwrap_pattern.action, EscapeAction::Forbid);
+    }
+
+    #[test]
+    fn expect_pattern_is_forbidden() {
+        let adapter = RustAdapter::new();
+        let patterns = adapter.default_escapes();
+        let expect_pattern = patterns.iter().find(|p| p.name == "expect").unwrap();
+
+        assert_eq!(expect_pattern.action, EscapeAction::Forbid);
+    }
+
+    #[test]
+    fn transmute_pattern_requires_safety_comment() {
+        let adapter = RustAdapter::new();
+        let patterns = adapter.default_escapes();
+        let transmute_pattern = patterns.iter().find(|p| p.name == "transmute").unwrap();
+
+        assert_eq!(transmute_pattern.action, EscapeAction::Comment);
+        assert_eq!(transmute_pattern.comment, Some("// SAFETY:"));
+    }
+
+    #[test]
+    fn all_patterns_have_advice() {
+        let adapter = RustAdapter::new();
+        for pattern in adapter.default_escapes() {
+            assert!(
+                !pattern.advice.is_empty(),
+                "Pattern {} should have advice",
+                pattern.name
+            );
+        }
+    }
+}
+
 mod workspace {
     use super::*;
     use tempfile::TempDir;

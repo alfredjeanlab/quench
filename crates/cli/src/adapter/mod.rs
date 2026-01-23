@@ -58,6 +58,8 @@ pub struct EscapePattern {
     pub action: EscapeAction,
     /// Required comment pattern (for Comment action).
     pub comment: Option<&'static str>,
+    /// Advice to show when pattern is violated.
+    pub advice: &'static str,
 }
 
 /// Action required for an escape pattern match.

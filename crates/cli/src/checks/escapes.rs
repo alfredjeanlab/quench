@@ -9,9 +9,12 @@ use std::sync::atomic::Ordering;
 
 use serde_json::{Value as JsonValue, json};
 
-use crate::adapter::{FileKind, GenericAdapter};
+use crate::adapter::{
+    EscapePattern as AdapterEscapePattern, FileKind, GenericAdapter, ProjectLanguage, RustAdapter,
+    detect_language,
+};
 use crate::check::{Check, CheckContext, CheckResult, Violation};
-use crate::config::{CheckLevel, EscapeAction, EscapesConfig};
+use crate::config::{CheckLevel, EscapeAction, EscapePattern as ConfigEscapePattern};
 use crate::pattern::{CompiledPattern, PatternError};
 
 /// Compiled escape pattern ready for matching.
@@ -148,13 +151,19 @@ impl Check for EscapesCheck {
             return CheckResult::passed(self.name());
         }
 
-        // No patterns configured = nothing to check
-        if config.patterns.is_empty() {
+        // Get adapter default patterns for the detected language
+        let adapter_patterns = get_adapter_escape_patterns(ctx.root);
+
+        // Merge patterns: config patterns override adapter defaults by name
+        let merged_patterns = merge_patterns(&config.patterns, &adapter_patterns);
+
+        // No patterns to check = pass
+        if merged_patterns.is_empty() {
             return CheckResult::passed(self.name());
         }
 
         // Compile patterns once
-        let patterns = match compile_patterns(config) {
+        let patterns = match compile_merged_patterns(&merged_patterns) {
             Ok(p) => p,
             Err(e) => return CheckResult::skipped(self.name(), e.to_string()),
         };
@@ -316,28 +325,6 @@ impl Check for EscapesCheck {
     fn default_enabled(&self) -> bool {
         true
     }
-}
-
-fn compile_patterns(config: &EscapesConfig) -> Result<Vec<CompiledEscapePattern>, PatternError> {
-    config
-        .patterns
-        .iter()
-        .map(|p| {
-            let matcher = CompiledPattern::compile(&p.pattern)?;
-            let advice = p
-                .advice
-                .clone()
-                .unwrap_or_else(|| default_advice(&p.action));
-            Ok(CompiledEscapePattern {
-                name: p.name.clone(),
-                matcher,
-                action: p.action,
-                advice,
-                comment: p.comment.clone(),
-                threshold: p.threshold,
-            })
-        })
-        .collect()
 }
 
 fn default_advice(action: &EscapeAction) -> String {
@@ -545,11 +532,105 @@ fn default_test_patterns() -> Vec<String> {
     vec![
         "**/tests/**".to_string(),
         "**/test/**".to_string(),
+        "**/benches/**".to_string(),
+        "benches/**".to_string(),
+        "**/test_utils.*".to_string(),
+        "test_utils.*".to_string(),
         "**/*_test.*".to_string(),
         "**/*_tests.*".to_string(),
         "**/*.test.*".to_string(),
         "**/*.spec.*".to_string(),
     ]
+}
+
+/// Get escape patterns from the adapter for the detected language.
+fn get_adapter_escape_patterns(root: &Path) -> Vec<ConfigEscapePattern> {
+    use crate::adapter::Adapter;
+
+    let mut patterns = Vec::new();
+
+    // Check project language and get adapter defaults
+    match detect_language(root) {
+        ProjectLanguage::Rust => {
+            let rust_adapter = RustAdapter::new();
+            patterns.extend(convert_adapter_patterns(rust_adapter.default_escapes()));
+        }
+        ProjectLanguage::Generic => {
+            // No default patterns for generic projects
+        }
+    }
+
+    patterns
+}
+
+/// Convert adapter escape patterns to config format.
+fn convert_adapter_patterns(adapter_patterns: &[AdapterEscapePattern]) -> Vec<ConfigEscapePattern> {
+    adapter_patterns
+        .iter()
+        .map(|p| ConfigEscapePattern {
+            name: p.name.to_string(),
+            pattern: p.pattern.to_string(),
+            action: adapter_action_to_config(p.action),
+            comment: p.comment.map(String::from),
+            advice: Some(p.advice.to_string()),
+            threshold: 0,
+        })
+        .collect()
+}
+
+/// Convert adapter EscapeAction to config EscapeAction.
+fn adapter_action_to_config(action: crate::adapter::EscapeAction) -> EscapeAction {
+    match action {
+        crate::adapter::EscapeAction::Count => EscapeAction::Count,
+        crate::adapter::EscapeAction::Comment => EscapeAction::Comment,
+        crate::adapter::EscapeAction::Forbid => EscapeAction::Forbid,
+    }
+}
+
+/// Merge user config patterns with adapter defaults.
+/// User patterns override defaults by name.
+fn merge_patterns(
+    config_patterns: &[ConfigEscapePattern],
+    adapter_patterns: &[ConfigEscapePattern],
+) -> Vec<ConfigEscapePattern> {
+    let mut merged = Vec::new();
+    let config_names: HashSet<_> = config_patterns.iter().map(|p| &p.name).collect();
+
+    // Add adapter defaults not overridden by config
+    for pattern in adapter_patterns {
+        if !config_names.contains(&pattern.name) {
+            merged.push(pattern.clone());
+        }
+    }
+
+    // Add all config patterns (they take precedence)
+    merged.extend(config_patterns.iter().cloned());
+
+    merged
+}
+
+/// Compile merged patterns into matchers.
+fn compile_merged_patterns(
+    patterns: &[ConfigEscapePattern],
+) -> Result<Vec<CompiledEscapePattern>, PatternError> {
+    patterns
+        .iter()
+        .map(|p| {
+            let matcher = CompiledPattern::compile(&p.pattern)?;
+            let advice = p
+                .advice
+                .clone()
+                .unwrap_or_else(|| default_advice(&p.action));
+            Ok(CompiledEscapePattern {
+                name: p.name.clone(),
+                matcher,
+                action: p.action,
+                advice,
+                comment: p.comment.clone(),
+                threshold: p.threshold,
+            })
+        })
+        .collect()
 }
 
 /// Check if a file is a source code file (for escape pattern checking).

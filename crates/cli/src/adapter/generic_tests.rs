@@ -47,3 +47,15 @@ fn no_default_escapes() {
     let adapter = GenericAdapter::with_defaults();
     assert!(adapter.default_escapes().is_empty());
 }
+
+#[test]
+fn benches_pattern_matches_nested_bench_files() {
+    let adapter = GenericAdapter::new(&[], &["**/benches/**".to_string()]);
+
+    // Test that **/benches/** matches files in nested benches directories
+    assert_eq!(
+        adapter.classify(Path::new("crates/cli/benches/baseline.rs")),
+        FileKind::Test,
+        "Pattern **/benches/** should match crates/cli/benches/baseline.rs"
+    );
+}
