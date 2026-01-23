@@ -104,6 +104,20 @@ pub mod scheme {
     pub fn advice() -> ColorSpec {
         ColorSpec::new()
     }
+
+    /// Red for diff removed lines.
+    pub fn diff_remove() -> ColorSpec {
+        let mut spec = ColorSpec::new();
+        spec.set_fg(Some(Color::Red));
+        spec
+    }
+
+    /// Green for diff added lines.
+    pub fn diff_add() -> ColorSpec {
+        let mut spec = ColorSpec::new();
+        spec.set_fg(Some(Color::Green));
+        spec
+    }
 }
 
 #[cfg(test)]

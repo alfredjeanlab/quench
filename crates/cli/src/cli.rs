@@ -85,6 +85,10 @@ pub struct CheckArgs {
     #[arg(long)]
     pub fix: bool,
 
+    /// Show what --fix would change without changing it
+    #[arg(long)]
+    pub dry_run: bool,
+
     // Check enable flags (run only these checks)
     /// Run only the cloc check
     #[arg(long)]

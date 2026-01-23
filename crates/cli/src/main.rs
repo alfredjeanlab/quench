@@ -69,6 +69,12 @@ fn run() -> anyhow::Result<ExitCode> {
 }
 
 fn run_check(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
+    // Validate flag combinations
+    if args.dry_run && !args.fix {
+        eprintln!("--dry-run requires --fix");
+        return Ok(ExitCode::ConfigError);
+    }
+
     let cwd = std::env::current_dir()?;
 
     // Determine root directory
@@ -267,6 +273,7 @@ fn run_check(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
         limit,
         changed_files,
         fix: args.fix,
+        dry_run: args.dry_run,
     });
 
     // Set up caching (unless --no-cache)
@@ -353,7 +360,10 @@ fn run_check(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
     }
 
     // Determine exit code
-    let exit_code = if !output.passed {
+    // Dry-run always exits 0: preview is complete
+    let exit_code = if args.dry_run {
+        ExitCode::Success
+    } else if !output.passed {
         ExitCode::CheckFailed
     } else {
         ExitCode::Success

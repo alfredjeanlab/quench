@@ -29,6 +29,8 @@ pub struct CheckContext<'a> {
     pub changed_files: Option<&'a [PathBuf]>,
     /// Whether to automatically fix violations when possible.
     pub fix: bool,
+    /// Show what --fix would change without modifying files.
+    pub dry_run: bool,
 }
 
 /// The Check trait defines a single quality check.

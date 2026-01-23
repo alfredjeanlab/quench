@@ -27,6 +27,8 @@ pub struct RunnerConfig {
     pub changed_files: Option<Vec<PathBuf>>,
     /// Whether to automatically fix violations when possible.
     pub fix: bool,
+    /// Show what --fix would change without modifying files.
+    pub dry_run: bool,
 }
 
 /// The check runner executes multiple checks in parallel.
@@ -125,6 +127,7 @@ impl CheckRunner {
                     violation_count: &violation_count,
                     changed_files: self.config.changed_files.as_deref(),
                     fix: self.config.fix,
+                    dry_run: self.config.dry_run,
                 };
 
                 // Run check on uncached files
@@ -237,6 +240,7 @@ impl CheckRunner {
                     violation_count: &violation_count,
                     changed_files: self.config.changed_files.as_deref(),
                     fix: self.config.fix,
+                    dry_run: self.config.dry_run,
                 };
 
                 // Catch panics to ensure error isolation

@@ -188,12 +188,22 @@ fn check_forbidden_files(
 #[derive(Debug, Default)]
 struct FixSummary {
     files_synced: Vec<SyncedFile>,
+    previews: Vec<SyncPreview>,
 }
 
 #[derive(Debug)]
 struct SyncedFile {
     file: String,
     source: String,
+    sections: usize,
+}
+
+#[derive(Debug)]
+struct SyncPreview {
+    file: String,
+    source: String,
+    old_content: String,
+    new_content: String,
     sections: usize,
 }
 
@@ -206,8 +216,25 @@ impl FixSummary {
         });
     }
 
+    fn add_preview(
+        &mut self,
+        file: String,
+        source: String,
+        old_content: String,
+        new_content: String,
+        sections: usize,
+    ) {
+        self.previews.push(SyncPreview {
+            file,
+            source,
+            old_content,
+            new_content,
+            sections,
+        });
+    }
+
     fn is_empty(&self) -> bool {
-        self.files_synced.is_empty()
+        self.files_synced.is_empty() && self.previews.is_empty()
     }
 
     fn to_json(&self) -> serde_json::Value {
@@ -217,6 +244,15 @@ impl FixSummary {
                     "file": f.file,
                     "source": f.source,
                     "sections": f.sections,
+                })
+            }).collect::<Vec<_>>(),
+            "previews": self.previews.iter().map(|p| {
+                json!({
+                    "file": p.file,
+                    "source": p.source,
+                    "old_content": p.old_content,
+                    "new_content": p.new_content,
+                    "sections": p.sections,
                 })
             }).collect::<Vec<_>>()
         })
@@ -289,11 +325,24 @@ fn check_sync(
                 .unwrap_or_else(|| target_file.path.display().to_string());
 
             // If fix mode is enabled, sync the target file from source
-            if ctx.fix && std::fs::write(&target_file.path, &source_content).is_ok() {
-                // Track the fix
+            if ctx.fix {
                 let section_count = comparison.differences.len();
-                fixes.add_sync(target_name, source_name.to_string(), section_count);
-                continue;
+
+                if ctx.dry_run {
+                    // Preview only: collect diff data without writing
+                    fixes.add_preview(
+                        target_name.clone(),
+                        source_name.to_string(),
+                        target_content.clone(),
+                        source_content.clone(),
+                        section_count,
+                    );
+                    continue;
+                } else if std::fs::write(&target_file.path, &source_content).is_ok() {
+                    // Actual fix: write and track
+                    fixes.add_sync(target_name, source_name.to_string(), section_count);
+                    continue;
+                }
             }
 
             all_in_sync = false;

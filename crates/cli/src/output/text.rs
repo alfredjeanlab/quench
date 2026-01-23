@@ -103,6 +103,7 @@ impl TextFormatter {
     }
 
     fn write_fix_summary(&mut self, summary: &serde_json::Value) -> std::io::Result<()> {
+        // Show files_synced for actual fixes
         if let Some(synced) = summary.get("files_synced").and_then(|s| s.as_array()) {
             for entry in synced {
                 let file = entry.get("file").and_then(|f| f.as_str()).unwrap_or("?");
@@ -115,6 +116,64 @@ impl TextFormatter {
                 )?;
             }
         }
+
+        // Show previews for dry-run
+        if let Some(previews) = summary.get("previews").and_then(|p| p.as_array()) {
+            for entry in previews {
+                self.write_diff_preview(entry)?;
+            }
+        }
+        Ok(())
+    }
+
+    fn write_diff_preview(&mut self, preview: &serde_json::Value) -> std::io::Result<()> {
+        let file = preview.get("file").and_then(|f| f.as_str()).unwrap_or("?");
+        let source = preview
+            .get("source")
+            .and_then(|s| s.as_str())
+            .unwrap_or("?");
+        let old_content = preview
+            .get("old_content")
+            .and_then(|c| c.as_str())
+            .unwrap_or("");
+        let new_content = preview
+            .get("new_content")
+            .and_then(|c| c.as_str())
+            .unwrap_or("");
+        let sections = preview
+            .get("sections")
+            .and_then(|n| n.as_i64())
+            .unwrap_or(0);
+
+        // Header
+        writeln!(
+            self.stdout,
+            "  Would sync {} from {} ({} sections)",
+            file, source, sections
+        )?;
+
+        // Unified diff
+        self.write_unified_diff(file, old_content, new_content)?;
+
+        Ok(())
+    }
+
+    fn write_unified_diff(&mut self, file: &str, old: &str, new: &str) -> std::io::Result<()> {
+        writeln!(self.stdout, "  --- a/{}", file)?;
+        writeln!(self.stdout, "  +++ b/{}", file)?;
+
+        // Simple line-by-line diff
+        for line in old.lines() {
+            self.stdout.set_color(&scheme::diff_remove())?;
+            writeln!(self.stdout, "  -{}", line)?;
+            self.stdout.reset()?;
+        }
+        for line in new.lines() {
+            self.stdout.set_color(&scheme::diff_add())?;
+            writeln!(self.stdout, "  +{}", line)?;
+            self.stdout.reset()?;
+        }
+
         Ok(())
     }
 

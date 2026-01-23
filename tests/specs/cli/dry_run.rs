@@ -22,7 +22,6 @@ use crate::prelude::*;
 /// > --dry-run: Show what --fix would change without changing it
 /// > Using --dry-run without --fix is an error.
 #[test]
-#[ignore = "TODO: Phase 528 - Dry-Run Implementation"]
 fn dry_run_without_fix_is_error() {
     let dir = temp_project();
     cli()
@@ -40,7 +39,6 @@ fn dry_run_without_fix_is_error() {
 ///
 /// > --dry-run shows files that would be modified without modifying them.
 #[test]
-#[ignore = "TODO: Phase 528 - Dry-Run Implementation"]
 fn dry_run_shows_files_that_would_be_modified() {
     let dir = temp_project();
     std::fs::write(
@@ -67,7 +65,6 @@ sync_source = "CLAUDE.md"
 ///
 /// > --dry-run shows diff of proposed changes.
 #[test]
-#[ignore = "TODO: Phase 528 - Dry-Run Implementation"]
 fn dry_run_shows_diff_of_changes() {
     let dir = temp_project();
     std::fs::write(
@@ -100,7 +97,6 @@ sync_source = "CLAUDE.md"
 ///
 /// > --dry-run exits 0 even when fixes are needed.
 #[test]
-#[ignore = "TODO: Phase 528 - Dry-Run Implementation"]
 fn dry_run_exits_0_when_fixes_needed() {
     let dir = temp_project();
     std::fs::write(
@@ -128,7 +124,6 @@ sync_source = "CLAUDE.md"
 ///
 /// > --dry-run does not modify any files.
 #[test]
-#[ignore = "TODO: Phase 528 - Dry-Run Implementation"]
 fn dry_run_does_not_modify_files() {
     let dir = temp_project();
     std::fs::write(
