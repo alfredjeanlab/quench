@@ -413,7 +413,7 @@ fn run_report(_cli: &Cli, args: &ReportArgs) -> anyhow::Result<()> {
 }
 
 fn run_init(_cli: &Cli, args: &InitArgs) -> anyhow::Result<ExitCode> {
-    use quench::cli::rust_profile_defaults;
+    use quench::cli::{rust_profile_defaults, shell_profile_defaults};
 
     let cwd = std::env::current_dir()?;
     let config_path = cwd.join("quench.toml");
@@ -431,6 +431,10 @@ fn run_init(_cli: &Cli, args: &InitArgs) -> anyhow::Result<ExitCode> {
             "rust" => {
                 config.push('\n');
                 config.push_str(&rust_profile_defaults());
+            }
+            "shell" => {
+                config.push('\n');
+                config.push_str(&shell_profile_defaults());
             }
             other => {
                 eprintln!("quench: warning: unknown profile '{}', skipping", other);

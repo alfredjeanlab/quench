@@ -9,6 +9,9 @@
 mod prelude;
 
 // cli/
+#[path = "specs/cli/init.rs"]
+mod cli_init;
+
 #[path = "specs/cli/toggles.rs"]
 mod cli_toggles;
 
