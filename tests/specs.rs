@@ -9,6 +9,9 @@
 mod prelude;
 
 // cli/
+#[path = "specs/cli/dry_run.rs"]
+mod cli_dry_run;
+
 #[path = "specs/cli/init.rs"]
 mod cli_init;
 
