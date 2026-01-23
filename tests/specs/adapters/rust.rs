@@ -433,24 +433,10 @@ forbid = ["unsafe_code"]
 ///
 /// > lint_changes = "standalone" - lint config changes must be standalone PRs
 #[test]
-#[ignore = "TODO: Phase 302 - Rust Adapter Implementation"]
 fn rust_adapter_lint_config_changes_with_source_fails_standalone_policy() {
-    // This requires git state - fixture has both rustfmt.toml and src changes staged
-    check("escapes")
-        .on("rust/lint-policy")
-        .args(&["--base", "HEAD~1"])
-        .fails()
-        .stdout_has("lint config changes must be standalone");
-}
-
-/// Spec: docs/specs/langs/rust.md#policy
-///
-/// > lint_config = ["rustfmt.toml", ".rustfmt.toml", "clippy.toml", ".clippy.toml"]
-#[test]
-#[ignore = "TODO: Phase 302 - Rust Adapter Implementation"]
-fn rust_adapter_lint_config_standalone_passes() {
-    // Only lint config changed, no source files
     let dir = temp_project();
+
+    // Setup quench.toml with standalone policy
     std::fs::write(
         dir.path().join("quench.toml"),
         r#"
@@ -461,16 +447,145 @@ lint_config = ["rustfmt.toml"]
 "#,
     )
     .unwrap();
+
+    // Setup Cargo.toml
     std::fs::write(
         dir.path().join("Cargo.toml"),
         "[package]\nname = \"test\"\nversion = \"0.1.0\"\n",
     )
     .unwrap();
+
+    // Initialize git repo
+    std::process::Command::new("git")
+        .args(["init"])
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+
+    std::process::Command::new("git")
+        .args(["config", "user.email", "test@test.com"])
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+
+    std::process::Command::new("git")
+        .args(["config", "user.name", "Test"])
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+
+    // Create initial commit with source
+    std::fs::create_dir_all(dir.path().join("src")).unwrap();
+    std::fs::write(dir.path().join("src/lib.rs"), "pub fn f() {}").unwrap();
+
+    std::process::Command::new("git")
+        .args(["add", "-A"])
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+
+    std::process::Command::new("git")
+        .args(["commit", "-m", "initial"])
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+
+    // Add both lint config and source changes
+    std::fs::write(dir.path().join("rustfmt.toml"), "max_width = 100\n").unwrap();
+    std::fs::write(
+        dir.path().join("src/lib.rs"),
+        "pub fn f() {}\npub fn g() {}",
+    )
+    .unwrap();
+
+    std::process::Command::new("git")
+        .args(["add", "-A"])
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+
+    // Check with --base HEAD should detect mixed changes
+    check("escapes")
+        .pwd(dir.path())
+        .args(&["--base", "HEAD"])
+        .fails()
+        .stdout_has("lint config")
+        .stdout_has("separate PR");
+}
+
+/// Spec: docs/specs/langs/rust.md#policy
+///
+/// > lint_config = ["rustfmt.toml", ...] files that trigger standalone requirement
+#[test]
+fn rust_adapter_lint_config_standalone_passes() {
+    let dir = temp_project();
+
+    // Setup quench.toml with standalone policy
+    std::fs::write(
+        dir.path().join("quench.toml"),
+        r#"
+version = 1
+[rust.policy]
+lint_changes = "standalone"
+lint_config = ["rustfmt.toml"]
+"#,
+    )
+    .unwrap();
+
+    // Setup Cargo.toml
+    std::fs::write(
+        dir.path().join("Cargo.toml"),
+        "[package]\nname = \"test\"\nversion = \"0.1.0\"\n",
+    )
+    .unwrap();
+
+    // Initialize git repo
+    std::process::Command::new("git")
+        .args(["init"])
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+
+    std::process::Command::new("git")
+        .args(["config", "user.email", "test@test.com"])
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+
+    std::process::Command::new("git")
+        .args(["config", "user.name", "Test"])
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+
+    // Create initial commit
+    std::fs::create_dir_all(dir.path().join("src")).unwrap();
+    std::fs::write(dir.path().join("src/lib.rs"), "pub fn f() {}").unwrap();
+
+    std::process::Command::new("git")
+        .args(["add", "-A"])
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+
+    std::process::Command::new("git")
+        .args(["commit", "-m", "initial"])
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
+
+    // Add ONLY lint config change (no source changes)
     std::fs::write(dir.path().join("rustfmt.toml"), "max_width = 100\n").unwrap();
 
-    // Initialize git repo with initial commit
-    // Then add only rustfmt.toml change
-    // This would need git setup - may need fixture
+    std::process::Command::new("git")
+        .args(["add", "-A"])
+        .current_dir(dir.path())
+        .output()
+        .unwrap();
 
-    check("escapes").pwd(dir.path()).passes();
+    // Should pass - only lint config changed
+    check("escapes")
+        .pwd(dir.path())
+        .args(&["--base", "HEAD"])
+        .passes();
 }

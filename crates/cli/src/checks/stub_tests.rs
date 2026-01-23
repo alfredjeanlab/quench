@@ -41,6 +41,7 @@ fn stub_check_result_marked_as_stub() {
         config: &config,
         limit: None,
         violation_count: &violation_count,
+        changed_files: None,
     };
 
     let result = check.run(&ctx);

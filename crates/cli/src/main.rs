@@ -232,13 +232,35 @@ fn run_check(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
     // Filter checks based on CLI flags
     let checks = checks::filter_checks(&args.enabled_checks(), &args.disabled_checks());
 
+    // Get changed files if --base is provided
+    let changed_files = if let Some(ref base) = args.base {
+        match get_changed_files(&root, base) {
+            Ok(files) => {
+                if args.verbose {
+                    eprintln!("Comparing against base: {}", base);
+                    eprintln!("{} files changed", files.len());
+                }
+                Some(files)
+            }
+            Err(e) => {
+                eprintln!("quench: warning: could not get changed files: {}", e);
+                None
+            }
+        }
+    } else {
+        None
+    };
+
     // Create runner
     let limit = if args.no_limit {
         None
     } else {
         Some(args.limit)
     };
-    let mut runner = CheckRunner::new(RunnerConfig { limit });
+    let mut runner = CheckRunner::new(RunnerConfig {
+        limit,
+        changed_files,
+    });
 
     // Set up caching (unless --no-cache)
     let cache_dir = root.join(".quench");
@@ -333,6 +355,49 @@ fn run_check(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
     Ok(exit_code)
 }
 
+/// Get list of changed files compared to a git base ref.
+fn get_changed_files(
+    root: &std::path::Path,
+    base: &str,
+) -> anyhow::Result<Vec<std::path::PathBuf>> {
+    use std::process::Command;
+
+    // Get staged/unstaged changes (diffstat against base)
+    let output = Command::new("git")
+        .args(["diff", "--name-only", base])
+        .current_dir(root)
+        .output()?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        anyhow::bail!("git diff failed: {}", stderr.trim());
+    }
+
+    // Also get staged changes
+    let staged_output = Command::new("git")
+        .args(["diff", "--name-only", "--cached", base])
+        .current_dir(root)
+        .output()?;
+
+    let mut files: std::collections::HashSet<std::path::PathBuf> = std::collections::HashSet::new();
+
+    for line in String::from_utf8_lossy(&output.stdout).lines() {
+        if !line.is_empty() {
+            files.insert(root.join(line));
+        }
+    }
+
+    if staged_output.status.success() {
+        for line in String::from_utf8_lossy(&staged_output.stdout).lines() {
+            if !line.is_empty() {
+                files.insert(root.join(line));
+            }
+        }
+    }
+
+    Ok(files.into_iter().collect())
+}
+
 fn run_report(_cli: &Cli, args: &ReportArgs) -> anyhow::Result<()> {
     match args.output {
         OutputFormat::Text => println!("No metrics collected yet."),
@@ -342,6 +407,8 @@ fn run_report(_cli: &Cli, args: &ReportArgs) -> anyhow::Result<()> {
 }
 
 fn run_init(_cli: &Cli, args: &InitArgs) -> anyhow::Result<ExitCode> {
+    use quench::cli::rust_profile_defaults;
+
     let cwd = std::env::current_dir()?;
     let config_path = cwd.join("quench.toml");
 
@@ -350,7 +417,29 @@ fn run_init(_cli: &Cli, args: &InitArgs) -> anyhow::Result<ExitCode> {
         return Ok(ExitCode::ConfigError);
     }
 
-    std::fs::write(&config_path, "version = 1\n")?;
-    println!("Created quench.toml");
+    // Build config based on profiles
+    let mut config = String::from("version = 1\n");
+
+    for profile in &args.profile {
+        match profile.as_str() {
+            "rust" => {
+                config.push('\n');
+                config.push_str(&rust_profile_defaults());
+            }
+            other => {
+                eprintln!("quench: warning: unknown profile '{}', skipping", other);
+            }
+        }
+    }
+
+    std::fs::write(&config_path, config)?;
+    if args.profile.is_empty() {
+        println!("Created quench.toml");
+    } else {
+        println!(
+            "Created quench.toml with profile(s): {}",
+            args.profile.join(", ")
+        );
+    }
     Ok(ExitCode::Success)
 }

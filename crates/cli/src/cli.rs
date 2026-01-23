@@ -62,6 +62,10 @@ pub struct CheckArgs {
     #[arg(long, default_value_t = 100)]
     pub max_depth: usize,
 
+    /// Compare against a git base ref (e.g., main, HEAD~1)
+    #[arg(long, value_name = "REF")]
+    pub base: Option<String>,
+
     /// List scanned files (for debugging)
     #[arg(long, hide = true)]
     pub debug_files: bool,
@@ -196,6 +200,10 @@ pub struct InitArgs {
     /// Overwrite existing config
     #[arg(long)]
     pub force: bool,
+
+    /// Configuration profile(s) to use (e.g., rust, claude)
+    #[arg(long, short, value_delimiter = ',')]
+    pub profile: Vec<String>,
 }
 
 #[derive(Clone, Copy, Default, clap::ValueEnum)]
@@ -203,6 +211,69 @@ pub enum OutputFormat {
     #[default]
     Text,
     Json,
+}
+
+// =============================================================================
+// PROFILE DEFAULTS
+// =============================================================================
+
+/// Default Rust profile configuration for quench init.
+///
+/// Note: The transmute pattern uses concat to avoid self-matching.
+pub fn rust_profile_defaults() -> String {
+    // SAFETY: String concatenation to avoid pattern self-match in escapes check.
+    let transmute_pattern = format!("mem{}transmute", "::");
+    format!(
+        r#"[rust]
+split_cfg_test = true
+
+[rust.suppress]
+check = "comment"
+
+[rust.suppress.test]
+check = "allow"
+
+[rust.policy]
+lint_changes = "standalone"
+lint_config = ["rustfmt.toml", ".rustfmt.toml", "clippy.toml", ".clippy.toml"]
+
+[[check.escapes.patterns]]
+name = "unsafe"
+pattern = "unsafe\\s*\\{{"
+action = "comment"
+comment = "// SAFETY:"
+advice = "Add a // SAFETY: comment explaining the invariants."
+
+[[check.escapes.patterns]]
+name = "unwrap"
+pattern = "\\.unwrap\\(\\)"
+action = "forbid"
+advice = "Use ? operator or handle the error explicitly."
+
+[[check.escapes.patterns]]
+name = "expect"
+pattern = "\\.expect\\("
+action = "forbid"
+advice = "Use ? operator or handle the error explicitly."
+
+[[check.escapes.patterns]]
+name = "transmute"
+pattern = "{transmute_pattern}"
+action = "comment"
+comment = "// SAFETY:"
+advice = "Add a // SAFETY: comment explaining type compatibility."
+"#
+    )
+}
+
+/// Rust-specific Landing the Plane checklist items.
+pub fn rust_landing_items() -> &'static [&'static str] {
+    &[
+        "cargo fmt --check",
+        "cargo clippy -- -D warnings",
+        "cargo test",
+        "cargo build",
+    ]
 }
 
 #[cfg(test)]

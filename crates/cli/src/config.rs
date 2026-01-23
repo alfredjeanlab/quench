@@ -69,6 +69,10 @@ pub struct RustConfig {
     /// Lint suppression settings.
     #[serde(default)]
     pub suppress: SuppressConfig,
+
+    /// Lint configuration policy.
+    #[serde(default)]
+    pub policy: RustPolicyConfig,
 }
 
 impl Default for RustConfig {
@@ -76,6 +80,7 @@ impl Default for RustConfig {
         Self {
             split_cfg_test: Self::default_split_cfg_test(),
             suppress: SuppressConfig::default(),
+            policy: RustPolicyConfig::default(),
         }
     }
 }
@@ -84,6 +89,49 @@ impl RustConfig {
     fn default_split_cfg_test() -> bool {
         true
     }
+}
+
+/// Rust lint policy configuration.
+#[derive(Debug, Clone, Deserialize)]
+pub struct RustPolicyConfig {
+    /// Lint config changes policy: "standalone" requires separate PRs.
+    #[serde(default)]
+    pub lint_changes: LintChangesPolicy,
+
+    /// Files that trigger the standalone requirement.
+    #[serde(default = "RustPolicyConfig::default_lint_config")]
+    pub lint_config: Vec<String>,
+}
+
+impl Default for RustPolicyConfig {
+    fn default() -> Self {
+        Self {
+            lint_changes: LintChangesPolicy::default(),
+            lint_config: Self::default_lint_config(),
+        }
+    }
+}
+
+impl RustPolicyConfig {
+    fn default_lint_config() -> Vec<String> {
+        vec![
+            "rustfmt.toml".to_string(),
+            ".rustfmt.toml".to_string(),
+            "clippy.toml".to_string(),
+            ".clippy.toml".to_string(),
+        ]
+    }
+}
+
+/// Lint changes policy.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum LintChangesPolicy {
+    /// No policy - mixed changes allowed.
+    #[default]
+    None,
+    /// Lint config changes must be in standalone PRs.
+    Standalone,
 }
 
 /// Lint suppression configuration for #[allow(...)] and #[expect(...)].
@@ -685,10 +733,40 @@ fn parse_rust_config(value: Option<&toml::Value>) -> RustConfig {
         .unwrap_or_else(RustConfig::default_split_cfg_test);
 
     let suppress = parse_suppress_config(t.get("suppress"));
+    let policy = parse_policy_config(t.get("policy"));
 
     RustConfig {
         split_cfg_test,
         suppress,
+        policy,
+    }
+}
+
+/// Parse lint policy configuration from TOML value.
+fn parse_policy_config(value: Option<&toml::Value>) -> RustPolicyConfig {
+    let Some(toml::Value::Table(t)) = value else {
+        return RustPolicyConfig::default();
+    };
+
+    let lint_changes = match t.get("lint_changes").and_then(|v| v.as_str()) {
+        Some("standalone") => LintChangesPolicy::Standalone,
+        Some("none") | None => LintChangesPolicy::None,
+        _ => LintChangesPolicy::None,
+    };
+
+    let lint_config = t
+        .get("lint_config")
+        .and_then(|v| v.as_array())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|v| v.as_str().map(String::from))
+                .collect()
+        })
+        .unwrap_or_else(RustPolicyConfig::default_lint_config);
+
+    RustPolicyConfig {
+        lint_changes,
+        lint_config,
     }
 }
 

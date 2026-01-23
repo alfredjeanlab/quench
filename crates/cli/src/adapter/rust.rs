@@ -15,6 +15,7 @@ use globset::{Glob, GlobSet, GlobSetBuilder};
 use toml::Value;
 
 use super::{Adapter, EscapeAction, EscapePattern, FileKind};
+use crate::config::{LintChangesPolicy, RustPolicyConfig};
 
 /// Default escape patterns for Rust.
 const RUST_ESCAPE_PATTERNS: &[EscapePattern] = &[
@@ -253,6 +254,65 @@ impl RustAdapter {
             source_lines,
             test_lines,
         }
+    }
+}
+
+// =============================================================================
+// LINT POLICY CHECKING
+// =============================================================================
+
+/// Result of checking lint policy.
+#[derive(Debug, Default)]
+pub struct PolicyCheckResult {
+    /// Lint config files that were changed.
+    pub changed_lint_config: Vec<String>,
+    /// Source/test files that were changed.
+    pub changed_source: Vec<String>,
+    /// Whether the standalone policy is violated.
+    pub standalone_violated: bool,
+}
+
+impl RustAdapter {
+    /// Check lint policy against changed files.
+    ///
+    /// Returns policy check result with violation details.
+    pub fn check_lint_policy(
+        &self,
+        changed_files: &[&Path],
+        policy: &RustPolicyConfig,
+    ) -> PolicyCheckResult {
+        if policy.lint_changes == LintChangesPolicy::None {
+            return PolicyCheckResult::default();
+        }
+
+        let mut result = PolicyCheckResult::default();
+
+        for file in changed_files {
+            let filename = file.file_name().and_then(|n| n.to_str()).unwrap_or("");
+
+            // Check if it's a lint config file
+            if policy
+                .lint_config
+                .iter()
+                .any(|cfg| filename == cfg || file.to_string_lossy().ends_with(cfg))
+            {
+                result.changed_lint_config.push(file.display().to_string());
+                continue;
+            }
+
+            // Check if it's a source or test file
+            let kind = self.classify(file);
+            if kind == FileKind::Source || kind == FileKind::Test {
+                result.changed_source.push(file.display().to_string());
+            }
+        }
+
+        // Standalone policy violated if both lint config AND source changed
+        result.standalone_violated = policy.lint_changes == LintChangesPolicy::Standalone
+            && !result.changed_lint_config.is_empty()
+            && !result.changed_source.is_empty();
+
+        result
     }
 }
 

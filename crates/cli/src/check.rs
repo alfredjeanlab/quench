@@ -22,6 +22,8 @@ pub struct CheckContext<'a> {
     pub limit: Option<usize>,
     /// Running violation count across all checks.
     pub violation_count: &'a AtomicUsize,
+    /// Files changed since base ref (for --base flag).
+    pub changed_files: Option<&'a [PathBuf]>,
 }
 
 /// The Check trait defines a single quality check.

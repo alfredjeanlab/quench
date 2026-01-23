@@ -71,7 +71,10 @@ impl Check for MockCheck {
 
 #[test]
 fn runner_executes_all_checks() {
-    let runner = CheckRunner::new(RunnerConfig { limit: None });
+    let runner = CheckRunner::new(RunnerConfig {
+        limit: None,
+        changed_files: None,
+    });
     let config = Config::default();
     let files = vec![];
     let root = std::path::Path::new(".");
@@ -89,7 +92,10 @@ fn runner_executes_all_checks() {
 
 #[test]
 fn runner_isolates_panicking_check() {
-    let runner = CheckRunner::new(RunnerConfig { limit: None });
+    let runner = CheckRunner::new(RunnerConfig {
+        limit: None,
+        changed_files: None,
+    });
     let config = Config::default();
     let files = vec![];
     let root = std::path::Path::new(".");
@@ -116,7 +122,10 @@ fn runner_isolates_panicking_check() {
 
 #[test]
 fn runner_continues_after_check_failure() {
-    let runner = CheckRunner::new(RunnerConfig { limit: None });
+    let runner = CheckRunner::new(RunnerConfig {
+        limit: None,
+        changed_files: None,
+    });
     let config = Config::default();
     let files = vec![];
     let root = std::path::Path::new(".");
@@ -141,7 +150,10 @@ fn runner_continues_after_check_failure() {
 
 #[test]
 fn should_terminate_with_limit() {
-    let runner = CheckRunner::new(RunnerConfig { limit: Some(10) });
+    let runner = CheckRunner::new(RunnerConfig {
+        limit: Some(10),
+        changed_files: None,
+    });
     assert!(!runner.should_terminate(5));
     assert!(runner.should_terminate(10));
     assert!(runner.should_terminate(15));
@@ -149,6 +161,9 @@ fn should_terminate_with_limit() {
 
 #[test]
 fn should_terminate_without_limit() {
-    let runner = CheckRunner::new(RunnerConfig { limit: None });
+    let runner = CheckRunner::new(RunnerConfig {
+        limit: None,
+        changed_files: None,
+    });
     assert!(!runner.should_terminate(1000));
 }

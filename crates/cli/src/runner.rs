@@ -20,6 +20,8 @@ use crate::walker::WalkedFile;
 pub struct RunnerConfig {
     /// Maximum violations before early termination (None = unlimited).
     pub limit: Option<usize>,
+    /// Files changed since base ref (for --base flag).
+    pub changed_files: Option<Vec<PathBuf>>,
 }
 
 /// The check runner executes multiple checks in parallel.
@@ -116,6 +118,7 @@ impl CheckRunner {
                     config,
                     limit: self.config.limit,
                     violation_count: &violation_count,
+                    changed_files: self.config.changed_files.as_deref(),
                 };
 
                 // Run check on uncached files
@@ -224,6 +227,7 @@ impl CheckRunner {
                     config,
                     limit: self.config.limit,
                     violation_count: &violation_count,
+                    changed_files: self.config.changed_files.as_deref(),
                 };
 
                 // Catch panics to ensure error isolation

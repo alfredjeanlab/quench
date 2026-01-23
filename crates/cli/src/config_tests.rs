@@ -155,3 +155,75 @@ max_tokens = false
     let config = parse_with_warnings(content, &path).unwrap();
     assert_eq!(config.check.cloc.max_tokens, None);
 }
+
+// Rust policy config tests
+
+#[test]
+fn parse_rust_policy_default() {
+    let path = PathBuf::from("quench.toml");
+    let content = "version = 1\n";
+    let config = parse_with_warnings(content, &path).unwrap();
+    assert_eq!(config.rust.policy.lint_changes, LintChangesPolicy::None);
+    assert_eq!(config.rust.policy.lint_config.len(), 4);
+    assert!(
+        config
+            .rust
+            .policy
+            .lint_config
+            .contains(&"rustfmt.toml".to_string())
+    );
+}
+
+#[test]
+fn parse_rust_policy_standalone() {
+    let path = PathBuf::from("quench.toml");
+    let content = r#"
+version = 1
+
+[rust.policy]
+lint_changes = "standalone"
+"#;
+    let config = parse_with_warnings(content, &path).unwrap();
+    assert_eq!(
+        config.rust.policy.lint_changes,
+        LintChangesPolicy::Standalone
+    );
+}
+
+#[test]
+fn parse_rust_policy_custom_lint_config() {
+    let path = PathBuf::from("quench.toml");
+    let content = r#"
+version = 1
+
+[rust.policy]
+lint_changes = "standalone"
+lint_config = ["rustfmt.toml", "custom-lint.toml"]
+"#;
+    let config = parse_with_warnings(content, &path).unwrap();
+    assert_eq!(
+        config.rust.policy.lint_changes,
+        LintChangesPolicy::Standalone
+    );
+    assert_eq!(config.rust.policy.lint_config.len(), 2);
+    assert!(
+        config
+            .rust
+            .policy
+            .lint_config
+            .contains(&"custom-lint.toml".to_string())
+    );
+}
+
+#[test]
+fn parse_rust_policy_none_explicit() {
+    let path = PathBuf::from("quench.toml");
+    let content = r#"
+version = 1
+
+[rust.policy]
+lint_changes = "none"
+"#;
+    let config = parse_with_warnings(content, &path).unwrap();
+    assert_eq!(config.rust.policy.lint_changes, LintChangesPolicy::None);
+}
