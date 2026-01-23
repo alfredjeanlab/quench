@@ -109,6 +109,185 @@ src/parser.rs:150: inline_cfg_test
 
 This pairs with the existing convention documented in CLAUDE.md for using `#[path]` attributes.
 
+## Doc Code Style
+
+Controls what kind of code appears in documentation. Prevents real implementation code in docs (favoring pseudocode or signatures), and provides language-specific rules.
+
+### Purpose
+
+- Keep docs focused on concepts, not implementation details
+- Prevent copy-paste of production code that may become stale
+- Encourage pseudocode that explains intent over syntax
+- Allow type signatures and function prototypes for API documentation
+
+### Configuration
+
+```toml
+[check.docs.code]
+check = "error"                        # error | warn | off
+
+# Global defaults
+style = "pseudocode"                   # pseudocode | signatures | any
+```
+
+| Style | Behavior |
+|-------|----------|
+| `pseudocode` | Forbid language-tagged blocks with real implementation code |
+| `signatures` | Allow type/function signatures, forbid function bodies |
+| `any` | No restrictions on code blocks (default) |
+
+### Language-Specific Detection
+
+Fine-grained control over which language constructs are allowed:
+
+```toml
+[check.docs.code.rust]
+allow = ["type", "trait", "struct", "enum", "use", "mod", "const"]
+forbid = ["fn", "impl"]              # No functions or impl blocks at all
+
+[check.docs.code.typescript]
+allow = ["type", "interface", "import", "export"]
+forbid = ["function", "class", "const", "let"]
+
+[check.docs.code.go]
+allow = ["type", "interface", "import"]
+forbid = ["func", "var"]
+```
+
+**Construct categories** (per-language):
+
+| Rust | TypeScript | Go | Description |
+|------|------------|-----|-------------|
+| `type` | `type` | `type` | Type aliases |
+| `struct` | - | `struct` | Struct definitions |
+| `enum` | `enum` | - | Enum definitions |
+| `trait` | `interface` | `interface` | Trait/interface definitions |
+| `fn` | `function` | `func` | Function definitions (any) |
+| `fn_signature` | `function_signature` | `func_signature` | Signature only (no body or `...` body) |
+| `fn_body` | `function_body` | `func_body` | Function with implementation |
+| `impl` | `class` | - | Implementation blocks |
+| `use` | `import` | `import` | Import statements |
+| `mod` | `export` | - | Module declarations |
+| `const` | `const` | `const` | Constant definitions |
+| `macro` | - | - | Macro definitions/invocations |
+
+**Granularity**: `fn` forbids all functions; use `fn_signature`/`fn_body` for finer control.
+
+### Real Code vs Pseudocode
+
+The key distinction: does the code block contain language-specific syntax or describe an algorithm?
+
+**Real code** (implementation details leak through):
+~~~markdown
+```rust
+fn connect_or_start() -> Result<DaemonClient> {
+    match DaemonClient::connect() {
+        Ok(client) => Ok(client),
+        Err(ClientError::DaemonNotRunning) => {
+            start_daemon_background()?;
+            retry_connect(Duration::from_secs(5))
+        }
+        Err(e) => Err(e),
+    }
+}
+```
+~~~
+
+**Pseudocode** (describes intent, not syntax):
+~~~markdown
+```
+connect_or_start():
+    if can connect to socket:
+        return connection
+    else:
+        start daemon in background
+        retry connect with 5s timeout
+        return connection
+```
+~~~
+
+**Signature only** (API surface without implementation):
+~~~markdown
+```rust
+fn connect_or_start() -> Result<DaemonClient>;
+```
+~~~
+
+### Pseudocode Detection
+
+When `style = "pseudocode"`, code blocks are analyzed for:
+
+```toml
+[check.docs.code]
+style = "pseudocode"
+
+# Indicators that code is pseudocode (any match = ok)
+pseudocode_markers = [
+  "...",                               # Ellipsis placeholder
+  "// ...",                            # Comment ellipsis
+  "/* ... */",
+  "todo!()",                           # Rust placeholder
+  "pass",                              # Python placeholder
+  "???",                               # Kotlin/other placeholder
+]
+
+# Language tags treated as pseudocode (never checked)
+pseudocode_langs = ["pseudo", "pseudocode", "algorithm", "text", ""]
+```
+
+### Per-Section Overrides
+
+Different sections may have different needs:
+
+```toml
+# API reference sections can have full signatures
+[[check.docs.code.section]]
+pattern = "## API*"
+style = "signatures"
+
+# Examples section can have real code
+[[check.docs.code.section]]
+pattern = "## Example*"
+style = "any"
+
+# Everything else: pseudocode only
+[[check.docs.code.section]]
+pattern = "*"
+style = "pseudocode"
+```
+
+### Output
+
+```
+docs: FAIL
+  docs/specs/parser.md:45: code block contains implementation
+    ```rust
+    fn parse(input: &str) -> Result<Ast> {
+        let tokens = lexer::tokenize(input)?;  // ← implementation
+        ...
+    }
+    ```
+    Use pseudocode or function signature only. Replace body with `...` or `todo!()`.
+```
+
+### JSON Output
+
+```json
+{
+  "file": "docs/specs/parser.md",
+  "line": 45,
+  "type": "code_style",
+  "lang": "rust",
+  "style": "pseudocode",
+  "reason": "function_body",
+  "advice": "Use pseudocode or function signature only. Replace body with `...` or `todo!()`."
+}
+```
+
+**Violation types**: `code_style`
+
+**Reasons**: `function_body`, `impl_body`, `executable_statement`, `non_pseudocode`
+
 ## Spec Link Validation
 
 Configurable validation for spec references in code comments:
