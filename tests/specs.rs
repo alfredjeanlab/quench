@@ -8,6 +8,9 @@
 #[path = "specs/prelude.rs"]
 mod prelude;
 
+#[path = "specs/cache.rs"]
+mod cache;
+
 #[path = "specs/file_walking.rs"]
 mod file_walking;
 
