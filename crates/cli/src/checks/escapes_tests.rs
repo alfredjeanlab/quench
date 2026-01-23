@@ -320,7 +320,7 @@ mod benchmarks {
     #[test]
     #[ignore = "benchmark only"]
     fn bench_file_classification() {
-        use crate::adapter::{Adapter, GenericAdapter};
+        use crate::adapter::GenericAdapter;
         use std::path::PathBuf;
 
         let root = std::path::Path::new("/project");
@@ -329,33 +329,32 @@ mod benchmarks {
             .map(|i| PathBuf::from(format!("/project/src/module_{}.rs", i)))
             .collect();
 
-        // Current approach: new adapter per file
-        let iterations = 1;
+        // Measure adapter creation cost (done once)
         let start = Instant::now();
-        for _ in 0..iterations {
-            for path in &paths {
-                let _ = classify_file(path, root, &test_patterns);
-            }
-        }
-        let elapsed_new = start.elapsed();
-        println!("=== File Classification Performance ===");
-        println!("1K classifications (new adapter each): {:?}", elapsed_new);
-        println!("Per classification: {:?}", elapsed_new / 1000);
-
-        // Optimized: reuse adapter
         let adapter = GenericAdapter::new(&[], &test_patterns);
+        let adapter_creation = start.elapsed();
+        println!("=== File Classification Performance ===");
+        println!("Adapter creation: {:?}", adapter_creation);
+
+        // Optimized: reuse adapter for all classifications
+        let iterations = 100;
         let start = Instant::now();
         for _ in 0..iterations {
             for path in &paths {
-                let relative = path.strip_prefix(root).unwrap_or(path);
-                let _ = adapter.classify(relative);
+                let _ = classify_file(&adapter, path, root);
             }
         }
-        let elapsed_reuse = start.elapsed();
-        println!("1K classifications (reused adapter): {:?}", elapsed_reuse);
-        println!("Per classification: {:?}", elapsed_reuse / 1000);
-
-        let speedup = elapsed_new.as_nanos() as f64 / elapsed_reuse.as_nanos() as f64;
-        println!("Speedup from reuse: {:.1}x", speedup);
+        let elapsed = start.elapsed();
+        let total_classifications = iterations * paths.len();
+        println!(
+            "{}K classifications with reused adapter: {:?}",
+            total_classifications / 1000,
+            elapsed
+        );
+        println!(
+            "Per classification: {:?}",
+            elapsed / total_classifications as u32
+        );
+        println!("Target: < 1µs per classification");
     }
 }

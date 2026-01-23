@@ -2,6 +2,73 @@
 
 use super::*;
 
+/// Document and verify the pattern matcher selection logic.
+///
+/// Patterns are classified into three tiers for optimal performance:
+/// 1. LiteralMatcher (memchr) - For patterns without regex metacharacters
+/// 2. MultiLiteralMatcher (Aho-Corasick) - For pure alternations of literals
+/// 3. RegexMatcher (regex crate) - For everything else
+mod matcher_selection {
+    use super::*;
+
+    fn matcher_type(pattern: &str) -> &'static str {
+        match CompiledPattern::compile(pattern).unwrap() {
+            CompiledPattern::Literal(_) => "Literal",
+            CompiledPattern::MultiLiteral(_) => "MultiLiteral",
+            CompiledPattern::Regex(_) => "Regex",
+        }
+    }
+
+    #[test]
+    fn literal_for_plain_strings() {
+        // Single literal patterns -> LiteralMatcher (fastest, SIMD-optimized memchr)
+        assert_eq!(matcher_type("FIXME"), "Literal");
+        assert_eq!(matcher_type("TODO"), "Literal");
+        assert_eq!(matcher_type("unsafe"), "Literal");
+        assert_eq!(matcher_type("panic!"), "Literal"); // ! is not a regex metachar
+    }
+
+    #[test]
+    fn multi_literal_for_pure_alternations() {
+        // Pure alternations -> MultiLiteralMatcher (Aho-Corasick automaton)
+        assert_eq!(matcher_type("TODO|FIXME|XXX"), "MultiLiteral");
+        assert_eq!(matcher_type("foo|bar"), "MultiLiteral");
+        assert_eq!(matcher_type("panic|abort|exit"), "MultiLiteral");
+    }
+
+    #[test]
+    fn regex_for_metacharacters() {
+        // Patterns with regex metacharacters -> RegexMatcher
+        // Escaped dots and parens for literal matching
+        assert_eq!(matcher_type(r"\.unwrap\(\)"), "Regex");
+        assert_eq!(matcher_type(r"\.expect\("), "Regex");
+
+        // Word boundaries
+        assert_eq!(matcher_type(r"\bunsafe\b"), "Regex");
+        assert_eq!(matcher_type(r"\b(TODO|FIXME|XXX)\b"), "Regex");
+
+        // Character classes
+        assert_eq!(matcher_type("[abc]"), "Regex");
+        assert_eq!(matcher_type(r"\w+"), "Regex");
+
+        // Quantifiers
+        assert_eq!(matcher_type("foo+"), "Regex");
+        assert_eq!(matcher_type("bar*"), "Regex");
+        assert_eq!(matcher_type("baz?"), "Regex");
+
+        // Anchors
+        assert_eq!(matcher_type("^start"), "Regex");
+        assert_eq!(matcher_type("end$"), "Regex");
+    }
+
+    #[test]
+    fn alternation_with_metachar_falls_back_to_regex() {
+        // If any part of an alternation has metacharacters, use regex
+        assert_eq!(matcher_type(r"foo|\d+"), "Regex");
+        assert_eq!(matcher_type(r"TODO.*|FIXME"), "Regex");
+    }
+}
+
 #[test]
 fn literal_matcher_finds_single_occurrence() {
     let m = LiteralMatcher::new("hello");
