@@ -263,3 +263,87 @@ fn escapes_violation_type_is_one_of_expected_values() {
         );
     }
 }
+
+// =============================================================================
+// TEXT OUTPUT FORMAT SPECS
+// =============================================================================
+
+/// Spec: docs/specs/checks/escape-hatches.md#text-output
+///
+/// > Text output shows violations with file path, line, and advice
+#[test]
+fn escapes_text_output_format_on_missing_comment() {
+    check("escapes")
+        .on("escapes/comment-fail")
+        .fails()
+        .stdout_has("escapes: FAIL")
+        .stdout_has("lib.rs")
+        .stdout_has("missing_comment");
+}
+
+/// Spec: docs/specs/checks/escape-hatches.md#text-output
+///
+/// > Forbidden violations show pattern name and advice
+#[test]
+fn escapes_text_output_format_on_forbidden() {
+    check("escapes")
+        .on("escapes/forbid-source")
+        .fails()
+        .stdout_has("escapes: FAIL")
+        .stdout_has("forbidden");
+}
+
+/// Spec: docs/specs/checks/escape-hatches.md#text-output
+///
+/// > Threshold exceeded shows count vs limit
+#[test]
+fn escapes_text_output_format_on_threshold_exceeded() {
+    check("escapes")
+        .on("escapes/count-fail")
+        .fails()
+        .stdout_has("escapes: FAIL")
+        .stdout_has("threshold_exceeded");
+}
+
+// =============================================================================
+// JSON OUTPUT STRUCTURE SPECS
+// =============================================================================
+
+/// Spec: docs/specs/checks/escape-hatches.md#json-output
+///
+/// > JSON output includes all required fields for violations
+#[test]
+fn escapes_json_violation_structure_complete() {
+    let escapes = check("escapes").on("escapes/forbid-source").json().fails();
+    let violations = escapes.require("violations").as_array().unwrap();
+
+    assert!(!violations.is_empty(), "should have violations");
+
+    // Each violation must have all required fields
+    for violation in violations {
+        assert!(violation.get("file").is_some(), "missing file");
+        assert!(violation.get("line").is_some(), "missing line");
+        assert!(violation.get("type").is_some(), "missing type");
+        assert!(violation.get("pattern").is_some(), "missing pattern");
+        assert!(violation.get("advice").is_some(), "missing advice");
+    }
+}
+
+/// Spec: docs/specs/checks/escape-hatches.md#json-output
+///
+/// > JSON metrics include source and test breakdowns per pattern
+#[test]
+fn escapes_json_metrics_structure_complete() {
+    let escapes = check("escapes").on("escapes/metrics").json().passes();
+    let metrics = escapes.require("metrics");
+
+    // Verify structure
+    assert!(metrics.get("source").is_some(), "missing source metrics");
+    assert!(metrics.get("test").is_some(), "missing test metrics");
+
+    // Source and test should be objects with pattern counts
+    let source = metrics.get("source").unwrap();
+    let test = metrics.get("test").unwrap();
+    assert!(source.is_object(), "source should be object");
+    assert!(test.is_object(), "test should be object");
+}
