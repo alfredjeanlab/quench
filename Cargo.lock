@@ -1302,6 +1302,7 @@ dependencies = [
 name = "quench"
 version = "0.1.0"
 dependencies = [
+ "aho-corasick",
  "anyhow",
  "assert_cmd",
  "bincode",
@@ -1313,10 +1314,12 @@ dependencies = [
  "globset",
  "ignore",
  "jsonschema",
+ "memchr",
  "memmap2",
  "predicates",
  "proptest",
  "rayon",
+ "regex",
  "serde",
  "serde_json",
  "similar-asserts",

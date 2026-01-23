@@ -21,7 +21,6 @@ use crate::prelude::*;
 ///
 /// > The escapes check detects patterns that bypass type safety or error handling.
 #[test]
-#[ignore = "TODO: Phase 210 - Escapes Check Core"]
 fn escapes_detects_pattern_matches_in_source() {
     check("escapes")
         .on("escapes/basic")
@@ -33,7 +32,6 @@ fn escapes_detects_pattern_matches_in_source() {
 ///
 /// > src/parser.rs:47: unsafe block without // SAFETY: comment
 #[test]
-#[ignore = "TODO: Phase 210 - Escapes Check Core"]
 fn escapes_reports_line_number_of_match() {
     let escapes = check("escapes").on("escapes/basic").json().fails();
     let violations = escapes.require("violations").as_array().unwrap();

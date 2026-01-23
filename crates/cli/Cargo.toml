@@ -29,6 +29,9 @@ chrono = "0.4"
 rayon = "1.11"
 bincode = "1"
 dashmap = "6"
+memchr = "2.7"
+aho-corasick = "1"
+regex = "1"
 
 [dev-dependencies]
 assert_cmd = "2"

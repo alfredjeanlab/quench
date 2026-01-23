@@ -8,6 +8,7 @@ pub mod config;
 pub mod discovery;
 pub mod error;
 pub mod output;
+pub mod pattern;
 pub mod runner;
 pub mod walker;
 

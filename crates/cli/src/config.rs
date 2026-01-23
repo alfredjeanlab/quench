@@ -66,6 +66,58 @@ pub struct CheckConfig {
     /// Cloc (count lines of code) check configuration.
     #[serde(default)]
     pub cloc: ClocConfig,
+
+    /// Escapes (escape hatches) check configuration.
+    #[serde(default)]
+    pub escapes: EscapesConfig,
+}
+
+/// Escapes check configuration.
+#[derive(Debug, Default, Deserialize)]
+pub struct EscapesConfig {
+    /// Check level: error, warn, or off.
+    #[serde(default)]
+    pub check: CheckLevel,
+
+    /// Patterns to detect (overrides defaults).
+    #[serde(default)]
+    pub patterns: Vec<EscapePattern>,
+}
+
+/// A single escape hatch pattern definition.
+#[derive(Debug, Clone, Deserialize)]
+pub struct EscapePattern {
+    /// Unique name for this pattern (e.g., "unwrap", "unsafe").
+    pub name: String,
+
+    /// Regex pattern to match.
+    pub pattern: String,
+
+    /// Action to take: count, comment, or forbid.
+    #[serde(default)]
+    pub action: EscapeAction,
+
+    /// Required comment pattern for action = "comment".
+    #[serde(default)]
+    pub comment: Option<String>,
+
+    /// Count threshold for action = "count" (default: 0).
+    #[serde(default)]
+    pub threshold: usize,
+
+    /// Custom advice message for violations.
+    #[serde(default)]
+    pub advice: Option<String>,
+}
+
+/// Action to take when pattern is matched.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum EscapeAction {
+    #[default]
+    Forbid,
+    Comment,
+    Count,
 }
 
 /// Cloc check configuration.
@@ -480,7 +532,10 @@ pub fn parse_with_warnings(content: &str, path: &Path) -> Result<Config> {
                 _ => ClocConfig::default(),
             };
 
-            CheckConfig { cloc }
+            // Parse escapes config
+            let escapes = parse_escapes_config(t.get("escapes"));
+
+            CheckConfig { cloc, escapes }
         }
         _ => CheckConfig::default(),
     };
@@ -490,6 +545,62 @@ pub fn parse_with_warnings(content: &str, path: &Path) -> Result<Config> {
         project,
         workspace,
         check,
+    })
+}
+
+/// Parse escapes configuration from TOML value.
+fn parse_escapes_config(value: Option<&toml::Value>) -> EscapesConfig {
+    let Some(toml::Value::Table(t)) = value else {
+        return EscapesConfig::default();
+    };
+
+    let check = match t.get("check").and_then(|v| v.as_str()) {
+        Some("error") => CheckLevel::Error,
+        Some("warn") => CheckLevel::Warn,
+        Some("off") => CheckLevel::Off,
+        _ => CheckLevel::default(),
+    };
+
+    let patterns = t
+        .get("patterns")
+        .and_then(|v| v.as_array())
+        .map(|arr| arr.iter().filter_map(parse_escape_pattern).collect())
+        .unwrap_or_default();
+
+    EscapesConfig { check, patterns }
+}
+
+/// Parse a single escape pattern from TOML value.
+fn parse_escape_pattern(value: &toml::Value) -> Option<EscapePattern> {
+    let t = value.as_table()?;
+
+    let name = t.get("name")?.as_str()?.to_string();
+    let pattern = t.get("pattern")?.as_str()?.to_string();
+
+    let action = match t.get("action").and_then(|v| v.as_str()) {
+        Some("forbid") => EscapeAction::Forbid,
+        Some("comment") => EscapeAction::Comment,
+        Some("count") => EscapeAction::Count,
+        _ => EscapeAction::default(),
+    };
+
+    let comment = t.get("comment").and_then(|v| v.as_str()).map(String::from);
+
+    let threshold = t
+        .get("threshold")
+        .and_then(|v| v.as_integer())
+        .map(|v| v as usize)
+        .unwrap_or(0);
+
+    let advice = t.get("advice").and_then(|v| v.as_str()).map(String::from);
+
+    Some(EscapePattern {
+        name,
+        pattern,
+        action,
+        comment,
+        threshold,
+        advice,
     })
 }
 

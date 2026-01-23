@@ -11,6 +11,7 @@
 //! - license: License header validation (disabled by default)
 
 pub mod cloc;
+pub mod escapes;
 pub mod git;
 pub mod stub;
 
@@ -30,11 +31,7 @@ pub const DEFAULT_ENABLED: &[&str] = &["cloc", "escapes", "agents", "docs", "tes
 pub fn all_checks() -> Vec<Arc<dyn Check>> {
     vec![
         Arc::new(cloc::ClocCheck),
-        Arc::new(stub::StubCheck::new(
-            "escapes",
-            "Escape hatch detection",
-            true,
-        )),
+        Arc::new(escapes::EscapesCheck),
         Arc::new(stub::StubCheck::new(
             "agents",
             "Agent file validation",
