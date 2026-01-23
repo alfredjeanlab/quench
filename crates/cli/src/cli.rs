@@ -81,6 +81,10 @@ pub struct CheckArgs {
     #[arg(long)]
     pub no_cache: bool,
 
+    /// Automatically fix violations when possible
+    #[arg(long)]
+    pub fix: bool,
+
     // Check enable flags (run only these checks)
     /// Run only the cloc check
     #[arg(long)]

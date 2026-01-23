@@ -1,3 +1,12 @@
-# Sync Test
+# Project
 
-Content B
+Overview of the project.
+
+## Code Style
+
+Use 2 spaces for indentation.
+Follow custom conventions.
+
+## Testing
+
+Run tests with `cargo test`.

@@ -27,6 +27,8 @@ pub struct CheckContext<'a> {
     pub violation_count: &'a AtomicUsize,
     /// Files changed since base ref (for --base flag).
     pub changed_files: Option<&'a [PathBuf]>,
+    /// Whether to automatically fix violations when possible.
+    pub fix: bool,
 }
 
 /// The Check trait defines a single quality check.
@@ -90,6 +92,14 @@ pub struct Violation {
     /// Non-blank line count (for cloc violations, always included for convenience).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub nonblank: Option<i64>,
+
+    /// Other file involved in sync comparison.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub other_file: Option<PathBuf>,
+
+    /// Section name for section-level violations.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub section: Option<String>,
 }
 
 impl Violation {
@@ -110,6 +120,8 @@ impl Violation {
             pattern: None,
             lines: None,
             nonblank: None,
+            other_file: None,
+            section: None,
         }
     }
 
@@ -129,6 +141,8 @@ impl Violation {
             pattern: None,
             lines: None,
             nonblank: None,
+            other_file: None,
+            section: None,
         }
     }
 
@@ -149,6 +163,13 @@ impl Violation {
     /// Add pattern context to the violation.
     pub fn with_pattern(mut self, pattern: impl Into<String>) -> Self {
         self.pattern = Some(pattern.into());
+        self
+    }
+
+    /// Add sync context to the violation.
+    pub fn with_sync(mut self, other_file: impl Into<PathBuf>, section: impl Into<String>) -> Self {
+        self.other_file = Some(other_file.into());
+        self.section = Some(section.into());
         self
     }
 }

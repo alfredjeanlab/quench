@@ -77,6 +77,7 @@ fn runner_executes_all_checks() {
     let runner = CheckRunner::new(RunnerConfig {
         limit: None,
         changed_files: None,
+        fix: false,
     });
     let config = Config::default();
     let files = vec![];
@@ -98,6 +99,7 @@ fn runner_isolates_panicking_check() {
     let runner = CheckRunner::new(RunnerConfig {
         limit: None,
         changed_files: None,
+        fix: false,
     });
     let config = Config::default();
     let files = vec![];
@@ -128,6 +130,7 @@ fn runner_continues_after_check_failure() {
     let runner = CheckRunner::new(RunnerConfig {
         limit: None,
         changed_files: None,
+        fix: false,
     });
     let config = Config::default();
     let files = vec![];
@@ -156,6 +159,7 @@ fn should_terminate_with_limit() {
     let runner = CheckRunner::new(RunnerConfig {
         limit: Some(10),
         changed_files: None,
+        fix: false,
     });
     assert!(!runner.should_terminate(5));
     assert!(runner.should_terminate(10));
@@ -167,6 +171,7 @@ fn should_terminate_without_limit() {
     let runner = CheckRunner::new(RunnerConfig {
         limit: None,
         changed_files: None,
+        fix: false,
     });
     assert!(!runner.should_terminate(1000));
 }

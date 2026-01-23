@@ -458,6 +458,8 @@ fn create_threshold_violation(
         pattern: Some(pattern_name.to_string()),
         lines: None,
         nonblank: None,
+        other_file: None,
+        section: None,
     })
 }
 
