@@ -144,6 +144,8 @@ impl CachedViolation {
             pattern: self.pattern.clone(),
             lines: self.lines,
             nonblank: self.nonblank,
+            other_file: None,
+            section: None,
         }
     }
 }

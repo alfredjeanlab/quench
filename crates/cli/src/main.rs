@@ -266,6 +266,7 @@ fn run_check(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
     let mut runner = CheckRunner::new(RunnerConfig {
         limit,
         changed_files,
+        fix: args.fix,
     });
 
     // Set up caching (unless --no-cache)

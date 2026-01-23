@@ -79,6 +79,8 @@ fn make_policy_violation(
         pattern: Some("lint_changes = standalone".to_string()),
         lines: None,
         nonblank: None,
+        other_file: None,
+        section: None,
     }]
 }
 

@@ -11,6 +11,7 @@
 
 pub mod config;
 mod detection;
+mod sync;
 
 use serde_json::json;
 
@@ -18,7 +19,8 @@ use crate::check::{Check, CheckContext, CheckResult, Violation};
 use crate::config::CheckLevel;
 
 pub use config::AgentsConfig;
-use detection::{Scope, detect_agent_files, file_exists_at_root};
+use detection::{DetectedFile, Scope, detect_agent_files, file_exists_at_root};
+use sync::{DiffType, compare_files};
 
 /// The agents check validates AI agent context files.
 pub struct AgentsCheck;
@@ -54,6 +56,13 @@ impl Check for AgentsCheck {
         // Check forbidden files don't exist at root
         check_forbidden_files(ctx, config, &detected, &mut violations);
 
+        // Check sync if enabled
+        let in_sync = if config.sync {
+            check_sync(ctx, config, &detected, &mut violations)
+        } else {
+            true
+        };
+
         // Build metrics
         let files_found: Vec<String> = detected
             .iter()
@@ -69,7 +78,7 @@ impl Check for AgentsCheck {
         let metrics = json!({
             "files_found": files_found,
             "files_missing": files_missing,
-            "in_sync": true, // placeholder for sync phase
+            "in_sync": in_sync,
         });
 
         let result = if violations.is_empty() {
@@ -150,6 +159,117 @@ fn check_forbidden_files(
             ));
         }
     }
+}
+
+/// Check synchronization between agent files.
+fn check_sync(
+    ctx: &CheckContext,
+    config: &AgentsConfig,
+    detected: &[DetectedFile],
+    violations: &mut Vec<Violation>,
+) -> bool {
+    // Get root-scope files only
+    let root_files: Vec<_> = detected.iter().filter(|f| f.scope == Scope::Root).collect();
+
+    if root_files.len() < 2 {
+        // Nothing to sync
+        return true;
+    }
+
+    // Determine sync source (first in files list, or explicit sync_source)
+    let source_name = config
+        .sync_source
+        .as_ref()
+        .or_else(|| config.files.first())
+        .map(|s| s.as_str());
+
+    let Some(source_name) = source_name else {
+        return true;
+    };
+
+    // Find source file in detected
+    let source_file = root_files.iter().find(|f| {
+        f.path
+            .file_name()
+            .map(|n| n.to_string_lossy() == source_name)
+            .unwrap_or(false)
+    });
+
+    let Some(source_file) = source_file else {
+        return true; // Source not present, nothing to sync
+    };
+
+    // Read source content
+    let Ok(source_content) = std::fs::read_to_string(&source_file.path) else {
+        return true; // Can't read source
+    };
+
+    let mut all_in_sync = true;
+
+    // Compare against each other root file
+    for target_file in &root_files {
+        if target_file.path == source_file.path {
+            continue;
+        }
+
+        let Ok(target_content) = std::fs::read_to_string(&target_file.path) else {
+            continue;
+        };
+
+        let comparison = compare_files(&source_content, &target_content);
+
+        if !comparison.in_sync {
+            // If fix mode is enabled, sync the target file from source
+            if ctx.fix && std::fs::write(&target_file.path, &source_content).is_ok() {
+                // File was fixed, no violation needed
+                continue;
+            }
+
+            all_in_sync = false;
+
+            let target_name = target_file
+                .path
+                .file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_else(|| target_file.path.display().to_string());
+
+            for diff in comparison.differences {
+                let advice = match diff.diff_type {
+                    DiffType::ContentDiffers => format!(
+                        "Section \"{}\" differs. Use --fix to sync from {}, or reconcile manually.",
+                        diff.source_heading.as_deref().unwrap_or(&diff.section),
+                        source_name
+                    ),
+                    DiffType::MissingInTarget => format!(
+                        "Section \"{}\" missing in {}. Use --fix to sync from {}.",
+                        diff.source_heading.as_deref().unwrap_or(&diff.section),
+                        target_name,
+                        source_name
+                    ),
+                    DiffType::ExtraInTarget => format!(
+                        "Section \"{}\" exists in {} but not in {}. Remove or add to source.",
+                        diff.target_heading.as_deref().unwrap_or(&diff.section),
+                        target_name,
+                        source_name
+                    ),
+                };
+
+                let violation = Violation::file_only(&target_name, "out_of_sync", advice)
+                    .with_sync(
+                        source_name,
+                        if diff.section.is_empty() {
+                            "(preamble)"
+                        } else {
+                            &diff.section
+                        },
+                    );
+
+                violations.push(violation);
+            }
+        }
+    }
+
+    all_in_sync
 }
 
 #[cfg(test)]

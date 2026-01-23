@@ -96,7 +96,6 @@ fn agents_forbidden_file_generates_violation() {
 ///
 /// > Files out of sync with sync_source generate a violation.
 #[test]
-#[ignore = "TODO: Phase 501 - Agents Check Implementation"]
 fn agents_out_of_sync_generates_violation() {
     let agents = check("agents").on("agents/out-of-sync").json().fails();
     let violations = agents.require("violations").as_array().unwrap();
@@ -113,7 +112,7 @@ fn agents_out_of_sync_generates_violation() {
 ///
 /// > Missing a required section generates a violation with advice.
 #[test]
-#[ignore = "TODO: Phase 501 - Agents Check Implementation"]
+#[ignore = "TODO: Phase 515 - Agents Section Validation"]
 fn agents_missing_section_generates_violation_with_advice() {
     let agents = check("agents").on("agents/missing-section").json().fails();
     let violations = agents.require("violations").as_array().unwrap();
@@ -141,7 +140,7 @@ fn agents_missing_section_generates_violation_with_advice() {
 ///
 /// > Having a forbidden section generates a violation.
 #[test]
-#[ignore = "TODO: Phase 501 - Agents Check Implementation"]
+#[ignore = "TODO: Phase 515 - Agents Section Validation"]
 fn agents_forbidden_section_generates_violation() {
     let agents = check("agents")
         .on("agents/forbidden-section")
@@ -165,7 +164,7 @@ fn agents_forbidden_section_generates_violation() {
 ///
 /// > Markdown tables generate a violation when tables = "forbid".
 #[test]
-#[ignore = "TODO: Phase 501 - Agents Check Implementation"]
+#[ignore = "TODO: Phase 520 - Agents Content Rules"]
 fn agents_markdown_table_generates_violation() {
     let agents = check("agents").on("agents/with-table").json().fails();
     let violations = agents.require("violations").as_array().unwrap();
@@ -182,7 +181,7 @@ fn agents_markdown_table_generates_violation() {
 ///
 /// > File exceeding max_lines generates a violation.
 #[test]
-#[ignore = "TODO: Phase 501 - Agents Check Implementation"]
+#[ignore = "TODO: Phase 520 - Agents Content Rules"]
 fn agents_file_over_max_lines_generates_violation() {
     let agents = check("agents").on("agents/oversized-lines").json().fails();
     let violations = agents.require("violations").as_array().unwrap();
@@ -199,7 +198,7 @@ fn agents_file_over_max_lines_generates_violation() {
 ///
 /// > File exceeding max_tokens generates a violation.
 #[test]
-#[ignore = "TODO: Phase 501 - Agents Check Implementation"]
+#[ignore = "TODO: Phase 520 - Agents Content Rules"]
 fn agents_file_over_max_tokens_generates_violation() {
     let agents = check("agents").on("agents/oversized-tokens").json().fails();
     let violations = agents.require("violations").as_array().unwrap();
@@ -266,7 +265,6 @@ fn agents_violation_type_is_valid() {
 ///
 /// > Running with --fix syncs files from sync_source.
 #[test]
-#[ignore = "TODO: Phase 501 - Agents Check Implementation"]
 fn agents_fix_syncs_files_from_sync_source() {
     let dir = temp_project();
     std::fs::write(
