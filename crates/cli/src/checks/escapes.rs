@@ -172,6 +172,9 @@ impl Check for EscapesCheck {
             ctx.config.project.tests.clone()
         };
 
+        // Create adapter once for file classification (optimization: avoid per-file allocation)
+        let file_adapter = GenericAdapter::new(&[], &test_patterns);
+
         let mut violations = Vec::new();
         let mut metrics = EscapesMetrics::new();
         let mut limit_reached = false;
@@ -195,7 +198,7 @@ impl Check for EscapesCheck {
             let relative = file.path.strip_prefix(ctx.root).unwrap_or(&file.path);
 
             // Classify file as source or test
-            let is_test = classify_file(&file.path, ctx.root, &test_patterns) == FileKind::Test;
+            let is_test = classify_file(&file_adapter, &file.path, ctx.root) == FileKind::Test;
             let package = find_package(&file.path, ctx.root, packages);
 
             // Find matches for each pattern
@@ -499,10 +502,9 @@ fn is_comment_line(line: &str) -> bool {
         || trimmed.starts_with(";;") // Lisp
 }
 
-/// Classify file as source or test.
-fn classify_file(path: &Path, root: &Path, test_patterns: &[String]) -> FileKind {
+/// Classify file as source or test using a pre-built adapter.
+fn classify_file(adapter: &GenericAdapter, path: &Path, root: &Path) -> FileKind {
     use crate::adapter::Adapter;
-    let adapter = GenericAdapter::new(&[], test_patterns);
     let relative = path.strip_prefix(root).unwrap_or(path);
     adapter.classify(relative)
 }

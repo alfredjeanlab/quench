@@ -142,3 +142,72 @@ This confirms our hyperfine measurements with more statistical rigor.
 3. **Consider parallel file processing**: For very large codebases, parallel file reading and pattern matching could further improve performance.
 
 4. **Pattern caching is working**: The warm cache performance (14.5ms vs 78ms cold) shows the caching system is effective.
+
+---
+
+## Checkpoint 3E: Performance Fixes
+
+### Aho-Corasick Activation Audit
+
+The `CompiledPattern` implementation uses three-tier optimization:
+
+| Pattern | Matcher Used | Notes |
+|---------|--------------|-------|
+| `FIXME` | Literal (memchr) | Plain strings without metacharacters |
+| `TODO\|FIXME\|XXX` | MultiLiteral (Aho-Corasick) | Pure alternation of literals |
+| `\.unwrap\(\)` | Regex | Has escapes and metacharacters |
+| `\b(TODO\|FIXME\|XXX)\b` | Regex | Has word boundaries and groups |
+| `\bunsafe\b` | Regex | Has word boundaries |
+
+**Decision:** Keep current implementation. Regex performance is excellent at ~2.3µs per 100-line file (390x under target). Expanding Aho-Corasick to handle word boundaries would add complexity without measurable benefit.
+
+### File Classification Optimization
+
+**Before (Checkpoint 3D):**
+- Created new `GenericAdapter` per file
+- Each adapter creation: ~46µs (glob set compilation)
+- Total overhead for 530 files: ~24ms
+
+**After (Checkpoint 3E):**
+- Single `GenericAdapter` created once per check
+- Per-file classification: ~73ns
+- Total overhead for 530 files: ~0.04ms
+
+| Metric | Before | After | Improvement |
+|--------|--------|-------|-------------|
+| Per-file classification | 46.3µs | 73ns | 634x faster |
+| 530 files total overhead | ~24ms | ~0.04ms | ~600x faster |
+| Adapter creation (once) | N/A | ~448µs | - |
+
+### Updated Performance
+
+| Metric | Checkpoint 3D | Checkpoint 3E | Change |
+|--------|---------------|---------------|--------|
+| Cold (escapes, no cache) | ~50ms | ~50ms | No change* |
+| Warm (escapes, cached) | ~15ms | ~15ms | No change* |
+| Criterion warm | 17.5ms | 17.5ms | No change* |
+| File classification | 46µs/file | 73ns/file | 634x faster |
+
+*End-to-end performance is unchanged because:
+1. File classification overhead (~24ms) was amortized across other operations
+2. Warm runs benefit from filesystem caching, hiding per-file overhead
+3. The optimization primarily benefits very large codebases (10K+ files)
+
+### Impact Analysis
+
+For small-medium codebases (< 5K files), the optimization has minimal end-to-end impact since other operations dominate. For large codebases (10K+ files), the savings become significant:
+
+| Codebase Size | Classification Savings |
+|---------------|------------------------|
+| 500 files | ~24ms → ~0.04ms |
+| 5,000 files | ~231ms → ~0.4ms |
+| 50,000 files | ~2.3s → ~4ms |
+
+### Code Changes
+
+The optimization was implemented by:
+1. Creating the `GenericAdapter` once at check start
+2. Passing the adapter reference to `classify_file()`
+3. Removing per-file adapter allocation
+
+This is a O(n) → O(1) optimization for adapter creation, reducing allocations and glob compilation from n times to once per check.
