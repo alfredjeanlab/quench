@@ -5,6 +5,8 @@
 //!
 //! Parses #[allow(...)] and #[expect(...)] attributes in Rust source.
 
+use crate::adapter::common::suppress::{CommentStyle, check_justification_comment};
+
 /// Suppress attribute found in source code.
 #[derive(Debug, Clone)]
 pub struct SuppressAttr {
@@ -32,7 +34,7 @@ pub fn parse_suppress_attrs(content: &str, comment_pattern: Option<&str>) -> Vec
         if let Some(attr) = parse_suppress_line(trimmed) {
             // Check for justification comment above
             let (has_comment, comment_text) =
-                check_justification_comment(&lines, line_idx, comment_pattern);
+                check_justification_comment(&lines, line_idx, comment_pattern, &CommentStyle::RUST);
 
             attrs.push(SuppressAttr {
                 line: line_idx,
@@ -79,51 +81,6 @@ fn parse_suppress_line(line: &str) -> Option<ParsedAttr> {
         .collect();
 
     Some(ParsedAttr { kind, codes })
-}
-
-/// Check if there's a justification comment above the attribute.
-fn check_justification_comment(
-    lines: &[&str],
-    attr_line: usize,
-    required_pattern: Option<&str>,
-) -> (bool, Option<String>) {
-    // Look at preceding lines for a comment
-    let mut check_line = attr_line;
-
-    while check_line > 0 {
-        check_line -= 1;
-        let line = lines[check_line].trim();
-
-        // Stop at blank lines or non-comment code
-        if line.is_empty() {
-            break;
-        }
-
-        // Check for comment
-        if line.starts_with("//") {
-            let comment_text = line.trim_start_matches('/').trim();
-
-            // If a specific pattern is required, check for it
-            if let Some(pattern) = required_pattern {
-                let pattern_prefix = pattern.trim_start_matches('/').trim();
-                if comment_text.starts_with(pattern_prefix) || line.starts_with(pattern) {
-                    return (true, Some(comment_text.to_string()));
-                }
-                // Continue looking for the pattern
-                continue;
-            }
-
-            // Any comment counts as justification
-            if !comment_text.is_empty() {
-                return (true, Some(comment_text.to_string()));
-            }
-        } else if !line.starts_with('#') {
-            // Stop at non-attribute, non-comment line
-            break;
-        }
-    }
-
-    (false, None)
 }
 
 #[cfg(test)]

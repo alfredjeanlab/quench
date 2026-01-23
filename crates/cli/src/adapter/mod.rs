@@ -9,11 +9,14 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::sync::Arc;
 
+pub mod common;
 pub mod generic;
 pub mod glob;
 pub mod rust;
 pub mod shell;
 
+pub use common::policy::PolicyCheckResult;
+pub use common::suppress::CommentStyle;
 pub use glob::build_glob_set;
 pub use shell::{ShellAdapter, ShellcheckSuppress, parse_shellcheck_suppresses};
 
