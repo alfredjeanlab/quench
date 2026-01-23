@@ -1,5 +1,7 @@
 # Phase 101: CLOC Check - Behavioral Specs
 
+**Root Feature:** `quench-4954`
+
 ## Overview
 
 Write behavioral specifications (black-box tests) for the CLOC check based on `docs/specs/checks/cloc.md`. These specs define the expected behavior before implementation, following the "specs first" development lifecycle.
