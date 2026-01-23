@@ -6,9 +6,10 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::sync::atomic::Ordering;
 
-use globset::{Glob, GlobSet, GlobSetBuilder};
+use globset::GlobSet;
 use serde_json::json;
 
+use crate::adapter::glob::build_glob_set;
 use crate::adapter::{AdapterRegistry, FileKind, RustAdapter};
 use crate::check::{Check, CheckContext, CheckResult, Violation};
 use crate::config::CheckLevel;
@@ -305,19 +306,6 @@ impl ExcludeMatcher {
         let relative = path.strip_prefix(root).unwrap_or(path);
         self.exclude_patterns.is_match(relative)
     }
-}
-
-/// Build a GlobSet from pattern strings.
-fn build_glob_set(patterns: &[String]) -> GlobSet {
-    let mut builder = GlobSetBuilder::new();
-    for pattern in patterns {
-        if let Ok(glob) = Glob::new(pattern) {
-            builder.add(glob);
-        } else {
-            tracing::warn!("invalid glob pattern: {}", pattern);
-        }
-    }
-    builder.build().unwrap_or_else(|_| GlobSet::empty())
 }
 
 /// Check violation limit and create a violation if under the limit.

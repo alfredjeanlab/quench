@@ -9,7 +9,9 @@
 
 use std::path::Path;
 
-use globset::{Glob, GlobSet, GlobSetBuilder};
+use globset::GlobSet;
+
+use super::glob::build_glob_set;
 
 mod cfg_test;
 mod policy;
@@ -122,17 +124,6 @@ impl Adapter for RustAdapter {
     fn default_escapes(&self) -> &'static [EscapePattern] {
         RUST_ESCAPE_PATTERNS
     }
-}
-
-/// Build a GlobSet from pattern strings.
-fn build_glob_set(patterns: &[String]) -> GlobSet {
-    let mut builder = GlobSetBuilder::new();
-    for pattern in patterns {
-        if let Ok(glob) = Glob::new(pattern) {
-            builder.add(glob);
-        }
-    }
-    builder.build().unwrap_or_else(|_| GlobSet::empty())
 }
 
 /// Result of classifying lines within a single file.

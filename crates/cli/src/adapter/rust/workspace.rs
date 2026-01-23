@@ -40,9 +40,7 @@ impl CargoWorkspace {
     }
 
     fn from_toml(value: &Value, root: &Path) -> Self {
-        let workspace = value.get("workspace");
-
-        if workspace.is_none() {
+        let Some(workspace) = value.get("workspace") else {
             // Single package, not a workspace
             if let Some(pkg) = value.get("package").and_then(|p| p.get("name")) {
                 return Self {
@@ -52,12 +50,8 @@ impl CargoWorkspace {
                 };
             }
             return Self::default();
-        }
-
-        // Safe: we checked workspace.is_none() above
-        let Some(workspace) = workspace else {
-            return Self::default();
         };
+
         let members = workspace
             .get("members")
             .and_then(|m| m.as_array())
