@@ -1,5 +1,7 @@
 # Checkpoint 2A: Pre-Checkpoint Fix - CLOC Works
 
+**Root Feature:** `quench-fda7`
+
 ## Overview
 
 Verification checkpoint ensuring the CLOC check implementation passes all quality gates before proceeding. This includes formatting, linting, tests, and caching verification.
