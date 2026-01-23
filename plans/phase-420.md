@@ -1,5 +1,7 @@
 # Phase 420: Shell Adapter - Policy
 
+**Root Feature:** `quench-64f6`
+
 ## Overview
 
 Add lint policy enforcement for Shell projects, matching the pattern established for Rust. This includes:
