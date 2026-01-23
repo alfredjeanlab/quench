@@ -90,6 +90,27 @@ mod tests {
 }                                     // ← test LOC ends
 ```
 
+**External test modules** (`mod tests;` declarations):
+
+External test modules are detected via file patterns, not by parsing the `mod` declaration. The default test patterns are:
+
+```toml
+tests = ["tests/**", "test/**/*.rs", "*_test.rs", "*_tests.rs"]
+```
+
+Example using the sibling `_tests.rs` convention:
+
+```rust
+// src/lib.rs
+#[cfg(test)]
+#[path = "lib_tests.rs"]
+mod tests;  // Points to src/lib_tests.rs → matched by *_tests.rs
+```
+
+Similarly:
+- `tests/*.rs` → matched by `tests/**` pattern
+- `src/foo_tests.rs` → matched by `*_tests.rs` pattern
+
 For test correlation, changes to `#[cfg(test)]` blocks satisfy the test requirement.
 
 ## Default Escape Patterns

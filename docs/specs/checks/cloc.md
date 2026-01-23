@@ -13,31 +13,42 @@ Ratio enforcement is left to CI configuration or future ratcheting features.
 
 ## Counting Rules
 
-### What Counts as a Line
+### Metrics Output
 
-A line is counted if it contains at least one non-whitespace character.
+The `source_lines` and `test_lines` metrics count **non-blank lines** (lines with at least one non-whitespace character). This provides a meaningful measure of code size.
 
-**Counted**:
-```rust
-fn main() {           // counted
-    println!("hi");   // counted
-}                     // counted
+```json
+{"metrics": {"source_lines": 786, "test_lines": 142, "ratio": 5.53}}
 ```
 
-**Not counted**:
-```rust
-                      // blank - not counted
+### File Size Limits
 
-fn main() {
-                      // blank - not counted
-}
+File size violations report both total and non-blank line counts:
+
 ```
+file.rs: file_too_large (lines: 899 vs 750)
+```
+
+JSON violations include both for convenience:
+```json
+{"file": "file.rs", "type": "file_too_large", "value": 899, "threshold": 750, "lines": 899, "nonblank": 786}
+```
+
+### Metric Configuration
+
+Configure which metric to check against `max_lines` via `metric` (default: `lines`):
+
+```toml
+[check.cloc]
+metric = "lines"     # Total lines (default, matches wc -l)
+# metric = "nonblank"  # Non-blank lines only
+```
+
+Using `lines` (total) makes violations easy to verify with `wc -l`.
 
 ### Comments
 
-Comments are counted as lines (they're part of the code).
-
-Future consideration: separate comment LOC metric.
+Comments are counted in both metrics (they're part of the code).
 
 ## Source vs Test Separation
 

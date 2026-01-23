@@ -5,7 +5,7 @@
 
 use std::collections::HashMap;
 use std::fs::{File, Metadata};
-use std::io::{BufReader, BufWriter};
+use std::io::{BufReader, BufWriter, Write};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::SystemTime;
@@ -17,7 +17,7 @@ use crate::check::Violation;
 
 /// Cache version for invalidation on format changes.
 /// Incremented when check logic changes (e.g., counting nonblank vs all lines).
-pub const CACHE_VERSION: u32 = 2;
+pub const CACHE_VERSION: u32 = 3;
 
 /// Cache file name within .quench directory.
 pub const CACHE_FILE_NAME: &str = "cache.bin";
@@ -107,6 +107,10 @@ pub struct CachedViolation {
     pub threshold: Option<i64>,
     /// Pattern name that matched (for escape violations).
     pub pattern: Option<String>,
+    /// Total line count (for cloc violations).
+    pub lines: Option<i64>,
+    /// Non-blank line count (for cloc violations).
+    pub nonblank: Option<i64>,
 }
 
 impl CachedViolation {
@@ -120,6 +124,8 @@ impl CachedViolation {
             value: v.value,
             threshold: v.threshold,
             pattern: v.pattern.clone(),
+            lines: v.lines,
+            nonblank: v.nonblank,
         }
     }
 
@@ -133,6 +139,8 @@ impl CachedViolation {
             value: self.value,
             threshold: self.threshold,
             pattern: self.pattern.clone(),
+            lines: self.lines,
+            nonblank: self.nonblank,
         }
     }
 }
@@ -250,8 +258,9 @@ impl FileCache {
         // Write atomically via temp file
         let temp_path = path.with_extension("tmp");
         let file = File::create(&temp_path)?;
-        let writer = BufWriter::new(file);
-        bincode::serialize_into(writer, &cache)?;
+        let mut writer = BufWriter::new(file);
+        bincode::serialize_into(&mut writer, &cache)?;
+        writer.flush()?;
         std::fs::rename(&temp_path, path)?;
         Ok(())
     }

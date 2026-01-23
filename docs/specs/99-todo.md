@@ -77,6 +77,21 @@ The `typescript` adapter will include build/bundle metrics:
 
 See [checks/build.md](checks/build.md) for the build check specification.
 
+## Spec Link Validation
+
+Configurable validation for spec references in code comments:
+
+```rust
+/// Spec: docs/specs/checks/cloc.md#file-size-limits
+```
+
+Would verify:
+- File exists
+- Anchor (heading) exists in the markdown file
+- Report stale references when specs are reorganized
+
+Could be a new check (`docs` or `specs`) or integrated into existing tooling.
+
 ## Notes from Interview
 
 - Primary users are AI agents ("landing the plane")

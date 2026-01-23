@@ -284,6 +284,17 @@ pub enum EscapeAction {
     Count,
 }
 
+/// Which line metric to use for size thresholds.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum LineMetric {
+    /// Total lines (matches `wc -l`).
+    #[default]
+    Lines,
+    /// Non-blank lines only.
+    Nonblank,
+}
+
 /// Cloc check configuration.
 #[derive(Debug, Deserialize)]
 pub struct ClocConfig {
@@ -294,6 +305,12 @@ pub struct ClocConfig {
     /// Maximum lines per test file (default: 1100).
     #[serde(default = "ClocConfig::default_max_lines_test")]
     pub max_lines_test: usize,
+
+    /// Which line metric to compare against max_lines (default: lines).
+    /// - "lines": total lines (matches `wc -l`)
+    /// - "nonblank": non-blank lines only
+    #[serde(default)]
+    pub metric: LineMetric,
 
     /// Check level: error, warn, or off.
     #[serde(default)]
@@ -325,6 +342,7 @@ impl Default for ClocConfig {
         Self {
             max_lines: Self::default_max_lines(),
             max_lines_test: Self::default_max_lines_test(),
+            metric: LineMetric::default(),
             check: CheckLevel::default(),
             test_patterns: Self::default_test_patterns(),
             exclude: Vec::new(),
@@ -687,9 +705,15 @@ pub fn parse_with_warnings(content: &str, path: &Path) -> Result<Config> {
                         .map(String::from)
                         .unwrap_or_else(ClocConfig::default_advice_test);
 
+                    let metric = match cloc_table.get("metric").and_then(|v| v.as_str()) {
+                        Some("nonblank") => LineMetric::Nonblank,
+                        _ => LineMetric::Lines,
+                    };
+
                     ClocConfig {
                         max_lines,
                         max_lines_test,
+                        metric,
                         check,
                         test_patterns,
                         exclude,

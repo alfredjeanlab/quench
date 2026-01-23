@@ -17,9 +17,10 @@ use crate::prelude::*;
 // LOC COUNTING SPECS
 // =============================================================================
 
-/// Spec: docs/specs/checks/cloc.md#what-counts-as-a-line
+/// Spec: docs/specs/checks/cloc.md#metrics-output
 ///
-/// > A line is counted if it contains at least one non-whitespace character.
+/// > The source_lines and test_lines metrics count non-blank lines
+/// > (lines with at least one non-whitespace character).
 #[test]
 fn cloc_counts_nonblank_lines_as_loc() {
     let cloc = check("cloc").on("cloc/basic").json().passes();
@@ -32,9 +33,9 @@ fn cloc_counts_nonblank_lines_as_loc() {
     );
 }
 
-/// Spec: docs/specs/checks/cloc.md#what-counts-as-a-line
+/// Spec: docs/specs/checks/cloc.md#metrics-output
 ///
-/// > Blank lines (whitespace-only) are not counted.
+/// > The source_lines and test_lines metrics count non-blank lines
 #[test]
 fn cloc_does_not_count_blank_lines() {
     let cloc = check("cloc").on("cloc/basic").json().passes();
@@ -137,7 +138,8 @@ fn cloc_json_omits_violations_when_none() {
 
 /// Spec: docs/specs/checks/cloc.md#file-size-limits
 ///
-/// > violation.type is always "file_too_large"
+/// > violation.type is "file_too_large" (for metric = "lines", the default)
+/// > or "file_too_large_nonblank" (for metric = "nonblank")
 #[test]
 fn cloc_violation_type_is_file_too_large() {
     let cloc = check("cloc").on("cloc/oversized-source").json().fails();
@@ -147,7 +149,7 @@ fn cloc_violation_type_is_file_too_large() {
         assert_eq!(
             violation.get("type").and_then(|v| v.as_str()),
             Some("file_too_large"),
-            "all cloc violations should be file_too_large"
+            "default metric=lines uses file_too_large type"
         );
     }
 }
@@ -450,5 +452,68 @@ fn cloc_json_violation_structure_complete() {
         assert!(violation.get("value").is_some(), "missing value");
         assert!(violation.get("threshold").is_some(), "missing threshold");
         assert!(violation.get("advice").is_some(), "missing advice");
+        // Both line counts included for convenience
+        assert!(violation.get("lines").is_some(), "missing lines");
+        assert!(violation.get("nonblank").is_some(), "missing nonblank");
     }
+}
+
+// =============================================================================
+// METRIC CONFIGURATION SPECS
+// =============================================================================
+
+/// Spec: docs/specs/checks/cloc.md#metric-configuration
+///
+/// > Configure which metric to check via `metric` (default: `lines`)
+#[test]
+fn cloc_default_metric_is_total_lines() {
+    // Default config uses total lines (matches wc -l)
+    let cloc = check("cloc").on("cloc/oversized-source").json().fails();
+    let violations = cloc.require("violations").as_array().unwrap();
+    let v = &violations[0];
+
+    // value should equal lines (total), not nonblank
+    let value = v.get("value").and_then(|v| v.as_i64()).unwrap();
+    let lines = v.get("lines").and_then(|v| v.as_i64()).unwrap();
+    assert_eq!(value, lines, "default metric should use total lines");
+}
+
+/// Spec: docs/specs/checks/cloc.md#metric-configuration
+///
+/// > metric = "nonblank" uses non-blank lines for threshold
+#[test]
+fn cloc_metric_nonblank_uses_nonblank_for_threshold() {
+    let dir = temp_project();
+    std::fs::write(
+        dir.path().join("quench.toml"),
+        r#"
+version = 1
+[check.cloc]
+max_lines = 5
+metric = "nonblank"
+"#,
+    )
+    .unwrap();
+    // Create a file with 10 total lines but only 6 non-blank
+    std::fs::create_dir_all(dir.path().join("src")).unwrap();
+    std::fs::write(
+        dir.path().join("src/lib.rs"),
+        "fn a() {}\n\nfn b() {}\n\nfn c() {}\n\nfn d() {}\n\nfn e() {}\n\nfn f() {}\n",
+    )
+    .unwrap();
+
+    let cloc = check("cloc").pwd(dir.path()).json().fails();
+    let violations = cloc.require("violations").as_array().unwrap();
+    let v = &violations[0];
+
+    // violation type should be file_too_large_nonblank
+    assert_eq!(
+        v.get("type").and_then(|v| v.as_str()),
+        Some("file_too_large_nonblank")
+    );
+
+    // value should equal nonblank, not total lines
+    let value = v.get("value").and_then(|v| v.as_i64()).unwrap();
+    let nonblank = v.get("nonblank").and_then(|v| v.as_i64()).unwrap();
+    assert_eq!(value, nonblank, "metric=nonblank should use nonblank for value");
 }

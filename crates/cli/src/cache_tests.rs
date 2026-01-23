@@ -48,6 +48,8 @@ fn cache_insert_and_lookup_hit() {
         value: None,
         threshold: None,
         pattern: None,
+        lines: None,
+        nonblank: None,
     }];
 
     cache.insert(path.clone(), key.clone(), violations.clone());
@@ -128,6 +130,8 @@ fn cache_persist_and_restore() {
             value: Some(100),
             threshold: Some(50),
             pattern: None,
+            lines: None,
+            nonblank: None,
         }],
     );
 

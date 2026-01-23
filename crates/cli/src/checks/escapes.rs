@@ -406,6 +406,8 @@ fn create_threshold_violation(
         value: Some(count as i64),
         threshold: Some(threshold as i64),
         pattern: Some(pattern_name.to_string()),
+        lines: None,
+        nonblank: None,
     })
 }
 
@@ -739,6 +741,8 @@ fn check_lint_policy(ctx: &CheckContext, rust_config: &RustConfig) -> Vec<Violat
             value: None,
             threshold: None,
             pattern: Some("lint_changes = standalone".to_string()),
+            lines: None,
+            nonblank: None,
         });
     }
 

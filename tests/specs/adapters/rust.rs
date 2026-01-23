@@ -170,6 +170,28 @@ mod tests {
     assert_eq!(test_lines, 0, "should not split #[cfg(test)] when disabled");
 }
 
+/// Spec: docs/specs/langs/rust.md#test-code-detection
+///
+/// > External test modules are detected via file patterns
+/// > `tests/*.rs` → matched by `tests/**` pattern
+#[test]
+fn rust_adapter_external_test_modules_detected_via_file_patterns() {
+    // unwrap-test fixture has tests/test.rs (external test module)
+    let cloc = check("cloc").on("rust/unwrap-test").json().passes();
+    let metrics = cloc.require("metrics");
+
+    let test_lines = metrics
+        .get("test_lines")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(0);
+
+    // tests/test.rs should be counted as test LOC via tests/** pattern
+    assert!(
+        test_lines > 0,
+        "external test files in tests/ should be counted as test LOC"
+    );
+}
+
 // =============================================================================
 // ESCAPE PATTERN SPECS
 // =============================================================================

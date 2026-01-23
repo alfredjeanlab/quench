@@ -79,6 +79,14 @@ pub struct Violation {
     /// Pattern name that matched (for escape violations).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub pattern: Option<String>,
+
+    /// Total line count (for cloc violations, always included for convenience).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub lines: Option<i64>,
+
+    /// Non-blank line count (for cloc violations, always included for convenience).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub nonblank: Option<i64>,
 }
 
 impl Violation {
@@ -97,6 +105,8 @@ impl Violation {
             value: None,
             threshold: None,
             pattern: None,
+            lines: None,
+            nonblank: None,
         }
     }
 
@@ -114,6 +124,8 @@ impl Violation {
             value: None,
             threshold: None,
             pattern: None,
+            lines: None,
+            nonblank: None,
         }
     }
 
@@ -121,6 +133,13 @@ impl Violation {
     pub fn with_threshold(mut self, value: i64, threshold: i64) -> Self {
         self.value = Some(value);
         self.threshold = Some(threshold);
+        self
+    }
+
+    /// Add line counts for cloc violations (both always included in JSON for convenience).
+    pub fn with_line_counts(mut self, lines: i64, nonblank: i64) -> Self {
+        self.lines = Some(lines);
+        self.nonblank = Some(nonblank);
         self
     }
 

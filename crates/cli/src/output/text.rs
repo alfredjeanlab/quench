@@ -115,7 +115,13 @@ impl TextFormatter {
         // Format based on violation type and available fields
         let base = match (v.value, v.threshold) {
             (Some(val), Some(thresh)) => {
-                format!("{} ({} vs {})", v.violation_type, val, thresh)
+                // Use labeled format for cloc line violations
+                let label = match v.violation_type.as_str() {
+                    "file_too_large" => "lines: ",
+                    "file_too_large_nonblank" => "nonblank: ",
+                    _ => "",
+                };
+                format!("{} ({}{} vs {})", v.violation_type, label, val, thresh)
             }
             _ => v.violation_type.clone(),
         };

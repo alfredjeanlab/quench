@@ -12,7 +12,7 @@ use serde_json::json;
 use crate::adapter::glob::build_glob_set;
 use crate::adapter::{AdapterRegistry, FileKind, RustAdapter};
 use crate::check::{Check, CheckContext, CheckResult, Violation};
-use crate::config::CheckLevel;
+use crate::config::{CheckLevel, LineMetric};
 
 /// The cloc check validates file size limits.
 pub struct ClocCheck;
@@ -69,7 +69,8 @@ impl Check for ClocCheck {
 
             match count_file_metrics(&file.path) {
                 Ok(metrics) => {
-                    let line_count = metrics.nonblank_lines;
+                    let total_lines = metrics.lines;
+                    let nonblank_lines = metrics.nonblank_lines;
                     let token_count = metrics.tokens;
                     let relative_path = file.path.strip_prefix(ctx.root).unwrap_or(&file.path);
                     let file_kind = registry.classify(relative_path);
@@ -106,9 +107,9 @@ impl Check for ClocCheck {
                             // Use whole-file classification
                             let is_test = file_kind == FileKind::Test;
                             if is_test {
-                                (0, line_count, true)
+                                (0, nonblank_lines, true)
                             } else {
-                                (line_count, 0, false)
+                                (nonblank_lines, 0, false)
                             }
                         };
 
@@ -119,11 +120,11 @@ impl Check for ClocCheck {
                     // File counts: count file in source if any source lines, test if any test lines
                     if file_source_lines > 0 {
                         source_files += 1;
-                        source_tokens += token_count * file_source_lines / line_count.max(1);
+                        source_tokens += token_count * file_source_lines / nonblank_lines.max(1);
                     }
                     if file_test_lines > 0 {
                         test_files += 1;
-                        test_tokens += token_count * file_test_lines / line_count.max(1);
+                        test_tokens += token_count * file_test_lines / nonblank_lines.max(1);
                     }
 
                     // Accumulate per-package metrics
@@ -136,11 +137,11 @@ impl Check for ClocCheck {
                         if file_source_lines > 0 {
                             pkg.source_files += 1;
                             pkg.source_tokens +=
-                                token_count * file_source_lines / line_count.max(1);
+                                token_count * file_source_lines / nonblank_lines.max(1);
                         }
                         if file_test_lines > 0 {
                             pkg.test_files += 1;
-                            pkg.test_tokens += token_count * file_test_lines / line_count.max(1);
+                            pkg.test_tokens += token_count * file_test_lines / nonblank_lines.max(1);
                         }
                     }
 
@@ -153,16 +154,24 @@ impl Check for ClocCheck {
                             cloc_config.max_lines
                         };
 
-                        // Use total line count for size limit check
+                        // Use configured line metric for size limit check
+                        let line_count = match cloc_config.metric {
+                            LineMetric::Lines => total_lines,
+                            LineMetric::Nonblank => nonblank_lines,
+                        };
+
                         if line_count > max_lines {
-                            match try_create_violation(
+                            match try_create_line_violation(
                                 ctx,
                                 &file.path,
                                 is_test,
                                 &cloc_config.advice,
                                 &cloc_config.advice_test,
+                                cloc_config.metric,
                                 line_count,
                                 max_lines,
+                                total_lines,
+                                nonblank_lines,
                             ) {
                                 Some(v) => violations.push(v),
                                 None => break,
@@ -173,7 +182,7 @@ impl Check for ClocCheck {
                         if let Some(max_tokens) = cloc_config.max_tokens
                             && token_count > max_tokens
                         {
-                            match try_create_violation(
+                            match try_create_token_violation(
                                 ctx,
                                 &file.path,
                                 is_test,
@@ -308,9 +317,46 @@ impl ExcludeMatcher {
     }
 }
 
-/// Check violation limit and create a violation if under the limit.
+/// Check violation limit and create a line count violation if under the limit.
 /// Returns `Some(violation)` if under limit, `None` if limit exceeded.
-fn try_create_violation(
+fn try_create_line_violation(
+    ctx: &CheckContext,
+    file_path: &Path,
+    is_test: bool,
+    advice: &str,
+    advice_test: &str,
+    metric: LineMetric,
+    value: usize,
+    threshold: usize,
+    total_lines: usize,
+    nonblank_lines: usize,
+) -> Option<Violation> {
+    let current = ctx.violation_count.fetch_add(1, Ordering::SeqCst);
+    if let Some(limit) = ctx.limit
+        && current >= limit
+    {
+        return None;
+    }
+
+    let display_path = file_path.strip_prefix(ctx.root).unwrap_or(file_path);
+    let advice = if is_test { advice_test } else { advice };
+
+    // Use violation type that indicates which metric was checked
+    let violation_type = match metric {
+        LineMetric::Lines => "file_too_large",
+        LineMetric::Nonblank => "file_too_large_nonblank",
+    };
+
+    Some(
+        Violation::file_only(display_path, violation_type, advice)
+            .with_threshold(value as i64, threshold as i64)
+            .with_line_counts(total_lines as i64, nonblank_lines as i64),
+    )
+}
+
+/// Check violation limit and create a token count violation if under the limit.
+/// Returns `Some(violation)` if under limit, `None` if limit exceeded.
+fn try_create_token_violation(
     ctx: &CheckContext,
     file_path: &Path,
     is_test: bool,
@@ -369,23 +415,29 @@ fn is_text_file(path: &Path) -> bool {
 
 /// Metrics computed from a single file read.
 struct FileMetrics {
+    /// Total lines (matches `wc -l`), used for size limit thresholds.
+    lines: usize,
+    /// Non-blank lines (lines with at least one non-whitespace character).
     nonblank_lines: usize,
     tokens: usize,
 }
 
-/// Count non-blank lines and tokens from a single file read.
-/// A line is counted if it contains at least one non-whitespace character.
-/// Tokens use chars/4 approximation (standard LLM heuristic).
+/// Count lines and tokens from a single file read.
+/// - `lines`: total line count (matches `wc -l`)
+/// - `nonblank_lines`: lines with at least one non-whitespace character
+/// - `tokens`: chars/4 approximation (standard LLM heuristic)
 fn count_file_metrics(path: &Path) -> std::io::Result<FileMetrics> {
     let content = std::fs::read(path)?;
     // Try UTF-8, fall back to lossy conversion for encoding issues
     let text = String::from_utf8(content)
         .unwrap_or_else(|e| String::from_utf8_lossy(e.as_bytes()).into_owned());
 
+    let lines = text.lines().count();
     let nonblank_lines = text.lines().filter(|l| !l.trim().is_empty()).count();
     let tokens = text.chars().count() / 4;
 
     Ok(FileMetrics {
+        lines,
         nonblank_lines,
         tokens,
     })

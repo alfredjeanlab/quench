@@ -125,6 +125,14 @@
           "type": "number",
           "description": "Threshold that was exceeded"
         },
+        "lines": {
+          "type": "number",
+          "description": "Total line count (for cloc violations)"
+        },
+        "nonblank": {
+          "type": "number",
+          "description": "Non-blank line count (for cloc violations)"
+        },
         "target": {
           "type": "string",
           "description": "Build target name (for build violations)"
