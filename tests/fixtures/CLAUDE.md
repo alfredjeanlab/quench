@@ -9,6 +9,8 @@ Test fixtures for quench behavioral specs. Each fixture is a self-contained mini
 | `minimal/` | Empty project, no config | Default behavior |
 | `rust-simple/` | Small Rust library | cloc, tests |
 | `rust-workspace/` | Multi-package workspace | Package metrics |
+| `go-simple/` | Small Go project | cloc, tests |
+| `go-multi/` | Multi-package Go project | Package metrics |
 | `shell-scripts/` | Shell scripts with bats | Shell escapes |
 | `mixed/` | Rust CLI + shell scripts | Multi-language |
 | `violations/` | Intentional violations | All checks |
@@ -62,6 +64,26 @@ Multi-package Rust workspace for testing package-level metrics and breakdown.
 - Integration tests at workspace root
 - Package-specific metrics collection
 
+### go-simple/
+
+A minimal Go project with idiomatic structure. Good baseline for testing Go detection and default behavior.
+
+- `go.mod` with module declaration
+- `cmd/app/main.go` with main function
+- `pkg/math/` with exported package and tests
+- `internal/config/` with internal package
+- Under 750 lines (passes cloc)
+- Proper test coverage (passes tests)
+
+### go-multi/
+
+Multi-package Go project for testing package-level metrics and breakdown.
+
+- Module with multiple binaries (`cmd/server/`, `cmd/cli/`)
+- Reusable packages in `pkg/api/` and `pkg/storage/`
+- Internal core package with tests
+- Package enumeration testing
+
 ### shell-scripts/
 
 Shell-only project for testing shell-specific checks.
@@ -94,6 +116,9 @@ Project with intentional violations for every check type. Essential for testing 
 | agents | `CLAUDE.md` | Table, missing "Landing the Plane" |
 | docs | `docs/specs/CLAUDE.md` | Broken TOC path |
 | docs | `docs/specs/broken-link.md` | Broken markdown link |
+| escapes | `go/unsafe.go` | `unsafe.Pointer` without SAFETY |
+| escapes | `go/linkname.go` | `//go:linkname` without LINKNAME |
+| suppress | `go/nolint.go` | `//nolint` without justification |
 
 ### docs-project/
 

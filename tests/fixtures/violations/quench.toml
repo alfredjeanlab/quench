@@ -23,6 +23,24 @@ pattern = "unsafe\\s*\\{"
 action = "comment"
 comment = "// SAFETY:"
 
+# Go-specific escape patterns
+[[check.escapes.patterns]]
+name = "go_unsafe_pointer"
+pattern = "unsafe\\.Pointer"
+action = "comment"
+comment = "// SAFETY:"
+source = ["**/*.go"]
+
+[[check.escapes.patterns]]
+name = "go_linkname"
+pattern = "//go:linkname"
+action = "comment"
+comment = "// LINKNAME:"
+source = ["**/*.go"]
+
+[golang.suppress]
+check = "comment"
+
 [check.agents]
 check = "error"
 required = ["CLAUDE.md"]
