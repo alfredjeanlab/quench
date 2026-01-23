@@ -1,0 +1,4 @@
+version = 1
+
+[check.agents]
+sections.forbid = ["Secrets", "API Keys"]

@@ -22,6 +22,9 @@ mod checks_cloc;
 #[path = "specs/checks/escapes.rs"]
 mod checks_escapes;
 
+#[path = "specs/checks/agents.rs"]
+mod checks_agents;
+
 // output/
 #[path = "specs/output/format.rs"]
 mod output_format;

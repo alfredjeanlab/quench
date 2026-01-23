@@ -1,0 +1,7 @@
+version = 1
+
+[check.agents]
+files = ["CLAUDE.md", ".cursorrules"]
+required = ["CLAUDE.md"]
+sync = true
+sync_source = "CLAUDE.md"
