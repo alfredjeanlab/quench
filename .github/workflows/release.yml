@@ -1,0 +1,107 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.name }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            name: quench-linux-x86_64
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            name: quench-macos-x86_64
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            name: quench-macos-aarch64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - name: Build
+        run: cargo build --release --target ${{ matrix.target }}
+      - name: Package
+        run: |
+          cd target/${{ matrix.target }}/release
+          tar czf ../../../${{ matrix.name }}.tar.gz quench
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: ${{ matrix.name }}.tar.gz
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract version
+        id: version
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+
+      - name: Create source tarball
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          mkdir -p dist
+          git archive --format=tar.gz --prefix=quench-${VERSION}/ -o "dist/quench-${VERSION}.tar.gz" HEAD
+          echo "Created dist/quench-${VERSION}.tar.gz"
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: Flatten artifacts
+        run: |
+          cd dist
+          mv quench-linux-x86_64/quench-linux-x86_64.tar.gz .
+          mv quench-macos-x86_64/quench-macos-x86_64.tar.gz .
+          mv quench-macos-aarch64/quench-macos-aarch64.tar.gz .
+          rmdir quench-linux-x86_64 quench-macos-x86_64 quench-macos-aarch64
+
+      - name: Generate checksums
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          cd dist
+          sha256sum quench-${VERSION}.tar.gz > quench-${VERSION}.tar.gz.sha256
+          sha256sum quench-linux-x86_64.tar.gz > quench-linux-x86_64.tar.gz.sha256
+          sha256sum quench-macos-x86_64.tar.gz > quench-macos-x86_64.tar.gz.sha256
+          sha256sum quench-macos-aarch64.tar.gz > quench-macos-aarch64.tar.gz.sha256
+          echo "Checksums:"
+          cat *.sha256
+
+      - name: Prepare install script
+        run: |
+          cp install.sh dist/install.sh
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: quench ${{ steps.version.outputs.tag }}
+          draft: false
+          prerelease: ${{ contains(steps.version.outputs.tag, '-') }}
+          generate_release_notes: true
+          files: |
+            dist/quench-${{ steps.version.outputs.version }}.tar.gz
+            dist/quench-${{ steps.version.outputs.version }}.tar.gz.sha256
+            dist/quench-linux-x86_64.tar.gz
+            dist/quench-linux-x86_64.tar.gz.sha256
+            dist/quench-macos-x86_64.tar.gz
+            dist/quench-macos-x86_64.tar.gz.sha256
+            dist/quench-macos-aarch64.tar.gz
+            dist/quench-macos-aarch64.tar.gz.sha256
+            dist/install.sh
