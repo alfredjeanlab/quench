@@ -558,3 +558,214 @@ eval "$CMD"
         .fails()
         .stdout_has("missing_comment");
 }
+
+// =============================================================================
+// PER-LINT PATTERN SPECS
+// =============================================================================
+
+/// Spec: Per-lint comment pattern for Rust suppress
+///
+/// > Per-lint-code comment patterns override global pattern.
+/// > #[allow(dead_code)] with per-lint pattern requires that specific pattern.
+#[test]
+fn suppress_per_lint_pattern_respected_for_rust() {
+    let dir = temp_project();
+    std::fs::write(
+        dir.path().join("quench.toml"),
+        r#"
+version = 1
+
+[rust.suppress]
+check = "comment"
+
+[rust.suppress.source.dead_code]
+comment = "// NOTE(compat):"
+"#,
+    )
+    .unwrap();
+    std::fs::write(
+        dir.path().join("Cargo.toml"),
+        "[package]\nname = \"test\"\nversion = \"0.1.0\"",
+    )
+    .unwrap();
+    std::fs::create_dir_all(dir.path().join("src")).unwrap();
+    // Using per-lint pattern should pass
+    std::fs::write(
+        dir.path().join("src/lib.rs"),
+        "// NOTE(compat): legacy API\n#[allow(dead_code)]\nfn old_function() {}",
+    )
+    .unwrap();
+
+    check("escapes").pwd(dir.path()).passes();
+}
+
+/// Spec: Per-lint comment pattern rejection
+///
+/// > When per-lint pattern is configured but comment doesn't match, should fail.
+#[test]
+fn suppress_per_lint_pattern_wrong_comment_fails() {
+    let dir = temp_project();
+    std::fs::write(
+        dir.path().join("quench.toml"),
+        r#"
+version = 1
+
+[rust.suppress]
+check = "comment"
+
+[rust.suppress.source.dead_code]
+comment = "// NOTE(compat):"
+"#,
+    )
+    .unwrap();
+    std::fs::write(
+        dir.path().join("Cargo.toml"),
+        "[package]\nname = \"test\"\nversion = \"0.1.0\"",
+    )
+    .unwrap();
+    std::fs::create_dir_all(dir.path().join("src")).unwrap();
+    // Using wrong pattern should fail
+    std::fs::write(
+        dir.path().join("src/lib.rs"),
+        "// Some other comment\n#[allow(dead_code)]\nfn old_function() {}",
+    )
+    .unwrap();
+
+    let escapes = check("escapes").pwd(dir.path()).json().fails();
+    let violations = escapes.require("violations").as_array().unwrap();
+    assert!(
+        violations.iter().any(|v| {
+            v.get("type").and_then(|t| t.as_str()) == Some("suppress_missing_comment")
+        }),
+        "should have suppress_missing_comment violation"
+    );
+    // Error message should reference the per-lint pattern
+    let advice = violations[0]
+        .get("advice")
+        .and_then(|a| a.as_str())
+        .unwrap();
+    assert!(
+        advice.contains("NOTE(compat)"),
+        "advice should mention per-lint pattern"
+    );
+}
+
+/// Spec: Fallback to global pattern when no per-lint pattern
+///
+/// > When no per-lint pattern is configured for a lint code, fall back to global.
+#[test]
+fn suppress_fallback_to_global_pattern() {
+    let dir = temp_project();
+    std::fs::write(
+        dir.path().join("quench.toml"),
+        r#"
+version = 1
+
+[rust.suppress]
+check = "comment"
+comment = "// REASON:"
+
+[rust.suppress.source.dead_code]
+comment = "// NOTE(compat):"
+"#,
+    )
+    .unwrap();
+    std::fs::write(
+        dir.path().join("Cargo.toml"),
+        "[package]\nname = \"test\"\nversion = \"0.1.0\"",
+    )
+    .unwrap();
+    std::fs::create_dir_all(dir.path().join("src")).unwrap();
+    // unused_variables has no per-lint pattern, should use global
+    std::fs::write(
+        dir.path().join("src/lib.rs"),
+        "// REASON: needed for testing\n#[allow(unused_variables)]\nfn test_fn() { let x = 1; }",
+    )
+    .unwrap();
+
+    check("escapes").pwd(dir.path()).passes();
+}
+
+/// Spec: Per-lint pattern for Shell suppress
+///
+/// > Shell shellcheck directives also support per-lint patterns.
+#[test]
+fn suppress_per_lint_pattern_respected_for_shell() {
+    let dir = temp_project();
+    std::fs::write(
+        dir.path().join("quench.toml"),
+        r##"
+version = 1
+
+[shell.suppress]
+check = "comment"
+
+[shell.suppress.source.SC2034]
+comment = "# UNUSED_VAR:"
+"##,
+    )
+    .unwrap();
+    std::fs::create_dir_all(dir.path().join("scripts")).unwrap();
+    // Using per-lint pattern should pass
+    std::fs::write(
+        dir.path().join("scripts/build.sh"),
+        r#"#!/bin/bash
+# UNUSED_VAR: set by external caller
+# shellcheck disable=SC2034
+MY_VAR="value"
+"#,
+    )
+    .unwrap();
+
+    check("escapes").pwd(dir.path()).passes();
+}
+
+/// Spec: Per-lint pattern wrong comment for Shell
+///
+/// > Shell per-lint pattern should reject wrong comment patterns.
+#[test]
+fn suppress_per_lint_pattern_wrong_comment_fails_shell() {
+    let dir = temp_project();
+    std::fs::write(
+        dir.path().join("quench.toml"),
+        r##"
+version = 1
+
+[shell.suppress]
+check = "comment"
+
+[shell.suppress.source.SC2034]
+comment = "# UNUSED_VAR:"
+"##,
+    )
+    .unwrap();
+    std::fs::create_dir_all(dir.path().join("scripts")).unwrap();
+    // Using wrong pattern should fail
+    std::fs::write(
+        dir.path().join("scripts/build.sh"),
+        r#"#!/bin/bash
+# Some other reason
+# shellcheck disable=SC2034
+MY_VAR="value"
+"#,
+    )
+    .unwrap();
+
+    let escapes = check("escapes").pwd(dir.path()).json().fails();
+    let violations = escapes.require("violations").as_array().unwrap();
+    assert!(
+        violations.iter().any(|v| {
+            v.get("type").and_then(|t| t.as_str()) == Some("shellcheck_missing_comment")
+        }),
+        "should have shellcheck_missing_comment violation"
+    );
+    // Error message should reference the per-lint pattern
+    let advice = violations[0]
+        .get("advice")
+        .and_then(|a| a.as_str())
+        .unwrap();
+    assert!(
+        advice.contains("UNUSED_VAR"),
+        "advice should mention per-lint pattern"
+    );
+}

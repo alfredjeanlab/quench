@@ -341,3 +341,101 @@ fn shell_default_test_patterns() {
     assert!(config.shell.tests.contains(&"tests/**/*.bats".to_string()));
     assert!(config.shell.tests.contains(&"**/*_test.sh".to_string()));
 }
+
+// Per-lint pattern tests
+
+#[test]
+fn rust_suppress_per_lint_patterns() {
+    let path = PathBuf::from("quench.toml");
+    let content = r#"
+version = 1
+
+[rust.suppress.source.dead_code]
+comment = "// NOTE(compat):"
+
+[rust.suppress.source.unused_variables]
+comment = "// KEEP:"
+"#;
+    let config = parse_with_warnings(content, &path).unwrap();
+    assert_eq!(
+        config.rust.suppress.source.patterns.get("dead_code"),
+        Some(&"// NOTE(compat):".to_string())
+    );
+    assert_eq!(
+        config.rust.suppress.source.patterns.get("unused_variables"),
+        Some(&"// KEEP:".to_string())
+    );
+}
+
+#[test]
+fn shell_suppress_per_lint_patterns() {
+    let path = PathBuf::from("quench.toml");
+    let content = r##"
+version = 1
+
+[shell.suppress.source.SC2034]
+comment = "# UNUSED_VAR:"
+
+[shell.suppress.source.SC2086]
+comment = "# UNQUOTED_OK:"
+"##;
+    let config = parse_with_warnings(content, &path).unwrap();
+    assert_eq!(
+        config.shell.suppress.source.patterns.get("SC2034"),
+        Some(&"# UNUSED_VAR:".to_string())
+    );
+    assert_eq!(
+        config.shell.suppress.source.patterns.get("SC2086"),
+        Some(&"# UNQUOTED_OK:".to_string())
+    );
+}
+
+#[test]
+fn suppress_patterns_empty_when_no_lint_sections() {
+    let path = PathBuf::from("quench.toml");
+    let content = r#"
+version = 1
+
+[rust.suppress.source]
+allow = ["dead_code"]
+forbid = ["unsafe_code"]
+"#;
+    let config = parse_with_warnings(content, &path).unwrap();
+    assert!(config.rust.suppress.source.patterns.is_empty());
+}
+
+#[test]
+fn suppress_patterns_coexist_with_allow_forbid() {
+    let path = PathBuf::from("quench.toml");
+    let content = r#"
+version = 1
+
+[rust.suppress.source]
+allow = ["clippy::unwrap_used"]
+forbid = ["unsafe_code"]
+
+[rust.suppress.source.dead_code]
+comment = "// LEGACY:"
+"#;
+    let config = parse_with_warnings(content, &path).unwrap();
+    assert!(
+        config
+            .rust
+            .suppress
+            .source
+            .allow
+            .contains(&"clippy::unwrap_used".to_string())
+    );
+    assert!(
+        config
+            .rust
+            .suppress
+            .source
+            .forbid
+            .contains(&"unsafe_code".to_string())
+    );
+    assert_eq!(
+        config.rust.suppress.source.patterns.get("dead_code"),
+        Some(&"// LEGACY:".to_string())
+    );
+}

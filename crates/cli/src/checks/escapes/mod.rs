@@ -10,6 +10,7 @@ mod comment;
 mod lint_policy;
 mod patterns;
 mod shell_suppress;
+mod suppress_common;
 
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
@@ -23,6 +24,9 @@ use crate::config::{CheckLevel, EscapeAction, SuppressConfig, SuppressLevel};
 
 use crate::pattern::CompiledPattern;
 use shell_suppress::check_shell_suppress_violations;
+use suppress_common::{
+    SuppressAttrInfo, SuppressCheckParams, SuppressViolationKind, check_suppress_attr,
+};
 
 use comment::{has_justification_comment, is_match_in_comment};
 use patterns::{
@@ -584,8 +588,8 @@ fn check_suppress_violations(
         return violations;
     }
 
-    // Parse suppress attributes
-    let attrs = parse_suppress_attrs(content, config.comment.as_deref());
+    // Parse suppress attributes (don't filter by global pattern - let checker handle per-lint patterns)
+    let attrs = parse_suppress_attrs(content, None);
 
     for attr in attrs {
         if *limit_reached {
@@ -603,95 +607,72 @@ fn check_suppress_violations(
             }
         }
 
-        // Get scope config (source or test)
-        let scope_config = if is_test_file || is_test_line {
-            &config.test
+        // Get scope config and check level
+        let (scope_config, scope_check) = if is_test_file || is_test_line {
+            (
+                &config.test,
+                config.test.check.unwrap_or(SuppressLevel::Allow),
+            )
         } else {
-            &config.source
+            (&config.source, config.source.check.unwrap_or(config.check))
         };
 
-        // Get the effective check level for this scope
-        let scope_check = if is_test_file || is_test_line {
-            config.test.check.unwrap_or(SuppressLevel::Allow)
-        } else {
-            scope_config.check.unwrap_or(config.check)
+        // Build params for shared checking logic
+        let params = SuppressCheckParams {
+            scope_config,
+            scope_check,
+            global_comment: config.comment.as_deref(),
         };
 
-        // Check each lint code
-        for code in &attr.codes {
-            if *limit_reached {
-                break;
-            }
+        let attr_info = SuppressAttrInfo {
+            codes: &attr.codes,
+            has_comment: attr.has_comment,
+            comment_text: attr.comment_text.as_deref(),
+        };
 
+        // Use shared checking logic
+        if let Some(violation_kind) = check_suppress_attr(&params, &attr_info) {
+            // Build pattern string for violation (use first code for display)
+            let code = attr.codes.first().map(|s| s.as_str()).unwrap_or("unknown");
             let pattern = format!("#[{}({})]", attr.kind, code);
 
-            // Check forbid list first
-            if scope_config.forbid.contains(code) {
-                let advice = format!(
-                    "Suppressing `{}` is forbidden. Remove the suppression or address the issue.",
-                    code
-                );
-                if let Some(v) = try_create_violation(
-                    ctx,
-                    path,
-                    (attr.line + 1) as u32,
-                    "suppress_forbidden",
-                    &advice,
-                    &pattern,
-                ) {
-                    violations.push(v);
-                } else {
-                    *limit_reached = true;
+            let (violation_type, advice) = match violation_kind {
+                SuppressViolationKind::Forbidden { ref code } => {
+                    let advice = format!(
+                        "Suppressing `{}` is forbidden. Remove the suppression or address the issue.",
+                        code
+                    );
+                    ("suppress_forbidden", advice)
                 }
-                continue;
-            }
-
-            // Check allow list (skip comment check)
-            if scope_config.allow.contains(code) {
-                continue;
-            }
-
-            // Check if comment is required
-            if scope_check == SuppressLevel::Comment && !attr.has_comment {
-                let advice = if let Some(ref pat) = config.comment {
-                    format!(
-                        "Lint suppression requires justification. Add a {} comment.",
-                        pat
-                    )
-                } else {
-                    "Lint suppression requires justification. Add a comment above the attribute."
-                        .into()
-                };
-                if let Some(v) = try_create_violation(
-                    ctx,
-                    path,
-                    (attr.line + 1) as u32,
-                    "suppress_missing_comment",
-                    &advice,
-                    &pattern,
-                ) {
-                    violations.push(v);
-                } else {
-                    *limit_reached = true;
+                SuppressViolationKind::MissingComment { required_pattern } => {
+                    let advice = match required_pattern {
+                        Some(pat) => format!(
+                            "Lint suppression requires justification. Add a {} comment.",
+                            pat
+                        ),
+                        None => "Lint suppression requires justification. Add a comment above the attribute."
+                            .to_string(),
+                    };
+                    ("suppress_missing_comment", advice)
                 }
-            }
-
-            // Forbid level means all suppressions fail
-            if scope_check == SuppressLevel::Forbid {
-                let advice =
-                    "Lint suppressions are forbidden. Remove and fix the underlying issue.";
-                if let Some(v) = try_create_violation(
-                    ctx,
-                    path,
-                    (attr.line + 1) as u32,
-                    "suppress_forbidden",
-                    advice,
-                    &pattern,
-                ) {
-                    violations.push(v);
-                } else {
-                    *limit_reached = true;
+                SuppressViolationKind::AllForbidden => {
+                    let advice =
+                        "Lint suppressions are forbidden. Remove and fix the underlying issue.";
+                    ("suppress_forbidden", advice.to_string())
                 }
+            };
+
+            if let Some(v) = try_create_violation(
+                ctx,
+                path,
+                (attr.line + 1) as u32,
+                violation_type,
+                &advice,
+                &pattern,
+            ) {
+                violations.push(v);
+            } else {
+                *limit_reached = true;
             }
         }
     }

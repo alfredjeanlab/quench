@@ -217,6 +217,11 @@ pub struct SuppressScopeConfig {
     /// Lint codes that are never allowed to be suppressed (per-code forbid list).
     #[serde(default)]
     pub forbid: Vec<String>,
+
+    /// Per-lint-code comment patterns. Maps lint code to required comment prefix.
+    /// Example: {"dead_code" => "// NOTE(compat):"}
+    #[serde(default)]
+    pub patterns: std::collections::HashMap<String, String>,
 }
 
 impl SuppressScopeConfig {
@@ -225,6 +230,7 @@ impl SuppressScopeConfig {
             check: Some(SuppressLevel::Allow),
             allow: Vec::new(),
             forbid: Vec::new(),
+            patterns: std::collections::HashMap::new(),
         }
     }
 }

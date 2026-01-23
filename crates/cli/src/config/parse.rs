@@ -224,10 +224,27 @@ fn parse_suppress_scope_config(value: Option<&toml::Value>, is_test: bool) -> Su
         })
         .unwrap_or_default();
 
+    // Parse per-lint-code comment patterns.
+    // Any key that maps to a table with a "comment" string is a lint-code section.
+    let mut patterns = std::collections::HashMap::new();
+    for (key, val) in t.iter() {
+        // Skip known fields
+        if matches!(key.as_str(), "check" | "allow" | "forbid") {
+            continue;
+        }
+        // If value is a table with "comment" field, it's a per-lint pattern
+        if let toml::Value::Table(lint_table) = val
+            && let Some(toml::Value::String(pattern)) = lint_table.get("comment")
+        {
+            patterns.insert(key.clone(), pattern.clone());
+        }
+    }
+
     SuppressScopeConfig {
         check,
         allow,
         forbid,
+        patterns,
     }
 }
 
