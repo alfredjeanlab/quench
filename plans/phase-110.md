@@ -1,5 +1,7 @@
 # Phase 110: CLOC Check - Token Limits Implementation
 
+**Root Feature:** `quench-515d`
+
 ## Overview
 
 Add token counting and limit enforcement to the CLOC check. Tokens are approximated as `characters / 4` (standard LLM tokenization heuristic). Files exceeding `max_tokens` generate violations, enabling AI agents to stay within context window constraints. This phase builds on the existing line counting infrastructure from Phase 105.
