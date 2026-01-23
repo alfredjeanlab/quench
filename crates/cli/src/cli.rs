@@ -139,65 +139,46 @@ pub struct CheckArgs {
     pub no_license: bool,
 }
 
+/// Collect check names from boolean flags.
+macro_rules! collect_checks {
+    ($self:expr, $($flag:ident => $name:expr),+ $(,)?) => {{
+        let mut checks = Vec::new();
+        $(
+            if $self.$flag {
+                checks.push($name.to_string());
+            }
+        )+
+        checks
+    }};
+}
+
 impl CheckArgs {
     /// Get list of explicitly enabled checks.
     pub fn enabled_checks(&self) -> Vec<String> {
-        let mut enabled = Vec::new();
-        if self.cloc {
-            enabled.push("cloc".to_string());
-        }
-        if self.escapes {
-            enabled.push("escapes".to_string());
-        }
-        if self.agents {
-            enabled.push("agents".to_string());
-        }
-        if self.docs {
-            enabled.push("docs".to_string());
-        }
-        if self.tests_check {
-            enabled.push("tests".to_string());
-        }
-        if self.git {
-            enabled.push("git".to_string());
-        }
-        if self.build {
-            enabled.push("build".to_string());
-        }
-        if self.license {
-            enabled.push("license".to_string());
-        }
-        enabled
+        collect_checks!(self,
+            cloc => "cloc",
+            escapes => "escapes",
+            agents => "agents",
+            docs => "docs",
+            tests_check => "tests",
+            git => "git",
+            build => "build",
+            license => "license",
+        )
     }
 
     /// Get list of explicitly disabled checks.
     pub fn disabled_checks(&self) -> Vec<String> {
-        let mut disabled = Vec::new();
-        if self.no_cloc {
-            disabled.push("cloc".to_string());
-        }
-        if self.no_escapes {
-            disabled.push("escapes".to_string());
-        }
-        if self.no_agents {
-            disabled.push("agents".to_string());
-        }
-        if self.no_docs {
-            disabled.push("docs".to_string());
-        }
-        if self.no_tests {
-            disabled.push("tests".to_string());
-        }
-        if self.no_git {
-            disabled.push("git".to_string());
-        }
-        if self.no_build {
-            disabled.push("build".to_string());
-        }
-        if self.no_license {
-            disabled.push("license".to_string());
-        }
-        disabled
+        collect_checks!(self,
+            no_cloc => "cloc",
+            no_escapes => "escapes",
+            no_agents => "agents",
+            no_docs => "docs",
+            no_tests => "tests",
+            no_git => "git",
+            no_build => "build",
+            no_license => "license",
+        )
     }
 }
 
