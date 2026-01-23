@@ -10,7 +10,7 @@ Generated: 2026-01-23
 | CLOC on violations detects oversized | ✓ | 5 violations detected |
 | Snapshot test for text output | ✓ | New spec added and passes |
 | Snapshot test for JSON output | ✓ | New spec added and passes |
-| All behavioral specs pass | ✓ | 19 CLOC specs total |
+| All behavioral specs pass | ✓ | 20 CLOC specs total |
 
 **Overall Status: PASS**
 
@@ -248,7 +248,7 @@ test checks_cloc::cloc_json_violation_structure_complete ... ok
 cargo test --test specs -- cloc
 ```
 
-**Total CLOC Specs:** 19 tests (17 existing + 2 new)
+**Total CLOC Specs:** 20 tests (18 existing + 2 new)
 
 **All Tests Pass:** ✓
 
@@ -277,6 +277,6 @@ All checkpoint criteria validated successfully:
 3. **Ratio calculation works** - test_lines / source_lines computed correctly
 4. **Violation detection works** - Files exceeding thresholds caught
 5. **Output formats correct** - Both text and JSON output properly structured
-6. **All specs pass** - 19 behavioral specifications verified
+6. **All specs pass** - 20 behavioral specifications verified
 
 The CLOC check is production-ready.
