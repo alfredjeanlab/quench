@@ -3,84 +3,48 @@
 use std::path::Path;
 
 use super::*;
+use crate::adapter::{Adapter, EscapeAction};
+use yare::parameterized;
 
-mod classification {
-    use super::*;
-
-    #[test]
-    fn source_file_in_src() {
-        let adapter = RustAdapter::new();
-        assert_eq!(adapter.classify(Path::new("src/lib.rs")), FileKind::Source);
-        assert_eq!(adapter.classify(Path::new("src/main.rs")), FileKind::Source);
-        assert_eq!(
-            adapter.classify(Path::new("src/foo/bar.rs")),
-            FileKind::Source
-        );
-    }
-
-    #[test]
-    fn test_file_in_tests_dir() {
-        let adapter = RustAdapter::new();
-        assert_eq!(
-            adapter.classify(Path::new("tests/integration.rs")),
-            FileKind::Test
-        );
-        assert_eq!(
-            adapter.classify(Path::new("tests/foo/bar.rs")),
-            FileKind::Test
-        );
-    }
-
-    #[test]
-    fn test_file_with_suffix() {
-        let adapter = RustAdapter::new();
-        assert_eq!(
-            adapter.classify(Path::new("src/lib_test.rs")),
-            FileKind::Test
-        );
-        assert_eq!(
-            adapter.classify(Path::new("src/lib_tests.rs")),
-            FileKind::Test
-        );
-    }
-
-    #[test]
-    fn ignored_target_dir() {
-        let adapter = RustAdapter::new();
-        assert_eq!(
-            adapter.classify(Path::new("target/debug/deps/foo.rs")),
-            FileKind::Other
-        );
-        assert_eq!(
-            adapter.classify(Path::new("target/release/build/bar.rs")),
-            FileKind::Other
-        );
-    }
-
-    #[test]
-    fn non_rust_file() {
-        let adapter = RustAdapter::new();
-        assert_eq!(adapter.classify(Path::new("Cargo.toml")), FileKind::Other);
-        assert_eq!(adapter.classify(Path::new("README.md")), FileKind::Other);
-    }
+#[parameterized(
+    src_lib = { "src/lib.rs", FileKind::Source },
+    src_main = { "src/main.rs", FileKind::Source },
+    src_nested = { "src/foo/bar.rs", FileKind::Source },
+    tests_integration = { "tests/integration.rs", FileKind::Test },
+    tests_nested = { "tests/foo/bar.rs", FileKind::Test },
+    test_suffix_single = { "src/lib_test.rs", FileKind::Test },
+    test_suffix_plural = { "src/lib_tests.rs", FileKind::Test },
+    target_debug = { "target/debug/deps/foo.rs", FileKind::Other },
+    target_release = { "target/release/build/bar.rs", FileKind::Other },
+    cargo_toml = { "Cargo.toml", FileKind::Other },
+    readme = { "README.md", FileKind::Other },
+)]
+fn classify_path(path: &str, expected: FileKind) {
+    let adapter = RustAdapter::new();
+    assert_eq!(
+        adapter.classify(Path::new(path)),
+        expected,
+        "path {:?} should be {:?}",
+        path,
+        expected
+    );
 }
 
-mod ignore_patterns {
-    use super::*;
-
-    #[test]
-    fn target_dir_ignored() {
-        let adapter = RustAdapter::new();
-        assert!(adapter.should_ignore(Path::new("target/debug/foo.rs")));
-        assert!(adapter.should_ignore(Path::new("target/release/bar.rs")));
-    }
-
-    #[test]
-    fn src_not_ignored() {
-        let adapter = RustAdapter::new();
-        assert!(!adapter.should_ignore(Path::new("src/lib.rs")));
-        assert!(!adapter.should_ignore(Path::new("tests/test.rs")));
-    }
+#[parameterized(
+    target_debug = { "target/debug/foo.rs", true },
+    target_release = { "target/release/bar.rs", true },
+    src_lib = { "src/lib.rs", false },
+    tests_test = { "tests/test.rs", false },
+)]
+fn should_ignore_path(path: &str, expected: bool) {
+    let adapter = RustAdapter::new();
+    assert_eq!(
+        adapter.should_ignore(Path::new(path)),
+        expected,
+        "path {:?} should_ignore = {}",
+        path,
+        expected
+    );
 }
 
 mod line_classification {
@@ -157,65 +121,47 @@ pub fn multiply(a: i32, b: i32) -> i32 {
     }
 }
 
-mod default_escapes {
-    use super::*;
-    use crate::adapter::{Adapter, EscapeAction};
+#[parameterized(
+    unsafe_requires_comment = { "unsafe", EscapeAction::Comment, Some("// SAFETY:") },
+    transmute_requires_comment = { "transmute", EscapeAction::Comment, Some("// SAFETY:") },
+    unwrap_forbidden = { "unwrap", EscapeAction::Forbid, None },
+    expect_forbidden = { "expect", EscapeAction::Forbid, None },
+)]
+fn default_escape_pattern(
+    name: &str,
+    expected_action: EscapeAction,
+    expected_comment: Option<&str>,
+) {
+    let adapter = RustAdapter::new();
+    let patterns = adapter.default_escapes();
+    let pattern = patterns
+        .iter()
+        .find(|p| p.name == name)
+        .unwrap_or_else(|| panic!("pattern {:?} not found", name));
 
-    #[test]
-    fn returns_four_default_patterns() {
-        let adapter = RustAdapter::new();
-        let patterns = adapter.default_escapes();
-        assert_eq!(patterns.len(), 4);
-    }
+    assert_eq!(pattern.action, expected_action, "pattern {:?} action", name);
+    assert_eq!(
+        pattern.comment, expected_comment,
+        "pattern {:?} comment",
+        name
+    );
+}
 
-    #[test]
-    fn unsafe_pattern_requires_safety_comment() {
-        let adapter = RustAdapter::new();
-        let patterns = adapter.default_escapes();
-        let unsafe_pattern = patterns.iter().find(|p| p.name == "unsafe").unwrap();
+#[test]
+fn returns_four_default_patterns() {
+    let adapter = RustAdapter::new();
+    assert_eq!(adapter.default_escapes().len(), 4);
+}
 
-        assert_eq!(unsafe_pattern.action, EscapeAction::Comment);
-        assert_eq!(unsafe_pattern.comment, Some("// SAFETY:"));
-    }
-
-    #[test]
-    fn unwrap_pattern_is_forbidden() {
-        let adapter = RustAdapter::new();
-        let patterns = adapter.default_escapes();
-        let unwrap_pattern = patterns.iter().find(|p| p.name == "unwrap").unwrap();
-
-        assert_eq!(unwrap_pattern.action, EscapeAction::Forbid);
-    }
-
-    #[test]
-    fn expect_pattern_is_forbidden() {
-        let adapter = RustAdapter::new();
-        let patterns = adapter.default_escapes();
-        let expect_pattern = patterns.iter().find(|p| p.name == "expect").unwrap();
-
-        assert_eq!(expect_pattern.action, EscapeAction::Forbid);
-    }
-
-    #[test]
-    fn transmute_pattern_requires_safety_comment() {
-        let adapter = RustAdapter::new();
-        let patterns = adapter.default_escapes();
-        let transmute_pattern = patterns.iter().find(|p| p.name == "transmute").unwrap();
-
-        assert_eq!(transmute_pattern.action, EscapeAction::Comment);
-        assert_eq!(transmute_pattern.comment, Some("// SAFETY:"));
-    }
-
-    #[test]
-    fn all_patterns_have_advice() {
-        let adapter = RustAdapter::new();
-        for pattern in adapter.default_escapes() {
-            assert!(
-                !pattern.advice.is_empty(),
-                "Pattern {} should have advice",
-                pattern.name
-            );
-        }
+#[test]
+fn all_patterns_have_advice() {
+    let adapter = RustAdapter::new();
+    for pattern in adapter.default_escapes() {
+        assert!(
+            !pattern.advice.is_empty(),
+            "Pattern {} should have advice",
+            pattern.name
+        );
     }
 }
 
