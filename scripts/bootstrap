@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
-# scripts/bootstrap - Quality checks before quench can check itself
-#
-# These checks will be replaced by `quench check` once implemented.
-# Until then, this script enforces the same rules.
+# scripts/bootstrap - Quality checks not yet implemented in quench
 
 set -euo pipefail
 
@@ -17,56 +14,7 @@ NC='\033[0m'
 
 failed=0
 
-# --- File size limits ---
-echo "Checking file sizes..."
-
-# Defaults from docs/specs/checks/cloc.md
-MAX_SOURCE=750
-MAX_TEST=1100
-
-source_size_failed=0
-test_size_failed=0
-# Exclude benchmark fixtures and CLOC test fixtures (generated files with intentionally large sizes)
-files=$(rg --files --type rust crates tests --glob '!tests/fixtures/bench-*' --glob '!tests/fixtures/cloc/*' 2>/dev/null)
-if [[ -n "$files" ]]; then
-    # Batch wc -l call (35x faster than per-file)
-    while read -r line; do
-        # Parse "  123 path/to/file.rs" format
-        lines=$(echo "$line" | awk '{print $1}')
-        file=$(echo "$line" | awk '{print $2}')
-
-        # Skip the "total" line from wc -l
-        [[ "$file" == "total" ]] && continue
-
-        # Test files: tests/**, *_tests.rs, *_test.rs, *_tests/**
-        if [[ "$file" == tests/* || "$file" == *"_tests.rs" || "$file" == *"_test.rs" || "$file" == *"_tests/"* ]]; then
-            if [ "$lines" -gt "$MAX_TEST" ]; then
-                echo -e "${RED}$file: $lines lines (max: $MAX_TEST)${NC}"
-                test_size_failed=1
-            fi
-        else
-            if [ "$lines" -gt "$MAX_SOURCE" ]; then
-                echo -e "${RED}$file: $lines lines (max: $MAX_SOURCE)${NC}"
-                source_size_failed=1
-            fi
-        fi
-    done < <(echo "$files" | xargs wc -l)
-fi
-
-if [ $source_size_failed -eq 0 ] && [ $test_size_failed -eq 0 ]; then
-    echo -e "${GREEN}File sizes OK${NC}"
-else
-    if [ $source_size_failed -eq 1 ]; then
-        echo -e "Can the code be made more concise? If not, split large source files into sibling modules or submodules in a folder; consider refactoring to be more unit testable"
-    fi
-    if [ $test_size_failed -eq 1 ]; then
-        echo -e "Can tests use parameterization (e.g., yare) to be more concise? If not, split large test files into a {module}_tests/ folder"
-    fi
-    failed=1
-fi
-
 # --- Dead code allowances ---
-echo ""
 echo "Checking for unauthorized #[allow(dead_code)]..."
 
 # Find #[allow(dead_code)] without "// KEEP UNTIL:" comment on same line

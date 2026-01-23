@@ -7,6 +7,7 @@ check:
 	cargo test --all
 	cargo build --all
 	./scripts/bootstrap
+	./target/debug/quench check
 	cargo audit
 	cargo deny check licenses bans sources
 

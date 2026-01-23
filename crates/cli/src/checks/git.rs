@@ -29,8 +29,8 @@ impl Check for GitCheck {
 
         match output {
             Ok(out) if out.status.success() => {
-                // We're in a git repo - pass for now (stub)
-                CheckResult::passed(self.name())
+                // We're in a git repo - stub for now (not yet implemented)
+                CheckResult::stub(self.name())
             }
             _ => {
                 // Not a git repo - skip

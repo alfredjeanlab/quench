@@ -31,7 +31,7 @@ impl Check for StubCheck {
 
     fn run(&self, _ctx: &CheckContext) -> CheckResult {
         // Stub checks always pass (no implementation yet)
-        CheckResult::passed(self.name)
+        CheckResult::stub(self.name)
     }
 
     fn default_enabled(&self) -> bool {

@@ -1,8 +1,9 @@
 //! Unit tests for stub checks.
 
-#![allow(clippy::unwrap_used)]
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
 use super::*;
+use crate::check::CheckContext;
 
 #[test]
 fn stub_check_name() {
@@ -22,4 +23,27 @@ fn stub_check_default_enabled() {
     let disabled = StubCheck::new("test2", "Test check 2", false);
     assert!(enabled.default_enabled());
     assert!(!disabled.default_enabled());
+}
+
+#[test]
+fn stub_check_result_marked_as_stub() {
+    use crate::config::Config;
+    use std::path::Path;
+    use std::sync::atomic::AtomicUsize;
+
+    let check = StubCheck::new("test", "Test check", true);
+    let config = Config::default();
+    let files = [];
+    let violation_count = AtomicUsize::new(0);
+    let ctx = CheckContext {
+        root: Path::new("."),
+        files: &files,
+        config: &config,
+        limit: None,
+        violation_count: &violation_count,
+    };
+
+    let result = check.run(&ctx);
+    assert!(result.passed, "stub should pass");
+    assert!(result.stub, "stub should be marked as stub");
 }
