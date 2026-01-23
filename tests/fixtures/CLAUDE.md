@@ -118,6 +118,7 @@ Project with intentional violations for every check type. Essential for testing 
 | docs | `docs/specs/broken-link.md` | Broken markdown link |
 | escapes | `go/unsafe.go` | `unsafe.Pointer` without SAFETY |
 | escapes | `go/linkname.go` | `//go:linkname` without LINKNAME |
+| escapes | `go/noescape.go` | `//go:noescape` without NOESCAPE |
 | suppress | `go/nolint.go` | `//nolint` without justification |
 
 ### docs-project/

@@ -38,6 +38,13 @@ action = "comment"
 comment = "// LINKNAME:"
 source = ["**/*.go"]
 
+[[check.escapes.patterns]]
+name = "go_noescape"
+pattern = "//go:noescape"
+action = "comment"
+comment = "// NOESCAPE:"
+source = ["**/*.go"]
+
 [golang.suppress]
 check = "comment"
 
