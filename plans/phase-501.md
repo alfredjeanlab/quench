@@ -1,5 +1,7 @@
 # Phase 501: Agents Check - Behavioral Specs
 
+**Root Feature:** `quench-23ce`
+
 ## Overview
 
 Write behavioral specifications (black-box tests) for the `agents` check, which validates AI agent context files (CLAUDE.md, .cursorrules). These specs verify CLI behavior from `docs/specs/checks/agents.md` without testing internal implementation.
