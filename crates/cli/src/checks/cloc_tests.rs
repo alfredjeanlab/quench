@@ -2,11 +2,10 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use std::io::Write;
-
-use tempfile::NamedTempFile;
+use yare::parameterized;
 
 use super::*;
+use crate::test_utils::temp_file_with_content;
 
 #[test]
 fn is_text_file_recognizes_rust() {
@@ -58,213 +57,112 @@ fn cloc_check_default_enabled() {
 // FILE METRICS TESTS (NON-BLANK LINE COUNTING)
 // =============================================================================
 
-#[test]
-fn file_metrics_empty_file() {
-    let mut file = NamedTempFile::new().unwrap();
-    // Write nothing
-    file.flush().unwrap();
-
+#[parameterized(
+    empty_file = { "", 0 },
+    whitespace_only = { "   \n\t\t\n\n    \t  \n", 0 },
+    mixed_content = { "fn main() {\n\n    let x = 1;\n\n}\n", 3 },
+    no_trailing_newline = { "line1\nline2\nline3", 3 },
+    with_trailing_newline = { "line1\nline2\nline3\n", 3 },
+    crlf_endings = { "line1\r\nline2\r\n\r\nline3", 3 },
+    mixed_endings = { "line1\nline2\r\nline3\n", 3 },
+    unicode_whitespace = { "content\n\u{00A0}\nmore\n", 2 },
+)]
+fn file_metrics_nonblank_lines(content: &str, expected: usize) {
+    let file = temp_file_with_content(content);
     let metrics = count_file_metrics(file.path()).unwrap();
-    assert_eq!(metrics.nonblank_lines, 0);
+    assert_eq!(
+        metrics.nonblank_lines, expected,
+        "content {:?} should have {} nonblank lines",
+        content, expected
+    );
+}
+
+#[test]
+fn file_metrics_empty_file_tokens() {
+    // Separate test for empty file also having 0 tokens
+    let file = temp_file_with_content("");
+    let metrics = count_file_metrics(file.path()).unwrap();
     assert_eq!(metrics.tokens, 0);
-}
-
-#[test]
-fn file_metrics_whitespace_only() {
-    let mut file = NamedTempFile::new().unwrap();
-    writeln!(file, "   ").unwrap();
-    writeln!(file, "\t\t").unwrap();
-    writeln!(file).unwrap();
-    writeln!(file, "    \t  ").unwrap();
-    file.flush().unwrap();
-
-    let metrics = count_file_metrics(file.path()).unwrap();
-    assert_eq!(metrics.nonblank_lines, 0);
-}
-
-#[test]
-fn file_metrics_mixed_content() {
-    let mut file = NamedTempFile::new().unwrap();
-    writeln!(file, "fn main() {{").unwrap();
-    writeln!(file).unwrap();
-    writeln!(file, "    let x = 1;").unwrap();
-    writeln!(file).unwrap();
-    writeln!(file, "}}").unwrap();
-    file.flush().unwrap();
-
-    let metrics = count_file_metrics(file.path()).unwrap();
-    assert_eq!(metrics.nonblank_lines, 3); // fn main, let x, closing brace
-}
-
-#[test]
-fn file_metrics_no_trailing_newline() {
-    let mut file = NamedTempFile::new().unwrap();
-    write!(file, "line1\nline2\nline3").unwrap();
-    file.flush().unwrap();
-
-    let metrics = count_file_metrics(file.path()).unwrap();
-    assert_eq!(metrics.nonblank_lines, 3);
-}
-
-#[test]
-fn file_metrics_with_trailing_newline() {
-    let mut file = NamedTempFile::new().unwrap();
-    writeln!(file, "line1").unwrap();
-    writeln!(file, "line2").unwrap();
-    writeln!(file, "line3").unwrap();
-    file.flush().unwrap();
-
-    let metrics = count_file_metrics(file.path()).unwrap();
-    assert_eq!(metrics.nonblank_lines, 3);
-}
-
-#[test]
-fn file_metrics_crlf_endings() {
-    // Windows-style line endings
-    let mut file = NamedTempFile::new().unwrap();
-    write!(file, "line1\r\nline2\r\n\r\nline3").unwrap();
-    file.flush().unwrap();
-
-    let metrics = count_file_metrics(file.path()).unwrap();
-    assert_eq!(metrics.nonblank_lines, 3); // Should handle CRLF correctly
-}
-
-#[test]
-fn file_metrics_mixed_endings() {
-    // Mixed LF and CRLF
-    let mut file = NamedTempFile::new().unwrap();
-    write!(file, "line1\nline2\r\nline3\n").unwrap();
-    file.flush().unwrap();
-
-    let metrics = count_file_metrics(file.path()).unwrap();
-    assert_eq!(metrics.nonblank_lines, 3);
-}
-
-#[test]
-fn file_metrics_unicode_whitespace() {
-    // Non-breaking space (U+00A0) should still be whitespace
-    let mut file = NamedTempFile::new().unwrap();
-    writeln!(file, "content").unwrap();
-    writeln!(file, "\u{00A0}").unwrap(); // non-breaking space only
-    writeln!(file, "more").unwrap();
-    file.flush().unwrap();
-
-    let metrics = count_file_metrics(file.path()).unwrap();
-    // Note: Rust's trim() handles unicode whitespace
-    assert_eq!(metrics.nonblank_lines, 2);
 }
 
 // =============================================================================
 // PATTERN MATCHER TESTS
 // =============================================================================
 
-#[test]
-fn pattern_matcher_identifies_test_directories() {
-    let matcher = PatternMatcher::new(&["**/tests/**".to_string(), "**/test/**".to_string()], &[]);
-
+#[parameterized(
+    test_dirs_matches_tests = { &["**/tests/**", "**/test/**"], "/project/tests/foo.rs", true },
+    test_dirs_matches_nested = { &["**/tests/**", "**/test/**"], "/project/tests/sub/bar.rs", true },
+    test_dirs_matches_crate = { &["**/tests/**", "**/test/**"], "/project/crate/tests/test.rs", true },
+    test_dirs_matches_test = { &["**/tests/**", "**/test/**"], "/project/test/foo.rs", true },
+    test_dirs_excludes_src_lib = { &["**/tests/**", "**/test/**"], "/project/src/lib.rs", false },
+    test_dirs_excludes_src_main = { &["**/tests/**", "**/test/**"], "/project/src/main.rs", false },
+    suffix_matches_test_rs = { &["**/*_test.*", "**/*_tests.*", "**/*.test.*", "**/*.spec.*"], "/project/src/foo_test.rs", true },
+    suffix_matches_tests_rs = { &["**/*_test.*", "**/*_tests.*", "**/*.test.*", "**/*.spec.*"], "/project/src/foo_tests.rs", true },
+    suffix_matches_test_js = { &["**/*_test.*", "**/*_tests.*", "**/*.test.*", "**/*.spec.*"], "/project/src/foo.test.js", true },
+    suffix_matches_spec_ts = { &["**/*_test.*", "**/*_tests.*", "**/*.test.*", "**/*.spec.*"], "/project/src/foo.spec.ts", true },
+    suffix_excludes_lib = { &["**/*_test.*", "**/*_tests.*", "**/*.test.*", "**/*.spec.*"], "/project/src/lib.rs", false },
+    suffix_excludes_testing = { &["**/*_test.*", "**/*_tests.*", "**/*.test.*", "**/*.spec.*"], "/project/src/testing.rs", false },
+    prefix_matches_test_utils = { &["**/test_*.*"], "/project/src/test_utils.rs", true },
+    prefix_matches_test_helpers = { &["**/test_*.*"], "/project/test_helpers.py", true },
+    prefix_excludes_testing = { &["**/test_*.*"], "/project/src/testing.rs", false },
+    prefix_excludes_contest = { &["**/test_*.*"], "/project/src/contest.rs", false },
+)]
+fn pattern_matcher_test_file(patterns: &[&str], path: &str, expected: bool) {
+    let owned: Vec<String> = patterns.iter().map(|s| (*s).to_string()).collect();
+    let matcher = PatternMatcher::new(&owned, &[]);
     let root = Path::new("/project");
-
-    // Files in tests/ directory should match
-    assert!(matcher.is_test_file(Path::new("/project/tests/foo.rs"), root));
-    assert!(matcher.is_test_file(Path::new("/project/tests/sub/bar.rs"), root));
-    assert!(matcher.is_test_file(Path::new("/project/crate/tests/test.rs"), root));
-
-    // Files in test/ directory should match
-    assert!(matcher.is_test_file(Path::new("/project/test/foo.rs"), root));
-
-    // Regular source files should not match
-    assert!(!matcher.is_test_file(Path::new("/project/src/lib.rs"), root));
-    assert!(!matcher.is_test_file(Path::new("/project/src/main.rs"), root));
-}
-
-#[test]
-fn pattern_matcher_identifies_test_suffixes() {
-    let matcher = PatternMatcher::new(
-        &[
-            "**/*_test.*".to_string(),
-            "**/*_tests.*".to_string(),
-            "**/*.test.*".to_string(),
-            "**/*.spec.*".to_string(),
-        ],
-        &[],
+    assert_eq!(
+        matcher.is_test_file(Path::new(path), root),
+        expected,
+        "path {} with patterns {:?} should be {}",
+        path,
+        patterns,
+        if expected { "test" } else { "non-test" }
     );
-
-    let root = Path::new("/project");
-
-    // Files with test suffixes should match
-    assert!(matcher.is_test_file(Path::new("/project/src/foo_test.rs"), root));
-    assert!(matcher.is_test_file(Path::new("/project/src/foo_tests.rs"), root));
-    assert!(matcher.is_test_file(Path::new("/project/src/foo.test.js"), root));
-    assert!(matcher.is_test_file(Path::new("/project/src/foo.spec.ts"), root));
-
-    // Regular source files should not match
-    assert!(!matcher.is_test_file(Path::new("/project/src/lib.rs"), root));
-    assert!(!matcher.is_test_file(Path::new("/project/src/testing.rs"), root));
 }
 
-#[test]
-fn pattern_matcher_excludes_patterns() {
-    let matcher = PatternMatcher::new(&[], &["**/generated/**".to_string()]);
-
+#[parameterized(
+    excludes_generated = { "**/generated/**", "/project/generated/foo.rs", true },
+    excludes_nested = { "**/generated/**", "/project/src/generated/bar.rs", true },
+    allows_regular = { "**/generated/**", "/project/src/lib.rs", false },
+)]
+fn pattern_matcher_exclusion(pattern: &str, path: &str, expected: bool) {
+    let matcher = PatternMatcher::new(&[], &[pattern.to_string()]);
     let root = Path::new("/project");
-
-    // Files in generated/ should be excluded
-    assert!(matcher.is_excluded(Path::new("/project/generated/foo.rs"), root));
-    assert!(matcher.is_excluded(Path::new("/project/src/generated/bar.rs"), root));
-
-    // Regular files should not be excluded
-    assert!(!matcher.is_excluded(Path::new("/project/src/lib.rs"), root));
-}
-
-#[test]
-fn pattern_matcher_identifies_test_prefix() {
-    let matcher = PatternMatcher::new(&["**/test_*.*".to_string()], &[]);
-
-    let root = Path::new("/project");
-
-    // Files with test_ prefix should match
-    assert!(matcher.is_test_file(Path::new("/project/src/test_utils.rs"), root));
-    assert!(matcher.is_test_file(Path::new("/project/test_helpers.py"), root));
-
-    // Regular source files should not match
-    assert!(!matcher.is_test_file(Path::new("/project/src/testing.rs"), root));
-    assert!(!matcher.is_test_file(Path::new("/project/src/contest.rs"), root));
+    assert_eq!(
+        matcher.is_excluded(Path::new(path), root),
+        expected,
+        "path {} with exclude pattern {} should be {}",
+        path,
+        pattern,
+        if expected { "excluded" } else { "included" }
+    );
 }
 
 // =============================================================================
 // FILE METRICS TESTS (TOKEN COUNTING)
 // =============================================================================
 
-#[test]
-fn file_metrics_tokens_short_content() {
-    let mut file = NamedTempFile::new().unwrap();
-    write!(file, "abc").unwrap(); // 3 chars < 4
-    file.flush().unwrap();
-
+#[parameterized(
+    short_content = { "abc", 0 },     // 3 chars < 4
+    unicode_chars = { "日本語の", 1 }, // 4 Unicode chars / 4 = 1
+)]
+fn file_metrics_tokens(content: &str, expected: usize) {
+    let file = temp_file_with_content(content);
     let metrics = count_file_metrics(file.path()).unwrap();
-    assert_eq!(metrics.tokens, 0); // 3 / 4 = 0
+    assert_eq!(
+        metrics.tokens, expected,
+        "content {:?} should have {} tokens",
+        content, expected
+    );
 }
 
 #[test]
 fn file_metrics_tokens_exact_math() {
-    let mut file = NamedTempFile::new().unwrap();
-    // Write exactly 100 characters
-    write!(file, "{}", "a".repeat(100)).unwrap();
-    file.flush().unwrap();
-
+    // Keep separate: requires String::repeat which can't be a &str literal
+    let file = temp_file_with_content(&"a".repeat(100));
     let metrics = count_file_metrics(file.path()).unwrap();
     assert_eq!(metrics.tokens, 25); // 100 / 4 = 25
-}
-
-#[test]
-fn file_metrics_tokens_unicode() {
-    let mut file = NamedTempFile::new().unwrap();
-    // Unicode chars: 4 chars (not 4 bytes)
-    write!(file, "日本語の").unwrap(); // 4 Unicode chars
-    file.flush().unwrap();
-
-    let metrics = count_file_metrics(file.path()).unwrap();
-    assert_eq!(metrics.tokens, 1); // 4 chars / 4 = 1 token
 }
 
 // =============================================================================
