@@ -1,5 +1,7 @@
 # Checkpoint 2G: Bug Fixes - CLOC Works
 
+**Root Feature:** `quench-b9e6`
+
 ## Overview
 
 Verification checkpoint to ensure all tests pass, specs are green, and clippy remains clean after the performance optimizations in checkpoint 2E and cleanup in checkpoint 2F.
