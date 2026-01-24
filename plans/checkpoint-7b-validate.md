@@ -1,5 +1,7 @@
 # Checkpoint 7B: Docs Check Complete - Validation Plan
 
+**Root Feature:** `quench-c2a6`
+
 ## Overview
 
 Validate that the docs check feature works end-to-end on real projects. This includes running `quench check --docs` on the docs-project fixture, configuring quench to validate its own docs/specs/ directory, and adding exact output tests for docs check output format.
