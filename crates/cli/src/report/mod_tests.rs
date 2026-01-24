@@ -3,36 +3,8 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
+use super::test_support::{AllChecks, ExcludeChecks, create_test_baseline};
 use super::*;
-use crate::baseline::{
-    BaselineMetrics, BuildTimeMetrics, CoverageMetrics, EscapesMetrics, TestTimeMetrics,
-};
-
-/// Test filter that includes all checks.
-struct AllChecks;
-
-impl CheckFilter for AllChecks {
-    fn enabled_checks(&self) -> Vec<String> {
-        Vec::new() // Empty means all enabled
-    }
-
-    fn disabled_checks(&self) -> Vec<String> {
-        Vec::new()
-    }
-}
-
-/// Test filter that excludes specific checks.
-struct ExcludeChecks(Vec<&'static str>);
-
-impl CheckFilter for ExcludeChecks {
-    fn enabled_checks(&self) -> Vec<String> {
-        Vec::new()
-    }
-
-    fn disabled_checks(&self) -> Vec<String> {
-        self.0.iter().map(|s| s.to_string()).collect()
-    }
-}
 
 // --- human_bytes tests ---
 
@@ -74,40 +46,6 @@ fn human_bytes_boundary_mb() {
 }
 
 // --- FilteredMetrics tests ---
-
-fn create_test_baseline() -> Baseline {
-    Baseline {
-        version: 1,
-        updated: chrono::Utc::now(),
-        commit: Some("abc1234".to_string()),
-        metrics: BaselineMetrics {
-            coverage: Some(CoverageMetrics {
-                total: 85.5,
-                by_package: None,
-            }),
-            escapes: Some(EscapesMetrics {
-                source: [("unwrap".to_string(), 10), ("expect".to_string(), 5)]
-                    .into_iter()
-                    .collect(),
-                test: None,
-            }),
-            build_time: Some(BuildTimeMetrics {
-                cold: 45.0,
-                hot: 12.5,
-            }),
-            binary_size: Some(
-                [("quench".to_string(), 5_242_880)] // 5 MB
-                    .into_iter()
-                    .collect(),
-            ),
-            test_time: Some(TestTimeMetrics {
-                total: 30.5,
-                avg: 0.5,
-                max: 2.0,
-            }),
-        },
-    }
-}
 
 #[test]
 fn filtered_metrics_includes_all_with_all_checks() {
@@ -198,4 +136,121 @@ fn filtered_metrics_handles_empty_baseline() {
     assert!(filtered.binary_size().is_none());
     assert!(filtered.test_time().is_none());
     assert_eq!(filtered.count(), 0);
+}
+
+// --- Sorted helpers tests ---
+
+#[test]
+fn sorted_escapes_returns_alphabetical_order() {
+    let baseline = create_test_baseline();
+    let filtered = FilteredMetrics::new(&baseline, &AllChecks);
+
+    let escapes = filtered.sorted_escapes().unwrap();
+    // "expect" comes before "unwrap"
+    assert_eq!(escapes.len(), 2);
+    assert_eq!(escapes[0], ("expect", 5_usize));
+    assert_eq!(escapes[1], ("unwrap", 10_usize));
+}
+
+#[test]
+fn sorted_escapes_returns_none_when_filtered() {
+    let baseline = create_test_baseline();
+    let filter = ExcludeChecks(vec!["escapes"]);
+    let filtered = FilteredMetrics::new(&baseline, &filter);
+
+    assert!(filtered.sorted_escapes().is_none());
+}
+
+#[test]
+fn sorted_test_escapes_returns_none_when_no_test_escapes() {
+    let baseline = create_test_baseline();
+    let filtered = FilteredMetrics::new(&baseline, &AllChecks);
+
+    // The test baseline has no test escapes
+    assert!(filtered.sorted_test_escapes().is_none());
+}
+
+#[test]
+fn sorted_test_escapes_returns_sorted_when_present() {
+    use crate::baseline::{BaselineMetrics, EscapesMetrics};
+
+    let baseline = Baseline {
+        metrics: BaselineMetrics {
+            escapes: Some(EscapesMetrics {
+                source: [("unwrap".to_string(), 1_usize)].into_iter().collect(),
+                test: Some(
+                    [
+                        ("zebra".to_string(), 1_usize),
+                        ("alpha".to_string(), 2_usize),
+                    ]
+                    .into_iter()
+                    .collect(),
+                ),
+            }),
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+
+    let filtered = FilteredMetrics::new(&baseline, &AllChecks);
+    let test_escapes = filtered.sorted_test_escapes().unwrap();
+
+    assert_eq!(test_escapes.len(), 2);
+    assert_eq!(test_escapes[0], ("alpha", 2_usize));
+    assert_eq!(test_escapes[1], ("zebra", 1_usize));
+}
+
+#[test]
+fn sorted_package_coverage_returns_none_when_no_packages() {
+    let baseline = create_test_baseline();
+    let filtered = FilteredMetrics::new(&baseline, &AllChecks);
+
+    // The test baseline has no package coverage
+    assert!(filtered.sorted_package_coverage().is_none());
+}
+
+#[test]
+fn sorted_package_coverage_returns_sorted_when_present() {
+    use crate::baseline::{BaselineMetrics, CoverageMetrics};
+
+    let baseline = Baseline {
+        metrics: BaselineMetrics {
+            coverage: Some(CoverageMetrics {
+                total: 80.0,
+                by_package: Some(
+                    [("zebra".to_string(), 70.0), ("alpha".to_string(), 90.0)]
+                        .into_iter()
+                        .collect(),
+                ),
+            }),
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+
+    let filtered = FilteredMetrics::new(&baseline, &AllChecks);
+    let packages = filtered.sorted_package_coverage().unwrap();
+
+    assert_eq!(packages.len(), 2);
+    assert_eq!(packages[0], ("alpha", 90.0));
+    assert_eq!(packages[1], ("zebra", 70.0));
+}
+
+#[test]
+fn sorted_binary_sizes_returns_alphabetical_order() {
+    let baseline = create_test_baseline();
+    let filtered = FilteredMetrics::new(&baseline, &AllChecks);
+
+    let sizes = filtered.sorted_binary_sizes().unwrap();
+    assert_eq!(sizes.len(), 1);
+    assert_eq!(sizes[0], ("quench", 5_242_880));
+}
+
+#[test]
+fn sorted_binary_sizes_returns_none_when_filtered() {
+    let baseline = create_test_baseline();
+    let filter = ExcludeChecks(vec!["build"]);
+    let filtered = FilteredMetrics::new(&baseline, &filter);
+
+    assert!(filtered.sorted_binary_sizes().is_none());
 }

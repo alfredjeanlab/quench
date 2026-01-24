@@ -29,29 +29,23 @@ macro_rules! write_markdown_report {
         if let Some(coverage) = $filtered.coverage() {
             writeln!($writer, "| Coverage | {:.1}% |", coverage.total)?;
 
-            if let Some(ref packages) = coverage.by_package {
-                let mut keys: Vec<_> = packages.keys().collect();
-                keys.sort();
-                for name in keys {
-                    writeln!($writer, "| Coverage ({}) | {:.1}% |", name, packages[name])?;
+            if let Some(packages) = $filtered.sorted_package_coverage() {
+                for (name, pct) in packages {
+                    writeln!($writer, "| Coverage ({}) | {:.1}% |", name, pct)?;
                 }
             }
         }
 
-        if let Some(escapes) = $filtered.escapes() {
-            let mut keys: Vec<_> = escapes.source.keys().collect();
-            keys.sort();
-            for name in keys {
-                writeln!($writer, "| Escapes ({}) | {} |", name, escapes.source[name])?;
+        if let Some(items) = $filtered.sorted_escapes() {
+            for (name, count) in items {
+                writeln!($writer, "| Escapes ({}) | {} |", name, count)?;
             }
+        }
 
-            // Test escapes (if present)
-            if let Some(ref test) = escapes.test {
-                let mut keys: Vec<_> = test.keys().collect();
-                keys.sort();
-                for name in keys {
-                    writeln!($writer, "| Escapes test ({}) | {} |", name, test[name])?;
-                }
+        // Test escapes (if present)
+        if let Some(items) = $filtered.sorted_test_escapes() {
+            for (name, count) in items {
+                writeln!($writer, "| Escapes test ({}) | {} |", name, count)?;
             }
         }
 
@@ -64,16 +58,9 @@ macro_rules! write_markdown_report {
             writeln!($writer, "| Test time | {:.1}s |", tests.total)?;
         }
 
-        if let Some(sizes) = $filtered.binary_size() {
-            let mut keys: Vec<_> = sizes.keys().collect();
-            keys.sort();
-            for name in keys {
-                writeln!(
-                    $writer,
-                    "| Binary ({}) | {} |",
-                    name,
-                    human_bytes(sizes[name])
-                )?;
+        if let Some(items) = $filtered.sorted_binary_sizes() {
+            for (name, size) in items {
+                writeln!($writer, "| Binary ({}) | {} |", name, human_bytes(size))?;
             }
         }
     };
