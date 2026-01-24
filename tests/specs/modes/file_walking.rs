@@ -11,6 +11,50 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
 use crate::prelude::*;
+use std::sync::Once;
+
+static BENCH_DEEP_INIT: Once = Once::new();
+
+/// Ensures bench-deep fixture exists (generates if missing).
+fn ensure_bench_deep_fixture() {
+    BENCH_DEEP_INIT.call_once(|| {
+        let fixture_dir = fixture("bench-deep");
+        if fixture_dir.join("deep").exists() {
+            return;
+        }
+
+        std::fs::create_dir_all(&fixture_dir).unwrap();
+        std::fs::write(fixture_dir.join("quench.toml"), "version = 1\n").unwrap();
+        std::fs::write(
+            fixture_dir.join("CLAUDE.md"),
+            "# Bench Deep\n\n## Directory Structure\n\nDeep.\n\n## Landing the Plane\n\n- Done\n",
+        )
+        .unwrap();
+
+        // Build nested path: deep/d1/d2/.../d120
+        let mut deep_path = fixture_dir.join("deep");
+        for i in 1..=120 {
+            deep_path = deep_path.join(format!("d{}", i));
+        }
+        std::fs::create_dir_all(&deep_path).unwrap();
+        std::fs::write(
+            deep_path.join("deep.rs"),
+            "//! File at maximum depth.\npub fn at_depth() -> &'static str { \"deep\" }\n",
+        )
+        .unwrap();
+
+        // File at level 50
+        let mut mid_path = fixture_dir.join("deep");
+        for i in 1..=50 {
+            mid_path = mid_path.join(format!("d{}", i));
+        }
+        std::fs::write(
+            mid_path.join("mid.rs"),
+            "//! File at mid depth.\npub fn at_mid() -> i32 { 50 }\n",
+        )
+        .unwrap();
+    });
+}
 
 // =============================================================================
 // Gitignore Handling
@@ -149,8 +193,8 @@ fn file_walking_scans_normal_files_despite_symlink_loops() {
 ///
 /// > Limit directory depth (default: 100 levels)
 #[test]
-#[ignore = "TODO: Create bench-deep fixture (150+ nested dirs)"]
 fn file_walking_respects_default_depth_limit() {
+    ensure_bench_deep_fixture();
     // Files beyond depth 100 should not be scanned
     // bench-deep has files at level 50 (within limit) and 120 (beyond)
     cli()
@@ -165,8 +209,8 @@ fn file_walking_respects_default_depth_limit() {
 ///
 /// > Depth limit should be configurable
 #[test]
-#[ignore = "TODO: Create bench-deep fixture (150+ nested dirs)"]
 fn file_walking_respects_custom_depth_limit() {
+    ensure_bench_deep_fixture();
     // With a lower depth limit, fewer files should be scanned
     cli()
         .on("bench-deep")
@@ -179,8 +223,8 @@ fn file_walking_respects_custom_depth_limit() {
 ///
 /// > Depth limit warnings in verbose mode
 #[test]
-#[ignore = "TODO: Create bench-deep fixture (150+ nested dirs)"]
 fn file_walking_warns_on_depth_limit_in_verbose() {
+    ensure_bench_deep_fixture();
     // When files are skipped due to depth, verbose mode should mention it
     cli()
         .on("bench-deep")
@@ -206,8 +250,8 @@ fn file_walking_handles_empty_directory() {
 ///
 /// > Use iterative traversal, not recursive
 #[test]
-#[ignore = "TODO: Create bench-deep fixture (150+ nested dirs)"]
 fn file_walking_uses_iterative_traversal() {
+    ensure_bench_deep_fixture();
     // This is tested implicitly by bench-deep - recursive traversal
     // would cause stack overflow at 120 levels on most systems
     cli().on("bench-deep").passes();
