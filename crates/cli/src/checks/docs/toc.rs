@@ -238,35 +238,95 @@ fn strip_comment(name: &str) -> &str {
     }
 }
 
-/// Resolve a path from a TOC entry.
-///
-/// Returns true if the path exists, checking in order:
-/// 1. Relative to the markdown file's directory
-/// 2. Relative to docs/ directory
-/// 3. Relative to project root
-fn resolve_path(root: &Path, md_file: &Path, entry_path: &str) -> bool {
-    // Resolution order per spec
-    // 1. Relative to markdown file's directory
-    if let Some(parent) = md_file.parent() {
-        let candidate = parent.join(entry_path);
-        if candidate.exists() {
-            return true;
+/// Resolution strategy for TOC entries.
+#[derive(Debug, Clone, Copy)]
+enum ResolutionStrategy {
+    /// Relative to the markdown file's directory (`.`/`./` treated as current directory)
+    RelativeToFile,
+    /// Relative to project root
+    RelativeToRoot,
+    /// Strip markdown file's parent directory name prefix
+    StripParentDirName,
+}
+
+impl ResolutionStrategy {
+    fn description(&self) -> &'static str {
+        match self {
+            Self::RelativeToFile => "relative to markdown file",
+            Self::RelativeToRoot => "relative to project root",
+            Self::StripParentDirName => "stripping parent directory prefix",
         }
     }
+}
 
-    // 2. Relative to docs/ directory
-    let docs_candidate = root.join("docs").join(entry_path);
-    if docs_candidate.exists() {
-        return true;
+/// Normalize a path by stripping `.`/`./` prefix when it represents current directory.
+/// Does NOT strip from hidden files/directories like `.tmpXXX/`.
+fn normalize_dot_prefix(path: &str) -> &str {
+    // `./foo` → `foo`
+    if let Some(rest) = path.strip_prefix("./") {
+        return rest;
     }
-
-    // 3. Relative to project root
-    let root_candidate = root.join(entry_path);
-    if root_candidate.exists() {
-        return true;
+    // `.` alone → empty (current directory)
+    if path == "." {
+        return "";
     }
+    // `.foo` is a hidden file/directory, not current directory reference
+    path
+}
 
-    false
+/// Try to resolve a path using a specific strategy.
+fn try_resolve(
+    root: &Path,
+    md_file: &Path,
+    entry_path: &str,
+    strategy: ResolutionStrategy,
+) -> bool {
+    // Normalize `.`/`./` prefix for all strategies
+    let normalized = normalize_dot_prefix(entry_path);
+
+    match strategy {
+        ResolutionStrategy::RelativeToFile => {
+            if let Some(parent) = md_file.parent() {
+                parent.join(normalized).exists()
+            } else {
+                false
+            }
+        }
+        ResolutionStrategy::RelativeToRoot => root.join(normalized).exists(),
+        ResolutionStrategy::StripParentDirName => {
+            // Get the parent directory name of the markdown file
+            if let Some(parent) = md_file.parent()
+                && let Some(parent_name) = parent.file_name().and_then(|n| n.to_str())
+            {
+                // Try stripping the parent dir name prefix
+                let prefix = format!("{}/", parent_name);
+                if let Some(stripped) = normalized.strip_prefix(&prefix) {
+                    return root.join(stripped).exists();
+                }
+            }
+            false
+        }
+    }
+}
+
+/// Try all resolution strategies for a block of entries.
+/// Returns None if a strategy resolves all entries, or Some with unresolved entries.
+fn try_resolve_block<'a>(
+    root: &Path,
+    md_file: &Path,
+    entries: &'a [TreeEntry],
+    strategy: ResolutionStrategy,
+) -> Option<Vec<&'a TreeEntry>> {
+    let unresolved: Vec<_> = entries
+        .iter()
+        .filter(|e| !e.is_dir && !try_resolve(root, md_file, &e.path, strategy))
+        .collect();
+
+    if unresolved.is_empty() {
+        None
+    } else {
+        Some(unresolved)
+    }
 }
 
 /// Build a GlobSet from patterns.
@@ -589,6 +649,11 @@ fn validate_file_toc(
     violations: &mut Vec<Violation>,
 ) {
     let blocks = extract_fenced_blocks(content);
+    let strategies = [
+        ResolutionStrategy::RelativeToFile,
+        ResolutionStrategy::RelativeToRoot,
+        ResolutionStrategy::StripParentDirName,
+    ];
 
     for block in blocks {
         // Skip blocks that don't look like directory trees
@@ -598,33 +663,49 @@ fn validate_file_toc(
 
         let entries = parse_tree_block(&block);
         let abs_file = ctx.root.join(relative_path);
-        let mut block_violations = Vec::new();
 
-        for entry in entries {
-            // Skip directories (only validate files)
-            if entry.is_dir {
-                continue;
-            }
+        // Try each strategy until one resolves all entries
+        let mut tried_strategies = Vec::new();
+        let mut unresolved = None;
 
-            // Try to resolve the path
-            if !resolve_path(ctx.root, &abs_file, &entry.path) {
-                let line = block.start_line + entry.line_offset;
-                block_violations.push((line, entry.path.clone()));
+        for strategy in strategies {
+            match try_resolve_block(ctx.root, &abs_file, &entries, strategy) {
+                None => {
+                    // All entries resolved with this strategy
+                    unresolved = None;
+                    break;
+                }
+                Some(failed) => {
+                    tried_strategies.push(strategy);
+                    unresolved = Some(failed);
+                }
             }
         }
 
-        // If most entries in the block fail, suggest marking as non-tree
-        if !block_violations.is_empty() {
-            let advice = if block_violations.len() > 2 {
-                "File does not exist. If this is example output (not a directory tree), \
-                 add a language tag like ```text or ```bash to skip TOC validation."
+        // Report violations for unresolved entries
+        if let Some(failed_entries) = unresolved {
+            let strategies_tried: Vec<_> =
+                tried_strategies.iter().map(|s| s.description()).collect();
+            let strategies_note = format!("Tried: {}", strategies_tried.join(", "));
+
+            let advice = if failed_entries.len() > 2 {
+                format!(
+                    "File does not exist. If this is example output (not a directory tree), \
+                     add a language tag like ```text or ```bash to skip TOC validation. {}",
+                    strategies_note
+                )
             } else {
-                "File does not exist. Update the tree or create the file."
+                format!(
+                    "File does not exist. Update the tree or create the file. {}",
+                    strategies_note
+                )
             };
 
-            for (line, path) in block_violations {
+            for entry in failed_entries {
+                let line = block.start_line + entry.line_offset;
                 violations.push(
-                    Violation::file(relative_path, line, "broken_toc", advice).with_pattern(path),
+                    Violation::file(relative_path, line, "broken_toc", &advice)
+                        .with_pattern(entry.path.clone()),
                 );
             }
         }

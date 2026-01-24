@@ -127,7 +127,7 @@ escapes: FAIL
 
 Single `quench.toml` at project root. Per-package overrides configured inline.
 
-```
+```text
 project-root/
 ├── quench.toml              # Single config file (optional)
 ├── crates/

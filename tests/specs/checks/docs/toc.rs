@@ -98,7 +98,7 @@ docs/specs/
 /// Spec: docs/specs/checks/docs.md#resolution
 ///
 /// > Paths resolved in order: 1. Relative to markdown file's directory
-/// > 2. Relative to docs/ directory 3. Relative to project root
+/// > 2. Relative to project root
 #[test]
 #[ignore = "TODO: Phase 602 - Docs Check Implementation"]
 fn toc_path_resolution_order() {
@@ -117,5 +117,62 @@ README.md
 "#,
     );
     // Should resolve README.md from project root
+    check("docs").pwd(temp.path()).passes();
+}
+
+/// Spec: docs/specs/checks/docs.md#resolution
+///
+/// > Relative to the markdown file's directory (`.`/`./` treated as current directory)
+#[test]
+fn toc_dot_prefix_resolves_relative_to_markdown_file() {
+    let temp = default_project();
+    temp.file("README.md", "# README\n");
+    temp.file("crates/cli/lib.rs", "// lib\n");
+    temp.file(
+        "CLAUDE.md",
+        r#"# Project
+
+```
+.
+├── README.md
+├── crates/
+│   └── cli/
+│       └── lib.rs
+```
+"#,
+    );
+    check("docs").pwd(temp.path()).passes();
+}
+
+/// Spec: docs/specs/checks/docs.md#resolution
+///
+/// > Strip markdown file's parent directory name prefix
+#[test]
+fn toc_parent_dir_prefix_stripped() {
+    let temp = default_project();
+    temp.file("README.md", "# README\n");
+    temp.file("crates/cli/lib.rs", "// lib\n");
+    // The temp directory name is used as the tree root
+    temp.file(
+        "CLAUDE.md",
+        r#"# Project
+
+```
+TEMPNAME/
+├── README.md
+├── crates/
+│   └── cli/
+│       └── lib.rs
+```
+"#,
+    );
+    // Replace TEMPNAME with actual directory name
+    let dir_name = temp.path().file_name().unwrap().to_str().unwrap();
+    let content = std::fs::read_to_string(temp.path().join("CLAUDE.md")).unwrap();
+    std::fs::write(
+        temp.path().join("CLAUDE.md"),
+        content.replace("TEMPNAME", dir_name),
+    )
+    .unwrap();
     check("docs").pwd(temp.path()).passes();
 }

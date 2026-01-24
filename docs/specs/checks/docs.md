@@ -20,7 +20,7 @@ Fenced code blocks containing directory trees. Both formats are supported:
 
 **Box-drawing format:**
 ~~~markdown
-```
+```text
 src/
 ├── parser.rs
 ├── lexer.rs
@@ -30,7 +30,7 @@ src/
 
 **Indentation format** (spaces or tabs):
 ~~~markdown
-```
+```text
 src/
   parser.rs
   lexer.rs
@@ -42,10 +42,13 @@ Each file in the tree is checked for existence.
 
 ### Resolution
 
-Paths resolved in order (first match wins):
-1. Relative to the markdown file's directory
-2. Relative to `docs/` directory
-3. Relative to project root
+Resolution applies to the entire tree block. All entries must resolve with the same strategy, or fall back to the next:
+
+1. Relative to the markdown file's directory (`.`/`./` treated as current directory)
+2. Relative to project root
+3. Strip markdown file's parent directory name prefix (e.g., `quench/` for `/path/to/quench/CLAUDE.md`)
+
+If a strategy resolves some but not all entries, that strategy fails and the next is tried. The error message notes which strategies were attempted.
 
 ### Output
 

@@ -115,10 +115,13 @@ docs/specs/
 ### Behavior
 
 - Code blocks tagged `toc` are always validated as directory trees
+- Code blocks tagged `no-toc` or `ignore` are never validated (explicit skip)
 - Both formats (box-drawing and indentation) are supported
 - Files listed must exist (same path resolution as regular TOC validation)
 - Comments after `#` are ignored (same as regular TOC)
 - Fails with "invalid toc format" if neither format is detected
+
+**Note**: Currently, using `text`, `bash`, or other language tags already skips TOC validation. The `no-toc` tag would make intent explicit for trees that look like they should be validated but shouldn't be.
 
 ### Output
 
