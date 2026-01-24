@@ -4,76 +4,72 @@ use std::path::Path;
 
 use super::*;
 use crate::adapter::{Adapter, FileKind};
+use yare::parameterized;
 
-#[test]
-fn classifies_go_files_as_source() {
+#[parameterized(
+    src_root = { "main.go", FileKind::Source },
+    src_pkg = { "pkg/lib.go", FileKind::Source },
+    src_nested = { "internal/config/config.go", FileKind::Source },
+    test_root = { "main_test.go", FileKind::Test },
+    test_pkg = { "pkg/lib_test.go", FileKind::Test },
+    vendor = { "vendor/dep/dep.go", FileKind::Other },
+    readme = { "README.md", FileKind::Other },
+    makefile = { "Makefile", FileKind::Other },
+)]
+fn classify_path(path: &str, expected: FileKind) {
     let adapter = GoAdapter::new();
-    assert_eq!(adapter.classify(Path::new("main.go")), FileKind::Source);
-    assert_eq!(adapter.classify(Path::new("pkg/lib.go")), FileKind::Source);
     assert_eq!(
-        adapter.classify(Path::new("internal/config/config.go")),
-        FileKind::Source
+        adapter.classify(Path::new(path)),
+        expected,
+        "path {:?} should be {:?}",
+        path,
+        expected
     );
 }
 
-#[test]
-fn classifies_test_files_as_test() {
-    let adapter = GoAdapter::new();
-    assert_eq!(adapter.classify(Path::new("main_test.go")), FileKind::Test);
-    assert_eq!(
-        adapter.classify(Path::new("pkg/lib_test.go")),
-        FileKind::Test
-    );
-}
-
-#[test]
-fn ignores_vendor_directory() {
+#[parameterized(
+    vendor_root = { "vendor/foo/bar.go", true },
+    src_main = { "main.go", false },
+    pkg = { "pkg/lib.go", false },
+)]
+fn should_ignore_path(path: &str, expected: bool) {
     let adapter = GoAdapter::new();
     assert_eq!(
-        adapter.classify(Path::new("vendor/dep/dep.go")),
-        FileKind::Other
+        adapter.should_ignore(Path::new(path)),
+        expected,
+        "path {:?} should_ignore = {}",
+        path,
+        expected
     );
-    assert!(adapter.should_ignore(Path::new("vendor/foo/bar.go")));
-}
-
-#[test]
-fn non_go_files_are_other() {
-    let adapter = GoAdapter::new();
-    assert_eq!(adapter.classify(Path::new("README.md")), FileKind::Other);
-    assert_eq!(adapter.classify(Path::new("Makefile")), FileKind::Other);
 }
 
 #[test]
 fn has_correct_name_and_extensions() {
-    use super::Adapter;
     let adapter = GoAdapter::new();
     assert_eq!(adapter.name(), "go");
     assert_eq!(adapter.extensions(), &["go"]);
 }
 
 #[test]
-fn provides_default_escape_patterns() {
-    use super::Adapter;
+fn returns_three_default_escape_patterns() {
     let adapter = GoAdapter::new();
-    let escapes = adapter.default_escapes();
+    assert_eq!(adapter.default_escapes().len(), 3);
+}
 
-    // Should have 3 default escape patterns
-    assert_eq!(escapes.len(), 3);
-
-    // Check unsafe.Pointer pattern
-    let unsafe_ptr = escapes.iter().find(|e| e.name == "unsafe_pointer").unwrap();
-    assert_eq!(unsafe_ptr.pattern, r"unsafe\.Pointer");
-    assert_eq!(unsafe_ptr.comment, Some("// SAFETY:"));
-
-    // Check go:linkname pattern
-    let linkname = escapes.iter().find(|e| e.name == "go_linkname").unwrap();
-    assert_eq!(linkname.pattern, r"//go:linkname");
-    assert_eq!(linkname.comment, Some("// LINKNAME:"));
-
-    // Check go:noescape pattern
-    let noescape = escapes.iter().find(|e| e.name == "go_noescape").unwrap();
-    assert_eq!(noescape.pattern, r"//go:noescape");
-    assert_eq!(noescape.comment, Some("// NOESCAPE:"));
+#[parameterized(
+    unsafe_pointer = { "unsafe_pointer", r"unsafe\.Pointer", Some("// SAFETY:") },
+    go_linkname = { "go_linkname", r"//go:linkname", Some("// LINKNAME:") },
+    go_noescape = { "go_noescape", r"//go:noescape", Some("// NOESCAPE:") },
+)]
+fn default_escape_pattern(name: &str, pattern: &str, expected_comment: Option<&str>) {
+    let adapter = GoAdapter::new();
+    let patterns = adapter.default_escapes();
+    let found = patterns
+        .iter()
+        .find(|p| p.name == name)
+        .unwrap_or_else(|| panic!("pattern {:?} not found", name));
+    assert_eq!(found.pattern, pattern, "pattern {:?}", name);
+    assert_eq!(found.comment, expected_comment, "comment for {:?}", name);
 }
 
 #[test]
