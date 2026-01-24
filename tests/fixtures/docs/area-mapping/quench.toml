@@ -1,0 +1,12 @@
+version = 1
+
+[check.docs.commit]
+check = "error"
+
+[check.docs.area.api]
+docs = "docs/api/**"
+source = "src/api/**"
+
+[check.docs.area.cli]
+docs = "docs/cli/**"
+source = "src/cli/**"

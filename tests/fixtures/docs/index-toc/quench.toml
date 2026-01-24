@@ -1,0 +1,6 @@
+version = 1
+
+[check.docs]
+path = "docs/specs"
+index = "toc"
+index_file = "docs/specs/00-overview.md"

@@ -28,6 +28,9 @@ mod checks_escapes;
 #[path = "specs/checks/agents/mod.rs"]
 mod checks_agents;
 
+#[path = "specs/checks/docs/mod.rs"]
+mod checks_docs;
+
 // output/
 #[path = "specs/output/format.rs"]
 mod output_format;
