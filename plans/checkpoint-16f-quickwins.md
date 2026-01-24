@@ -1,5 +1,7 @@
 # Checkpoint 16F: Quick Wins - Report Command
 
+**Root Feature:** `quench-fc4c`
+
 ## Overview
 
 This checkpoint delivers high-value, low-risk improvements to the `quench report` command. With streaming output and compact JSON mode already implemented (checkpoint-16e), this phase focuses on polish that improves output quality and usability.
