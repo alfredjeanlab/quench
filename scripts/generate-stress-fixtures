@@ -1,0 +1,300 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Alfred Jean LLC
+# scripts/generate-stress-fixtures - Generate large-scale stress test fixtures
+#
+# Creates fixtures for end-to-end stress testing:
+# - stress-huge-files: 50K tiny files (file traversal stress)
+# - stress-monorepo: 5K files workspace (realistic large project)
+# - stress-large-file: 5 files of 1-5MB each (large file handling)
+#
+# Usage:
+#   ./scripts/generate-stress-fixtures              # Generate all fixtures
+#   ./scripts/generate-stress-fixtures --clean      # Remove existing fixtures first
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+FIXTURE_DIR="$REPO_ROOT/tests/fixtures"
+
+# Colors
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+# Parse args
+if [[ "${1:-}" == "--clean" ]]; then
+    echo -e "${YELLOW}Cleaning existing stress fixtures...${NC}"
+    rm -rf "$FIXTURE_DIR/stress-huge-files"
+    rm -rf "$FIXTURE_DIR/stress-monorepo"
+    rm -rf "$FIXTURE_DIR/stress-large-file"
+fi
+
+echo -e "${BLUE}Generating large-scale stress fixtures...${NC}"
+echo ""
+
+# ============================================================================
+# stress-huge-files: 50K tiny files for file traversal stress testing
+# ============================================================================
+generate_huge_files() {
+    local dir="$FIXTURE_DIR/stress-huge-files"
+
+    if [[ -d "$dir" ]]; then
+        echo -e "${YELLOW}stress-huge-files already exists, skipping${NC}"
+        return
+    fi
+
+    echo "Generating stress-huge-files (50K files)..."
+    mkdir -p "$dir/src"
+
+    cat > "$dir/Cargo.toml" << 'TOML'
+[package]
+name = "stress-huge-files"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# Stress test: 50K tiny files for traversal testing
+TOML
+
+    cat > "$dir/quench.toml" << 'TOML'
+version = 1
+
+[check.cloc]
+check = "warn"
+max_lines = 1000000
+max_lines_test = 1000000
+
+[check.escapes]
+check = "warn"
+TOML
+
+    # Generate 50K stub files using parallel processes for speed
+    echo "  Creating 50000 source files..."
+
+    # Create files in batches for better performance
+    for batch in $(seq 0 49); do
+        start=$((batch * 1000 + 1))
+        end=$((batch * 1000 + 1000))
+        for i in $(seq $start $end); do
+            echo "pub fn f$i() {}" > "$dir/src/f$i.rs"
+        done
+        # Progress indicator
+        echo -ne "  Progress: $((batch + 1))/50 batches\r"
+    done
+    echo ""
+
+    # Create lib.rs that mods them all
+    echo "  Creating lib.rs with 50000 mod declarations..."
+    {
+        echo "//! Stress test: 50K modules"
+        for i in $(seq 1 50000); do
+            echo "mod f$i;"
+        done
+    } > "$dir/src/lib.rs"
+
+    echo -e "  ${GREEN}Generated stress-huge-files: 50001 files${NC}"
+}
+
+# ============================================================================
+# stress-monorepo: 5K files in workspace structure
+# ============================================================================
+generate_monorepo() {
+    local dir="$FIXTURE_DIR/stress-monorepo"
+
+    if [[ -d "$dir" ]]; then
+        echo -e "${YELLOW}stress-monorepo already exists, skipping${NC}"
+        return
+    fi
+
+    echo "Generating stress-monorepo (5K files, 10 crates)..."
+    mkdir -p "$dir"
+
+    # Root workspace
+    cat > "$dir/Cargo.toml" << 'TOML'
+[workspace]
+members = ["crates/*"]
+resolver = "2"
+
+# Stress test: simulated monorepo
+TOML
+
+    cat > "$dir/quench.toml" << 'TOML'
+version = 1
+
+[check.cloc]
+check = "warn"
+max_lines = 100000
+max_lines_test = 100000
+
+[check.escapes]
+check = "warn"
+TOML
+
+    # Create 10 crates with 500 files each = 5000 files
+    for crate in $(seq 1 10); do
+        local crate_dir="$dir/crates/crate_$crate"
+        mkdir -p "$crate_dir/src"
+
+        cat > "$crate_dir/Cargo.toml" << TOML
+[package]
+name = "crate_$crate"
+version = "0.1.0"
+edition = "2021"
+publish = false
+TOML
+
+        # Create 500 source files per crate
+        for f in $(seq 1 500); do
+            cat > "$crate_dir/src/mod_$f.rs" << RUST
+//! Module $f of crate $crate
+pub fn compute_$f(x: i32) -> i32 {
+    let y = x * $f;
+    let z = y + $crate;
+    z
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_compute_$f() {
+        assert!(compute_$f(1) > 0);
+    }
+}
+RUST
+        done
+
+        # Create lib.rs
+        {
+            echo "//! Crate $crate"
+            for f in $(seq 1 500); do
+                echo "pub mod mod_$f;"
+            done
+        } > "$crate_dir/src/lib.rs"
+
+        echo -ne "  Created crate_$crate (500 files)\r"
+    done
+    echo ""
+
+    echo -e "  ${GREEN}Generated stress-monorepo: 10 crates × 501 files = 5010 files${NC}"
+}
+
+# ============================================================================
+# stress-large-file: 5 files of 1-5MB each
+# ============================================================================
+generate_large_files() {
+    local dir="$FIXTURE_DIR/stress-large-file"
+
+    if [[ -d "$dir" ]]; then
+        echo -e "${YELLOW}stress-large-file already exists, skipping${NC}"
+        return
+    fi
+
+    echo "Generating stress-large-file (5 files × 1-5MB)..."
+    mkdir -p "$dir/src"
+
+    cat > "$dir/Cargo.toml" << 'TOML'
+[package]
+name = "stress-large-file"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# Stress test: large individual files
+TOML
+
+    cat > "$dir/quench.toml" << 'TOML'
+version = 1
+
+[check.cloc]
+check = "warn"
+max_lines = 200000
+max_lines_test = 200000
+
+[check.escapes]
+check = "warn"
+TOML
+
+    # Generate files of increasing size: 1MB, 2MB, 3MB, 4MB, 5MB
+    # Approximate: 50 bytes per line, so 20K lines ≈ 1MB
+    local sizes=(20000 40000 60000 80000 100000)
+
+    for i in $(seq 0 4); do
+        local lines=${sizes[$i]}
+        local mb=$((i + 1))
+        local file="$dir/src/large_${mb}mb.rs"
+
+        echo "  Generating large_${mb}mb.rs (~${lines} lines)..."
+
+        {
+            echo "//! Large file stress test: approximately ${mb}MB"
+            echo ""
+
+            # Generate function blocks
+            local blocks=$((lines / 15))
+            for b in $(seq 1 $blocks); do
+                cat << RUST
+pub fn function_${mb}mb_$b(input: i32) -> i32 {
+    let a = input * $b;
+    let b = a + ${mb};
+    let c = b - 1;
+    c
+}
+
+#[cfg(test)]
+mod tests_$b {
+    #[test]
+    fn test_$b() {
+        assert!(super::function_${mb}mb_$b(1) > 0);
+    }
+}
+
+RUST
+            done
+        } > "$file"
+    done
+
+    # Create lib.rs
+    cat > "$dir/src/lib.rs" << 'RUST'
+//! Large file stress test
+pub mod large_1mb;
+pub mod large_2mb;
+pub mod large_3mb;
+pub mod large_4mb;
+pub mod large_5mb;
+RUST
+
+    echo -e "  ${GREEN}Generated stress-large-file: 5 files (1-5MB each)${NC}"
+}
+
+# ============================================================================
+# Main
+# ============================================================================
+
+generate_huge_files
+echo ""
+generate_monorepo
+echo ""
+generate_large_files
+
+echo ""
+echo -e "${GREEN}=== Stress fixtures generated ===${NC}"
+echo ""
+echo "Fixtures:"
+echo "  stress-huge-files/  - 50K tiny files for traversal stress"
+echo "  stress-monorepo/    - 5K files in 10-crate workspace"
+echo "  stress-large-file/  - 5 files of 1-5MB each"
+echo ""
+
+# Print totals
+for fixture in stress-huge-files stress-monorepo stress-large-file; do
+    if [[ -d "$FIXTURE_DIR/$fixture" ]]; then
+        count=$(find "$FIXTURE_DIR/$fixture" -name "*.rs" 2>/dev/null | wc -l | tr -d ' ')
+        size=$(du -sh "$FIXTURE_DIR/$fixture" 2>/dev/null | cut -f1)
+        echo "  $fixture: $count .rs files, $size"
+    fi
+done
