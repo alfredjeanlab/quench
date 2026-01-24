@@ -356,7 +356,6 @@ fn init_output_matches_template_format() {
 ///
 /// > Detected language appends [lang] section with dotted keys
 #[test]
-#[ignore = "TODO: Phase 1530 - Language Section Output"]
 fn init_detected_language_uses_dotted_keys() {
     let temp = Project::empty();
     temp.file("Cargo.toml", "[package]\nname = \"test\"\n");
