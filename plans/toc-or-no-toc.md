@@ -1,5 +1,7 @@
 # TOC-or-No-TOC: Explicit Code Block Annotations
 
+**Root Feature:** `quench-51f9`
+
 ## Overview
 
 Add explicit annotation support for TOC validation in code blocks. The `toc` language tag forces validation regardless of heuristics, while `no-toc` and `ignore` tags explicitly skip validation. This makes intent clear and provides better advice when violations are detected.
