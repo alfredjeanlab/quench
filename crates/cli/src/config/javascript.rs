@@ -94,6 +94,7 @@ impl JavaScriptPolicyConfig {
             ".eslintrc".to_string(),
             ".eslintrc.js".to_string(),
             ".eslintrc.json".to_string(),
+            ".eslintrc.yml".to_string(),
             "eslint.config.js".to_string(),
             "eslint.config.mjs".to_string(),
             "tsconfig.json".to_string(),
@@ -101,6 +102,17 @@ impl JavaScriptPolicyConfig {
             ".prettierrc.json".to_string(),
             "prettier.config.js".to_string(),
             "biome.json".to_string(),
+            "biome.jsonc".to_string(),
         ]
+    }
+}
+
+impl crate::adapter::common::policy::PolicyConfig for JavaScriptPolicyConfig {
+    fn lint_changes(&self) -> LintChangesPolicy {
+        self.lint_changes
+    }
+
+    fn lint_config(&self) -> &[String] {
+        &self.lint_config
     }
 }

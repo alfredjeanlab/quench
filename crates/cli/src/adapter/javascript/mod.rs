@@ -16,11 +16,15 @@ use std::path::Path;
 use globset::GlobSet;
 use serde_json::Value;
 
+mod policy;
 mod suppress;
 mod workspace;
 
+pub use policy::{PolicyCheckResult, check_lint_policy};
 pub use suppress::{JavaScriptSuppress, SuppressTool, parse_javascript_suppresses};
 pub use workspace::JsWorkspace;
+
+use crate::config::JavaScriptPolicyConfig;
 
 use super::glob::build_glob_set;
 use super::{Adapter, EscapeAction, EscapePattern, FileKind};
@@ -98,6 +102,17 @@ impl JavaScriptAdapter {
         let content = fs::read_to_string(&pkg_json).ok()?;
         let value: Value = serde_json::from_str(&content).ok()?;
         value.get("name")?.as_str().map(String::from)
+    }
+
+    /// Check lint policy against changed files.
+    ///
+    /// Returns policy check result with violation details.
+    pub fn check_lint_policy(
+        &self,
+        changed_files: &[&Path],
+        policy: &JavaScriptPolicyConfig,
+    ) -> PolicyCheckResult {
+        policy::check_lint_policy(changed_files, policy, |p| self.classify(p))
     }
 }
 

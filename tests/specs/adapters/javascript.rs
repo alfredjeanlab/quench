@@ -307,7 +307,6 @@ fn eslint_disable_in_test_file_passes_without_comment() {
 ///
 /// > `lint_changes = "standalone"` requires lint config in separate PRs.
 #[test]
-#[ignore = "TODO: Phase 496 - JavaScript Adapter Suppress"]
 fn lint_config_changes_with_source_fails_standalone_policy() {
     let temp = Project::empty();
 
@@ -382,7 +381,6 @@ lint_config = ["eslint.config.js"]
 ///
 /// > Lint config changes only (no source) passes standalone policy.
 #[test]
-#[ignore = "TODO: Phase 496 - JavaScript Adapter Suppress"]
 fn lint_config_standalone_passes() {
     let temp = Project::empty();
 
