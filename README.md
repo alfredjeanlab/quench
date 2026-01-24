@@ -14,7 +14,10 @@ curl -fsSL https://github.com/alfredjeanlab/quench/releases/latest/download/inst
 
 ## Supported Languages
 
-Rust, Go, Shell
+- **Rust** - `.rs` files, `#[cfg(test)]` splitting, `#[allow]` suppression tracking
+- **Go** - `.go` files, `_test.go` detection, `//nolint` suppression tracking
+- **Shell** - `.sh`/`.bash` files, shellcheck directive detection
+- **Other** - Basic cloc checks work on any text file
 
 ## Quick Start
 

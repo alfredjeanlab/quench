@@ -7,6 +7,7 @@ Configured via `quench.toml`.
 
 ```
 quench/
+├── README.md         # Human-focused introduction
 ├── crates/           # Rust workspace
 │   └── cli/          # CLI binary
 ├── docs/
