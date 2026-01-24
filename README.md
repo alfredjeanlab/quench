@@ -14,9 +14,9 @@ curl -fsSL https://github.com/alfredjeanlab/quench/releases/latest/download/inst
 
 ## Supported Languages
 
-- **Rust** - `.rs` files, `#[cfg(test)]` splitting, `#[allow]` suppression tracking
-- **Go** - `.go` files, `_test.go` detection, `//nolint` suppression tracking
-- **Shell** - `.sh`/`.bash` files, shellcheck directive detection
+- **Rust** - `.rs` files, `#[allow]` suppression tracking
+- **Go** - `.go` files, `//nolint` suppression tracking
+- **Shell** - `.sh`/`.bash` files, shellcheck directive tracking
 - **Other** - Basic cloc checks work on any text file
 
 ## Quick Start
@@ -50,7 +50,8 @@ tables = "forbid"         # No markdown tables in agent files
 | Check | What it does |
 |-------|--------------|
 | `cloc` | Enforces file size limits (lines, tokens) |
-| `escapes` | Flags unsafe patterns (`.unwrap()`, `unsafe`, `//nolint`) |
+| `escapes` | Flags unsafe patterns (`.unwrap()`, `unsafe`, `todo!()`) |
+| `suppress` | Requires justification for lint suppressions (`#[allow]`, `//nolint`) |
 | `agents` | Validates AI context files (CLAUDE.md, .cursorrules) |
 
 ## License
