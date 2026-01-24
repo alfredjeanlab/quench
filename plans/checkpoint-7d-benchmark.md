@@ -1,5 +1,7 @@
 # Checkpoint 7D: Benchmark - Docs Check
 
+**Root Feature:** `quench-0862`
+
 ## Overview
 
 Add comprehensive benchmarks for the docs check to measure performance of TOC validation, link validation, specs validation, and commit checking. The benchmarks follow the existing Criterion-based infrastructure and test both unit-level parsing functions and end-to-end CLI invocations.
