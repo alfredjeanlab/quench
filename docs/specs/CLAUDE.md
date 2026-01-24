@@ -111,6 +111,27 @@ This allows documentation to be self-descriptive while keeping commands terse.
 - `max_lines`, `max_lines_test`
 - `max_tokens` (default: 20000, use `false` to disable)
 
+## Spec Writing
+
+**Prefer exact output comparison** in behavioral tests to catch format regressions:
+
+```rust
+// GOOD: Exact comparison catches unexpected changes
+cli().on("fixture").exits(1).stdout_eq(
+    "cloc: FAIL
+  src/file.rs: file_too_large (lines: 100 vs 50)
+    Split into smaller modules.
+
+FAIL: cloc
+"
+);
+
+// ACCEPTABLE: Pattern matching when output varies
+cli().on("fixture").fails().stdout_has("file_too_large");
+```
+
+Use `stdout_eq()` for output format specs. Use `stdout_has()` only when exact comparison isn't practical (dynamic counts, timestamps, etc.). See `tests/specs/prelude.rs` for helpers.
+
 ## File Structure
 
 ```

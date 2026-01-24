@@ -23,6 +23,7 @@ pub struct TextFormatter {
     options: FormatOptions,
     violations_shown: usize,
     truncated: bool,
+    last_advice: Option<String>,
 }
 
 impl TextFormatter {
@@ -33,12 +34,16 @@ impl TextFormatter {
             options,
             violations_shown: 0,
             truncated: false,
+            last_advice: None,
         }
     }
 
     /// Write a single check result (streaming).
     /// Returns true if output was truncated.
     pub fn write_check(&mut self, result: &CheckResult) -> std::io::Result<bool> {
+        // Reset advice tracking for new check
+        self.last_advice = None;
+
         if result.passed && !result.fixed {
             return Ok(false); // Silent on pass per spec
         }
@@ -217,18 +222,26 @@ impl TextFormatter {
         // Violation description (includes type-specific info)
         writeln!(self.stdout, "{}", self.format_violation_desc(v))?;
 
-        // Advice (4-space indent for each line, skip indent on blank lines)
-        for line in v.advice.lines() {
-            if line.is_empty() {
-                writeln!(self.stdout)?;
-            } else {
-                writeln!(self.stdout, "    {}", line)?;
-            }
-        }
+        // Only show advice if different from last shown
+        let should_show_advice = self.last_advice.as_ref() != Some(&v.advice);
 
-        // Add extra newline after multi-line advice for readability
-        if v.advice.contains('\n') {
-            writeln!(self.stdout)?;
+        if should_show_advice {
+            // Advice (4-space indent for each line, skip indent on blank lines)
+            for line in v.advice.lines() {
+                if line.is_empty() {
+                    writeln!(self.stdout)?;
+                } else {
+                    writeln!(self.stdout, "    {}", line)?;
+                }
+            }
+
+            // Add extra newline after multi-line advice for readability
+            if v.advice.contains('\n') {
+                writeln!(self.stdout)?;
+            }
+
+            // Update tracking
+            self.last_advice = Some(v.advice.clone());
         }
 
         Ok(())

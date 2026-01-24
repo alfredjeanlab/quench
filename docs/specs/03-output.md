@@ -58,6 +58,31 @@ file-size: FAIL
     Split into smaller modules. The tokenize() function could be extracted.
 ```
 
+### Advice Deduplication
+
+To improve readability and reduce token consumption, consecutive violations with identical advice only show the advice once:
+
+```
+cloc: FAIL
+  src/parser.rs:800: file_too_large (lines: 800 vs 750)
+    Can the code be made more concise?
+    Look for repetitive patterns that could be extracted into helper functions.
+
+    If not, split large source files into sibling modules or submodules in a folder;
+    consider refactoring to be more unit testable.
+
+  src/lexer.rs:850: file_too_large (lines: 850 vs 750)
+  src/ast.rs:775: file_too_large (lines: 775 vs 750)
+```
+
+In this example, the advice is only shown for the first violation. Subsequent consecutive violations with the same advice omit it to avoid repetition.
+
+**Deduplication rules:**
+- Only consecutive violations are deduplicated
+- Non-consecutive duplicates still show advice
+- Deduplication resets between different checks
+- JSON output is never deduplicated (preserves full machine-readable data)
+
 ### JSON Format (`-o json`)
 
 #### Top-Level Schema

@@ -1,0 +1,8 @@
+version = 1
+
+[project]
+name = "dedup-advice"
+
+[check.cloc]
+check = "error"
+max_lines = 5

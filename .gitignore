@@ -31,3 +31,7 @@ coverage/
 
 # Benchmark baseline
 /.bench-baseline/
+
+# Test fixture build artifacts
+/tests/fixtures/*/target/
+/tests/fixtures/*/Cargo.lock

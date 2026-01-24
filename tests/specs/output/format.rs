@@ -398,3 +398,79 @@ FAIL: cloc
         "output format must match exactly"
     );
 }
+
+// =============================================================================
+// Advice Deduplication
+// =============================================================================
+
+/// Spec: docs/specs/03-output.md#advice-deduplication
+///
+/// > Consecutive violations with identical advice only show advice once
+#[test]
+fn text_output_deduplicates_consecutive_identical_advice() {
+    cli().on("dedup-advice").exits(1).stdout_eq(
+        "cloc: FAIL
+  src/file_c.rs: file_too_large (lines: 7 vs 5)
+    Can the code be made more concise?
+
+    Look for repetitive patterns that could be extracted into helper functions
+    or consider refactoring to be more unit testable.
+
+    If not, split large source files into sibling modules or submodules in a folder,
+
+    Avoid picking and removing individual lines to satisfy the linter,
+    prefer properly refactoring out testable code blocks.
+
+  src/file_b.rs: file_too_large (lines: 7 vs 5)
+  src/file_a.rs: file_too_large (lines: 7 vs 5)
+PASS: escapes, agents, docs
+FAIL: cloc
+",
+    );
+}
+
+/// Spec: docs/specs/03-output.md#advice-deduplication
+///
+/// > JSON output is never deduplicated (preserves full machine-readable data)
+#[test]
+fn json_output_never_deduplicates_advice() {
+    let result = cli().on("dedup-advice").json().fails();
+
+    // Get cloc check
+    let cloc_check = result
+        .checks()
+        .iter()
+        .find(|c| c.get("name").and_then(|n| n.as_str()) == Some("cloc"))
+        .expect("should have cloc check");
+
+    let violations = cloc_check
+        .get("violations")
+        .and_then(|v| v.as_array())
+        .expect("should have violations array");
+
+    // Should have exactly 3 violations (one per oversized file)
+    assert_eq!(
+        violations.len(),
+        3,
+        "should have 3 file_too_large violations"
+    );
+
+    // Every violation must have non-empty advice in JSON output
+    for violation in violations {
+        let advice = violation
+            .get("advice")
+            .and_then(|a| a.as_str())
+            .expect("all violations in JSON should have advice field");
+
+        assert!(
+            !advice.is_empty(),
+            "advice should not be empty in JSON output"
+        );
+
+        // Verify it's the expected multi-line advice
+        assert!(
+            advice.contains("Can the code be made more concise?"),
+            "should have full advice text"
+        );
+    }
+}

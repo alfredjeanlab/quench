@@ -14,11 +14,12 @@ Write specs by reading `docs/specs/`, not by reading `src/`.
 
 - Use `check("name").on("fixture").passes()` for single-check tests
 - Use `cli()` for multi-check scenarios
+- **Prefer `stdout_eq()` for exact output comparison** - catches format regressions
+- Use `stdout_has()` only when exact comparison isn't practical
 - Check stdout, stderr, and exit codes
 - Use fixtures from `tests/fixtures/`
 - Reference the spec doc section in a doc comment
 - Use `#[ignore = "TODO: Phase N - description"]` for unimplemented specs
-- Use `assert_eq!` with exact expected strings for output format tests
 - Create temp dirs for config-only tests
 
 ## DO NOT
@@ -60,14 +61,47 @@ fn escapes_requires_safety_comment() {
 }
 ```
 
+## Output Comparison
+
+**Prefer exact comparison** - catches format regressions and unexpected changes:
+
+```rust
+// GOOD: Exact output comparison with diff on failure
+cli().on("fixture").exits(1).stdout_eq(
+    "cloc: FAIL
+  src/file.rs: file_too_large (lines: 100 vs 50)
+    Split into smaller modules.
+
+FAIL: cloc
+"
+);
+
+// ACCEPTABLE: Pattern matching when exact comparison isn't practical
+cli().on("fixture").fails().stdout_has("file_too_large");
+
+// AVOID: Vague checks that miss format regressions
+cli().on("fixture").fails(); // No output validation at all
+```
+
+**When to use each:**
+- `stdout_eq(expected)` - **Default choice.** Use for format specs and stable output
+- `stdout_has(pattern)` - When output varies (timestamps, file counts, etc.)
+- `stdout_lacks(pattern)` - Verify absence (no ANSI codes, no debug output)
+
 ## Helpers Available
 
 ```rust
 use crate::prelude::*;
 
+// Exact output comparison (preferred for format specs)
+cli().on("fixture").exits(1).stdout_eq("cloc: FAIL\n  ...\n");
+cli().on("fixture").passes().stderr_eq(""); // No errors
+
+// Pattern matching (when exact comparison isn't practical)
+check("cloc").on("fixture").fails().stdout_has("big.rs");
+cli().on("fixture").env("CLAUDE_CODE", "1").exits(1).stdout_lacks("\x1b[");
+
 // Single check -> CheckJson
-check("cloc").on("cloc/basic").passes();
-check("cloc").on("cloc/oversized-source").fails().stdout_has("big.rs");
 let cloc = check("cloc").on("cloc/basic").json().passes();
 assert!(cloc.require("metrics").get("ratio").is_some());
 
@@ -78,9 +112,6 @@ let vs = cloc.violations_of_type("file_too_large");
 assert!(cloc.has_violation_for_file("big.rs"));
 
 // All checks -> ChecksJson
-cli().on("output-test").exits(1);
-cli().pwd(temp.path()).args(&["--no-git"]).passes();
-cli().on("output-test").env("CLAUDE_CODE", "1").exits(1).stdout_lacks("\x1b[");
 let result = cli().on("output-test").json().fails();
 assert!(result.checks().len() > 0);
 
