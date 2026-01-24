@@ -3,8 +3,6 @@
 
 //! Quench CLI entry point.
 
-mod git;
-
 use std::sync::Arc;
 
 use clap::{CommandFactory, Parser};
@@ -27,7 +25,7 @@ use quench::ratchet::{self, CurrentMetrics};
 use quench::runner::{CheckRunner, RunnerConfig};
 use quench::walker::{FileWalker, WalkerConfig};
 
-use git::{detect_base_branch, get_changed_files, get_staged_files};
+use quench::git::{detect_base_branch, get_changed_files, get_staged_files};
 use quench::report;
 
 fn init_logging() {

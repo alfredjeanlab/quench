@@ -1,0 +1,5 @@
+version = 1
+
+[git.commit]
+check = "error"
+scopes = ["api", "cli"]

@@ -109,11 +109,46 @@ impl GitConfig {
 }
 
 /// Git commit message configuration.
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct GitCommitConfig {
     /// Check level: "error" | "warn" | "off"
     pub check: Option<String>,
+
+    /// Commit format: "conventional" | "none" (default: "conventional")
+    pub format: Option<String>,
+
+    /// Allowed commit types (None = use defaults, Some([]) = any type)
+    pub types: Option<Vec<String>>,
+
+    /// Allowed scopes (None = any scope allowed)
+    pub scopes: Option<Vec<String>>,
+
+    /// Check that commit format is documented in agent files (default: true)
+    pub agents: bool,
+
+    /// Create .gitmessage template with --fix (default: true)
+    pub template: bool,
+}
+
+impl Default for GitCommitConfig {
+    fn default() -> Self {
+        Self {
+            check: None,
+            format: None,
+            types: None,
+            scopes: None,
+            agents: true,
+            template: true,
+        }
+    }
+}
+
+impl GitCommitConfig {
+    /// Get effective format (default: "conventional").
+    pub fn effective_format(&self) -> &str {
+        self.format.as_deref().unwrap_or("conventional")
+    }
 }
 
 impl Config {

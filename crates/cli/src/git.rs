@@ -8,8 +8,6 @@ use std::process::Command;
 
 /// A commit with its hash and message.
 #[derive(Debug, Clone)]
-// KEEP UNTIL: Phase 806 implements commit validation
-#[allow(dead_code)]
 pub struct Commit {
     /// Short commit hash (7 characters).
     pub hash: String,
@@ -110,8 +108,6 @@ pub fn detect_base_branch(root: &Path) -> Option<String> {
 /// Get commits since a base ref.
 ///
 /// Returns commits from newest to oldest.
-// KEEP UNTIL: Phase 806 implements commit validation
-#[allow(dead_code)]
 pub fn get_commits_since(root: &Path, base: &str) -> anyhow::Result<Vec<Commit>> {
     let output = Command::new("git")
         .args([
@@ -131,8 +127,6 @@ pub fn get_commits_since(root: &Path, base: &str) -> anyhow::Result<Vec<Commit>>
 }
 
 /// Parse git log output with format "%h%n%s".
-// KEEP UNTIL: Phase 806 implements commit validation
-#[allow(dead_code)]
 fn parse_git_log_output(output: &str) -> anyhow::Result<Vec<Commit>> {
     let lines: Vec<&str> = output.lines().collect();
     let mut commits = Vec::new();
@@ -151,8 +145,6 @@ fn parse_git_log_output(output: &str) -> anyhow::Result<Vec<Commit>> {
 }
 
 /// Get all commits on current branch (for CI mode).
-// KEEP UNTIL: Phase 806 implements commit validation
-#[allow(dead_code)]
 pub fn get_all_branch_commits(root: &Path) -> anyhow::Result<Vec<Commit>> {
     // Detect base and delegate
     if let Some(base) = detect_base_branch(root) {

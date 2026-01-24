@@ -14,6 +14,83 @@
 use crate::prelude::*;
 
 // =============================================================================
+// HELPER FUNCTIONS
+// =============================================================================
+
+/// Initialize a git repo with main branch
+fn init_git_repo(project: &Project) {
+    std::process::Command::new("git")
+        .args(["init"])
+        .current_dir(project.path())
+        .output()
+        .unwrap();
+
+    std::process::Command::new("git")
+        .args(["config", "user.email", "test@example.com"])
+        .current_dir(project.path())
+        .output()
+        .unwrap();
+
+    std::process::Command::new("git")
+        .args(["config", "user.name", "Test User"])
+        .current_dir(project.path())
+        .output()
+        .unwrap();
+}
+
+/// Create main branch with initial commit
+fn create_main_branch(project: &Project) {
+    std::process::Command::new("git")
+        .args(["add", "."])
+        .current_dir(project.path())
+        .output()
+        .unwrap();
+
+    std::process::Command::new("git")
+        .args(["commit", "-m", "feat: initial commit"])
+        .current_dir(project.path())
+        .output()
+        .unwrap();
+}
+
+/// Create a feature branch
+fn create_branch(project: &Project, name: &str) {
+    std::process::Command::new("git")
+        .args(["checkout", "-b", name])
+        .current_dir(project.path())
+        .output()
+        .unwrap();
+}
+
+/// Add a commit with the given message
+fn add_commit(project: &Project, message: &str) {
+    // Touch a file to make a change
+    let dummy_file = project.path().join(format!("dummy_{}.txt", rand_id()));
+    std::fs::write(&dummy_file, "dummy").unwrap();
+
+    std::process::Command::new("git")
+        .args(["add", "."])
+        .current_dir(project.path())
+        .output()
+        .unwrap();
+
+    std::process::Command::new("git")
+        .args(["commit", "-m", message])
+        .current_dir(project.path())
+        .output()
+        .unwrap();
+}
+
+/// Generate a random ID for unique files
+fn rand_id() -> u64 {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos() as u64
+}
+
+// =============================================================================
 // COMMIT FORMAT VALIDATION SPECS
 // =============================================================================
 
@@ -21,19 +98,51 @@ use crate::prelude::*;
 ///
 /// > When `format = "conventional"`, commits must match: <type>(<scope>): <description>
 #[test]
-#[ignore = "TODO: Phase 802 - Git Check Implementation"]
 fn git_validates_conventional_commit_format() {
+    let temp = Project::empty();
+    temp.config(
+        r#"[git.commit]
+check = "error"
+agents = false
+"#,
+    );
+    temp.file(
+        "CLAUDE.md",
+        "# Project\n\n## Directory Structure\n\nMinimal.\n\n## Landing the Plane\n\n- Done\n",
+    );
+
+    init_git_repo(&temp);
+    create_main_branch(&temp);
+    create_branch(&temp, "feature");
+    add_commit(&temp, "feat: add new feature");
+
     // Valid format should pass
-    check("git").on("git/conventional-ok").passes();
+    check("git").pwd(temp.path()).args(&["--ci"]).passes();
 }
 
 /// Spec: docs/specs/checks/git.md#output
 ///
 /// > abc123: "update stuff" - missing type prefix
 #[test]
-#[ignore = "TODO: Phase 802 - Git Check Implementation"]
 fn git_invalid_format_generates_violation() {
-    let git = check("git").on("git/invalid-format").json().fails();
+    let temp = Project::empty();
+    temp.config(
+        r#"[git.commit]
+check = "error"
+agents = false
+"#,
+    );
+    temp.file(
+        "CLAUDE.md",
+        "# Project\n\n## Directory Structure\n\nMinimal.\n\n## Landing the Plane\n\n- Done\n",
+    );
+
+    init_git_repo(&temp);
+    create_main_branch(&temp);
+    create_branch(&temp, "feature");
+    add_commit(&temp, "update stuff"); // Invalid format!
+
+    let git = check("git").pwd(temp.path()).args(&["--ci"]).json().fails();
     let violations = git.require("violations").as_array().unwrap();
 
     assert!(
@@ -52,23 +161,26 @@ fn git_invalid_format_generates_violation() {
 ///
 /// > `["feat", "fix"]` - Only these types allowed
 #[test]
-#[ignore = "TODO: Phase 802 - Git Check Implementation"]
 fn git_invalid_type_generates_violation() {
     let temp = Project::empty();
     temp.config(
         r#"[git.commit]
 check = "error"
 types = ["feat", "fix"]
+agents = false
 "#,
     );
     temp.file(
         "CLAUDE.md",
         "# Project\n\n## Commits\n\nfeat: or fix: only\n\n## Directory Structure\n\nMinimal.\n\n## Landing the Plane\n\n- Done\n",
     );
-    // Simulate commit with disallowed type "chore"
-    // (Actual git state mocking TBD in implementation phase)
 
-    let git = check("git").pwd(temp.path()).json().fails();
+    init_git_repo(&temp);
+    create_main_branch(&temp);
+    create_branch(&temp, "feature");
+    add_commit(&temp, "chore: do something"); // Invalid type!
+
+    let git = check("git").pwd(temp.path()).args(&["--ci"]).json().fails();
     let violations = git.require("violations").as_array().unwrap();
 
     assert!(
@@ -87,22 +199,26 @@ types = ["feat", "fix"]
 ///
 /// > `["api", "cli"]` - Only these scopes allowed
 #[test]
-#[ignore = "TODO: Phase 802 - Git Check Implementation"]
 fn git_invalid_scope_generates_violation_when_scopes_configured() {
     let temp = Project::empty();
     temp.config(
         r#"[git.commit]
 check = "error"
 scopes = ["api", "cli"]
+agents = false
 "#,
     );
     temp.file(
         "CLAUDE.md",
         "# Project\n\n## Commits\n\nfeat(api): or feat(cli): only\n\n## Directory Structure\n\nMinimal.\n\n## Landing the Plane\n\n- Done\n",
     );
-    // Simulate commit with disallowed scope "unknown"
 
-    let git = check("git").pwd(temp.path()).json().fails();
+    init_git_repo(&temp);
+    create_main_branch(&temp);
+    create_branch(&temp, "feature");
+    add_commit(&temp, "feat(unknown): add something"); // Invalid scope!
+
+    let git = check("git").pwd(temp.path()).args(&["--ci"]).json().fails();
     let violations = git.require("violations").as_array().unwrap();
 
     assert!(
@@ -117,12 +233,12 @@ scopes = ["api", "cli"]
 ///
 /// > omitted - Any scope allowed (or none)
 #[test]
-#[ignore = "TODO: Phase 802 - Git Check Implementation"]
 fn git_any_scope_allowed_when_not_configured() {
     let temp = Project::empty();
     temp.config(
         r#"[git.commit]
 check = "error"
+agents = false
 # scopes not specified - any scope allowed
 "#,
     );
@@ -131,7 +247,12 @@ check = "error"
         "# Project\n\n## Commits\n\nfeat(anything): allowed\n\n## Directory Structure\n\nMinimal.\n\n## Landing the Plane\n\n- Done\n",
     );
 
-    check("git").pwd(temp.path()).passes();
+    init_git_repo(&temp);
+    create_main_branch(&temp);
+    create_branch(&temp, "feature");
+    add_commit(&temp, "feat(random): add feature");
+
+    check("git").pwd(temp.path()).args(&["--ci"]).passes();
 }
 
 // =============================================================================
@@ -338,10 +459,25 @@ template = true
 ///
 /// > Violation types: `invalid_format`, `invalid_type`, `invalid_scope`, `missing_docs`
 #[test]
-#[ignore = "TODO: Phase 802 - Git Check Implementation"]
 fn git_violation_type_is_one_of_expected_values() {
-    // Use a fixture that triggers violations
-    let git = check("git").on("git/invalid-format").json().fails();
+    let temp = Project::empty();
+    temp.config(
+        r#"[git.commit]
+check = "error"
+agents = false
+"#,
+    );
+    temp.file(
+        "CLAUDE.md",
+        "# Project\n\n## Directory Structure\n\nMinimal.\n\n## Landing the Plane\n\n- Done\n",
+    );
+
+    init_git_repo(&temp);
+    create_main_branch(&temp);
+    create_branch(&temp, "feature");
+    add_commit(&temp, "update stuff"); // Invalid format triggers violation
+
+    let git = check("git").pwd(temp.path()).args(&["--ci"]).json().fails();
     let violations = git.require("violations").as_array().unwrap();
 
     let valid_types = [
@@ -365,9 +501,25 @@ fn git_violation_type_is_one_of_expected_values() {
 ///
 /// > Commit-related violations have `file: null` with `commit` field instead.
 #[test]
-#[ignore = "TODO: Phase 802 - Git Check Implementation"]
 fn git_commit_violations_have_commit_field() {
-    let git = check("git").on("git/invalid-format").json().fails();
+    let temp = Project::empty();
+    temp.config(
+        r#"[git.commit]
+check = "error"
+agents = false
+"#,
+    );
+    temp.file(
+        "CLAUDE.md",
+        "# Project\n\n## Directory Structure\n\nMinimal.\n\n## Landing the Plane\n\n- Done\n",
+    );
+
+    init_git_repo(&temp);
+    create_main_branch(&temp);
+    create_branch(&temp, "feature");
+    add_commit(&temp, "update stuff"); // Invalid format
+
+    let git = check("git").pwd(temp.path()).args(&["--ci"]).json().fails();
     let violations = git.require("violations").as_array().unwrap();
 
     let commit_violation = violations
@@ -392,7 +544,7 @@ fn git_commit_violations_have_commit_field() {
 ///
 /// > missing_docs violations reference the agent file
 #[test]
-#[ignore = "TODO: Phase 802 - Git Check Implementation"]
+#[ignore = "TODO: Phase 815 - Git Check Agent Documentation"]
 fn git_missing_docs_violation_references_file() {
     let git = check("git").on("git/missing-docs").json().fails();
     let violations = git.require("violations").as_array().unwrap();

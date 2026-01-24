@@ -390,7 +390,7 @@ cloc: FAIL
     Avoid picking and removing individual lines to satisfy the linter,
     prefer properly refactoring out testable code blocks.
 
-PASS: escapes, agents, docs, tests, placeholders
+PASS: escapes, agents, docs, tests, git, placeholders
 FAIL: cloc
 ";
 
@@ -425,7 +425,7 @@ fn text_output_deduplicates_consecutive_identical_advice() {
 
   src/file_b.rs: file_too_large (lines: 7 vs 5)
   src/file_a.rs: file_too_large (lines: 7 vs 5)
-PASS: escapes, agents, docs, tests, placeholders
+PASS: escapes, agents, docs, tests, git, placeholders
 FAIL: cloc
 ",
     );
