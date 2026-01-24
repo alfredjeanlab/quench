@@ -404,3 +404,113 @@ checks/benchmarks/
     // Both entries use full path from root, should pass
     check("docs").pwd(temp.path()).passes();
 }
+
+// =============================================================================
+// EXPLICIT TOC SYNTAX SPECS
+// =============================================================================
+
+/// Spec: docs/specs/checks/docs.md#explicit-toc-syntax
+///
+/// > Code blocks tagged `toc` are always validated as directory trees.
+#[test]
+fn explicit_toc_tag_forces_validation() {
+    let temp = default_project();
+    temp.file("src/lib.rs", "// lib\n");
+    temp.file(
+        "CLAUDE.md",
+        r#"# Project
+
+```toc
+src/
+  lib.rs
+```
+"#,
+    );
+    check("docs").pwd(temp.path()).passes();
+}
+
+/// Spec: docs/specs/checks/docs.md#explicit-toc-syntax
+///
+/// > Code blocks tagged `toc` report missing files.
+#[test]
+fn explicit_toc_tag_reports_missing_files() {
+    let temp = default_project();
+    temp.file(
+        "CLAUDE.md",
+        r#"# Project
+
+```toc
+src/
+  missing.rs
+```
+"#,
+    );
+    check("docs")
+        .pwd(temp.path())
+        .fails()
+        .stdout_has("broken_toc")
+        .stdout_has("missing.rs");
+}
+
+/// Spec: docs/specs/checks/docs.md#explicit-toc-syntax
+///
+/// > Code blocks tagged `toc` fail with invalid_toc_format if format is wrong.
+#[test]
+fn explicit_toc_tag_invalid_format_generates_violation() {
+    let temp = default_project();
+    temp.file(
+        "CLAUDE.md",
+        r#"# Project
+
+```toc
+This is not a valid tree format
+Just some random text here
+```
+"#,
+    );
+    check("docs")
+        .pwd(temp.path())
+        .fails()
+        .stdout_has("invalid_toc_format")
+        .stdout_has("doesn't match box-drawing or indentation format");
+}
+
+/// Spec: docs/specs/checks/docs.md#explicit-toc-syntax
+///
+/// > Code blocks tagged `no-toc` are never validated.
+#[test]
+fn no_toc_tag_skips_validation() {
+    let temp = default_project();
+    temp.file(
+        "CLAUDE.md",
+        r#"# Project
+
+```no-toc
+src/
+├── definitely-missing.rs
+└── also-missing.rs
+```
+"#,
+    );
+    // Should pass because no-toc blocks are skipped
+    check("docs").pwd(temp.path()).passes();
+}
+
+/// Spec: docs/specs/checks/docs.md#explicit-toc-syntax
+///
+/// > Code blocks tagged `ignore` are never validated (alias for no-toc).
+#[test]
+fn ignore_tag_skips_validation() {
+    let temp = default_project();
+    temp.file(
+        "CLAUDE.md",
+        r#"# Project
+
+```ignore
+src/
+├── missing.rs
+```
+"#,
+    );
+    check("docs").pwd(temp.path()).passes();
+}

@@ -53,6 +53,47 @@ src/
 - `.`, `..`, `...` - directory references and ellipsis
 - Box diagrams (blocks containing `┌`, `╔`, `╭`) - not directory trees
 
+### Explicit TOC Syntax
+
+Use the `toc` language tag to force validation of a code block as a directory tree:
+
+~~~markdown
+```toc
+docs/specs/
+├── 00-overview.md
+├── 01-cli.md
+└── checks/
+    └── docs.md
+```
+~~~
+
+Use `no-toc` or `ignore` to explicitly skip validation:
+
+~~~markdown
+```no-toc
+hypothetical/
+├── future-feature.rs
+└── not-yet-implemented.rs
+```
+~~~
+
+| Tag | Behavior |
+|-----|----------|
+| `toc` | Always validate as directory tree |
+| `no-toc` | Never validate (explicit skip) |
+| `ignore` | Never validate (alias for `no-toc`) |
+
+**Invalid Format Error:**
+
+If a `toc`-tagged block doesn't match box-drawing or indentation format:
+
+```text
+docs: FAIL
+  CLAUDE.md:5: invalid_toc_format
+    Code block marked as `toc` doesn't match box-drawing or indentation format.
+    Use box-drawing (├──, └──, │) or consistent indentation.
+```
+
 ### Resolution
 
 Resolution applies to the entire tree block. All entries must resolve with the same strategy, or fall back to the next:
