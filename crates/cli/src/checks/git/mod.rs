@@ -6,13 +6,16 @@
 //! Validates commit message format and git-related conventions.
 //! Skips if not in a git repository.
 
+use std::path::Path;
 use std::process::Command;
 
-use crate::check::{Check, CheckContext, CheckResult};
+use crate::check::{Check, CheckContext, CheckResult, Violation};
+use crate::config::GitCommitConfig;
+use crate::git::{Commit, get_all_branch_commits, get_commits_since};
 
 pub mod parse;
 
-pub use parse::{ParseResult, ParsedCommit, parse_conventional_commit};
+pub use parse::{DEFAULT_TYPES, ParseResult, ParsedCommit, parse_conventional_commit};
 
 /// The git check validates commit message format.
 pub struct GitCheck;
@@ -28,27 +31,126 @@ impl Check for GitCheck {
 
     fn run(&self, ctx: &CheckContext) -> CheckResult {
         // Check if we're in a git repository
-        let output = Command::new("git")
-            .arg("rev-parse")
-            .arg("--git-dir")
-            .current_dir(ctx.root)
-            .output();
+        if !is_git_repo(ctx.root) {
+            return CheckResult::skipped(self.name(), "Not a git repository");
+        }
 
-        match output {
-            Ok(out) if out.status.success() => {
-                // We're in a git repo
-                // TODO (Phase 806+): Use parse module for validation
-                CheckResult::stub(self.name())
-            }
-            _ => {
-                // Not a git repo - skip
-                CheckResult::skipped(self.name(), "Not a git repository")
-            }
+        // Get check configuration
+        let config = &ctx.config.git.commit;
+
+        // Skip if check is disabled
+        if config.check.as_deref() == Some("off") {
+            return CheckResult::skipped(self.name(), "Check disabled");
+        }
+
+        // Skip format validation if format = "none"
+        if config.effective_format() == "none" {
+            return CheckResult::passed(self.name());
+        }
+
+        // Get commits to validate
+        let commits = match get_commits_to_check(ctx) {
+            Ok(commits) => commits,
+            Err(e) => return CheckResult::skipped(self.name(), e.to_string()),
+        };
+
+        // Skip if no commits to check
+        if commits.is_empty() {
+            return CheckResult::passed(self.name());
+        }
+
+        // Validate each commit
+        let mut violations = Vec::new();
+        for commit in &commits {
+            validate_commit(commit, config, &mut violations);
+        }
+
+        if violations.is_empty() {
+            CheckResult::passed(self.name())
+        } else {
+            CheckResult::failed(self.name(), violations)
         }
     }
 
     fn default_enabled(&self) -> bool {
         false
+    }
+}
+
+/// Check if a path is in a git repository.
+fn is_git_repo(root: &Path) -> bool {
+    Command::new("git")
+        .arg("rev-parse")
+        .arg("--git-dir")
+        .current_dir(root)
+        .output()
+        .is_ok_and(|out| out.status.success())
+}
+
+/// Get commits to validate based on context.
+fn get_commits_to_check(ctx: &CheckContext) -> anyhow::Result<Vec<Commit>> {
+    // Staged mode: no commit message to check yet
+    if ctx.staged {
+        return Ok(Vec::new());
+    }
+
+    // CI mode or explicit base: check commits on branch
+    if ctx.ci_mode {
+        get_all_branch_commits(ctx.root)
+    } else if let Some(base) = ctx.base_branch {
+        get_commits_since(ctx.root, base)
+    } else {
+        // No base specified, no commits to check
+        Ok(Vec::new())
+    }
+}
+
+/// Validate a single commit and add violations if invalid.
+pub fn validate_commit(commit: &Commit, config: &GitCommitConfig, violations: &mut Vec<Violation>) {
+    match parse_conventional_commit(&commit.message) {
+        ParseResult::NonConventional => {
+            violations.push(Violation::commit_violation(
+                &commit.hash,
+                &commit.message,
+                "invalid_format",
+                "Expected: <type>(<scope>): <description>",
+            ));
+        }
+        ParseResult::Conventional(parsed) => {
+            // Check type
+            let allowed_types = config.types.as_deref();
+            if !parsed.is_type_allowed(allowed_types) {
+                let advice = format_type_advice(allowed_types);
+                violations.push(Violation::commit_violation(
+                    &commit.hash,
+                    &commit.message,
+                    "invalid_type",
+                    advice,
+                ));
+            }
+
+            // Check scope (only if scopes are configured)
+            if let Some(scopes) = config.scopes.as_ref()
+                && !parsed.is_scope_allowed(Some(scopes))
+            {
+                let advice = format!("Allowed scopes: {}", scopes.join(", "));
+                violations.push(Violation::commit_violation(
+                    &commit.hash,
+                    &commit.message,
+                    "invalid_scope",
+                    advice,
+                ));
+            }
+        }
+    }
+}
+
+/// Format advice for invalid type violations.
+fn format_type_advice(allowed_types: Option<&[String]>) -> String {
+    match allowed_types {
+        None => format!("Allowed types: {}", DEFAULT_TYPES.join(", ")),
+        Some([]) => "Any type allowed (check format only)".to_string(),
+        Some(types) => format!("Allowed types: {}", types.join(", ")),
     }
 }
 
