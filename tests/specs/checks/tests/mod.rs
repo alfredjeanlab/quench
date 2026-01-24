@@ -3,3 +3,4 @@
 //! Reference: docs/specs/checks/tests.md
 
 mod correlation;
+mod output;
