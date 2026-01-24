@@ -253,7 +253,7 @@ Each built-in lint code has thoughtful guidance to help developers evaluate the 
 
 | Lint Code | Guidance Question |
 |-----------|-------------------|
-| `dead_code` | Is this code still needed? |
+| `dead_code` | Is this code still needed? It is usually best to remove dead code. |
 | `clippy::too_many_arguments` | Can this function be refactored? |
 | `clippy::cast_possible_truncation` | Is this cast safe? |
 | `deprecated` | Can this deprecated API be replaced? |
@@ -272,7 +272,10 @@ When a suppression is missing a required comment, the error message provides:
 ```
 crates/cli/src/git_hooks.rs:109: suppress_missing_comment: #[allow(dead_code)]
   Lint suppression requires justification.
+
   Is this code still needed?
+  It is usually best to remove dead code.
+
   If it should be kept, add one of:
     // KEEP UNTIL: ...
     // NOTE(compat): ...

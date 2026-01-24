@@ -746,7 +746,10 @@ check = "comment"
         r#"escapes: FAIL
   src/lib.rs:1: suppress_missing_comment: #[allow(dead_code)]
     Lint suppression requires justification.
+
     Is this code still needed?
+    It is usually best to remove dead code.
+
     If it should be kept, add one of:
       // KEEP UNTIL: ...
       // NOTE(compat): ...

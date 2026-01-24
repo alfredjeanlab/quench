@@ -47,7 +47,7 @@ pub enum SuppressViolationKind {
 /// Get lint-specific guidance for Rust lints.
 fn get_rust_lint_guidance(lint_code: &str) -> &'static str {
     match lint_code {
-        "dead_code" => "Is this code still needed?",
+        "dead_code" => "\nIs this code still needed?\nIt is usually best to remove dead code.\n",
         "clippy::too_many_arguments" => "Can this function be refactored?",
         "clippy::cast_possible_truncation" => "Is this cast safe?",
         "deprecated" => "Can this deprecated API be replaced?",
@@ -99,7 +99,7 @@ fn format_pattern_instructions(patterns: &[String], guidance: &str) -> String {
     let condition = if guidance.starts_with("Can this function be refactored") {
         "not"
     } else if guidance.contains("still needed") || guidance.contains("unused variable needed") {
-        // "Is this code still needed?", "Is this unused variable needed?"
+        // "Is this code still needed?\nIt is usually best to remove dead code.", "Is this unused variable needed?"
         "it should be kept"
     } else if guidance.starts_with("Is this") || guidance.starts_with("Is unquoted") {
         // Questions like "Is this cast safe?", "Is this variable defined externally?"
