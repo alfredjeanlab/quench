@@ -1,0 +1,15 @@
+{
+  "name": "@js-monorepo/cli",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "src/main.ts",
+  "bin": {
+    "js-monorepo": "src/main.ts"
+  },
+  "dependencies": {
+    "@js-monorepo/core": "workspace:*"
+  },
+  "scripts": {
+    "test": "echo 'CLI tests'"
+  }
+}

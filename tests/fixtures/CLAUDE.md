@@ -11,6 +11,8 @@ Test fixtures for quench behavioral specs. Each fixture is a self-contained mini
 | `rust-workspace/` | Multi-package workspace | Package metrics |
 | `go-simple/` | Small Go project | cloc, tests |
 | `go-multi/` | Multi-package Go project | Package metrics |
+| `js-simple/` | Small JS/TS project | cloc, tests |
+| `js-monorepo/` | Multi-package pnpm workspace | Package metrics |
 | `shell-scripts/` | Shell scripts with bats | Shell escapes |
 | `mixed/` | Rust CLI + shell scripts | Multi-language |
 | `violations/` | Intentional violations | All checks |
@@ -84,6 +86,30 @@ Multi-package Go project for testing package-level metrics and breakdown.
 - Internal core package with tests
 - Package enumeration testing
 
+### js-simple/
+
+A minimal JavaScript/TypeScript project with idiomatic structure. Good baseline for testing JS detection and default behavior.
+
+- `package.json` with module type and test script
+- `tsconfig.json` with strict TypeScript config
+- `src/index.ts` with main entry point
+- `src/utils.ts` with utility functions
+- `tests/index.test.ts` and `tests/utils.test.ts` with unit tests
+- Under 750 lines (passes cloc)
+- Proper test coverage (passes tests)
+
+### js-monorepo/
+
+Multi-package JavaScript/TypeScript monorepo for testing workspace detection and package enumeration.
+
+- `pnpm-workspace.yaml` with `packages/*` glob
+- Root `package.json` marked as private
+- Root `tsconfig.json` with project references
+- `packages/core/` - Core library with types and utilities
+- `packages/cli/` - CLI package depending on core
+- Each package has `src/` and `tests/` directories
+- Tests pnpm workspace detection path
+
 ### shell-scripts/
 
 Shell-only project for testing shell-specific checks.
@@ -120,6 +146,9 @@ Project with intentional violations for every check type. Essential for testing 
 | escapes | `go/linkname.go` | `//go:linkname` without LINKNAME |
 | escapes | `go/noescape.go` | `//go:noescape` without NOESCAPE |
 | suppress | `go/nolint.go` | `//nolint` without justification |
+| escapes | `js/as-unknown.ts` | `as unknown` without CAST comment |
+| escapes | `js/ts-ignore.ts` | `@ts-ignore` (forbidden in source) |
+| suppress | `js/eslint-disable.ts` | `eslint-disable` without justification |
 
 ### docs-project/
 

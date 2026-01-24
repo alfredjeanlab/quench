@@ -1,0 +1,7 @@
+{
+  "name": "js-monorepo",
+  "private": true,
+  "scripts": {
+    "test": "echo 'Monorepo tests'"
+  }
+}

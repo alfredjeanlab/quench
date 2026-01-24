@@ -1,0 +1,9 @@
+{
+  "name": "js-simple",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "echo 'Tests would run here'"
+  }
+}

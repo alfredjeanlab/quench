@@ -45,7 +45,24 @@ action = "comment"
 comment = "// NOESCAPE:"
 source = ["**/*.go"]
 
+# JavaScript/TypeScript escape patterns
+[[check.escapes.patterns]]
+name = "ts_as_unknown"
+pattern = "as\\s+unknown"
+action = "comment"
+comment = "// CAST:"
+source = ["**/*.ts", "**/*.tsx"]
+
+[[check.escapes.patterns]]
+name = "ts_ignore"
+pattern = "@ts-ignore"
+action = "forbid"
+source = ["**/*.ts", "**/*.tsx"]
+
 [golang.suppress]
+check = "comment"
+
+[javascript.suppress]
 check = "comment"
 
 [check.agents]

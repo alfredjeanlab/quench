@@ -1,0 +1,9 @@
+{
+  "name": "@js-monorepo/core",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "echo 'Core tests'"
+  }
+}
