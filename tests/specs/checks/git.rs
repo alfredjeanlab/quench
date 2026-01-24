@@ -264,7 +264,6 @@ agents = false
 /// > When `agents = true` (default), quench verifies that commit format
 /// > is documented in agent-readable files.
 #[test]
-#[ignore = "TODO: Phase 802 - Git Check Implementation"]
 fn git_missing_format_documentation_generates_violation() {
     let git = check("git").on("git/missing-docs").json().fails();
     assert!(
@@ -277,7 +276,6 @@ fn git_missing_format_documentation_generates_violation() {
 ///
 /// > Searches for type prefixes followed by `:` or `(` (e.g., `feat:`, `fix(`)
 #[test]
-#[ignore = "TODO: Phase 802 - Git Check Implementation"]
 fn git_detects_commit_format_via_type_prefixes() {
     let temp = Project::empty();
     temp.config(
@@ -298,7 +296,6 @@ agents = true
 ///
 /// > Searches for the phrase "conventional commits" (case-insensitive)
 #[test]
-#[ignore = "TODO: Phase 802 - Git Check Implementation"]
 fn git_detects_commit_format_via_conventional_commits_phrase() {
     let temp = Project::empty();
     temp.config(
@@ -319,7 +316,6 @@ agents = true
 ///
 /// > agents = false - Don't check CLAUDE.md
 #[test]
-#[ignore = "TODO: Phase 802 - Git Check Implementation"]
 fn git_skips_docs_check_when_agents_disabled() {
     let temp = Project::empty();
     temp.config(
@@ -544,7 +540,6 @@ agents = false
 ///
 /// > missing_docs violations reference the agent file
 #[test]
-#[ignore = "TODO: Phase 815 - Git Check Agent Documentation"]
 fn git_missing_docs_violation_references_file() {
     let git = check("git").on("git/missing-docs").json().fails();
     let violations = git.require("violations").as_array().unwrap();

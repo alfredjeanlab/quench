@@ -53,6 +53,12 @@ fn parses_empty_input() { ... }
 4. Remove `#[ignore]`, verify specs pass
 5. List passing specs in commit message
 
+## Commits
+
+Use conventional commit format: `type(scope): description`
+
+Types: feat, fix, chore, docs, test, refactor, perf, ci, build, style
+
 ## Landing the Plane
 
 Before committing changes:

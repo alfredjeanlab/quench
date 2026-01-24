@@ -219,6 +219,27 @@ generate_bench_small() {
     create_cargo_toml "bench-small" > "$fixture_dir/Cargo.toml"
     create_gitignore > "$fixture_dir/.gitignore"
 
+    # Create quench.toml with git agents disabled
+    cat > "$fixture_dir/quench.toml" <<'TOML'
+version = 1
+
+[git.commit]
+agents = false
+TOML
+
+    # Create minimal CLAUDE.md
+    cat > "$fixture_dir/CLAUDE.md" <<'EOF'
+# Bench Small
+
+## Directory Structure
+
+Small.
+
+## Landing the Plane
+
+- Done
+EOF
+
     # Create 50 files with ~100 LOC each = 5K LOC total
     for i in $(seq -w 1 50); do
         generate_rust_file 100 "mod_$i" > "$fixture_dir/src/mod_$i.rs"
@@ -295,6 +316,9 @@ generate_bench_medium() {
 # Benchmark fixture configuration for escapes check performance testing
 version = 1
 
+[git.commit]
+agents = false
+
 [check.escapes]
 check = "warn"
 
@@ -323,6 +347,19 @@ action = "count"
 threshold = 100
 TOML
 
+    # Create minimal CLAUDE.md
+    cat > "$fixture_dir/CLAUDE.md" <<'EOF'
+# Bench Medium
+
+## Directory Structure
+
+Medium.
+
+## Landing the Plane
+
+- Done
+EOF
+
     echo -e "${GREEN}Generated bench-medium: $file_count files with escapes config${NC}"
 }
 
@@ -337,6 +374,27 @@ generate_bench_large() {
 
     create_cargo_toml "bench-large" > "$fixture_dir/Cargo.toml"
     create_gitignore > "$fixture_dir/.gitignore"
+
+    # Create quench.toml with git agents disabled
+    cat > "$fixture_dir/quench.toml" <<'TOML'
+version = 1
+
+[git.commit]
+agents = false
+TOML
+
+    # Create minimal CLAUDE.md
+    cat > "$fixture_dir/CLAUDE.md" <<'EOF'
+# Bench Large
+
+## Directory Structure
+
+Large.
+
+## Landing the Plane
+
+- Done
+EOF
 
     # Create 5000 files: 26 dirs × 10 subdirs × ~20 files each
     local file_count=0
@@ -408,6 +466,27 @@ generate_bench_deep() {
 
     create_cargo_toml "bench-deep" > "$fixture_dir/Cargo.toml"
     create_gitignore > "$fixture_dir/.gitignore"
+
+    # Create quench.toml with git agents disabled
+    cat > "$fixture_dir/quench.toml" <<'TOML'
+version = 1
+
+[git.commit]
+agents = false
+TOML
+
+    # Create minimal CLAUDE.md
+    cat > "$fixture_dir/CLAUDE.md" <<'EOF'
+# Bench Deep
+
+## Directory Structure
+
+Deep.
+
+## Landing the Plane
+
+- Done
+EOF
 
     # Create deep directory structure with files at various levels
     local file_count=0
@@ -493,6 +572,27 @@ generate_bench_large_files() {
 
     create_cargo_toml "bench-large-files" > "$fixture_dir/Cargo.toml"
     create_gitignore > "$fixture_dir/.gitignore"
+
+    # Create quench.toml with git agents disabled
+    cat > "$fixture_dir/quench.toml" <<'TOML'
+version = 1
+
+[git.commit]
+agents = false
+TOML
+
+    # Create minimal CLAUDE.md
+    cat > "$fixture_dir/CLAUDE.md" <<'EOF'
+# Bench Large Files
+
+## Directory Structure
+
+Large files.
+
+## Landing the Plane
+
+- Done
+EOF
 
     # Generate 5 large files (~1.2MB each to be safely over 1MB threshold)
     for i in $(seq 1 5); do
