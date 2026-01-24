@@ -8,6 +8,7 @@
 
 mod comment;
 mod go_suppress;
+mod javascript_suppress;
 mod lint_policy;
 mod patterns;
 mod shell_suppress;
@@ -25,6 +26,7 @@ use crate::config::{CheckLevel, EscapeAction, SuppressConfig, SuppressLevel};
 
 use crate::pattern::CompiledPattern;
 use go_suppress::check_go_suppress_violations;
+use javascript_suppress::check_javascript_suppress_violations;
 use shell_suppress::check_shell_suppress_violations;
 use suppress_common::{
     SuppressAttrInfo, SuppressCheckParams, SuppressViolationKind, check_suppress_attr,
@@ -284,6 +286,23 @@ impl Check for EscapesCheck {
                     &mut limit_reached,
                 );
                 violations.extend(go_violations);
+
+                if limit_reached {
+                    break;
+                }
+            }
+
+            // Check for JavaScript/TypeScript suppress directive violations
+            if is_javascript_file(&file.path) {
+                let js_violations = check_javascript_suppress_violations(
+                    ctx,
+                    relative,
+                    &content,
+                    &ctx.config.javascript.suppress,
+                    is_test_file,
+                    &mut limit_reached,
+                );
+                violations.extend(js_violations);
 
                 if limit_reached {
                     break;
@@ -588,6 +607,19 @@ fn is_go_file(path: &Path) -> bool {
     path.extension()
         .and_then(|e| e.to_str())
         .map(|e| e.eq_ignore_ascii_case("go"))
+        .unwrap_or(false)
+}
+
+/// Check if a file is a JavaScript/TypeScript source file.
+fn is_javascript_file(path: &Path) -> bool {
+    path.extension()
+        .and_then(|e| e.to_str())
+        .map(|e| {
+            matches!(
+                e.to_lowercase().as_str(),
+                "js" | "jsx" | "ts" | "tsx" | "mjs" | "mts"
+            )
+        })
         .unwrap_or(false)
 }
 

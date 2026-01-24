@@ -229,7 +229,6 @@ fn ts_ignore_allowed_in_test_code() {
 ///
 /// > When `check = "comment"`, `eslint-disable` requires justification.
 #[test]
-#[ignore = "TODO: Phase 496 - JavaScript Adapter Suppress"]
 fn eslint_disable_without_comment_fails_when_comment_required() {
     check("escapes")
         .on("javascript/eslint-disable-fail")
@@ -241,7 +240,6 @@ fn eslint_disable_without_comment_fails_when_comment_required() {
 ///
 /// > `eslint-disable` with justification comment passes.
 #[test]
-#[ignore = "TODO: Phase 496 - JavaScript Adapter Suppress"]
 fn eslint_disable_with_comment_passes() {
     check("escapes").on("javascript/eslint-disable-ok").passes();
 }
@@ -250,7 +248,6 @@ fn eslint_disable_with_comment_passes() {
 ///
 /// > eslint-disable-next-line no-unused-vars
 #[test]
-#[ignore = "TODO: Phase 496 - JavaScript Adapter Suppress"]
 fn eslint_disable_next_line_with_comment_passes() {
     let temp = Project::empty();
     temp.config(
@@ -279,7 +276,6 @@ console.log('debug');
 ///
 /// > biome-ignore lint/suspicious/noExplicitAny: explanation required
 #[test]
-#[ignore = "TODO: Phase 496 - JavaScript Adapter Suppress"]
 fn biome_ignore_without_explanation_fails() {
     check("escapes")
         .on("javascript/biome-ignore-fail")
@@ -291,7 +287,6 @@ fn biome_ignore_without_explanation_fails() {
 ///
 /// > biome-ignore with explanation passes
 #[test]
-#[ignore = "TODO: Phase 496 - JavaScript Adapter Suppress"]
 fn biome_ignore_with_explanation_passes() {
     check("escapes").on("javascript/biome-ignore-ok").passes();
 }
@@ -300,7 +295,6 @@ fn biome_ignore_with_explanation_passes() {
 ///
 /// > Default: "comment" for source, "allow" for test code.
 #[test]
-#[ignore = "TODO: Phase 496 - JavaScript Adapter Suppress"]
 fn eslint_disable_in_test_file_passes_without_comment() {
     check("escapes").on("javascript/eslint-test-ok").passes();
 }

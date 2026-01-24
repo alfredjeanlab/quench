@@ -16,8 +16,10 @@ use std::path::Path;
 use globset::GlobSet;
 use serde_json::Value;
 
+mod suppress;
 mod workspace;
 
+pub use suppress::{JavaScriptSuppress, SuppressTool, parse_javascript_suppresses};
 pub use workspace::JsWorkspace;
 
 use super::glob::build_glob_set;
