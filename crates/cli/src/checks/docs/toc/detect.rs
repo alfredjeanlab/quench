@@ -5,7 +5,7 @@
 //!
 //! Determines whether a fenced code block is a directory tree.
 
-use super::parse::{parse_tree_block, FencedBlock};
+use super::parse::{FencedBlock, parse_tree_block};
 
 /// Language tag that forces TOC validation.
 pub(crate) const TOC_LANGUAGE: &str = "toc";

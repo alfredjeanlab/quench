@@ -1,0 +1,347 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Alfred Jean LLC
+# scripts/fixtures/generate-docs-stress - Generate docs check stress test fixtures
+#
+# Creates fixtures for docs check benchmarking:
+# - many-files: 500 spec files with TOC index
+# - deep-links: 50-level BFS link traversal chain
+# - large-toc: Single file with 100+ entry nested TOC
+# - many-links: Single file with 500+ links
+#
+# Usage:
+#   ./scripts/fixtures/generate-docs-stress              # Generate all fixtures
+#   ./scripts/fixtures/generate-docs-stress --clean      # Remove existing fixtures first
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+FIXTURE_DIR="$REPO_ROOT/tests/fixtures/stress-docs"
+
+# Colors
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+# Parse args
+if [[ "${1:-}" == "--clean" ]]; then
+    echo -e "${YELLOW}Cleaning existing docs stress fixtures...${NC}"
+    rm -rf "$FIXTURE_DIR"
+fi
+
+echo -e "${BLUE}Generating docs check stress fixtures...${NC}"
+echo ""
+
+mkdir -p "$FIXTURE_DIR"
+
+# ============================================================================
+# many-files: 500 spec files with TOC index
+# Tests specs validation with many files in TOC mode
+# ============================================================================
+generate_many_files() {
+    local dir="$FIXTURE_DIR/many-files"
+
+    if [[ -d "$dir" ]]; then
+        echo -e "${YELLOW}many-files already exists, skipping${NC}"
+        return
+    fi
+
+    echo "Generating many-files (500 spec files)..."
+    mkdir -p "$dir/docs/specs"
+
+    # quench.toml enabling docs check
+    cat > "$dir/quench.toml" << 'TOML'
+version = 1
+
+[check.docs]
+check = "error"
+
+[check.docs.specs]
+index = "toc"
+path = "docs/specs"
+TOML
+
+    # Generate 500 spec files
+    echo "  Creating 500 spec files..."
+    for i in $(seq -w 1 500); do
+        cat > "$dir/docs/specs/spec-${i}.md" << MD
+# Specification $i
+
+## Overview
+
+This is spec file number $i for stress testing.
+
+## Requirements
+
+- Requirement ${i}.1
+- Requirement ${i}.2
+- Requirement ${i}.3
+
+## Implementation Notes
+
+Details about implementation for spec $i.
+MD
+    done
+
+    # Create CLAUDE.md index with TOC listing all 500 files
+    echo "  Creating CLAUDE.md index with TOC..."
+    {
+        cat << 'MD'
+# Specifications Index
+
+## Overview
+
+This index contains 500 spec files for stress testing TOC-based specs validation.
+
+## Directory Structure
+
+```toc
+docs/specs/
+MD
+        # Generate TOC entries
+        for i in $(seq -w 1 499); do
+            echo "├── spec-${i}.md"
+        done
+        echo "└── spec-500.md"
+        echo '```'
+    } > "$dir/docs/specs/CLAUDE.md"
+
+    echo -e "  ${GREEN}Generated many-files: 501 files${NC}"
+}
+
+# ============================================================================
+# deep-links: 50-level BFS link chain
+# Tests specs validation linked mode with deep traversal
+# ============================================================================
+generate_deep_links() {
+    local dir="$FIXTURE_DIR/deep-links"
+    local depth=50
+
+    if [[ -d "$dir" ]]; then
+        echo -e "${YELLOW}deep-links already exists, skipping${NC}"
+        return
+    fi
+
+    echo "Generating deep-links (${depth}-level link chain)..."
+    mkdir -p "$dir/docs/specs"
+
+    # quench.toml enabling docs check with linked mode
+    cat > "$dir/quench.toml" << 'TOML'
+version = 1
+
+[check.docs]
+check = "error"
+
+[check.docs.specs]
+index = "linked"
+path = "docs/specs"
+TOML
+
+    # Create CLAUDE.md that links to level-01
+    cat > "$dir/docs/specs/CLAUDE.md" << 'MD'
+# Deep Links Test
+
+## Overview
+
+This tests BFS link traversal depth. Each file links to the next level.
+
+## Entry Point
+
+Start at [Level 01](level-01.md) and follow the chain.
+MD
+
+    # Generate chain of linked files
+    echo "  Creating ${depth}-level link chain..."
+    for level in $(seq -w 1 $((depth - 1))); do
+        next=$(printf "%02d" $((10#$level + 1)))
+        cat > "$dir/docs/specs/level-${level}.md" << MD
+# Level $level
+
+Continue to [Level ${next}](level-${next}.md).
+MD
+    done
+
+    # Final level (no next link)
+    cat > "$dir/docs/specs/level-$(printf "%02d" $depth).md" << MD
+# Level $depth
+
+This is the final level of the chain.
+MD
+
+    echo -e "  ${GREEN}Generated deep-links: $((depth + 1)) files${NC}"
+}
+
+# ============================================================================
+# large-toc: Single file with 100+ entry nested TOC
+# Tests TOC parsing with complex nested structure
+# ============================================================================
+generate_large_toc() {
+    local dir="$FIXTURE_DIR/large-toc"
+    local entries=100
+
+    if [[ -d "$dir" ]]; then
+        echo -e "${YELLOW}large-toc already exists, skipping${NC}"
+        return
+    fi
+
+    echo "Generating large-toc (${entries}-entry nested TOC)..."
+    mkdir -p "$dir/src"
+
+    # quench.toml enabling docs check
+    cat > "$dir/quench.toml" << 'TOML'
+version = 1
+
+[check.docs]
+check = "error"
+
+[check.docs.toc]
+include = ["CLAUDE.md"]
+TOML
+
+    # Generate source files that match the TOC
+    echo "  Creating source files..."
+    for i in $(seq -w 1 $entries); do
+        echo "// Module $i" > "$dir/src/mod_${i}.rs"
+    done
+
+    # Create nested subdirectories with files
+    mkdir -p "$dir/src/utils"
+    for i in $(seq 1 10); do
+        echo "// Utility $i" > "$dir/src/utils/util_${i}.rs"
+    done
+
+    mkdir -p "$dir/src/core"
+    for i in $(seq 1 10); do
+        echo "// Core $i" > "$dir/src/core/core_${i}.rs"
+    done
+
+    # Create CLAUDE.md with complex nested TOC
+    echo "  Creating CLAUDE.md with nested TOC..."
+    {
+        cat << 'MD'
+# Large TOC Test
+
+## Overview
+
+This tests TOC parsing with a large, nested directory structure.
+
+## Project Structure
+
+```toc
+src/
+MD
+        # Generate main entries
+        for i in $(seq -w 1 $entries); do
+            if [[ $i == "100" ]]; then
+                echo "├── mod_${i}.rs"
+            else
+                echo "├── mod_${i}.rs"
+            fi
+        done
+
+        # Add nested directories
+        echo "├── utils/"
+        for i in $(seq 1 9); do
+            echo "│   ├── util_${i}.rs"
+        done
+        echo "│   └── util_10.rs"
+
+        echo "└── core/"
+        for i in $(seq 1 9); do
+            echo "    ├── core_${i}.rs"
+        done
+        echo "    └── core_10.rs"
+
+        echo '```'
+    } > "$dir/CLAUDE.md"
+
+    echo -e "  ${GREEN}Generated large-toc: $((entries + 23)) files${NC}"
+}
+
+# ============================================================================
+# many-links: Single markdown file with 500+ links
+# Tests link extraction performance
+# ============================================================================
+generate_many_links() {
+    local dir="$FIXTURE_DIR/many-links"
+    local links=500
+
+    if [[ -d "$dir" ]]; then
+        echo -e "${YELLOW}many-links already exists, skipping${NC}"
+        return
+    fi
+
+    echo "Generating many-links (${links} links in one file)..."
+    mkdir -p "$dir/docs"
+
+    # quench.toml enabling docs check
+    cat > "$dir/quench.toml" << 'TOML'
+version = 1
+
+[check.docs]
+check = "error"
+
+[check.docs.links]
+include = ["docs/**/*.md"]
+TOML
+
+    # Create target files for the links
+    echo "  Creating ${links} target files..."
+    for i in $(seq 1 $links); do
+        echo "# Target $i" > "$dir/docs/target_${i}.md"
+    done
+
+    # Create the file with many links
+    echo "  Creating file with ${links} links..."
+    {
+        cat << 'MD'
+# Many Links Test
+
+## Overview
+
+This file contains 500+ markdown links for stress testing link extraction.
+
+## Links
+
+MD
+        # Generate links
+        for i in $(seq 1 $links); do
+            echo "- See [Target $i](target_${i}.md) for details about item $i."
+        done
+    } > "$dir/docs/index.md"
+
+    echo -e "  ${GREEN}Generated many-links: $((links + 1)) files${NC}"
+}
+
+# ============================================================================
+# Main
+# ============================================================================
+
+generate_many_files
+echo ""
+generate_deep_links
+echo ""
+generate_large_toc
+echo ""
+generate_many_links
+
+echo ""
+echo -e "${GREEN}=== Docs stress fixtures generated ===${NC}"
+echo ""
+echo "Fixtures:"
+echo "  stress-docs/many-files/   - 500 spec files with TOC index"
+echo "  stress-docs/deep-links/   - 50-level BFS link chain"
+echo "  stress-docs/large-toc/    - 100+ entry nested TOC"
+echo "  stress-docs/many-links/   - Single file with 500 links"
+echo ""
+
+# Print totals
+for fixture in many-files deep-links large-toc many-links; do
+    if [[ -d "$FIXTURE_DIR/$fixture" ]]; then
+        count=$(find "$FIXTURE_DIR/$fixture" -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
+        size=$(du -sh "$FIXTURE_DIR/$fixture" 2>/dev/null | cut -f1)
+        echo "  $fixture: $count .md files, $size"
+    fi
+done
