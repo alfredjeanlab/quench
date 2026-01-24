@@ -1,5 +1,7 @@
 # Plan: Remove `[workspace]` Namespace
 
+**Root Feature:** `quench-ecc4`
+
 ## Overview
 
 Remove the `[workspace]` TOML config section and `WorkspaceConfig` struct, consolidating all fields into `[project]`/`ProjectConfig`. The two config sections have overlapping `packages` fields, creating confusion. After this change, `ProjectConfig` will hold both user-configured fields and auto-detected workspace metadata.
