@@ -671,7 +671,10 @@ version = 1
 ignore = ["*.snapshot", "testdata/**"]
 "#;
     let config = parse(content, &path).unwrap();
-    assert_eq!(config.project.ignore.patterns, vec!["*.snapshot", "testdata/**"]);
+    assert_eq!(
+        config.project.ignore.patterns,
+        vec!["*.snapshot", "testdata/**"]
+    );
 }
 
 #[test]

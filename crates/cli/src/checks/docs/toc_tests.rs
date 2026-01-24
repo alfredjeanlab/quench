@@ -348,10 +348,7 @@ fn dot_entry_ignored() {
 fn double_dot_entry_ignored() {
     let block = FencedBlock {
         start_line: 1,
-        lines: vec![
-            "..".to_string(),
-            "├── parent/".to_string(),
-        ],
+        lines: vec!["..".to_string(), "├── parent/".to_string()],
         language: None,
     };
     let entries = parse_tree_block(&block);

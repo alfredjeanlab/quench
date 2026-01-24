@@ -42,7 +42,7 @@ Each file in the tree is checked for existence.
 
 **Glob patterns** (`*`, `**`) match any file:
 ~~~markdown
-```
+```text
 src/
 ├── *.rs          # Matches if any .rs file exists
 ├── **/*.test.ts  # Matches nested test files

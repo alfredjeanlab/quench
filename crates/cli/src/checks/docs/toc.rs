@@ -295,17 +295,15 @@ fn try_resolve_glob(base: &Path, pattern: &str) -> bool {
     let matcher = glob.compile_matcher();
 
     // Use ignore crate's WalkBuilder for fast traversal
-    let walker = ignore::WalkBuilder::new(base)
-        .max_depth(Some(10))
-        .build();
+    let walker = ignore::WalkBuilder::new(base).max_depth(Some(10)).build();
 
     for entry in walker.flatten() {
         let path = entry.path();
         // Get path relative to base for matching
-        if let Ok(relative) = path.strip_prefix(base) {
-            if matcher.is_match(relative) {
-                return true;
-            }
+        if let Ok(relative) = path.strip_prefix(base)
+            && matcher.is_match(relative)
+        {
+            return true;
         }
     }
     false
@@ -403,88 +401,23 @@ fn build_glob_set(patterns: &[String]) -> GlobSet {
 }
 
 /// Language tags that indicate the block is NOT a directory tree.
+#[rustfmt::skip]
 const NON_TREE_LANGUAGES: &[&str] = &[
     // Code languages
-    "rust",
-    "rs",
-    "go",
-    "python",
-    "py",
-    "javascript",
-    "js",
-    "typescript",
-    "ts",
-    "java",
-    "c",
-    "cpp",
-    "csharp",
-    "cs",
-    "ruby",
-    "rb",
-    "php",
-    "swift",
-    "kotlin",
-    "scala",
-    "perl",
-    "lua",
-    "r",
-    "julia",
-    "haskell",
-    "hs",
-    "ocaml",
-    "ml",
-    "elixir",
-    "ex",
-    "erlang",
-    "clojure",
-    "clj",
-    "lisp",
-    "scheme",
-    "racket",
-    "zig",
-    "nim",
-    "d",
-    "v",
-    "odin",
-    "jai",
-    "carbon",
+    "rust", "rs", "go", "python", "py", "javascript", "js", "typescript", "ts",
+    "java", "c", "cpp", "csharp", "cs", "ruby", "rb", "php", "swift", "kotlin",
+    "scala", "perl", "lua", "r", "julia", "haskell", "hs", "ocaml", "ml",
+    "elixir", "ex", "erlang", "clojure", "clj", "lisp", "scheme", "racket",
+    "zig", "nim", "d", "v", "odin", "jai", "carbon",
     // Shell and scripting
-    "bash",
-    "sh",
-    "zsh",
-    "fish",
-    "powershell",
-    "pwsh",
-    "bat",
-    "cmd",
-    // Config and data (could be tree-like but explicit tag means user knows)
-    "toml",
-    "yaml",
-    "yml",
-    "json",
-    "xml",
-    "ini",
-    "cfg",
+    "bash", "sh", "zsh", "fish", "powershell", "pwsh", "bat", "cmd",
+    // Config and data
+    "toml", "yaml", "yml", "json", "xml", "ini", "cfg",
     // Output and plain text
-    "text",
-    "txt",
-    "output",
-    "console",
-    "terminal",
-    "log",
-    // Markup
-    "html",
-    "css",
-    "scss",
-    "sass",
-    "less",
-    // Other
-    "sql",
-    "graphql",
-    "gql",
-    "dockerfile",
-    "makefile",
-    "cmake",
+    "text", "txt", "output", "console", "terminal", "log",
+    // Markup and other
+    "html", "css", "scss", "sass", "less", "sql", "graphql", "gql",
+    "dockerfile", "makefile", "cmake",
 ];
 
 /// Check if a fenced block looks like a directory tree.
@@ -503,9 +436,11 @@ fn looks_like_tree(block: &FencedBlock) -> bool {
 
     // Box diagram detection: if any line contains a top corner, it's a box diagram, not a tree
     // Top corners: ┌ (U+250C), ╔ (U+2554), ╭ (U+256D)
-    if block.lines.iter().any(|line| {
-        line.contains('┌') || line.contains('╔') || line.contains('╭')
-    }) {
+    if block
+        .lines
+        .iter()
+        .any(|line| line.contains('┌') || line.contains('╔') || line.contains('╭'))
+    {
         return false;
     }
 
