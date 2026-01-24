@@ -143,8 +143,11 @@ fn validate_toc_mode(
                 specs_dir.join(&entry.path)
             };
 
-            if resolved.exists() && all_specs.contains(&resolved) {
-                reachable.insert(resolved);
+            if resolved.exists()
+                && let Ok(canonical) = resolved.canonicalize()
+                && all_specs.contains(&canonical)
+            {
+                reachable.insert(canonical);
             }
         }
     }

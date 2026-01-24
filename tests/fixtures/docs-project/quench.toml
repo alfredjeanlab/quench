@@ -5,5 +5,7 @@ name = "docs-project"
 
 [check.docs]
 check = "error"
+
+[check.docs.specs]
 path = "docs/specs"
 index = "toc"
