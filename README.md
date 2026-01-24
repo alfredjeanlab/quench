@@ -32,20 +32,15 @@ quench check   # Run quality checks
 version = 1
 
 [check.cloc]
-# max_lines = 750           # default
-# max_lines_test = 1100     # default
-exclude = ["generated/**", "vendor/**"]
+exclude = ["tests/fixtures/**"]
 advice_test = "Use table-driven tests with t.Run()."
 
-[check.escapes]
-# Language-specific defaults apply (unsafe, .unwrap(), set +e, etc.)
-
 [check.agents]
-# required = ["*"]          # default: at least one agent file
-tables = "forbid"           # no markdown tables
+required = ["CLAUDE.md"]
+tables = "forbid"
 
 [check.agents.sections]
-required = ["Landing the Plane"]
+required = ["Directory Structure", "Landing the Plane"]
 ```
 
 ## Checks
