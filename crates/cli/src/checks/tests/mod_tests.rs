@@ -54,3 +54,105 @@ fn tests_commit_config_defaults() {
     assert!(!config.source_patterns.is_empty());
     assert!(!config.exclude.is_empty());
 }
+
+// =============================================================================
+// LANGUAGE DETECTION TESTS
+// =============================================================================
+
+#[test]
+fn detect_language_rust() {
+    assert_eq!(detect_language(Path::new("src/parser.rs")), Language::Rust);
+    assert_eq!(detect_language(Path::new("lib.rs")), Language::Rust);
+}
+
+#[test]
+fn detect_language_go() {
+    assert_eq!(detect_language(Path::new("main.go")), Language::Go);
+    assert_eq!(
+        detect_language(Path::new("pkg/parser/parser.go")),
+        Language::Go
+    );
+}
+
+#[test]
+fn detect_language_javascript() {
+    assert_eq!(
+        detect_language(Path::new("src/parser.ts")),
+        Language::JavaScript
+    );
+    assert_eq!(
+        detect_language(Path::new("src/parser.tsx")),
+        Language::JavaScript
+    );
+    assert_eq!(
+        detect_language(Path::new("src/parser.js")),
+        Language::JavaScript
+    );
+    assert_eq!(
+        detect_language(Path::new("src/parser.jsx")),
+        Language::JavaScript
+    );
+    assert_eq!(
+        detect_language(Path::new("src/parser.mjs")),
+        Language::JavaScript
+    );
+    assert_eq!(
+        detect_language(Path::new("src/parser.mts")),
+        Language::JavaScript
+    );
+}
+
+#[test]
+fn detect_language_python() {
+    assert_eq!(detect_language(Path::new("main.py")), Language::Python);
+    assert_eq!(
+        detect_language(Path::new("src/parser.py")),
+        Language::Python
+    );
+}
+
+#[test]
+fn detect_language_unknown() {
+    assert_eq!(detect_language(Path::new("file.cpp")), Language::Unknown);
+    assert_eq!(detect_language(Path::new("file.java")), Language::Unknown);
+    assert_eq!(
+        detect_language(Path::new("no_extension")),
+        Language::Unknown
+    );
+}
+
+// =============================================================================
+// ADVICE MESSAGE TESTS
+// =============================================================================
+
+#[test]
+fn advice_message_rust() {
+    let advice = missing_tests_advice("parser", Language::Rust);
+    assert!(advice.contains("tests/parser_tests.rs"));
+    assert!(advice.contains("#[cfg(test)]"));
+}
+
+#[test]
+fn advice_message_go() {
+    let advice = missing_tests_advice("parser", Language::Go);
+    assert!(advice.contains("parser_test.go"));
+}
+
+#[test]
+fn advice_message_javascript() {
+    let advice = missing_tests_advice("parser", Language::JavaScript);
+    assert!(advice.contains("parser.test.ts"));
+    assert!(advice.contains("__tests__/parser.test.ts"));
+}
+
+#[test]
+fn advice_message_python() {
+    let advice = missing_tests_advice("parser", Language::Python);
+    assert!(advice.contains("test_parser.py"));
+}
+
+#[test]
+fn advice_message_unknown() {
+    let advice = missing_tests_advice("parser", Language::Unknown);
+    assert!(advice.contains("parser"));
+}

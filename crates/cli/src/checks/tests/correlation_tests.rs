@@ -271,59 +271,6 @@ fn changes_in_cfg_test_context_only() {
 }
 
 // =============================================================================
-// PLACEHOLDER TEST DETECTION TESTS
-// =============================================================================
-
-#[test]
-fn find_placeholder_tests_detects_ignored_tests() {
-    let content = r#"
-#[test]
-#[ignore = "TODO: implement parser"]
-fn test_parser() { todo!() }
-
-#[test]
-fn test_other() { }
-"#;
-
-    let placeholders = find_placeholder_tests(content);
-    assert_eq!(placeholders.len(), 1);
-    assert_eq!(placeholders[0], "test_parser");
-}
-
-#[test]
-fn find_placeholder_tests_empty_content() {
-    let placeholders = find_placeholder_tests("");
-    assert!(placeholders.is_empty());
-}
-
-#[test]
-fn find_placeholder_tests_no_ignored() {
-    let content = r#"
-#[test]
-fn test_parser() { assert!(true); }
-"#;
-
-    let placeholders = find_placeholder_tests(content);
-    assert!(placeholders.is_empty());
-}
-
-#[test]
-fn find_placeholder_tests_multiple() {
-    let content = r#"
-#[test]
-#[ignore = "TODO"]
-fn test_one() { todo!() }
-
-#[test]
-#[ignore]
-fn test_two() { todo!() }
-"#;
-
-    let placeholders = find_placeholder_tests(content);
-    assert_eq!(placeholders.len(), 2);
-}
-
-// =============================================================================
 // ENHANCED TEST LOCATION TESTS
 // =============================================================================
 
@@ -628,4 +575,72 @@ fn analyze_correlation_many_sources_uses_index() {
     // First 10 modules should have tests, last 10 should not
     assert_eq!(result.with_tests.len(), 10);
     assert_eq!(result.without_tests.len(), 10);
+}
+
+// =============================================================================
+// ENHANCED DEFAULT PATTERN TESTS
+// =============================================================================
+
+#[test]
+fn default_patterns_include_jest_conventions() {
+    let root = Path::new("/project");
+    let changes = vec![
+        make_change("/project/src/parser.ts", ChangeType::Modified),
+        make_change("/project/__tests__/parser.test.ts", ChangeType::Modified),
+    ];
+
+    let config = CorrelationConfig::default();
+    let result = analyze_correlation(&changes, &config, root);
+
+    // __tests__ pattern should match
+    assert_eq!(result.with_tests.len(), 1);
+    assert_eq!(result.without_tests.len(), 0);
+}
+
+#[test]
+fn default_patterns_include_dot_test_suffix() {
+    let root = Path::new("/project");
+    let changes = vec![
+        make_change("/project/src/parser.ts", ChangeType::Modified),
+        make_change("/project/src/parser.test.ts", ChangeType::Modified),
+    ];
+
+    let config = CorrelationConfig::default();
+    let result = analyze_correlation(&changes, &config, root);
+
+    // .test.ts pattern should match
+    assert_eq!(result.with_tests.len(), 1);
+    assert_eq!(result.without_tests.len(), 0);
+}
+
+#[test]
+fn default_patterns_include_spec_directory() {
+    let root = Path::new("/project");
+    let changes = vec![
+        make_change("/project/src/parser.rb", ChangeType::Modified),
+        make_change("/project/spec/parser_spec.rb", ChangeType::Modified),
+    ];
+
+    let config = CorrelationConfig::default();
+    let result = analyze_correlation(&changes, &config, root);
+
+    // spec/ directory pattern should match
+    assert_eq!(result.with_tests.len(), 1);
+    assert_eq!(result.without_tests.len(), 0);
+}
+
+#[test]
+fn default_patterns_include_test_prefix() {
+    let root = Path::new("/project");
+    let changes = vec![
+        make_change("/project/src/parser.py", ChangeType::Modified),
+        make_change("/project/tests/test_parser.py", ChangeType::Modified),
+    ];
+
+    let config = CorrelationConfig::default();
+    let result = analyze_correlation(&changes, &config, root);
+
+    // test_ prefix pattern should match
+    assert_eq!(result.with_tests.len(), 1);
+    assert_eq!(result.without_tests.len(), 0);
 }

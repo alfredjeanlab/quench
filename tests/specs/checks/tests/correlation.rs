@@ -768,3 +768,248 @@ scope = "commit"
         Some("commit")
     );
 }
+
+// =============================================================================
+// JAVASCRIPT/TYPESCRIPT PLACEHOLDER SPECS
+// =============================================================================
+
+/// Spec: docs/specs/checks/tests.md#placeholder-tests
+///
+/// > JavaScript/TypeScript:
+/// > test.todo('description');
+#[test]
+fn js_placeholder_test_todo_satisfies_correlation() {
+    let temp = Project::empty();
+    temp.config(
+        r#"[check.tests.commit]
+check = "error"
+placeholders = "allow"
+"#,
+    );
+
+    init_git_repo(temp.path());
+    git_branch(temp.path(), "feature/js-placeholder");
+
+    // Add TypeScript source file
+    temp.file("src/parser.ts", "export function parse() {}");
+
+    // Add placeholder test with test.todo
+    temp.file(
+        "parser.test.ts",
+        r#"
+test.todo('parser should handle empty input');
+test.todo('parser edge cases');
+"#,
+    );
+    git_commit(temp.path(), "feat: add parser with placeholder tests");
+
+    // Should pass - test.todo indicates test intent
+    check("tests")
+        .pwd(temp.path())
+        .args(&["--base", "main"])
+        .passes();
+}
+
+/// Spec: docs/specs/checks/tests.md#placeholder-tests
+///
+/// > test.skip('description', ...)
+#[test]
+fn js_placeholder_test_skip_satisfies_correlation() {
+    let temp = Project::empty();
+    temp.config(
+        r#"[check.tests.commit]
+check = "error"
+placeholders = "allow"
+"#,
+    );
+
+    init_git_repo(temp.path());
+    git_branch(temp.path(), "feature/js-skip");
+
+    // Add TypeScript source file
+    temp.file("src/lexer.ts", "export function lex() {}");
+
+    // Add placeholder test with test.skip
+    temp.file(
+        "lexer.test.ts",
+        r#"
+test.skip('lexer tokenizes correctly', () => {
+  // TODO: implement
+});
+"#,
+    );
+    git_commit(temp.path(), "feat: add lexer with skipped test");
+
+    // Should pass - test.skip indicates test intent
+    check("tests")
+        .pwd(temp.path())
+        .args(&["--base", "main"])
+        .passes();
+}
+
+// =============================================================================
+// LANGUAGE-AWARE ADVICE SPECS
+// =============================================================================
+
+/// Spec: Advice messages are language-specific (TypeScript)
+#[test]
+fn advice_message_is_language_specific_typescript() {
+    let temp = Project::empty();
+    temp.config(
+        r#"[check.tests.commit]
+check = "error"
+"#,
+    );
+
+    init_git_repo(temp.path());
+    git_branch(temp.path(), "feature/ts-advice");
+
+    // Add TypeScript source file without tests
+    temp.file("src/parser.ts", "export function parse() {}");
+    git_commit(temp.path(), "feat: add parser");
+
+    // Should fail with TypeScript-specific advice
+    check("tests")
+        .pwd(temp.path())
+        .args(&["--base", "main"])
+        .fails()
+        .stdout_has("parser.test.ts")
+        .stdout_has("__tests__");
+}
+
+/// Spec: Advice messages are language-specific (Go)
+#[test]
+fn advice_message_is_language_specific_go() {
+    let temp = Project::empty();
+    temp.config(
+        r#"[check.tests.commit]
+check = "error"
+"#,
+    );
+
+    init_git_repo(temp.path());
+    git_branch(temp.path(), "feature/go-advice");
+
+    // Add Go source file without tests
+    temp.file("src/parser.go", "package parser\nfunc Parse() {}");
+    git_commit(temp.path(), "feat: add parser");
+
+    // Should fail with Go-specific advice
+    check("tests")
+        .pwd(temp.path())
+        .args(&["--base", "main"])
+        .fails()
+        .stdout_has("parser_test.go");
+}
+
+/// Spec: Advice messages are language-specific (Python)
+#[test]
+fn advice_message_is_language_specific_python() {
+    let temp = Project::empty();
+    temp.config(
+        r#"[check.tests.commit]
+check = "error"
+"#,
+    );
+
+    init_git_repo(temp.path());
+    git_branch(temp.path(), "feature/py-advice");
+
+    // Add Python source file without tests
+    temp.file("src/parser.py", "def parse(): pass");
+    git_commit(temp.path(), "feat: add parser");
+
+    // Should fail with Python-specific advice
+    check("tests")
+        .pwd(temp.path())
+        .args(&["--base", "main"])
+        .fails()
+        .stdout_has("test_parser.py");
+}
+
+// =============================================================================
+// ENHANCED TEST PATTERN SPECS
+// =============================================================================
+
+/// Spec: docs/specs/checks/tests.md#default-patterns
+///
+/// > `**/__tests__/**` - Jest convention
+#[test]
+fn jest_tests_directory_matches() {
+    let temp = Project::empty();
+    temp.config(
+        r#"[check.tests.commit]
+check = "error"
+"#,
+    );
+
+    init_git_repo(temp.path());
+    git_branch(temp.path(), "feature/jest-dir");
+
+    // Add source and test in __tests__ directory
+    temp.file("src/parser.ts", "export function parse() {}");
+    std::fs::create_dir_all(temp.path().join("__tests__")).unwrap();
+    temp.file("__tests__/parser.test.ts", "test('parses', () => {});");
+    git_commit(temp.path(), "feat: add parser with jest tests");
+
+    // Should pass - __tests__ directory is recognized
+    check("tests")
+        .pwd(temp.path())
+        .args(&["--base", "main"])
+        .passes();
+}
+
+/// Spec: docs/specs/checks/tests.md#default-patterns
+///
+/// > `**/*.test.*` - Dot suffix (Jest/Vitest)
+#[test]
+fn dot_test_suffix_matches() {
+    let temp = Project::empty();
+    temp.config(
+        r#"[check.tests.commit]
+check = "error"
+"#,
+    );
+
+    init_git_repo(temp.path());
+    git_branch(temp.path(), "feature/dot-test");
+
+    // Add source and sibling .test.ts file
+    temp.file("src/parser.ts", "export function parse() {}");
+    temp.file("src/parser.test.ts", "test('parses', () => {});");
+    git_commit(temp.path(), "feat: add parser with .test.ts");
+
+    // Should pass - .test.ts suffix is recognized
+    check("tests")
+        .pwd(temp.path())
+        .args(&["--base", "main"])
+        .passes();
+}
+
+/// Spec: docs/specs/checks/tests.md#default-patterns
+///
+/// > `spec/**/*` - Spec directory
+#[test]
+fn spec_directory_matches() {
+    let temp = Project::empty();
+    temp.config(
+        r#"[check.tests.commit]
+check = "error"
+"#,
+    );
+
+    init_git_repo(temp.path());
+    git_branch(temp.path(), "feature/spec-dir");
+
+    // Add source and test in spec directory
+    temp.file("src/parser.rb", "def parse; end");
+    std::fs::create_dir_all(temp.path().join("spec")).unwrap();
+    temp.file("spec/parser_spec.rb", "describe Parser { }");
+    git_commit(temp.path(), "feat: add parser with spec");
+
+    // Should pass - spec/ directory is recognized
+    check("tests")
+        .pwd(temp.path())
+        .args(&["--base", "main"])
+        .passes();
+}

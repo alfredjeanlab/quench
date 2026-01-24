@@ -7,6 +7,7 @@
 
 pub mod correlation;
 pub mod diff;
+pub mod placeholder;
 
 #[cfg(test)]
 #[path = "mod_tests.rs"]
@@ -20,10 +21,11 @@ use crate::check::{Check, CheckContext, CheckResult, Violation};
 use crate::config::TestsCommitConfig;
 
 use self::correlation::{
-    CorrelationConfig, DiffRange, analyze_commit, analyze_correlation, candidate_test_paths,
-    has_inline_test_changes, has_placeholder_test,
+    CorrelationConfig, DiffRange, analyze_commit, analyze_correlation, candidate_js_test_paths,
+    candidate_test_paths, has_inline_test_changes,
 };
 use self::diff::{ChangeType, get_base_changes, get_commits_since, get_staged_changes};
+use self::placeholder::{has_js_placeholder_test, has_placeholder_test};
 use std::path::Path;
 
 /// File extension for Rust source files.
@@ -31,6 +33,47 @@ const RUST_EXT: &str = "rs";
 
 /// Length for truncating git hashes in display.
 const SHORT_HASH_LEN: usize = 7;
+
+/// Detected language of a source file.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Language {
+    Rust,
+    Go,
+    JavaScript,
+    Python,
+    Unknown,
+}
+
+/// Detect the language of a source file from its extension.
+fn detect_language(path: &Path) -> Language {
+    match path.extension().and_then(|e| e.to_str()) {
+        Some("rs") => Language::Rust,
+        Some("go") => Language::Go,
+        Some("ts" | "tsx" | "js" | "jsx" | "mjs" | "mts") => Language::JavaScript,
+        Some("py") => Language::Python,
+        _ => Language::Unknown,
+    }
+}
+
+/// Generate language-specific advice for missing tests.
+fn missing_tests_advice(file_stem: &str, lang: Language) -> String {
+    match lang {
+        Language::Rust => format!(
+            "Add tests in tests/{}_tests.rs or update inline #[cfg(test)] block",
+            file_stem
+        ),
+        Language::Go => format!("Add tests in {}_test.go", file_stem),
+        Language::JavaScript => format!(
+            "Add tests in {}.test.ts or __tests__/{}.test.ts",
+            file_stem, file_stem
+        ),
+        Language::Python => format!(
+            "Add tests in test_{}.py or tests/test_{}.py",
+            file_stem, file_stem
+        ),
+        Language::Unknown => format!("Add tests for {}", file_stem),
+    }
+}
 
 pub struct TestsCheck;
 
@@ -141,11 +184,8 @@ impl TestsCheck {
                 .find(|c| relative_to_root(&c.path, ctx.root).eq(path));
 
             let file_stem = path.file_stem().and_then(|s| s.to_str()).unwrap_or("file");
-
-            let advice = format!(
-                "Add tests in tests/{}_tests.rs or update inline #[cfg(test)] block",
-                file_stem
-            );
+            let lang = detect_language(path);
+            let advice = missing_tests_advice(file_stem, lang);
 
             let mut v = Violation::file_only(path, "missing_tests", advice);
 
@@ -228,10 +268,14 @@ impl TestsCheck {
 
                 failing_commits.push(analysis.hash.clone());
 
+                let file_stem = path.file_stem().and_then(|s| s.to_str()).unwrap_or("file");
+                let lang = detect_language(path);
+                let test_advice = missing_tests_advice(file_stem, lang);
                 let advice = format!(
-                    "Commit {} modifies {} without test changes",
+                    "Commit {} modifies {} without test changes. {}",
                     short_hash(&analysis.hash),
-                    path.display()
+                    path.display(),
+                    test_advice
                 );
 
                 // Find the change info for this file in this commit
@@ -312,9 +356,25 @@ fn has_placeholder_for_source(source_path: &Path, root: &Path) -> bool {
         None => return false,
     };
 
-    candidate_test_paths(base_name).iter().any(|test_path| {
-        let test_file = Path::new(test_path);
-        root.join(test_file).exists()
-            && has_placeholder_test(test_file, base_name, root).unwrap_or(false)
-    })
+    // Determine if this is a JS/TS file
+    let is_js = source_path
+        .extension()
+        .and_then(|e| e.to_str())
+        .is_some_and(|ext| matches!(ext, "ts" | "tsx" | "js" | "jsx" | "mjs" | "mts"));
+
+    if is_js {
+        // Check JS/TS placeholder tests
+        candidate_js_test_paths(base_name).iter().any(|test_path| {
+            let test_file = Path::new(test_path);
+            root.join(test_file).exists()
+                && has_js_placeholder_test(test_file, base_name, root).unwrap_or(false)
+        })
+    } else {
+        // Check Rust placeholder tests
+        candidate_test_paths(base_name).iter().any(|test_path| {
+            let test_file = Path::new(test_path);
+            root.join(test_file).exists()
+                && has_placeholder_test(test_file, base_name, root).unwrap_or(false)
+        })
+    }
 }

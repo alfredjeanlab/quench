@@ -30,9 +30,13 @@ impl Default for CorrelationConfig {
             test_patterns: vec![
                 "tests/**/*".to_string(),
                 "test/**/*".to_string(),
+                "spec/**/*".to_string(),
+                "**/__tests__/**".to_string(),
                 "**/*_test.*".to_string(),
                 "**/*_tests.*".to_string(),
+                "**/*.test.*".to_string(),
                 "**/*.spec.*".to_string(),
+                "**/test_*.*".to_string(),
             ],
             source_patterns: vec!["src/**/*".to_string()],
             exclude_patterns: vec![
@@ -442,7 +446,7 @@ fn correlation_base_name(path: &Path) -> Option<&str> {
     path.file_stem()?.to_str()
 }
 
-/// Get candidate test file paths for a base name.
+/// Get candidate test file paths for a base name (Rust).
 ///
 /// Returns patterns like: tests/{base}_tests.rs, tests/{base}_test.rs, etc.
 /// Used for placeholder test checking.
@@ -457,39 +461,38 @@ pub fn candidate_test_paths(base_name: &str) -> Vec<String> {
     ]
 }
 
+/// Get candidate test file paths for a base name (JavaScript/TypeScript).
+pub fn candidate_js_test_paths(base_name: &str) -> Vec<String> {
+    let b = base_name;
+    let exts = ["ts", "js"];
+    let mut paths = Vec::with_capacity(16);
+    for ext in &exts {
+        paths.push(format!("{b}.test.{ext}"));
+        paths.push(format!("{b}.spec.{ext}"));
+        paths.push(format!("__tests__/{b}.test.{ext}"));
+        paths.push(format!("tests/{b}.test.{ext}"));
+    }
+    paths
+}
+
 /// Get candidate test file locations for a source file.
-///
-/// Returns a list of paths where a test file might exist for the given source file.
-/// This implements the test location strategy from the spec:
-/// 1. tests/{base}.rs
-/// 2. tests/{base}_test.rs
-/// 3. tests/{base}_tests.rs
-/// 4. tests/test_{base}.rs
-/// 5. test/{base}.rs (singular)
-/// 6. test/{base}_test.rs
-/// 7. test/{base}_tests.rs
-/// 8. Sibling test files ({parent}/{base}_test.rs, {parent}/{base}_tests.rs)
 pub fn find_test_locations(source_path: &Path) -> Vec<PathBuf> {
-    let base_name = match source_path.file_stem().and_then(|s| s.to_str()) {
+    let b = match source_path.file_stem().and_then(|s| s.to_str()) {
         Some(n) => n,
         None => return vec![],
     };
-    let parent = source_path.parent().unwrap_or(Path::new(""));
-
-    vec![
-        // tests/ directory variants
-        PathBuf::from(format!("tests/{}.rs", base_name)),
-        PathBuf::from(format!("tests/{}_test.rs", base_name)),
-        PathBuf::from(format!("tests/{}_tests.rs", base_name)),
-        PathBuf::from(format!("tests/test_{}.rs", base_name)),
-        // test/ directory variants (singular)
-        PathBuf::from(format!("test/{}.rs", base_name)),
-        PathBuf::from(format!("test/{}_test.rs", base_name)),
-        PathBuf::from(format!("test/{}_tests.rs", base_name)),
-        // Sibling test files (same directory as source)
-        parent.join(format!("{}_test.rs", base_name)),
-        parent.join(format!("{}_tests.rs", base_name)),
-    ]
+    let p = source_path.parent().unwrap_or(Path::new(""));
+    let dirs = ["tests", "test"];
+    let mut paths = Vec::with_capacity(11);
+    for d in &dirs {
+        paths.push(PathBuf::from(format!("{d}/{b}.rs")));
+        paths.push(PathBuf::from(format!("{d}/{b}_test.rs")));
+        paths.push(PathBuf::from(format!("{d}/{b}_tests.rs")));
+    }
+    paths.push(PathBuf::from(format!("tests/test_{b}.rs")));
+    paths.push(p.join(format!("{b}_test.rs")));
+    paths.push(p.join(format!("{b}_tests.rs")));
+    paths
 }
 
 /// Check if any changed test file correlates with a source file.
@@ -531,10 +534,15 @@ pub fn has_correlated_test(
 fn extract_base_name(path: &Path) -> Option<String> {
     let stem = path.file_stem()?.to_str()?;
 
-    // Strip common test suffixes
+    // Strip common test suffixes/prefixes
+    // Rust/Go style: _test, _tests, test_
+    // JS/TS style: .test, .spec (part of stem for files like parser.test.ts)
     let base = stem
         .strip_suffix("_tests")
         .or_else(|| stem.strip_suffix("_test"))
+        .or_else(|| stem.strip_suffix(".test"))
+        .or_else(|| stem.strip_suffix(".spec"))
+        .or_else(|| stem.strip_suffix("_spec"))
         .or_else(|| stem.strip_prefix("test_"))
         .unwrap_or(stem);
 
@@ -549,78 +557,6 @@ fn build_glob_set(patterns: &[String]) -> Result<GlobSet, String> {
         builder.add(glob);
     }
     builder.build().map_err(|e| e.to_string())
-}
-
-/// Check if a test file contains placeholder tests for a given source file.
-///
-/// Placeholder tests are `#[test]` `#[ignore = "..."]` patterns that indicate
-/// planned test implementation.
-pub fn has_placeholder_test(
-    test_path: &Path,
-    source_base: &str,
-    root: &Path,
-) -> Result<bool, String> {
-    let full_path = root.join(test_path);
-    let content = std::fs::read_to_string(&full_path).map_err(|e| e.to_string())?;
-
-    let placeholders = find_placeholder_tests(&content);
-
-    // Check if any placeholder test name relates to the source file
-    Ok(placeholders.iter().any(|test_name| {
-        test_name.contains(source_base)
-            || test_name.contains(&format!("test_{}", source_base))
-            || test_name.contains(&format!("{}_test", source_base))
-    }))
-}
-
-/// Parse Rust test file for placeholder tests.
-///
-/// Looks for patterns like:
-///
-/// ```text
-/// #[test]
-/// #[ignore = "TODO: implement parser"]
-/// fn test_parser() { ... }
-/// ```
-fn find_placeholder_tests(content: &str) -> Vec<String> {
-    let mut result = Vec::new();
-    let mut saw_test_attr = false;
-    let mut saw_ignore_attr = false;
-
-    for line in content.lines() {
-        let trimmed = line.trim();
-
-        if trimmed == "#[test]" {
-            saw_test_attr = true;
-            saw_ignore_attr = false;
-            continue;
-        }
-
-        if saw_test_attr && (trimmed.starts_with("#[ignore") || trimmed.starts_with("#[ignore =")) {
-            saw_ignore_attr = true;
-            continue;
-        }
-
-        if saw_test_attr
-            && saw_ignore_attr
-            && trimmed.starts_with("fn ")
-            && let Some(name_part) = trimmed.strip_prefix("fn ")
-            && let Some(name) = name_part.split('(').next()
-        {
-            result.push(name.to_string());
-            saw_test_attr = false;
-            saw_ignore_attr = false;
-            continue;
-        }
-
-        // Reset if we see something else
-        if !trimmed.starts_with('#') && !trimmed.is_empty() {
-            saw_test_attr = false;
-            saw_ignore_attr = false;
-        }
-    }
-
-    result
 }
 
 /// Specifies the git diff range for inline test detection.

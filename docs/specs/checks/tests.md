@@ -94,6 +94,20 @@ For Rust, changes to `#[cfg(test)]` blocks in the same file **satisfy the test r
 
 ## Test File Matching
 
+### Default Patterns
+
+| Pattern | Description |
+|---------|-------------|
+| `tests/**/*` | Tests directory |
+| `test/**/*` | Test directory (singular) |
+| `spec/**/*` | Spec directory (RSpec/Ruby convention) |
+| `**/__tests__/**` | Jest convention |
+| `**/*_test.*` | Underscore suffix |
+| `**/*_tests.*` | Underscore suffix (plural) |
+| `**/*.test.*` | Dot suffix (Jest/Vitest) |
+| `**/*.spec.*` | Spec suffix |
+| `**/test_*.*` | Test prefix |
+
 ### Pattern-Based (Language Agnostic)
 
 For source file `src/parser.rs`, look for tests in:
@@ -104,6 +118,12 @@ For source file `src/parser.rs`, look for tests in:
 5. `src/parser_tests.rs`
 6. `test/parser.rs`
 7. Any file matching test patterns containing "parser"
+
+For source file `src/parser.ts`, look for tests in:
+1. `parser.test.ts`
+2. `__tests__/parser.test.ts`
+3. `parser.spec.ts`
+4. `tests/parser.test.ts`
 
 ## Placeholder Tests
 
@@ -119,7 +139,10 @@ fn test_parser() { todo!() }
 **JavaScript/TypeScript:**
 ```javascript
 test.todo('parser should handle edge case');
-test.fixme('parser broken on empty input');
+it.todo('validates input correctly');
+describe.todo('edge cases');
+test.skip('temporarily disabled', () => { /* ... */ });
+it.skip('needs implementation', () => { /* ... */ });
 ```
 
 When placeholder tests exist for a source file, correlation is satisfied even without implementation—the test intent is recorded.
