@@ -151,7 +151,7 @@ fn update_baseline_with_current() {
         ("unwrap".to_string(), 3),
     ]));
 
-    update_baseline(&mut baseline, &current, &[]);
+    update_baseline(&mut baseline, &current);
 
     assert!(baseline.metrics.escapes.is_some());
     let escapes = baseline.metrics.escapes.unwrap();
@@ -169,7 +169,7 @@ fn update_baseline_replaces_values() {
 
     let current = make_current_metrics(HashMap::from([("unsafe".to_string(), 3)]));
 
-    update_baseline(&mut baseline, &current, &[]);
+    update_baseline(&mut baseline, &current);
 
     let escapes = baseline.metrics.escapes.unwrap();
     assert_eq!(escapes.source.get("unsafe"), Some(&3));
@@ -406,7 +406,7 @@ fn update_baseline_with_perf_metrics() {
         ..Default::default()
     };
 
-    update_baseline(&mut baseline, &current, &[]);
+    update_baseline(&mut baseline, &current);
 
     assert!(baseline.metrics.binary_size.is_some());
     assert_eq!(

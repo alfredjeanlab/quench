@@ -361,7 +361,9 @@ impl TextFormatter {
                     writeln!(
                         self.stdout,
                         "  {}: {} (max: {} from baseline)",
-                        comp.name, comp.current as i64, comp.baseline as i64
+                        comp.name,
+                        comp.format_value(comp.current),
+                        comp.format_value(comp.baseline)
                     )?;
                     writeln!(self.stdout, "    {}", comp.advice())?;
                 }
@@ -377,7 +379,9 @@ impl TextFormatter {
                     writeln!(
                         self.stdout,
                         "  {}: {} (baseline: {}) improved",
-                        comp.name, comp.current as i64, comp.baseline as i64
+                        comp.name,
+                        comp.format_value(comp.current),
+                        comp.format_value(comp.baseline)
                     )?;
                 }
             }

@@ -163,6 +163,17 @@ pub struct MetricComparison {
 }
 
 impl MetricComparison {
+    /// Format the value based on metric type.
+    pub fn format_value(&self, value: f64) -> String {
+        if self.name.starts_with("build_time.") || self.name.starts_with("test_time.") {
+            format!("{:.1}s", value)
+        } else if self.name.starts_with("coverage.") {
+            format!("{:.1}%", value * 100.0)
+        } else {
+            format!("{}", value as i64)
+        }
+    }
+
     /// Get contextual advice for this metric failure.
     pub fn advice(&self) -> &'static str {
         if self.name.starts_with("escapes.") {
@@ -194,6 +205,19 @@ pub struct MetricImprovement {
     pub name: String,
     pub old_value: f64,
     pub new_value: f64,
+}
+
+impl MetricImprovement {
+    /// Format the value based on metric type.
+    pub fn format_value(&self, value: f64) -> String {
+        if self.name.starts_with("build_time.") || self.name.starts_with("test_time.") {
+            format!("{:.1}s", value)
+        } else if self.name.starts_with("coverage.") {
+            format!("{:.1}%", value * 100.0)
+        } else {
+            format!("{}", value as i64)
+        }
+    }
 }
 
 /// Compare current metrics against baseline using ratchet config.
@@ -384,12 +408,8 @@ fn compare_timing(
     }
 }
 
-/// Update baseline with current metrics where improved.
-pub fn update_baseline(
-    baseline: &mut Baseline,
-    current: &CurrentMetrics,
-    _improvements: &[MetricImprovement],
-) {
+/// Update baseline with current metrics.
+pub fn update_baseline(baseline: &mut Baseline, current: &CurrentMetrics) {
     // Update escapes metrics
     if let Some(curr_escapes) = &current.escapes {
         let base_escapes = baseline
