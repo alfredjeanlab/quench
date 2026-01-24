@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
 use std::path::Path;
@@ -5,6 +8,7 @@ use std::path::Path;
 use crate::adapter::FileKind;
 use crate::config::{GoPolicyConfig, LintChangesPolicy};
 
+#[allow(unused_imports)]
 use super::check_lint_policy;
 
 fn default_policy() -> GoPolicyConfig {
@@ -25,53 +29,24 @@ fn go_classifier(path: &Path) -> FileKind {
     }
 }
 
-#[test]
-fn no_policy_allows_mixed_changes() {
-    let policy = GoPolicyConfig {
-        lint_changes: LintChangesPolicy::None,
-        ..default_policy()
-    };
-    let files = [Path::new(".golangci.yml"), Path::new("main.go")];
-    let file_refs: Vec<&Path> = files.to_vec();
-
-    let result = check_lint_policy(&file_refs, &policy, go_classifier);
-    assert!(!result.standalone_violated);
+// Generate standard policy tests
+crate::policy_test_cases! {
+    policy_type: GoPolicyConfig,
+    default_policy: default_policy,
+    classifier: go_classifier,
+    source_files: ["main.go", "util.go"],
+    lint_config_file: ".golangci.yml",
+    test_file: "main_test.go",
 }
 
-#[test]
-fn standalone_policy_allows_lint_only() {
-    let policy = default_policy();
-    let files = [Path::new(".golangci.yml")];
-    let file_refs: Vec<&Path> = files.to_vec();
-
-    let result = check_lint_policy(&file_refs, &policy, go_classifier);
-    assert!(!result.standalone_violated);
-    assert_eq!(result.changed_lint_config.len(), 1);
-}
-
-#[test]
-fn standalone_policy_allows_source_only() {
-    let policy = default_policy();
-    let files = [Path::new("main.go"), Path::new("util_test.go")];
-    let file_refs: Vec<&Path> = files.to_vec();
-
-    let result = check_lint_policy(&file_refs, &policy, go_classifier);
-    assert!(!result.standalone_violated);
-    assert_eq!(result.changed_source.len(), 2);
-}
-
-#[test]
-fn standalone_policy_fails_mixed_changes() {
-    let policy = default_policy();
-    let files = [Path::new(".golangci.yml"), Path::new("main.go")];
-    let file_refs: Vec<&Path> = files.to_vec();
-
-    let result = check_lint_policy(&file_refs, &policy, go_classifier);
-    assert!(result.standalone_violated);
-}
+// =============================================================================
+// Go-specific tests
+// =============================================================================
 
 #[test]
 fn recognizes_multiple_lint_configs() {
+    use crate::adapter::common::test_utils::assert_violation;
+
     let policy = GoPolicyConfig {
         lint_config: vec![
             ".golangci.yml".to_string(),
@@ -80,9 +55,6 @@ fn recognizes_multiple_lint_configs() {
         ],
         ..default_policy()
     };
-    let files = [Path::new(".golangci.yaml"), Path::new("main.go")];
-    let file_refs: Vec<&Path> = files.to_vec();
 
-    let result = check_lint_policy(&file_refs, &policy, go_classifier);
-    assert!(result.standalone_violated);
+    assert_violation(&[".golangci.yaml", "main.go"], &policy, go_classifier);
 }

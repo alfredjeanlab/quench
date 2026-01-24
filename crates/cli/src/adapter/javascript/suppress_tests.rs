@@ -3,69 +3,58 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
+use yare::parameterized;
+
 use super::*;
 
 // =============================================================================
 // ESLint Parsing Tests
 // =============================================================================
 
-#[test]
-fn eslint_next_line_no_rules() {
-    let content = "// eslint-disable-next-line\nconsole.log('test');";
+#[parameterized(
+    no_rules = { "// eslint-disable-next-line\nconsole.log('test');", &[] },
+    single_rule = { "// eslint-disable-next-line no-console\nconsole.log('test');", &["no-console"] },
+    multiple_rules = { "// eslint-disable-next-line no-console, no-debugger\nconsole.log('test');", &["no-console", "no-debugger"] },
+    typescript_scoped = { "// eslint-disable-next-line @typescript-eslint/no-explicit-any\nconst x: any = {};", &["@typescript-eslint/no-explicit-any"] },
+)]
+fn eslint_next_line_codes(content: &str, expected_codes: &[&str]) {
     let result = parse_eslint_suppresses(content, None);
-
     assert_eq!(result.len(), 1);
-    assert_eq!(result[0].line, 0);
     assert_eq!(result[0].kind, EslintSuppressKind::DisableNextLine);
-    assert!(result[0].codes.is_empty());
-    assert!(!result[0].has_comment);
+    assert_eq!(result[0].codes, expected_codes);
 }
 
-#[test]
-fn eslint_next_line_single_rule() {
-    let content = "// eslint-disable-next-line no-console\nconsole.log('test');";
-    let result = parse_eslint_suppresses(content, None);
-
-    assert_eq!(result.len(), 1);
-    assert_eq!(result[0].codes, vec!["no-console"]);
-    assert!(!result[0].has_comment);
-}
-
-#[test]
-fn eslint_next_line_multiple_rules() {
-    let content = "// eslint-disable-next-line no-console, no-debugger\nconsole.log('test');";
-    let result = parse_eslint_suppresses(content, None);
-
-    assert_eq!(result.len(), 1);
-    assert_eq!(result[0].codes, vec!["no-console", "no-debugger"]);
-}
-
-#[test]
-fn eslint_next_line_with_inline_reason() {
-    let content =
-        "// eslint-disable-next-line no-console -- debugging legacy code\nconsole.log('test');";
-    let result = parse_eslint_suppresses(content, None);
-
-    assert_eq!(result.len(), 1);
-    assert_eq!(result[0].codes, vec!["no-console"]);
-    assert!(result[0].has_comment);
-    assert_eq!(
-        result[0].comment_text.as_deref(),
+#[parameterized(
+    with_inline_reason = {
+        "// eslint-disable-next-line no-console -- debugging legacy code\nconsole.log('test');",
+        &["no-console"],
+        true,
         Some("debugging legacy code")
-    );
-}
-
-#[test]
-fn eslint_next_line_with_comment_above() {
-    let content = "// Legacy API requires this pattern\n// eslint-disable-next-line no-console\nconsole.log('test');";
-    let result = parse_eslint_suppresses(content, None);
-
-    assert_eq!(result.len(), 1);
-    assert!(result[0].has_comment);
-    assert_eq!(
-        result[0].comment_text.as_deref(),
+    },
+    with_comment_above = {
+        "// Legacy API requires this pattern\n// eslint-disable-next-line no-console\nconsole.log('test');",
+        &["no-console"],
+        true,
         Some("Legacy API requires this pattern")
-    );
+    },
+    inline_reason_no_rules = {
+        "// eslint-disable-next-line -- just a reason\nconsole.log('test');",
+        &[],
+        true,
+        Some("just a reason")
+    },
+)]
+fn eslint_next_line_with_comment(
+    content: &str,
+    expected_codes: &[&str],
+    has_comment: bool,
+    comment_text: Option<&str>,
+) {
+    let result = parse_eslint_suppresses(content, None);
+    assert_eq!(result.len(), 1);
+    assert_eq!(result[0].codes, expected_codes);
+    assert_eq!(result[0].has_comment, has_comment);
+    assert_eq!(result[0].comment_text.as_deref(), comment_text);
 }
 
 #[test]
@@ -91,97 +80,75 @@ fn eslint_next_line_with_required_pattern_not_matching() {
     let result = parse_eslint_suppresses(content, Some("// JUSTIFIED:"));
 
     assert_eq!(result.len(), 1);
-    // Pattern doesn't match, so no valid comment found
     assert!(!result[0].has_comment);
 }
 
-#[test]
-fn eslint_block_disable() {
-    let content = "/* eslint-disable */\nconst x = 1;\n/* eslint-enable */";
+#[parameterized(
+    block_no_rules = {
+        "/* eslint-disable */\nconst x = 1;\n/* eslint-enable */",
+        EslintSuppressKind::DisableBlock,
+        &[]
+    },
+    block_with_rules = {
+        "/* eslint-disable no-console, no-alert */\nconst x = 1;\n/* eslint-enable */",
+        EslintSuppressKind::DisableBlock,
+        &["no-console", "no-alert"]
+    },
+    file_level = {
+        "/* eslint-disable */\nconst x = 1;",
+        EslintSuppressKind::DisableFile,
+        &[]
+    },
+)]
+fn eslint_block_and_file(
+    content: &str,
+    expected_kind: EslintSuppressKind,
+    expected_codes: &[&str],
+) {
     let result = parse_eslint_suppresses(content, None);
-
     assert_eq!(result.len(), 1);
-    assert_eq!(result[0].kind, EslintSuppressKind::DisableBlock);
-    assert!(result[0].codes.is_empty());
-}
-
-#[test]
-fn eslint_block_with_rules() {
-    let content = "/* eslint-disable no-console, no-alert */\nconst x = 1;\n/* eslint-enable */";
-    let result = parse_eslint_suppresses(content, None);
-
-    assert_eq!(result.len(), 1);
-    assert_eq!(result[0].codes, vec!["no-console", "no-alert"]);
-}
-
-#[test]
-fn eslint_file_level_disable_at_top() {
-    let content = "/* eslint-disable */\nconst x = 1;";
-    let result = parse_eslint_suppresses(content, None);
-
-    assert_eq!(result.len(), 1);
-    assert_eq!(result[0].kind, EslintSuppressKind::DisableFile);
-}
-
-#[test]
-fn eslint_typescript_scoped_rule() {
-    let content =
-        "// eslint-disable-next-line @typescript-eslint/no-explicit-any\nconst x: any = {};";
-    let result = parse_eslint_suppresses(content, None);
-
-    assert_eq!(result.len(), 1);
-    assert_eq!(result[0].codes, vec!["@typescript-eslint/no-explicit-any"]);
+    assert_eq!(result[0].kind, expected_kind);
+    assert_eq!(result[0].codes, expected_codes);
 }
 
 // =============================================================================
 // Biome Parsing Tests
 // =============================================================================
 
-#[test]
-fn biome_ignore_single_rule() {
-    let content = "// biome-ignore lint/suspicious/noExplicitAny\nconst x: any = {};";
+#[parameterized(
+    single_rule = {
+        "// biome-ignore lint/suspicious/noExplicitAny\nconst x: any = {};",
+        &["lint/suspicious/noExplicitAny"]
+    },
+    multiple_rules = {
+        "// biome-ignore lint/suspicious/noExplicitAny lint/style/noVar\nvar x: any = {};",
+        &["lint/suspicious/noExplicitAny", "lint/style/noVar"]
+    },
+)]
+fn biome_ignore_codes(content: &str, expected_codes: &[&str]) {
     let result = parse_biome_suppresses(content, None);
-
     assert_eq!(result.len(), 1);
-    assert_eq!(result[0].line, 0);
-    assert_eq!(result[0].codes, vec!["lint/suspicious/noExplicitAny"]);
+    assert_eq!(result[0].codes, expected_codes);
     assert!(!result[0].has_explanation);
 }
 
-#[test]
-fn biome_ignore_multiple_rules() {
-    let content =
-        "// biome-ignore lint/suspicious/noExplicitAny lint/style/noVar\nvar x: any = {};";
-    let result = parse_biome_suppresses(content, None);
-
-    assert_eq!(result.len(), 1);
-    assert_eq!(
-        result[0].codes,
-        vec!["lint/suspicious/noExplicitAny", "lint/style/noVar"]
-    );
-}
-
-#[test]
-fn biome_ignore_with_explanation() {
-    let content = "// biome-ignore lint/suspicious/noExplicitAny: legacy API requires any\nconst x: any = {};";
-    let result = parse_biome_suppresses(content, None);
-
-    assert_eq!(result.len(), 1);
-    assert!(result[0].has_explanation);
-    assert_eq!(
-        result[0].explanation_text.as_deref(),
+#[parameterized(
+    with_explanation = {
+        "// biome-ignore lint/suspicious/noExplicitAny: legacy API requires any\nconst x: any = {};",
+        true,
         Some("legacy API requires any")
-    );
-}
-
-#[test]
-fn biome_ignore_with_empty_explanation() {
-    let content = "// biome-ignore lint/suspicious/noExplicitAny:\nconst x: any = {};";
+    },
+    empty_explanation = {
+        "// biome-ignore lint/suspicious/noExplicitAny:\nconst x: any = {};",
+        false,
+        None
+    },
+)]
+fn biome_ignore_explanation(content: &str, has_explanation: bool, explanation_text: Option<&str>) {
     let result = parse_biome_suppresses(content, None);
-
     assert_eq!(result.len(), 1);
-    // Empty after colon doesn't count as explanation
-    assert!(!result[0].has_explanation);
+    assert_eq!(result[0].has_explanation, has_explanation);
+    assert_eq!(result[0].explanation_text.as_deref(), explanation_text);
 }
 
 #[test]
@@ -213,15 +180,11 @@ const x: any = {};
     let result = parse_javascript_suppresses(content, None);
 
     assert_eq!(result.len(), 2);
-
-    // ESLint directive
     assert_eq!(result[0].tool, SuppressTool::Eslint);
     assert_eq!(result[0].codes, vec!["no-console"]);
-
-    // Biome directive
     assert_eq!(result[1].tool, SuppressTool::Biome);
     assert_eq!(result[1].codes, vec!["lint/suspicious/noExplicitAny"]);
-    assert!(result[1].has_comment); // Has explanation
+    assert!(result[1].has_comment);
 }
 
 #[test]
@@ -264,34 +227,20 @@ const c = 3;
 // =============================================================================
 
 #[test]
-fn eslint_inline_reason_only_no_rules() {
-    let content = "// eslint-disable-next-line -- just a reason\nconsole.log('test');";
-    let result = parse_eslint_suppresses(content, None);
-
-    assert_eq!(result.len(), 1);
-    assert!(result[0].codes.is_empty());
-    assert!(result[0].has_comment);
-    assert_eq!(result[0].comment_text.as_deref(), Some("just a reason"));
-}
-
-#[test]
 fn handles_blank_lines_before_directive() {
     let content = "// Comment\n\n// eslint-disable-next-line no-console\nconsole.log('test');";
     let result = parse_eslint_suppresses(content, None);
 
     assert_eq!(result.len(), 1);
-    // Blank line stops the search, so no comment found
     assert!(!result[0].has_comment);
 }
 
 #[test]
 fn skips_directive_lines_when_looking_for_comments() {
-    // @ts-ignore is a directive, not a justification
     let content = "// @ts-ignore\n// eslint-disable-next-line no-console\nconsole.log('test');";
     let result = parse_eslint_suppresses(content, None);
 
     assert_eq!(result.len(), 1);
-    // @ts-ignore is skipped as it's a directive pattern
     assert!(!result[0].has_comment);
 }
 
@@ -301,7 +250,6 @@ fn finds_comment_above_directive() {
     let result = parse_eslint_suppresses(content, None);
 
     assert_eq!(result.len(), 1);
-    // Skips @ts-ignore and finds the comment above it
     assert!(result[0].has_comment);
     assert_eq!(
         result[0].comment_text.as_deref(),

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
 use std::path::Path;
@@ -5,6 +8,7 @@ use std::path::Path;
 use crate::adapter::FileKind;
 use crate::config::{JavaScriptPolicyConfig, LintChangesPolicy};
 
+#[allow(unused_imports)]
 use super::check_lint_policy;
 
 fn default_policy() -> JavaScriptPolicyConfig {
@@ -44,53 +48,24 @@ fn js_classifier(path: &Path) -> FileKind {
     }
 }
 
-#[test]
-fn no_policy_allows_mixed_changes() {
-    let policy = JavaScriptPolicyConfig {
-        lint_changes: LintChangesPolicy::None,
-        ..default_policy()
-    };
-    let files = [Path::new(".eslintrc"), Path::new("src/app.ts")];
-    let file_refs: Vec<&Path> = files.to_vec();
-
-    let result = check_lint_policy(&file_refs, &policy, js_classifier);
-    assert!(!result.standalone_violated);
+// Generate standard policy tests
+crate::policy_test_cases! {
+    policy_type: JavaScriptPolicyConfig,
+    default_policy: default_policy,
+    classifier: js_classifier,
+    source_files: ["src/app.ts", "src/utils.js"],
+    lint_config_file: ".eslintrc",
+    test_file: "src/app.test.ts",
 }
 
-#[test]
-fn standalone_policy_allows_lint_only() {
-    let policy = default_policy();
-    let files = [Path::new(".eslintrc"), Path::new("eslint.config.js")];
-    let file_refs: Vec<&Path> = files.to_vec();
-
-    let result = check_lint_policy(&file_refs, &policy, js_classifier);
-    assert!(!result.standalone_violated);
-    assert_eq!(result.changed_lint_config.len(), 2);
-}
-
-#[test]
-fn standalone_policy_allows_source_only() {
-    let policy = default_policy();
-    let files = [Path::new("src/app.ts"), Path::new("src/utils.test.ts")];
-    let file_refs: Vec<&Path> = files.to_vec();
-
-    let result = check_lint_policy(&file_refs, &policy, js_classifier);
-    assert!(!result.standalone_violated);
-    assert_eq!(result.changed_source.len(), 2);
-}
-
-#[test]
-fn standalone_policy_fails_mixed_changes() {
-    let policy = default_policy();
-    let files = [Path::new(".eslintrc"), Path::new("src/app.ts")];
-    let file_refs: Vec<&Path> = files.to_vec();
-
-    let result = check_lint_policy(&file_refs, &policy, js_classifier);
-    assert!(result.standalone_violated);
-}
+// =============================================================================
+// JavaScript-specific tests (not covered by standard pattern)
+// =============================================================================
 
 #[test]
 fn recognizes_eslint_config_variants() {
+    use crate::adapter::common::test_utils::assert_violation;
+
     let policy = JavaScriptPolicyConfig {
         lint_config: vec![
             ".eslintrc".to_string(),
@@ -103,49 +78,36 @@ fn recognizes_eslint_config_variants() {
         ..default_policy()
     };
 
-    // Test each variant triggers policy
     for config in &[".eslintrc.json", ".eslintrc.yml", "eslint.config.mjs"] {
-        let files = [Path::new(*config), Path::new("src/app.ts")];
-        let file_refs: Vec<&Path> = files.to_vec();
-        let result = check_lint_policy(&file_refs, &policy, js_classifier);
-        assert!(
-            result.standalone_violated,
-            "Expected violation for {}",
-            config
-        );
+        assert_violation(&[*config, "src/app.ts"], &policy, js_classifier);
     }
 }
 
 #[test]
 fn recognizes_biome_config_variants() {
+    use crate::adapter::common::test_utils::assert_violation;
+
     let policy = JavaScriptPolicyConfig {
         lint_config: vec!["biome.json".to_string(), "biome.jsonc".to_string()],
         ..default_policy()
     };
 
     for config in &["biome.json", "biome.jsonc"] {
-        let files = [Path::new(*config), Path::new("src/app.ts")];
-        let file_refs: Vec<&Path> = files.to_vec();
-        let result = check_lint_policy(&file_refs, &policy, js_classifier);
-        assert!(
-            result.standalone_violated,
-            "Expected violation for {}",
-            config
-        );
+        assert_violation(&[*config, "src/app.ts"], &policy, js_classifier);
     }
 }
 
 #[test]
 fn recognizes_commonjs_extensions() {
-    let policy = default_policy();
-    let files = [
-        Path::new("src/config.cjs"),
-        Path::new("src/types.cts"),
-        Path::new(".eslintrc"),
-    ];
-    let file_refs: Vec<&Path> = files.to_vec();
+    use crate::adapter::common::test_utils::check_policy;
 
-    let result = check_lint_policy(&file_refs, &policy, js_classifier);
+    let policy = default_policy();
+    let result = check_policy(
+        &["src/config.cjs", "src/types.cts", ".eslintrc"],
+        &policy,
+        js_classifier,
+    );
+
     assert!(result.standalone_violated);
     assert_eq!(result.changed_source.len(), 2);
 }
