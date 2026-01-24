@@ -359,11 +359,11 @@ comment = "// KEEP:"
     let config = parse_with_warnings(content, &path).unwrap();
     assert_eq!(
         config.rust.suppress.source.patterns.get("dead_code"),
-        Some(&"// NOTE(compat):".to_string())
+        Some(&vec!["// NOTE(compat):".to_string()])
     );
     assert_eq!(
         config.rust.suppress.source.patterns.get("unused_variables"),
-        Some(&"// KEEP:".to_string())
+        Some(&vec!["// KEEP:".to_string()])
     );
 }
 
@@ -382,16 +382,18 @@ comment = "# UNQUOTED_OK:"
     let config = parse_with_warnings(content, &path).unwrap();
     assert_eq!(
         config.shell.suppress.source.patterns.get("SC2034"),
-        Some(&"# UNUSED_VAR:".to_string())
+        Some(&vec!["# UNUSED_VAR:".to_string()])
     );
     assert_eq!(
         config.shell.suppress.source.patterns.get("SC2086"),
-        Some(&"# UNQUOTED_OK:".to_string())
+        Some(&vec!["# UNQUOTED_OK:".to_string()])
     );
 }
 
 #[test]
-fn suppress_patterns_empty_when_no_lint_sections() {
+fn suppress_patterns_override_defaults() {
+    // When user specifies a [rust.suppress.source] section, defaults are preserved
+    // unless explicitly overridden per-lint
     let path = PathBuf::from("quench.toml");
     let content = r#"
 version = 1
@@ -401,7 +403,15 @@ allow = ["dead_code"]
 forbid = ["unsafe_code"]
 "#;
     let config = parse_with_warnings(content, &path).unwrap();
-    assert!(config.rust.suppress.source.patterns.is_empty());
+    // Default patterns should still be present
+    assert!(
+        config
+            .rust
+            .suppress
+            .source
+            .patterns
+            .contains_key("dead_code")
+    );
 }
 
 #[test]
@@ -434,8 +444,109 @@ comment = "// LEGACY:"
             .forbid
             .contains(&"unsafe_code".to_string())
     );
+    // User-specified pattern overrides default
     assert_eq!(
         config.rust.suppress.source.patterns.get("dead_code"),
-        Some(&"// LEGACY:".to_string())
+        Some(&vec!["// LEGACY:".to_string()])
     );
+}
+
+#[test]
+fn suppress_patterns_inline_array_syntax() {
+    let path = PathBuf::from("quench.toml");
+    let content = r#"
+version = 1
+
+[rust.suppress.source]
+dead_code = ["// KEEP UNTIL:", "// NOTE(compat):"]
+deprecated = "// TODO(refactor):"
+"#;
+    let config = parse_with_warnings(content, &path).unwrap();
+
+    // Array syntax
+    assert_eq!(
+        config.rust.suppress.source.patterns.get("dead_code"),
+        Some(&vec![
+            "// KEEP UNTIL:".to_string(),
+            "// NOTE(compat):".to_string()
+        ])
+    );
+
+    // String syntax (converted to single-element array)
+    assert_eq!(
+        config.rust.suppress.source.patterns.get("deprecated"),
+        Some(&vec!["// TODO(refactor):".to_string()])
+    );
+}
+
+#[test]
+fn rust_suppress_source_has_defaults() {
+    let path = PathBuf::from("quench.toml");
+    let content = "version = 1\n";
+    let config = parse_with_warnings(content, &path).unwrap();
+
+    // Default patterns should be present
+    assert!(
+        config
+            .rust
+            .suppress
+            .source
+            .patterns
+            .contains_key("dead_code")
+    );
+    assert!(
+        config
+            .rust
+            .suppress
+            .source
+            .patterns
+            .contains_key("clippy::too_many_arguments")
+    );
+    assert!(
+        config
+            .rust
+            .suppress
+            .source
+            .patterns
+            .contains_key("clippy::cast_possible_truncation")
+    );
+    assert!(
+        config
+            .rust
+            .suppress
+            .source
+            .patterns
+            .contains_key("deprecated")
+    );
+
+    // Check dead_code has multiple patterns
+    let dead_code_patterns = config
+        .rust
+        .suppress
+        .source
+        .patterns
+        .get("dead_code")
+        .unwrap();
+    assert!(dead_code_patterns.contains(&"// KEEP UNTIL:".to_string()));
+    assert!(dead_code_patterns.contains(&"// NOTE(compat):".to_string()));
+}
+
+#[test]
+fn shell_suppress_source_has_no_defaults() {
+    let path = PathBuf::from("quench.toml");
+    let content = "version = 1\n";
+    let config = parse_with_warnings(content, &path).unwrap();
+
+    // Shell should have empty patterns (defaults to forbid anyway)
+    assert!(config.shell.suppress.source.patterns.is_empty());
+}
+
+#[test]
+fn go_suppress_source_has_no_defaults() {
+    let path = PathBuf::from("quench.toml");
+    let content = "version = 1\n";
+    let config = parse_with_warnings(content, &path).unwrap();
+
+    // Go should have empty patterns
+    assert!(config.go.suppress.source.patterns.is_empty());
 }

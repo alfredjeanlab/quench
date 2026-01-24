@@ -13,6 +13,15 @@ use super::{
 };
 use crate::checks::agents::config::{ContentRule, RequiredSection, SectionsConfig};
 
+/// Parse a TOML array of strings into a Vec<String>.
+fn parse_string_array(value: Option<&toml::Value>) -> Option<Vec<String>> {
+    value?.as_array().map(|arr| {
+        arr.iter()
+            .filter_map(|v| v.as_str().map(String::from))
+            .collect()
+    })
+}
+
 /// Parse Rust-specific configuration from TOML value.
 pub(super) fn parse_rust_config(value: Option<&toml::Value>) -> RustConfig {
     let Some(toml::Value::Table(t)) = value else {
@@ -40,27 +49,8 @@ pub(super) fn parse_shell_config(value: Option<&toml::Value>) -> ShellConfig {
         return ShellConfig::default();
     };
 
-    // Parse source patterns
-    let source = t
-        .get("source")
-        .and_then(|v| v.as_array())
-        .map(|arr| {
-            arr.iter()
-                .filter_map(|v| v.as_str().map(String::from))
-                .collect()
-        })
-        .unwrap_or_else(ShellConfig::default_source);
-
-    // Parse test patterns
-    let tests = t
-        .get("tests")
-        .and_then(|v| v.as_array())
-        .map(|arr| {
-            arr.iter()
-                .filter_map(|v| v.as_str().map(String::from))
-                .collect()
-        })
-        .unwrap_or_else(ShellConfig::default_tests);
+    let source = parse_string_array(t.get("source")).unwrap_or_else(ShellConfig::default_source);
+    let tests = parse_string_array(t.get("tests")).unwrap_or_else(ShellConfig::default_tests);
 
     // Parse suppress config
     let suppress = parse_shell_suppress_config(t.get("suppress"));
@@ -91,10 +81,16 @@ fn parse_shell_suppress_config(value: Option<&toml::Value>) -> ShellSuppressConf
 
     let comment = t.get("comment").and_then(|v| v.as_str()).map(String::from);
 
-    let source = parse_suppress_scope_config(t.get("source"), false);
+    // Shell uses empty defaults (forbid level doesn't need patterns)
+    let source = parse_suppress_scope_config_with_defaults(
+        t.get("source"),
+        ShellSuppressConfig::default_source(),
+    );
     let test = t
         .get("test")
-        .map(|v| parse_suppress_scope_config(Some(v), true))
+        .map(|v| {
+            parse_suppress_scope_config_with_defaults(Some(v), ShellSuppressConfig::default_test())
+        })
         .unwrap_or_else(ShellSuppressConfig::default_test);
 
     ShellSuppressConfig {
@@ -117,16 +113,8 @@ fn parse_shell_policy_config(value: Option<&toml::Value>) -> ShellPolicyConfig {
         _ => LintChangesPolicy::None,
     };
 
-    let lint_config = t
-        .get("lint_config")
-        .and_then(|v| v.as_array())
-        .map(|arr| {
-            arr.iter()
-                .filter_map(|v| v.as_str().map(String::from))
-                .collect()
-        })
+    let lint_config = parse_string_array(t.get("lint_config"))
         .unwrap_or_else(ShellPolicyConfig::default_lint_config);
-
     ShellPolicyConfig {
         lint_changes,
         lint_config,
@@ -138,28 +126,8 @@ pub(super) fn parse_go_config(value: Option<&toml::Value>) -> GoConfig {
     let Some(toml::Value::Table(t)) = value else {
         return GoConfig::default();
     };
-
-    // Parse source patterns
-    let source = t
-        .get("source")
-        .and_then(|v| v.as_array())
-        .map(|arr| {
-            arr.iter()
-                .filter_map(|v| v.as_str().map(String::from))
-                .collect()
-        })
-        .unwrap_or_else(GoConfig::default_source);
-
-    // Parse test patterns
-    let tests = t
-        .get("tests")
-        .and_then(|v| v.as_array())
-        .map(|arr| {
-            arr.iter()
-                .filter_map(|v| v.as_str().map(String::from))
-                .collect()
-        })
-        .unwrap_or_else(GoConfig::default_tests);
+    let source = parse_string_array(t.get("source")).unwrap_or_else(GoConfig::default_source);
+    let tests = parse_string_array(t.get("tests")).unwrap_or_else(GoConfig::default_tests);
 
     // Parse suppress config
     let suppress = parse_go_suppress_config(t.get("suppress"));
@@ -190,10 +158,16 @@ fn parse_go_suppress_config(value: Option<&toml::Value>) -> GoSuppressConfig {
 
     let comment = t.get("comment").and_then(|v| v.as_str()).map(String::from);
 
-    let source = parse_suppress_scope_config(t.get("source"), false);
+    // Go uses empty defaults (no per-lint patterns yet)
+    let source = parse_suppress_scope_config_with_defaults(
+        t.get("source"),
+        GoSuppressConfig::default_source(),
+    );
     let test = t
         .get("test")
-        .map(|v| parse_suppress_scope_config(Some(v), true))
+        .map(|v| {
+            parse_suppress_scope_config_with_defaults(Some(v), GoSuppressConfig::default_test())
+        })
         .unwrap_or_else(GoSuppressConfig::default_test);
 
     GoSuppressConfig {
@@ -286,15 +260,26 @@ fn parse_suppress_config(value: Option<&toml::Value>) -> SuppressConfig {
     }
 }
 
-/// Parse scope-specific suppress configuration.
+/// Parse scope-specific suppress configuration with language-specific defaults.
 fn parse_suppress_scope_config(value: Option<&toml::Value>, is_test: bool) -> SuppressScopeConfig {
-    let Some(toml::Value::Table(t)) = value else {
-        return if is_test {
-            SuppressScopeConfig::default_for_test()
-        } else {
-            SuppressScopeConfig::default()
-        };
+    let defaults = if is_test {
+        SuppressScopeConfig::default_for_test()
+    } else {
+        SuppressScopeConfig::default_for_source()
     };
+    parse_suppress_scope_config_with_defaults(value, defaults)
+}
+
+/// Parse scope-specific suppress configuration with explicit defaults.
+fn parse_suppress_scope_config_with_defaults(
+    value: Option<&toml::Value>,
+    defaults: SuppressScopeConfig,
+) -> SuppressScopeConfig {
+    let Some(toml::Value::Table(t)) = value else {
+        return defaults;
+    };
+
+    let is_test = defaults.check == Some(SuppressLevel::Allow);
 
     let check = match t.get("check").and_then(|v| v.as_str()) {
         Some("forbid") => Some(SuppressLevel::Forbid),
@@ -325,18 +310,34 @@ fn parse_suppress_scope_config(value: Option<&toml::Value>, is_test: bool) -> Su
         .unwrap_or_default();
 
     // Parse per-lint-code comment patterns.
-    // Any key that maps to a table with a "comment" string is a lint-code section.
-    let mut patterns = std::collections::HashMap::new();
+    // Supports both:
+    //   - Table form: [rust.suppress.source.dead_code] comment = "..."
+    //   - Inline form: dead_code = ["// KEEP:", "// NOTE:"] or dead_code = "// KEEP:"
+    let mut patterns = defaults.patterns;
+
     for (key, val) in t.iter() {
         // Skip known fields
         if matches!(key.as_str(), "check" | "allow" | "forbid") {
             continue;
         }
-        // If value is a table with "comment" field, it's a per-lint pattern
-        if let toml::Value::Table(lint_table) = val
-            && let Some(toml::Value::String(pattern)) = lint_table.get("comment")
-        {
-            patterns.insert(key.clone(), pattern.clone());
+
+        match val {
+            // Table form: [rust.suppress.source.dead_code] comment = "..."
+            toml::Value::Table(lint_table) => {
+                if let Some(comment_val) = lint_table.get("comment") {
+                    let comment_patterns = parse_pattern_value(comment_val);
+                    if !comment_patterns.is_empty() {
+                        patterns.insert(key.clone(), comment_patterns);
+                    }
+                }
+            }
+            // Inline form: dead_code = "..." or dead_code = ["...", "..."]
+            _ => {
+                let comment_patterns = parse_pattern_value(val);
+                if !comment_patterns.is_empty() {
+                    patterns.insert(key.clone(), comment_patterns);
+                }
+            }
         }
     }
 
@@ -345,6 +346,18 @@ fn parse_suppress_scope_config(value: Option<&toml::Value>, is_test: bool) -> Su
         allow,
         forbid,
         patterns,
+    }
+}
+
+/// Parse a pattern value that can be either a string or array of strings.
+fn parse_pattern_value(value: &toml::Value) -> Vec<String> {
+    match value {
+        toml::Value::String(s) => vec![s.clone()],
+        toml::Value::Array(arr) => arr
+            .iter()
+            .filter_map(|v| v.as_str().map(String::from))
+            .collect(),
+        _ => Vec::new(),
     }
 }
 

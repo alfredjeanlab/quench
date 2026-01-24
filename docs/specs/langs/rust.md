@@ -161,6 +161,19 @@ Controls `#[allow(...)]` and `#[expect(...)]` attributes.
 
 Default: `"comment"` for source, `"allow"` for test code.
 
+### Default Per-Lint Patterns
+
+By default, common lint suppressions require specific comment patterns:
+
+| Lint Code | Required Comment (any of) |
+|-----------|---------------------------|
+| `dead_code` | `// KEEP UNTIL:`, `// NOTE(compat):`, `// NOTE(compatibility):` |
+| `clippy::too_many_arguments` | `// TODO(refactor):` |
+| `clippy::cast_possible_truncation` | `// CORRECTNESS:`, `// SAFETY:` |
+| `deprecated` | `// TODO(refactor):`, `// NOTE(compat):`, `// NOTE(compatibility):` |
+
+These defaults ensure suppressions have meaningful justifications. Override per-project if needed.
+
 ### Supported Patterns
 
 ```rust
@@ -192,11 +205,20 @@ macro_rules! allow_unused {
 ```toml
 [rust.suppress]
 check = "comment"              # forbid | comment | allow
-# comment = "// JUSTIFIED:"    # optional: require specific pattern (default: any)
+# comment = "// JUSTIFIED:"    # optional: global pattern (default: any)
 
 [rust.suppress.source]
-allow = ["dead_code"]          # no comment needed
+allow = ["dead_code"]          # no comment needed for this lint
 forbid = ["unsafe_code"]       # never allowed
+
+# Per-lint patterns (override defaults)
+# Table syntax:
+[rust.suppress.source.dead_code]
+comment = "// LEGACY:"         # single pattern
+
+# Or inline array syntax:
+# dead_code = ["// KEEP UNTIL:", "// NOTE(compat):"]  # multiple patterns
+# deprecated = "// TODO(refactor):"                    # single pattern
 
 [rust.suppress.test]
 check = "allow"                # tests can suppress freely

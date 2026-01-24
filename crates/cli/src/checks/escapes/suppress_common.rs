@@ -71,8 +71,10 @@ pub fn check_suppress_attr(
 
     // 4. Check comment requirement
     if params.scope_check == SuppressLevel::Comment {
-        let required_pattern = find_required_pattern(params, attr);
-        if !has_valid_comment(attr, required_pattern.as_deref()) {
+        let required_patterns = find_required_patterns(params, attr);
+        if !has_valid_comment(attr, &required_patterns) {
+            // For error message, show first pattern as the required one
+            let required_pattern = required_patterns.first().cloned();
             return Some(SuppressViolationKind::MissingComment { required_pattern });
         }
     }
@@ -80,35 +82,46 @@ pub fn check_suppress_attr(
     None
 }
 
-/// Find the required comment pattern for an attribute.
+/// Find the required comment patterns for an attribute.
 /// Checks per-lint patterns first, then falls back to global.
-fn find_required_pattern(params: &SuppressCheckParams, attr: &SuppressAttrInfo) -> Option<String> {
+/// Returns a list of valid patterns (any match is acceptable).
+fn find_required_patterns(params: &SuppressCheckParams, attr: &SuppressAttrInfo) -> Vec<String> {
     // Check per-lint patterns first (first matching code wins)
     for code in attr.codes {
-        if let Some(pattern) = params.scope_config.patterns.get(code) {
-            return Some(pattern.clone());
+        if let Some(patterns) = params.scope_config.patterns.get(code) {
+            return patterns.clone();
         }
     }
     // Fall back to global pattern
-    params.global_comment.map(String::from)
+    params
+        .global_comment
+        .map(|p| vec![p.to_string()])
+        .unwrap_or_default()
 }
 
 /// Check if the attribute has a valid justification comment.
-fn has_valid_comment(attr: &SuppressAttrInfo, required_pattern: Option<&str>) -> bool {
+/// If required_patterns is non-empty, comment must match one of them.
+/// If required_patterns is empty, any non-empty comment is valid.
+fn has_valid_comment(attr: &SuppressAttrInfo, required_patterns: &[String]) -> bool {
     if !attr.has_comment {
         return false;
     }
 
-    match (required_pattern, &attr.comment_text) {
-        (Some(pattern), Some(text)) => {
-            // Normalize both pattern and text for comparison
-            let norm_pattern = normalize_comment_pattern(pattern);
-            let norm_text = normalize_comment_text(text);
-            norm_text.starts_with(&norm_pattern)
-        }
-        (Some(_), None) => false,
-        (None, _) => attr.has_comment,
+    // If no specific patterns required, any comment is valid
+    if required_patterns.is_empty() {
+        return true;
     }
+
+    // Need to match one of the patterns
+    let Some(text) = &attr.comment_text else {
+        return false;
+    };
+
+    let norm_text = normalize_comment_text(text);
+    required_patterns.iter().any(|pattern| {
+        let norm_pattern = normalize_comment_pattern(pattern);
+        norm_text.starts_with(&norm_pattern)
+    })
 }
 
 /// Normalize a comment pattern by stripping common prefixes.

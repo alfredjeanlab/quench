@@ -323,9 +323,10 @@ check = "comment"
     )
     .unwrap();
     std::fs::create_dir_all(dir.path().join("src")).unwrap();
+    // dead_code default patterns include "// KEEP UNTIL:" and "// NOTE(compat):"
     std::fs::write(
         dir.path().join("src/lib.rs"),
-        "// This function is reserved for future use\n#[allow(dead_code)]\nfn unused() {}",
+        "// KEEP UNTIL: v2.0 removes this API\n#[allow(dead_code)]\nfn unused() {}",
     )
     .unwrap();
 
@@ -509,9 +510,10 @@ check = "comment"
     )
     .unwrap();
     std::fs::create_dir_all(dir.path().join("src")).unwrap();
+    // dead_code default patterns include "// NOTE(compat):"
     std::fs::write(
         dir.path().join("src/lib.rs"),
-        "// Module-wide suppression for test utilities\n#![allow(dead_code)]\n\nfn helper() {}",
+        "// NOTE(compat): Module-wide suppression for backwards compatibility\n#![allow(dead_code)]\n\nfn helper() {}",
     )
     .unwrap();
 

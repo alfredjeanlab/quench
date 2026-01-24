@@ -70,7 +70,7 @@ impl Default for GoSuppressConfig {
         Self {
             check: Self::default_check(),
             comment: None,
-            source: SuppressScopeConfig::default(),
+            source: Self::default_source(),
             test: Self::default_test(),
         }
     }
@@ -79,6 +79,16 @@ impl Default for GoSuppressConfig {
 impl GoSuppressConfig {
     pub(crate) fn default_check() -> SuppressLevel {
         SuppressLevel::Comment // Go defaults to comment, like Rust
+    }
+
+    pub(crate) fn default_source() -> SuppressScopeConfig {
+        // Go has no default per-lint patterns yet
+        SuppressScopeConfig {
+            check: None,
+            allow: Vec::new(),
+            forbid: Vec::new(),
+            patterns: std::collections::HashMap::new(),
+        }
     }
 
     pub(crate) fn default_test() -> SuppressScopeConfig {

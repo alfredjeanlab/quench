@@ -74,7 +74,7 @@ impl Default for ShellSuppressConfig {
         Self {
             check: Self::default_check(),
             comment: None,
-            source: SuppressScopeConfig::default(),
+            source: Self::default_source(),
             test: Self::default_test(),
         }
     }
@@ -83,6 +83,16 @@ impl Default for ShellSuppressConfig {
 impl ShellSuppressConfig {
     pub(crate) fn default_check() -> SuppressLevel {
         SuppressLevel::Forbid // Shell defaults to forbid, not comment
+    }
+
+    pub(crate) fn default_source() -> SuppressScopeConfig {
+        // Shell has no default patterns (defaults to forbid anyway)
+        SuppressScopeConfig {
+            check: None,
+            allow: Vec::new(),
+            forbid: Vec::new(),
+            patterns: std::collections::HashMap::new(),
+        }
     }
 
     pub(crate) fn default_test() -> SuppressScopeConfig {

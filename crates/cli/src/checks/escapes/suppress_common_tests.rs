@@ -10,7 +10,7 @@ use super::*;
 fn make_scope_config(
     allow: Vec<&str>,
     forbid: Vec<&str>,
-    patterns: HashMap<&str, &str>,
+    patterns: HashMap<&str, Vec<&str>>,
 ) -> SuppressScopeConfig {
     SuppressScopeConfig {
         check: None,
@@ -18,7 +18,7 @@ fn make_scope_config(
         forbid: forbid.into_iter().map(String::from).collect(),
         patterns: patterns
             .into_iter()
-            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .map(|(k, v)| (k.to_string(), v.into_iter().map(String::from).collect()))
             .collect(),
     }
 }
@@ -184,7 +184,7 @@ fn global_pattern_passes_when_matched() {
 #[test]
 fn per_lint_pattern_takes_precedence() {
     let mut patterns = HashMap::new();
-    patterns.insert("dead_code", "// NOTE(compat):");
+    patterns.insert("dead_code", vec!["// NOTE(compat):"]);
     let scope_config = make_scope_config(vec![], vec![], patterns);
     let params = SuppressCheckParams {
         scope_config: &scope_config,
@@ -218,7 +218,7 @@ fn per_lint_pattern_takes_precedence() {
 #[test]
 fn per_lint_pattern_fallback_to_global() {
     let mut patterns = HashMap::new();
-    patterns.insert("dead_code", "// NOTE:");
+    patterns.insert("dead_code", vec!["// NOTE:"]);
     let scope_config = make_scope_config(vec![], vec![], patterns);
     let params = SuppressCheckParams {
         scope_config: &scope_config,
@@ -245,6 +245,48 @@ fn per_lint_pattern_fallback_to_global() {
         result,
         Some(SuppressViolationKind::MissingComment {
             required_pattern: Some("// REASON:".to_string())
+        })
+    );
+}
+
+#[test]
+fn multiple_patterns_any_match_passes() {
+    let mut patterns = HashMap::new();
+    patterns.insert("dead_code", vec!["// KEEP UNTIL:", "// NOTE(compat):"]);
+    let scope_config = make_scope_config(vec![], vec![], patterns);
+    let params = SuppressCheckParams {
+        scope_config: &scope_config,
+        scope_check: SuppressLevel::Comment,
+        global_comment: None,
+    };
+
+    // First pattern matches
+    let attr = SuppressAttrInfo {
+        codes: &["dead_code".to_string()],
+        has_comment: true,
+        comment_text: Some("// KEEP UNTIL: v2.0 release"),
+    };
+    assert!(check_suppress_attr(&params, &attr).is_none());
+
+    // Second pattern matches
+    let attr = SuppressAttrInfo {
+        codes: &["dead_code".to_string()],
+        has_comment: true,
+        comment_text: Some("// NOTE(compat): backwards compatibility"),
+    };
+    assert!(check_suppress_attr(&params, &attr).is_none());
+
+    // Neither pattern matches
+    let attr = SuppressAttrInfo {
+        codes: &["dead_code".to_string()],
+        has_comment: true,
+        comment_text: Some("// Some random comment"),
+    };
+    let result = check_suppress_attr(&params, &attr);
+    assert_eq!(
+        result,
+        Some(SuppressViolationKind::MissingComment {
+            required_pattern: Some("// KEEP UNTIL:".to_string())
         })
     );
 }

@@ -8,6 +8,7 @@
 mod go;
 mod parse;
 mod shell;
+mod suppress;
 
 use std::collections::BTreeSet;
 use std::path::Path;
@@ -16,6 +17,7 @@ use serde::Deserialize;
 
 pub use go::{GoConfig, GoPolicyConfig, GoSuppressConfig};
 pub use shell::{ShellConfig, ShellPolicyConfig, ShellSuppressConfig};
+pub use suppress::{SuppressConfig, SuppressLevel, SuppressScopeConfig};
 
 use crate::error::{Error, Result};
 use parse::{
@@ -175,89 +177,6 @@ pub enum LintChangesPolicy {
     None,
     /// Lint config changes must be in standalone PRs.
     Standalone,
-}
-
-/// Lint suppression configuration for #[allow(...)] and #[expect(...)].
-#[derive(Debug, Clone, Deserialize)]
-pub struct SuppressConfig {
-    /// Check level: forbid, comment, or allow (default: "comment").
-    #[serde(default = "SuppressConfig::default_check")]
-    pub check: SuppressLevel,
-
-    /// Optional comment pattern required (default: any comment).
-    /// Example: "// JUSTIFIED:" or "// REASON:"
-    #[serde(default)]
-    pub comment: Option<String>,
-
-    /// Source-specific settings.
-    #[serde(default)]
-    pub source: SuppressScopeConfig,
-
-    /// Test-specific settings (overrides base settings for test code).
-    #[serde(default)]
-    pub test: SuppressScopeConfig,
-}
-
-impl Default for SuppressConfig {
-    fn default() -> Self {
-        Self {
-            check: Self::default_check(),
-            comment: None,
-            source: SuppressScopeConfig::default(),
-            test: SuppressScopeConfig::default_for_test(),
-        }
-    }
-}
-
-impl SuppressConfig {
-    pub(crate) fn default_check() -> SuppressLevel {
-        SuppressLevel::Comment
-    }
-}
-
-/// Scope-specific suppress configuration.
-#[derive(Debug, Clone, Default, Deserialize)]
-pub struct SuppressScopeConfig {
-    /// Override check level for this scope.
-    #[serde(default)]
-    pub check: Option<SuppressLevel>,
-
-    /// Lint codes that don't require comments (per-code allow list).
-    #[serde(default)]
-    pub allow: Vec<String>,
-
-    /// Lint codes that are never allowed to be suppressed (per-code forbid list).
-    #[serde(default)]
-    pub forbid: Vec<String>,
-
-    /// Per-lint-code comment patterns. Maps lint code to required comment prefix.
-    /// Example: {"dead_code" => "// NOTE(compat):"}
-    #[serde(default)]
-    pub patterns: std::collections::HashMap<String, String>,
-}
-
-impl SuppressScopeConfig {
-    pub(crate) fn default_for_test() -> Self {
-        Self {
-            check: Some(SuppressLevel::Allow),
-            allow: Vec::new(),
-            forbid: Vec::new(),
-            patterns: std::collections::HashMap::new(),
-        }
-    }
-}
-
-/// Suppress check level.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum SuppressLevel {
-    /// Never allowed - any suppression fails.
-    Forbid,
-    /// Requires justification comment (default).
-    #[default]
-    Comment,
-    /// Always allowed - no check.
-    Allow,
 }
 
 /// Workspace configuration for monorepos.
