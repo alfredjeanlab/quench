@@ -15,7 +15,7 @@ use quench::adapter::{JsWorkspace, ProjectLanguage, detect_language, rust::Cargo
 use quench::baseline::Baseline;
 use quench::cache::{self, CACHE_FILE_NAME, FileCache};
 use quench::checks;
-use quench::cli::{CheckArgs, Cli, Command, InitArgs, OutputFormat, ReportArgs};
+use quench::cli::{CheckArgs, CheckFilter, Cli, Command, InitArgs, OutputFormat, ReportArgs};
 use quench::color::{is_no_color_env, resolve_color};
 use quench::config::{self, CheckLevel};
 use quench::discovery;
@@ -552,45 +552,16 @@ fn run_report(cli: &Cli, args: &ReportArgs) -> anyhow::Result<()> {
     // Parse output target (format and optional file path)
     let (format, file_path) = args.output_target();
 
-    // Load baseline
+    // Load baseline and format report
     let baseline = Baseline::load(&baseline_path)?;
+    let output = report::format_report(format, baseline.as_ref(), args)?;
 
-    match baseline {
-        Some(baseline) => {
-            let output = report::format_report_to_string(args, &baseline, format)?;
-
-            if let Some(path) = file_path {
-                std::fs::write(&path, &output)?;
-            } else {
-                print!("{}", output);
-            }
-            Ok(())
-        }
-        None => {
-            let output = match format {
-                OutputFormat::Text => "No baseline found.\n".to_string(),
-                OutputFormat::Json => r#"{"metrics": {}}"#.to_string(),
-                OutputFormat::Html => r#"<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Quench Report</title>
-</head>
-<body>
-  <h1>No baseline found.</h1>
-</body>
-</html>"#
-                    .to_string(),
-            };
-
-            if let Some(path) = file_path {
-                std::fs::write(&path, &output)?;
-            } else {
-                print!("{}", output);
-            }
-            Ok(())
-        }
+    // Write output
+    match file_path {
+        Some(path) => std::fs::write(&path, &output)?,
+        None => print!("{}", output),
     }
+    Ok(())
 }
 
 fn run_init(_cli: &Cli, args: &InitArgs) -> anyhow::Result<ExitCode> {
