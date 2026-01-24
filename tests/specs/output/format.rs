@@ -376,6 +376,7 @@ fn check_output_format_exact() {
         .expect("command should run");
 
     // Stub checks are omitted from summary per docs/specs/03-output.md#verbosity
+    // Multi-line advice has trailing newline for readability
     let expected = "\
 cloc: FAIL
   src/oversized.rs: file_too_large (lines: 15 vs 10)
@@ -386,6 +387,7 @@ cloc: FAIL
 
     Avoid picking and removing individual lines to satisfy the linter,
     prefer properly refactoring out testable code blocks.
+
 PASS: escapes, agents, docs
 FAIL: cloc
 ";

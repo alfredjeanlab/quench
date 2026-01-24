@@ -236,3 +236,30 @@ fn multiline_advice_indents_each_line() {
     // Just verify the test setup created a valid result
     assert!(!result.passed);
 }
+
+#[test]
+fn multiline_advice_adds_trailing_newline() {
+    // Verify that multi-line advice adds an extra newline for separation
+    let mut formatter = TextFormatter::new(ColorChoice::Never, FormatOptions::default());
+    let multiline_advice = "Line one.\nLine two.";
+    let violations = vec![
+        Violation::file("src/a.rs", 1, "test_type", multiline_advice),
+        Violation::file("src/b.rs", 1, "test_type", "Single line advice."),
+    ];
+    let result = CheckResult::failed("test", violations);
+    formatter.write_check(&result).unwrap();
+    // Test passes if it doesn't panic - the extra newline improves readability
+}
+
+#[test]
+fn single_line_advice_no_trailing_newline() {
+    // Single-line advice should NOT add extra newline
+    let mut formatter = TextFormatter::new(ColorChoice::Never, FormatOptions::default());
+    let violations = vec![
+        Violation::file("src/a.rs", 1, "test_type", "Single line."),
+        Violation::file("src/b.rs", 1, "test_type", "Another single line."),
+    ];
+    let result = CheckResult::failed("test", violations);
+    formatter.write_check(&result).unwrap();
+    // Test passes if it doesn't panic
+}

@@ -226,6 +226,11 @@ impl TextFormatter {
             }
         }
 
+        // Add extra newline after multi-line advice for readability
+        if v.advice.contains('\n') {
+            writeln!(self.stdout)?;
+        }
+
         Ok(())
     }
 
