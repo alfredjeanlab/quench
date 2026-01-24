@@ -769,3 +769,37 @@ MY_VAR="value"
         "advice should mention per-lint pattern"
     );
 }
+
+// =============================================================================
+// SOURCE SCOPE OVERRIDE SPECS
+// =============================================================================
+
+/// Spec: Source scope check should override base level
+///
+/// > When [rust.suppress].check = "allow" but [rust.suppress.source].check = "comment",
+/// > source files should require comments for suppressions.
+#[test]
+fn rust_suppress_source_scope_overrides_base() {
+    check("escapes")
+        .on("rust/source-scope-override")
+        .fails()
+        .stdout_has("dead_code")
+        .stdout_has("// KEEP UNTIL:"); // dead_code has default pattern
+}
+
+// =============================================================================
+// MODULE-LEVEL SUPPRESSION SPECS
+// =============================================================================
+
+/// Spec: Module-level suppressions should be detected
+///
+/// > Inner attributes #![allow(...)] and #![expect(...)] should be checked
+/// > the same as outer attributes #[allow(...)].
+#[test]
+fn rust_suppress_detects_module_level_allow() {
+    check("escapes")
+        .on("rust/module-allow")
+        .fails()
+        .stdout_has("dead_code")
+        .stdout_has("// KEEP UNTIL:");
+}

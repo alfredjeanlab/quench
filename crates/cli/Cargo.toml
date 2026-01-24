@@ -27,7 +27,7 @@ crossbeam-channel = "0.5"
 termcolor = "1.4"
 chrono = "0.4"
 rayon = "1.11"
-bincode = "1"
+postcard = { version = "1", default-features = false, features = ["alloc"] }
 dashmap = "6"
 memchr = "2.7"
 aho-corasick = "1"

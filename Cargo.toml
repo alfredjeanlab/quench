@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = ["crates/cli"]
+exclude = ["tests/fixtures"]
 
 [workspace.package]
 version = "0.2.0"

@@ -165,8 +165,8 @@ fn cache_rejects_version_mismatch() {
         files: HashMap::new(),
     };
 
-    let file = File::create(&cache_path).unwrap();
-    bincode::serialize_into(file, &bad_cache).unwrap();
+    let bytes = postcard::to_allocvec(&bad_cache).unwrap();
+    std::fs::write(&cache_path, &bytes).unwrap();
 
     let result = FileCache::from_persistent(&cache_path, 0);
     assert!(matches!(result, Err(CacheError::VersionMismatch)));
