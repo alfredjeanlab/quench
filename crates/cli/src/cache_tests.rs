@@ -53,6 +53,7 @@ fn cache_insert_and_lookup_hit() {
         pattern: None,
         lines: None,
         nonblank: None,
+        target_path: None,
     }];
 
     cache.insert(path.clone(), key.clone(), violations.clone());
@@ -135,6 +136,7 @@ fn cache_persist_and_restore() {
             pattern: None,
             lines: None,
             nonblank: None,
+            target_path: None,
         }],
     );
 

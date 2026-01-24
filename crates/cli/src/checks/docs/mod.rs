@@ -15,10 +15,47 @@ mod links;
 mod specs;
 mod toc;
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
+
+use dashmap::DashMap;
+use rayon::prelude::*;
 
 use crate::adapter::build_glob_set;
 use crate::check::{Check, CheckContext, CheckResult, Violation};
+
+/// Per-run cache for path existence checks.
+///
+/// Shared across all docs sub-checks to avoid redundant filesystem calls.
+pub(super) struct PathCache {
+    /// Maps paths to existence result.
+    exists: DashMap<PathBuf, bool>,
+}
+
+impl PathCache {
+    pub fn new() -> Self {
+        Self {
+            exists: DashMap::new(),
+        }
+    }
+
+    /// Check if a path exists, using cache.
+    pub fn exists(&self, path: &Path) -> bool {
+        // Use path as-is for cache key (canonicalization is expensive)
+        if let Some(result) = self.exists.get(path) {
+            return *result;
+        }
+        let result = path.exists();
+        self.exists.insert(path.to_path_buf(), result);
+        result
+    }
+
+    /// Pre-populate cache with known existing files.
+    pub fn populate(&self, files: &[&crate::walker::WalkedFile]) {
+        for file in files {
+            self.exists.insert(file.path.clone(), true);
+        }
+    }
+}
 
 /// Check if a docs subcheck is enabled.
 ///
@@ -28,41 +65,46 @@ pub(super) fn is_check_enabled(subcheck: Option<&str>, parent: Option<&str>) -> 
     matches!(subcheck.or(parent).unwrap_or("error"), "error" | "warn")
 }
 
-/// Process markdown files matching include/exclude patterns.
-///
-/// Calls the validator closure for each matching file with:
-/// - relative_path: Path relative to ctx.root
-/// - content: File contents
-pub(super) fn process_markdown_files<F>(
+/// Process markdown files matching include/exclude patterns in parallel.
+pub(super) fn process_markdown_files_parallel<F>(
     ctx: &CheckContext,
     include: &[String],
     exclude: &[String],
-    violations: &mut Vec<Violation>,
-    mut validator: F,
-) where
-    F: FnMut(&CheckContext, &Path, &str, &mut Vec<Violation>),
+    path_cache: &PathCache,
+    validator: F,
+) -> Vec<Violation>
+where
+    F: Fn(&CheckContext, &Path, &str, &PathCache) -> Vec<Violation> + Sync,
 {
     let include_set = build_glob_set(include);
     let exclude_set = build_glob_set(exclude);
 
-    for walked in ctx.files {
-        let relative_path = walked.path.strip_prefix(ctx.root).unwrap_or(&walked.path);
-        let path_str = relative_path.to_string_lossy();
+    // Collect matching files first (fast filter pass)
+    let matching_files: Vec<_> = ctx
+        .files
+        .iter()
+        .filter(|walked| {
+            let relative_path = walked.path.strip_prefix(ctx.root).unwrap_or(&walked.path);
+            let path_str = relative_path.to_string_lossy();
+            include_set.is_match(&*path_str) && !exclude_set.is_match(&*path_str)
+        })
+        .collect();
 
-        if !include_set.is_match(&*path_str) {
-            continue;
-        }
-        if exclude_set.is_match(&*path_str) {
-            continue;
-        }
+    // Process in parallel
+    matching_files
+        .par_iter()
+        .flat_map(|walked| {
+            let relative_path = walked.path.strip_prefix(ctx.root).unwrap_or(&walked.path);
 
-        let content = match std::fs::read_to_string(&walked.path) {
-            Ok(c) => c,
-            Err(_) => continue,
-        };
+            // Read file content
+            let content = match std::fs::read_to_string(&walked.path) {
+                Ok(c) => c,
+                Err(_) => return Vec::new(),
+            };
 
-        validator(ctx, relative_path, &content, violations);
-    }
+            validator(ctx, relative_path, &content, path_cache)
+        })
+        .collect()
 }
 
 pub struct DocsCheck;
@@ -84,14 +126,19 @@ impl Check for DocsCheck {
             return CheckResult::passed("docs");
         }
 
-        // Run TOC validation
-        toc::validate_toc(ctx, &mut violations);
+        // Create shared path cache and pre-populate with known files
+        let path_cache = PathCache::new();
+        let file_refs: Vec<_> = ctx.files.iter().collect();
+        path_cache.populate(&file_refs);
 
-        // Run link validation
-        links::validate_links(ctx, &mut violations);
+        // Run TOC validation (parallel)
+        violations.extend(toc::validate_toc_parallel(ctx, &path_cache));
 
-        // Run specs validation
-        specs::validate_specs(ctx, &mut violations);
+        // Run link validation (parallel)
+        violations.extend(links::validate_links_parallel(ctx, &path_cache));
+
+        // Run specs validation (uses path cache internally)
+        specs::validate_specs(ctx, &mut violations, &path_cache);
 
         // Run commit validation (CI mode only)
         if ctx.ci_mode {

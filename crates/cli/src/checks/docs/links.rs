@@ -4,6 +4,7 @@
 //! Markdown link validation.
 
 use std::path::Path;
+use std::sync::LazyLock;
 
 use regex::Regex;
 
@@ -12,6 +13,11 @@ use crate::check::{CheckContext, Violation};
 /// Regex pattern string for markdown links: [text](url)
 /// Handles nested brackets in link text like `[[text]](url)`.
 const LINK_PATTERN: &str = r"\[(?:[^\[\]]|\[[^\]]*\])*\]\(([^)]+)\)";
+
+/// Pre-compiled regex for markdown link extraction.
+#[allow(clippy::expect_used)]
+static LINK_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(LINK_PATTERN).expect("valid regex pattern"));
 
 /// A markdown link extracted from content.
 #[derive(Debug)]
@@ -25,10 +31,6 @@ pub(super) struct ExtractedLink {
 /// Extract all markdown links from content, skipping links inside fenced code blocks.
 pub(super) fn extract_links(content: &str) -> Vec<ExtractedLink> {
     let mut links = Vec::new();
-    let Ok(pattern) = Regex::new(LINK_PATTERN) else {
-        return links;
-    };
-
     let mut in_fenced_block = false;
 
     for (idx, line) in content.lines().enumerate() {
@@ -46,7 +48,8 @@ pub(super) fn extract_links(content: &str) -> Vec<ExtractedLink> {
             continue;
         }
 
-        for cap in pattern.captures_iter(line) {
+        // Use pre-compiled regex
+        for cap in LINK_REGEX.captures_iter(line) {
             if let Some(target) = cap.get(1) {
                 links.push(ExtractedLink {
                     line: line_num,
@@ -109,8 +112,11 @@ pub(super) fn resolve_link(md_file: &Path, target: &str) -> std::path::PathBuf {
     }
 }
 
-/// Validate markdown links in all markdown files.
-pub fn validate_links(ctx: &CheckContext, violations: &mut Vec<Violation>) {
+/// Validate markdown links in all markdown files (parallel version).
+pub fn validate_links_parallel(
+    ctx: &CheckContext,
+    path_cache: &super::PathCache,
+) -> Vec<Violation> {
     let config = &ctx.config.check.docs.links;
 
     // Check if link validation is disabled
@@ -118,25 +124,26 @@ pub fn validate_links(ctx: &CheckContext, violations: &mut Vec<Violation>) {
         config.check.as_deref(),
         ctx.config.check.docs.check.as_deref(),
     ) {
-        return;
+        return Vec::new();
     }
 
-    super::process_markdown_files(
+    super::process_markdown_files_parallel(
         ctx,
         &config.include,
         &config.exclude,
-        violations,
-        validate_file_links,
-    );
+        path_cache,
+        validate_file_links_cached,
+    )
 }
 
-/// Validate links within a single file.
-fn validate_file_links(
+/// Validate links within a single file (uses path cache).
+fn validate_file_links_cached(
     ctx: &CheckContext,
     relative_path: &Path,
     content: &str,
-    violations: &mut Vec<Violation>,
-) {
+    path_cache: &super::PathCache,
+) -> Vec<Violation> {
+    let mut violations = Vec::new();
     let links = extract_links(content);
     let abs_file = ctx.root.join(relative_path);
 
@@ -146,9 +153,9 @@ fn validate_file_links(
             continue;
         }
 
-        // Resolve and check existence
+        // Resolve and check existence using cache
         let resolved = resolve_link(&abs_file, &link.target);
-        if !resolved.exists() {
+        if !path_cache.exists(&resolved) {
             violations.push(
                 Violation::file(
                     relative_path,
@@ -160,6 +167,7 @@ fn validate_file_links(
             );
         }
     }
+    violations
 }
 
 #[cfg(test)]

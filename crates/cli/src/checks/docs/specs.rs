@@ -50,6 +50,24 @@ fn detect_index_file(root: &Path, specs_path: &str) -> Option<PathBuf> {
     None
 }
 
+/// Detect index file using priority order (cached version).
+fn detect_index_file_cached(
+    root: &Path,
+    specs_path: &str,
+    path_cache: &super::PathCache,
+) -> Option<PathBuf> {
+    for candidate in INDEX_CANDIDATES {
+        let path = match candidate {
+            IndexCandidate::InPath(name) => root.join(specs_path).join(name),
+            IndexCandidate::Fixed(path) => root.join(path),
+        };
+        if path_cache.exists(&path) && path.is_file() {
+            return Some(path.strip_prefix(root).unwrap_or(&path).to_path_buf());
+        }
+    }
+    None
+}
+
 /// Check if a file matches the configured extension.
 fn matches_extension(path: &Path, extension: &str) -> bool {
     // Handle both ".md" and "md" formats
@@ -176,6 +194,7 @@ fn validate_linked_mode(
     all_specs: &HashSet<PathBuf>,
     violations: &mut Vec<Violation>,
     limit: Option<usize>,
+    path_cache: &super::PathCache,
 ) {
     // Canonicalize root and specs_dir for path comparison
     let canonical_root = match root.canonicalize() {
@@ -199,41 +218,54 @@ fn validate_linked_mode(
     queue.push_back(abs_index.clone());
     visited.insert(abs_index);
 
-    while let Some(current) = queue.pop_front() {
-        let content = match fs::read_to_string(&current) {
-            Ok(c) => c,
-            Err(_) => continue,
-        };
+    // BFS optimization: batch file reads when queue is large
+    const BATCH_SIZE: usize = 16;
 
-        // Extract links
-        let extracted = links::extract_links(&content);
-        for link in extracted {
-            // Skip external links
-            if !links::is_local_link(&link.target) {
-                continue;
-            }
+    while !queue.is_empty() {
+        // Process in batches for better locality
+        let batch: Vec<_> = queue.drain(..queue.len().min(BATCH_SIZE)).collect();
 
-            // Resolve relative to current file
-            let resolved = links::resolve_link(&current, &link.target);
-
-            // Canonicalize to handle .. and symlinks
-            let canonical = match resolved.canonicalize() {
-                Ok(p) => p,
+        for current in batch {
+            let content = match fs::read_to_string(&current) {
+                Ok(c) => c,
                 Err(_) => continue,
             };
 
-            // Track if it's a spec file
-            if all_specs.contains(&canonical) {
-                reachable.insert(canonical.clone());
-            }
+            // Extract links
+            let extracted = links::extract_links(&content);
+            for link in extracted {
+                // Skip external links
+                if !links::is_local_link(&link.target) {
+                    continue;
+                }
 
-            // Queue markdown files for traversal if not yet visited
-            // Only follow links within the specs directory
-            if canonical.extension().is_some_and(|e| e == "md")
-                && canonical.starts_with(&canonical_specs_dir)
-                && visited.insert(canonical.clone())
-            {
-                queue.push_back(canonical);
+                // Resolve relative to current file
+                let resolved = links::resolve_link(&current, &link.target);
+
+                // Check existence using cache before canonicalizing
+                if !path_cache.exists(&resolved) {
+                    continue;
+                }
+
+                // Canonicalize to handle .. and symlinks
+                let canonical = match resolved.canonicalize() {
+                    Ok(p) => p,
+                    Err(_) => continue,
+                };
+
+                // Track if it's a spec file
+                if all_specs.contains(&canonical) {
+                    reachable.insert(canonical.clone());
+                }
+
+                // Queue markdown files for traversal if not yet visited
+                // Only follow links within the specs directory
+                if canonical.extension().is_some_and(|e| e == "md")
+                    && canonical.starts_with(&canonical_specs_dir)
+                    && visited.insert(canonical.clone())
+                {
+                    queue.push_back(canonical);
+                }
             }
         }
     }
@@ -263,6 +295,7 @@ fn validate_auto_mode(
     all_specs: &HashSet<PathBuf>,
     violations: &mut Vec<Violation>,
     limit: Option<usize>,
+    path_cache: &super::PathCache,
 ) {
     // Read index file to check for tree blocks
     let abs_index = root.join(index_file);
@@ -277,12 +310,18 @@ fn validate_auto_mode(
     if has_trees {
         validate_toc_mode(root, index_file, specs_dir, all_specs, violations, limit);
     } else {
-        validate_linked_mode(root, index_file, specs_dir, all_specs, violations, limit);
+        validate_linked_mode(
+            root, index_file, specs_dir, all_specs, violations, limit, path_cache,
+        );
     }
 }
 
 /// Validate specs directory.
-pub fn validate_specs(ctx: &CheckContext, violations: &mut Vec<Violation>) {
+pub fn validate_specs(
+    ctx: &CheckContext,
+    violations: &mut Vec<Violation>,
+    path_cache: &super::PathCache,
+) {
     let config = &ctx.config.check.docs.specs;
 
     // Check if specs validation is disabled
@@ -297,7 +336,7 @@ pub fn validate_specs(ctx: &CheckContext, violations: &mut Vec<Violation>) {
     let specs_dir = ctx.root.join(specs_path);
 
     // Skip if specs directory doesn't exist (not an error - project may not use specs)
-    if !specs_dir.exists() || !specs_dir.is_dir() {
+    if !path_cache.exists(&specs_dir) || !specs_dir.is_dir() {
         return;
     }
 
@@ -306,7 +345,7 @@ pub fn validate_specs(ctx: &CheckContext, violations: &mut Vec<Violation>) {
         .index_file
         .as_ref()
         .map(PathBuf::from)
-        .or_else(|| detect_index_file(ctx.root, specs_path));
+        .or_else(|| detect_index_file_cached(ctx.root, specs_path, path_cache));
 
     // Check for missing index file (required for all modes)
     let Some(index_file) = index_file else {
@@ -352,6 +391,7 @@ pub fn validate_specs(ctx: &CheckContext, violations: &mut Vec<Violation>) {
                 &all_specs,
                 violations,
                 ctx.limit,
+                path_cache,
             );
         }
         "auto" => {
@@ -367,6 +407,7 @@ pub fn validate_specs(ctx: &CheckContext, violations: &mut Vec<Violation>) {
                 &all_specs,
                 violations,
                 ctx.limit,
+                path_cache,
             );
         }
         _ => {
