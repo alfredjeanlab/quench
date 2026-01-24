@@ -54,10 +54,9 @@ impl ShellConfig {
     }
 
     pub(crate) fn default_cloc_advice() -> &'static str {
-        "Can the script be made more concise?\n\n\
-         If not, split into multiple scripts or source helper files.\n\n\
-         Avoid picking and removing individual lines to satisfy the linter,\n\
-         prefer properly refactoring out testable code blocks."
+        "Can the script be made more concise?\n\
+         Look for repetitive patterns that could be extracted into helper functions.\n\
+         If not, split into multiple scripts or source helper files."
     }
 }
 

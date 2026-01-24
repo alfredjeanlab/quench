@@ -158,8 +158,9 @@ pub struct RustConfig {
 impl RustConfig {
     pub(crate) fn default_cloc_advice() -> &'static str {
         "Can the code be made more concise?\n\n\
-         If not, split large source files into sibling modules or submodules in a folder;\n\
-         consider refactoring to be more unit testable.\n\n\
+         Look for repetitive patterns that could be extracted into helper functions\n\
+         or consider refactoring to be more unit testable.\n\n\
+         If not, split large source files into sibling modules or submodules in a folder,\n\n\
          Avoid picking and removing individual lines to satisfy the linter,\n\
          prefer properly refactoring out testable code blocks."
     }

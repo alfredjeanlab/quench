@@ -1,5 +1,7 @@
 Can the code be made more concise?
 
+Look for repetitive patterns that could be extracted into helper functions.
+
 If not, split large files into multiple files in the same package,
 or extract reusable logic into internal packages.
 

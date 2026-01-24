@@ -203,8 +203,9 @@ impl ClocConfig {
 
     pub(super) fn default_advice() -> String {
         "Can the code be made more concise?\n\n\
-         If not, split large source files into sibling modules or submodules in a folder;\n\
-         consider refactoring to be more unit testable.\n\n\
+         Look for repetitive patterns that could be extracted into helper functions\n\
+         or consider refactoring to be more unit testable.\n\n\
+         If not, split large source files into sibling modules or submodules in a folder,\n\n\
          Avoid picking and removing individual lines to satisfy the linter,\n\
          prefer properly refactoring out testable code blocks."
             .to_string()
@@ -212,6 +213,7 @@ impl ClocConfig {
 
     pub(super) fn default_advice_test() -> String {
         "Can tests be parameterized or use shared fixtures to be more concise?\n\
+         Look for repetitive patterns that could be extracted into helper functions.\n\
          If not, split large test files into a folder."
             .to_string()
     }

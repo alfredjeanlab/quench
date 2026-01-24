@@ -51,6 +51,7 @@ impl GoConfig {
 
     pub(crate) fn default_cloc_advice() -> &'static str {
         "Can the code be made more concise?\n\n\
+         Look for repetitive patterns that could be extracted into helper functions.\n\n\
          If not, split large files into multiple files in the same package,\n\
          or extract reusable logic into internal packages.\n\n\
          Avoid picking and removing individual lines to satisfy the linter,\n\

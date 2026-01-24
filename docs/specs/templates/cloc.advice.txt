@@ -1,4 +1,5 @@
 Can the code be made more concise?
+Look for repetitive patterns that could be extracted into helper functions.
 
 If not, split large source files into sibling modules or submodules in a folder;
 consider refactoring to be more unit testable.
