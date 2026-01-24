@@ -1,5 +1,7 @@
 # Phase 1505: Init Command - Behavioral Specs
 
+**Root Feature:** `quench-5065`
+
 ## Overview
 
 Write behavioral specifications for the `quench init` command per the spec in `docs/specs/commands/quench-init.md`. These specs define the expected behavior for:
