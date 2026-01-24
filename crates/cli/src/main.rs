@@ -127,7 +127,7 @@ fn run_check(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
             }
 
             // Auto-detect workspace packages if not configured
-            if config.workspace.packages.is_empty() {
+            if config.project.packages.is_empty() {
                 let workspace = CargoWorkspace::from_root(&root);
                 if workspace.is_workspace {
                     // For workspaces, expand member patterns to get both paths and names
@@ -155,11 +155,11 @@ fn run_check(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
                                                     .and_then(|n| n.as_str())
                                             {
                                                 config
-                                                    .workspace
+                                                    .project
                                                     .package_names
                                                     .insert(rel_path.clone(), name.to_string());
                                             }
-                                            config.workspace.packages.push(rel_path);
+                                            config.project.packages.push(rel_path);
                                         }
                                     }
                                 }
@@ -176,19 +176,19 @@ fn run_check(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
                                     .and_then(|n| n.as_str())
                             {
                                 config
-                                    .workspace
+                                    .project
                                     .package_names
                                     .insert(pattern.clone(), name.to_string());
                             }
-                            config.workspace.packages.push(pattern.clone());
+                            config.project.packages.push(pattern.clone());
                         }
                     }
-                    config.workspace.packages.sort();
+                    config.project.packages.sort();
                     tracing::debug!(
                         "auto-detected workspace packages: {:?}",
-                        config.workspace.packages
+                        config.project.packages
                     );
-                    tracing::debug!("package names: {:?}", config.workspace.package_names);
+                    tracing::debug!("package names: {:?}", config.project.package_names);
                 }
             }
         }
@@ -210,18 +210,18 @@ fn run_check(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
             }
 
             // Auto-detect workspace packages if not configured
-            if config.workspace.packages.is_empty() {
+            if config.project.packages.is_empty() {
                 let workspace = JsWorkspace::from_root(&root);
                 if workspace.is_workspace {
                     for path in &workspace.package_paths {
-                        config.workspace.packages.push(path.clone());
+                        config.project.packages.push(path.clone());
                     }
-                    config.workspace.package_names = workspace.package_names.clone();
+                    config.project.package_names = workspace.package_names.clone();
                     tracing::debug!(
                         "auto-detected JS workspace packages: {:?}",
-                        config.workspace.packages
+                        config.project.packages
                     );
-                    tracing::debug!("package names: {:?}", config.workspace.package_names);
+                    tracing::debug!("package names: {:?}", config.project.package_names);
                 }
             }
         }

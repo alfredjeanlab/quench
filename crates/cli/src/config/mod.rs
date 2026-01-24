@@ -49,10 +49,6 @@ pub struct Config {
     #[serde(default)]
     pub project: ProjectConfig,
 
-    /// Workspace configuration (for monorepos).
-    #[serde(default)]
-    pub workspace: WorkspaceConfig,
-
     /// Check configurations.
     #[serde(default)]
     pub check: CheckConfig,
@@ -197,20 +193,6 @@ pub enum LintChangesPolicy {
     Standalone,
 }
 
-/// Workspace configuration for monorepos.
-#[derive(Debug, Default, Clone, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct WorkspaceConfig {
-    /// Package directories within the workspace.
-    #[serde(default)]
-    pub packages: Vec<String>,
-
-    /// Package name lookup (path -> name).
-    /// Auto-populated when detecting Rust workspaces.
-    #[serde(default)]
-    pub package_names: std::collections::HashMap<String, String>,
-}
-
 /// Check-specific configurations.
 #[derive(Debug, Default, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -296,6 +278,11 @@ pub struct ProjectConfig {
     /// Custom ignore patterns.
     #[serde(default)]
     pub ignore: IgnoreConfig,
+
+    /// Package name lookup (path -> name).
+    /// Auto-populated when detecting workspaces; not user-configurable.
+    #[serde(default, skip_serializing)]
+    pub package_names: std::collections::HashMap<String, String>,
 }
 
 impl ProjectConfig {

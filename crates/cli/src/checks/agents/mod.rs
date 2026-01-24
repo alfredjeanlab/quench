@@ -49,12 +49,7 @@ impl Check for AgentsCheck {
             return CheckResult::passed(self.name());
         }
 
-        // Use workspace.packages (auto-detected) or fall back to project.packages
-        let packages = if ctx.config.workspace.packages.is_empty() {
-            &ctx.config.project.packages
-        } else {
-            &ctx.config.workspace.packages
-        };
+        let packages = &ctx.config.project.packages;
 
         // Detect all agent files
         let detected = detect_agent_files(ctx.root, packages, &config.files);

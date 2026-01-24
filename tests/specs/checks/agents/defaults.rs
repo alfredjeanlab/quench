@@ -246,7 +246,7 @@ sections.required = []
 fn default_sections_only_enforced_at_root_scope() {
     let temp = Project::empty();
     temp.config(
-        r#"[workspace]
+        r#"[project]
 packages = ["crates/mylib"]
 "#,
     );

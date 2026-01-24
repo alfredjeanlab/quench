@@ -25,7 +25,8 @@ use crate::check::Violation;
 /// v12: StripParentDirName resolves relative to parent dir, not root.
 /// v13: Added content validation for spec files (sections, tables, size limits).
 /// v14: Added source-based area detection for docs commit checking.
-pub const CACHE_VERSION: u32 = 16;
+/// v17: Removed WorkspaceConfig, consolidated packages into ProjectConfig.
+pub const CACHE_VERSION: u32 = 17;
 
 /// Cache file name within .quench directory.
 pub const CACHE_FILE_NAME: &str = "cache.bin";
@@ -301,7 +302,7 @@ pub fn hash_config(config: &crate::config::Config) -> u64 {
     config.check.cloc.max_lines_test.hash(&mut hasher);
     config.check.cloc.test_patterns.hash(&mut hasher);
     config.check.cloc.exclude.hash(&mut hasher);
-    config.workspace.packages.hash(&mut hasher);
+    config.project.packages.hash(&mut hasher);
 
     hasher.finish()
 }

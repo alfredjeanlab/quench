@@ -41,7 +41,7 @@ impl Check for ClocCheck {
 
     fn run(&self, ctx: &CheckContext) -> CheckResult {
         let cloc_config = &ctx.config.check.cloc;
-        let packages = &ctx.config.workspace.packages;
+        let packages = &ctx.config.project.packages;
 
         // Skip if disabled
         if cloc_config.check == CheckLevel::Off {
@@ -271,7 +271,7 @@ impl Check for ClocCheck {
 
         // Add per-package metrics if packages are configured
         if !package_metrics.is_empty() {
-            let package_names = &ctx.config.workspace.package_names;
+            let package_names = &ctx.config.project.package_names;
             let by_package: HashMap<String, serde_json::Value> = package_metrics
                 .into_iter()
                 .map(|(path, metrics)| {

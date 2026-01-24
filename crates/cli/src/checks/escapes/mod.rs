@@ -194,8 +194,8 @@ impl Check for EscapesCheck {
         // Collect pattern names for metrics output
         let pattern_names: Vec<String> = patterns.iter().map(|p| p.name.clone()).collect();
 
-        // Get workspace packages for by_package tracking
-        let packages = &ctx.config.workspace.packages;
+        // Get packages for by_package tracking
+        let packages = &ctx.config.project.packages;
 
         // Use project test patterns or defaults
         let test_patterns = if ctx.config.project.tests.is_empty() {
