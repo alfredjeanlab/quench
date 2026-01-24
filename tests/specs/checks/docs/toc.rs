@@ -53,7 +53,7 @@ src/
     File does not exist (0 of 1 paths valid, 1 failed).
     This check ensures directory trees in documentation stay up-to-date.
     Update the table of contents or directory tree to match actual files.
-    If this is illustrative, add a ```text language tag.
+    If this is illustrative, add a ```no-toc language tag.
 
     Tried: relative to markdown file, relative to project root, stripping parent directory prefix
 

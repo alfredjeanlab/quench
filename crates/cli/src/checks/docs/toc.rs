@@ -95,6 +95,23 @@ pub(super) fn parse_tree_block(block: &FencedBlock) -> Vec<TreeEntry> {
     entries
 }
 
+/// Check if a block matches a valid tree format (box-drawing or indentation).
+pub(super) fn is_valid_tree_format(block: &FencedBlock) -> bool {
+    if block.lines.is_empty() {
+        return false;
+    }
+    let has_format = block.lines.iter().any(|line| {
+        let t = line.trim();
+        line.contains('├')
+            || line.contains('└')
+            || line.contains('│')
+            || line.starts_with(' ')
+            || line.starts_with('\t')
+            || (t.ends_with('/') && !t.contains(' '))
+    });
+    has_format && !parse_tree_block(block).is_empty()
+}
+
 /// Parse a single line of a directory tree.
 ///
 /// Returns Some(TreeEntry) if the line contains a path entry.
@@ -401,9 +418,14 @@ fn build_glob_set(patterns: &[String]) -> GlobSet {
     builder.build().unwrap_or_else(|_| GlobSet::empty())
 }
 
+/// Language tag that forces TOC validation.
+const TOC_LANGUAGE: &str = "toc";
+
 /// Language tags that indicate the block is NOT a directory tree.
 #[rustfmt::skip]
 const NON_TREE_LANGUAGES: &[&str] = &[
+    // Explicit skip annotations
+    "no-toc", "ignore",
     // Code languages
     "rust", "rs", "go", "python", "py", "javascript", "js", "typescript", "ts",
     "java", "c", "cpp", "csharp", "cs", "ruby", "rb", "php", "swift", "kotlin",
@@ -423,74 +445,47 @@ const NON_TREE_LANGUAGES: &[&str] = &[
 
 /// Check if a fenced block looks like a directory tree.
 pub(super) fn looks_like_tree(block: &FencedBlock) -> bool {
-    // Blocks with known non-tree language tags are skipped
+    // Explicit toc tag forces validation
+    if block.language.as_deref() == Some(TOC_LANGUAGE) {
+        return true;
+    }
+    // Skip known non-tree language tags
     if let Some(ref lang) = block.language
         && NON_TREE_LANGUAGES.contains(&lang.as_str())
     {
         return false;
     }
-
-    // Must have at least one line
     if block.lines.is_empty() {
         return false;
     }
-
-    // Box diagram detection: if any line contains a top corner, it's a box diagram, not a tree
-    // Top corners: ┌ (U+250C), ╔ (U+2554), ╭ (U+256D)
+    // Box diagrams (with top corners) are not trees
     if block
         .lines
         .iter()
-        .any(|line| line.contains('┌') || line.contains('╔') || line.contains('╭'))
+        .any(|l| l.contains('┌') || l.contains('╔') || l.contains('╭'))
     {
         return false;
     }
-
-    // Count different types of tree signals
-    let box_drawing_lines = block
-        .lines
-        .iter()
-        .filter(|line| {
-            let t = line.trim();
-            t.contains('├') || t.contains('└') || t.contains('│')
-        })
-        .count();
-
-    let directory_lines = block
-        .lines
-        .iter()
-        .filter(|line| {
-            let t = line.trim();
-            t.ends_with('/') && !t.contains(' ') && !t.contains('=')
-        })
-        .count();
-
-    let file_like_lines = block.lines.iter().filter(|line| is_tree_line(line)).count();
-
-    // Strong signal: any box-drawing characters
-    if box_drawing_lines >= 1 {
+    // Count tree signals
+    let has_box = |l: &str| l.contains('├') || l.contains('└') || l.contains('│');
+    let is_dir = |l: &str| l.trim().ends_with('/') && !l.contains(' ') && !l.contains('=');
+    let (box_ct, dir_ct, file_ct) = block.lines.iter().fold((0, 0, 0), |(b, d, f), line| {
+        (
+            b + has_box(line) as usize,
+            d + is_dir(line) as usize,
+            f + is_tree_line(line) as usize,
+        )
+    });
+    // Strong: box-drawing chars, or directory lines with file-like content
+    if box_ct >= 1 || (dir_ct >= 1 && file_ct >= 2) {
         return true;
     }
-
-    // Strong signal: directory lines (ending with /)
-    if directory_lines >= 1 && file_like_lines >= 2 {
-        return true;
-    }
-
-    // Weak signal: multiple file-like lines
-    // Require MORE evidence (3+ lines instead of 2)
-    // AND no indication this is error output
-    if file_like_lines >= 3 {
-        // Check that NO lines look like error output
-        let has_error_output = block
+    // Weak: 3+ file-like lines without error output patterns
+    file_ct >= 3
+        && !block
             .lines
             .iter()
-            .any(|line| looks_like_error_output(line.trim()));
-        if !has_error_output {
-            return true;
-        }
-    }
-
-    false
+            .any(|l| looks_like_error_output(l.trim()))
 }
 
 /// Check if a line looks like compiler/linter error output.
@@ -662,6 +657,18 @@ fn validate_file_toc(
     ];
 
     for block in blocks {
+        // For explicit toc tag, validate format
+        if block.language.as_deref() == Some(TOC_LANGUAGE) && !is_valid_tree_format(&block) {
+            violations.push(Violation::file(
+                relative_path,
+                block.start_line,
+                "invalid_toc_format",
+                "Code block marked as `toc` doesn't match box-drawing or indentation format.\n\
+                 Use box-drawing (├──, └──, │) or consistent indentation.",
+            ));
+            continue;
+        }
+
         // Skip blocks that don't look like directory trees
         if !looks_like_tree(&block) {
             continue;
@@ -689,7 +696,7 @@ fn validate_file_toc(
                     "File does not exist ({valid} of {total} paths valid, {failed} failed).\n\
                      This check ensures directory trees in documentation stay up-to-date.\n\
                      Update the table of contents or directory tree to match actual files.\n\
-                     If this is illustrative, add a ```text language tag.\n\nTried: {}",
+                     If this is illustrative, add a ```no-toc language tag.\n\nTried: {}",
                     tried.join(", ")
                 ),
             )
@@ -718,7 +725,7 @@ fn validate_file_toc(
                     "File does not exist ({valid} of {total} paths valid, {failed_count} failed).\n\
                      This check ensures directory trees in documentation stay up-to-date.\n\
                      TOC entries should use a consistent path style (resolving {}).\n\
-                     If this is illustrative, add a ```text language tag.",
+                     If this is illustrative, add a ```no-toc language tag.",
                     strategy.description()
                 ),
             )
