@@ -1,5 +1,7 @@
 # Phase 496: JavaScript Adapter - Suppress Detection
 
+**Root Feature:** `quench-5c10`
+
 ## Overview
 
 Implement lint suppression detection for JavaScript/TypeScript files, supporting both ESLint and Biome directive patterns. This enables enforcement of suppression policies (forbid/comment/allow) with per-rule configuration and separate source vs test file handling.
