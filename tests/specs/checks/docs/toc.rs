@@ -52,7 +52,7 @@ src/
     check("docs").pwd(temp.path()).fails().stdout_eq(
         "docs: FAIL
   CLAUDE.md:5: broken_toc: src/missing.rs
-    File does not exist.
+    File does not exist (0 of 1 paths valid, 1 failed).
     This check ensures directory trees in documentation stay up-to-date.
     Update the table of contents or directory tree to match actual files.
     If this is illustrative, add a ```text language tag.
@@ -377,9 +377,11 @@ checks/benchmarks/
     );
     // run.sh and common.sh exist (resolve via RelativeToRoot)
     // missing.txt does NOT exist - should be the only violation
+    // Ratio should show "2 of 3 paths valid, 1 failed"
     check("docs")
         .pwd(temp.path())
         .fails()
+        .stdout_has("2 of 3 paths valid, 1 failed")
         .stdout_has("missing.txt")
         .stdout_lacks("run.sh")
         .stdout_lacks("common.sh");

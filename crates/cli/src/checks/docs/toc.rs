@@ -679,16 +679,17 @@ fn validate_file_toc(
         };
         let failed_all: Vec<_> = file_entries.iter().filter(|e| !resolves_any(e)).collect();
 
+        let total = file_entries.len();
         let (to_report, advice) = if !failed_all.is_empty() {
             let tried: Vec<_> = strategies.iter().map(|s| s.description()).collect();
+            let (valid, failed) = (total - failed_all.len(), failed_all.len());
             (
                 failed_all.into_iter().copied().collect(),
                 format!(
-                    "File does not exist.\n\
+                    "File does not exist ({valid} of {total} paths valid, {failed} failed).\n\
                      This check ensures directory trees in documentation stay up-to-date.\n\
                      Update the table of contents or directory tree to match actual files.\n\
-                     If this is illustrative, add a ```text language tag.\n\n\
-                     Tried: {}",
+                     If this is illustrative, add a ```text language tag.\n\nTried: {}",
                     tried.join(", ")
                 ),
             )
@@ -701,26 +702,26 @@ fn validate_file_toc(
                         best = None;
                         break;
                     }
-                    Some(failed) => {
-                        if best.as_ref().is_none_or(|(_, b)| failed.len() < b.len()) {
-                            best = Some((strategy, failed));
-                        }
+                    Some(f) if best.as_ref().is_none_or(|(_, b)| f.len() < b.len()) => {
+                        best = Some((strategy, f));
                     }
+                    _ => {}
                 }
             }
-            match best {
-                None => continue,
-                Some((strategy, failed)) => (
-                    failed,
-                    format!(
-                        "File does not exist (when resolving {}).\n\
-                         This check ensures directory trees in documentation stay up-to-date.\n\
-                         TOC entries should use a consistent path style.\n\
-                         If this is illustrative, add a ```text language tag.",
-                        strategy.description()
-                    ),
+            let Some((strategy, failed)) = best else {
+                continue;
+            };
+            let (valid, failed_count) = (total - failed.len(), failed.len());
+            (
+                failed,
+                format!(
+                    "File does not exist ({valid} of {total} paths valid, {failed_count} failed).\n\
+                     This check ensures directory trees in documentation stay up-to-date.\n\
+                     TOC entries should use a consistent path style (resolving {}).\n\
+                     If this is illustrative, add a ```text language tag.",
+                    strategy.description()
                 ),
-            }
+            )
         };
 
         for entry in to_report {
