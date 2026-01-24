@@ -637,3 +637,95 @@ lint_config = ["rustfmt.toml"]
         .args(&["--base", "HEAD"])
         .passes();
 }
+
+// =============================================================================
+// CFG_TEST_SPLIT MODE SPECS
+// =============================================================================
+
+/// Spec: docs/specs/langs/rust.md#cfg-test-split-modes
+///
+/// > cfg_test_split = "count" (default): Split #[cfg(test)] blocks into test LOC
+#[test]
+fn rust_cfg_test_split_count_separates_source_and_test() {
+    let cloc = check("cloc")
+        .on("rust/inline-cfg-test-count")
+        .json()
+        .passes();
+    let metrics = cloc.require("metrics");
+
+    // Source and test lines should be separated
+    assert!(
+        metrics
+            .get("source_lines")
+            .and_then(|v| v.as_u64())
+            .unwrap()
+            > 0
+    );
+    assert!(metrics.get("test_lines").and_then(|v| v.as_u64()).unwrap() > 0);
+}
+
+/// Spec: docs/specs/langs/rust.md#cfg-test-split-modes
+///
+/// > cfg_test_split = "require": Fail if source files contain inline #[cfg(test)]
+#[test]
+fn rust_cfg_test_split_require_fails_on_inline_tests() {
+    let cloc = check("cloc").on("rust/inline-cfg-test").json().fails();
+
+    assert!(cloc.has_violation("inline_cfg_test"));
+    let v = cloc.require_violation("inline_cfg_test");
+    assert!(v.get("line").is_some(), "violation should have line number");
+}
+
+/// Spec: docs/specs/langs/rust.md#cfg-test-split-modes
+///
+/// > cfg_test_split = "require": Sibling _tests.rs pattern passes
+#[test]
+fn rust_cfg_test_split_require_passes_with_sibling_tests() {
+    check("cloc").on("rust/sibling-tests").passes();
+}
+
+/// Spec: docs/specs/langs/rust.md#cfg-test-split-modes
+///
+/// > cfg_test_split = "off": Count all lines as source LOC
+#[test]
+fn rust_cfg_test_split_off_counts_all_as_source() {
+    let cloc = check("cloc").on("rust/inline-cfg-test-off").json().passes();
+    let metrics = cloc.require("metrics");
+
+    // All lines counted as source, none as test
+    assert!(
+        metrics
+            .get("source_lines")
+            .and_then(|v| v.as_u64())
+            .unwrap()
+            > 0
+    );
+    assert_eq!(metrics.get("test_lines").and_then(|v| v.as_u64()), Some(0));
+}
+
+/// Spec: docs/specs/langs/rust.md#cfg-test-split-modes
+///
+/// > cfg_test_split = true (legacy): Same as "count"
+#[test]
+fn rust_cfg_test_split_true_is_count() {
+    let cloc = check("cloc").on("rust/cfg-test-split-true").json().passes();
+    let metrics = cloc.require("metrics");
+
+    // Should split like "count" mode
+    assert!(metrics.get("test_lines").and_then(|v| v.as_u64()).unwrap() > 0);
+}
+
+/// Spec: docs/specs/langs/rust.md#cfg-test-split-modes
+///
+/// > cfg_test_split = false (legacy): Same as "off"
+#[test]
+fn rust_cfg_test_split_false_is_off() {
+    let cloc = check("cloc")
+        .on("rust/cfg-test-split-false")
+        .json()
+        .passes();
+    let metrics = cloc.require("metrics");
+
+    // Should count all as source like "off" mode
+    assert_eq!(metrics.get("test_lines").and_then(|v| v.as_u64()), Some(0));
+}

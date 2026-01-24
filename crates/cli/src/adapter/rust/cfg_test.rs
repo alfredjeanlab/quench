@@ -21,10 +21,22 @@ enum LexerState {
     Char,
 }
 
+/// Information about a single #[cfg(test)] block.
+#[derive(Debug)]
+pub struct CfgTestBlock {
+    /// Line number where the attribute starts (0-indexed).
+    pub attr_line: usize,
+    /// Line range of the entire block (attribute through closing brace).
+    pub range: Range<usize>,
+}
+
 /// Result of parsing a Rust file for #[cfg(test)] blocks.
 #[derive(Debug, Default)]
 pub struct CfgTestInfo {
+    /// Detailed block information (for violation reporting).
+    pub blocks: Vec<CfgTestBlock>,
     /// Line ranges (0-indexed) that are inside #[cfg(test)] blocks.
+    /// Derived from blocks for backward compatibility.
     pub test_ranges: Vec<Range<usize>>,
 }
 
@@ -44,14 +56,15 @@ impl CfgTestInfo {
     /// 2. Count { and } to track block depth (skipping string/char literals)
     /// 3. Block ends when brace depth returns to 0
     ///
-    /// Limitations:
-    /// - `mod tests;` (external module) declarations need file-level classification
+    /// External module declarations (`mod tests;`) are NOT counted as inline tests.
     pub fn parse(content: &str) -> Self {
         let mut info = Self::default();
         let mut in_cfg_test = false;
         let mut brace_depth: i32 = 0;
         let mut block_start = 0;
         let mut pending_attr: Option<MultiLineAttr> = None;
+        // Track if we've seen the first opening brace after #[cfg(test)]
+        let mut waiting_for_block_start = false;
 
         for (line_idx, line) in content.lines().enumerate() {
             let trimmed = line.trim();
@@ -66,6 +79,7 @@ impl CfgTestInfo {
                     // Attribute complete, check if it's cfg(test)
                     if is_cfg_test_content(&attr.content) {
                         in_cfg_test = true;
+                        waiting_for_block_start = true;
                         block_start = attr.start_line;
                         brace_depth = 0;
                     }
@@ -80,6 +94,7 @@ impl CfgTestInfo {
                     CfgAttrState::Complete(is_test) => {
                         if is_test {
                             in_cfg_test = true;
+                            waiting_for_block_start = true;
                             block_start = line_idx;
                             brace_depth = 0;
                         }
@@ -94,12 +109,41 @@ impl CfgTestInfo {
             }
 
             if in_cfg_test {
+                // Skip additional attributes (like #[path = "..."])
+                if trimmed.starts_with("#[") {
+                    continue;
+                }
+
                 let delta = count_braces(trimmed);
+
+                // If we're still waiting for the block to start and we see a line
+                // without an opening brace that ends with ';', it's an external module
+                if waiting_for_block_start {
+                    if delta > 0 {
+                        // Found opening brace - this is an inline block
+                        waiting_for_block_start = false;
+                        brace_depth += delta;
+                    } else if trimmed.ends_with(';') && !trimmed.is_empty() {
+                        // External module declaration (e.g., "mod tests;")
+                        // Not an inline test block
+                        in_cfg_test = false;
+                        waiting_for_block_start = false;
+                        continue;
+                    }
+                    // Otherwise keep waiting (might be blank line or comment)
+                    continue;
+                }
+
                 brace_depth += delta;
 
                 if brace_depth == 0 && delta < 0 {
                     // Block ended (we saw a closing brace that brought us to 0)
-                    info.test_ranges.push(block_start..line_idx + 1);
+                    let range = block_start..line_idx + 1;
+                    info.blocks.push(CfgTestBlock {
+                        attr_line: block_start,
+                        range: range.clone(),
+                    });
+                    info.test_ranges.push(range);
                     in_cfg_test = false;
                 }
             }
@@ -111,6 +155,17 @@ impl CfgTestInfo {
     /// Check if a line (0-indexed) is inside a #[cfg(test)] block.
     pub fn is_test_line(&self, line_idx: usize) -> bool {
         self.test_ranges.iter().any(|r| r.contains(&line_idx))
+    }
+
+    /// Check if file has any inline #[cfg(test)] blocks.
+    pub fn has_inline_tests(&self) -> bool {
+        !self.blocks.is_empty()
+    }
+
+    /// Get the first inline test location (for violation reporting).
+    /// Returns 0-indexed line number.
+    pub fn first_inline_test_line(&self) -> Option<usize> {
+        self.blocks.first().map(|b| b.attr_line)
     }
 }
 

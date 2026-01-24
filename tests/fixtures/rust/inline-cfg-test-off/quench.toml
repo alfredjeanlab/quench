@@ -1,0 +1,4 @@
+version = 1
+
+[rust]
+cfg_test_split = "off"

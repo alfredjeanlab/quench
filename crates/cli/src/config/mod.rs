@@ -117,12 +117,24 @@ impl Config {
     }
 }
 
+/// Mode for handling #[cfg(test)] blocks in Rust files.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum CfgTestSplitMode {
+    /// Split #[cfg(test)] blocks into test LOC (default).
+    #[default]
+    Count,
+    /// Fail if source files contain inline #[cfg(test)] blocks.
+    Require,
+    /// Count all lines as source LOC, don't parse for #[cfg(test)].
+    Off,
+}
+
 /// Rust language-specific configuration.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize)]
 pub struct RustConfig {
-    /// Split #[cfg(test)] blocks from source LOC (default: true).
-    #[serde(default = "RustConfig::default_cfg_test_split")]
-    pub cfg_test_split: bool,
+    /// How to handle #[cfg(test)] blocks (default: "count").
+    #[serde(default, skip_deserializing)]
+    pub cfg_test_split: CfgTestSplitMode,
 
     /// Lint suppression settings.
     #[serde(default)]
@@ -137,22 +149,7 @@ pub struct RustConfig {
     pub cloc_advice: Option<String>,
 }
 
-impl Default for RustConfig {
-    fn default() -> Self {
-        Self {
-            cfg_test_split: Self::default_cfg_test_split(),
-            suppress: SuppressConfig::default(),
-            policy: RustPolicyConfig::default(),
-            cloc_advice: None,
-        }
-    }
-}
-
 impl RustConfig {
-    pub(crate) fn default_cfg_test_split() -> bool {
-        true
-    }
-
     pub(crate) fn default_cloc_advice() -> &'static str {
         "Can the code be made more concise?\n\n\
          If not, split large source files into sibling modules or submodules in a folder;\n\

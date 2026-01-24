@@ -13,9 +13,10 @@ use globset::GlobSet;
 use serde_json::json;
 
 use crate::adapter::glob::build_glob_set;
+use crate::adapter::rust::CfgTestInfo;
 use crate::adapter::{AdapterRegistry, FileKind, RustAdapter};
 use crate::check::{Check, CheckContext, CheckResult, Violation};
-use crate::config::{CheckLevel, LineMetric};
+use crate::config::{CfgTestSplitMode, CheckLevel, LineMetric};
 
 /// Parameters for creating a line-count violation.
 struct LineViolationInfo {
@@ -53,10 +54,10 @@ impl Check for ClocCheck {
 
         // Get Rust config for cfg_test_split
         let rust_config = &ctx.config.rust;
-        let rust_adapter = if rust_config.cfg_test_split {
-            Some(RustAdapter::new())
-        } else {
-            None
+        // Only create adapter for modes that need parsing
+        let rust_adapter = match rust_config.cfg_test_split {
+            CfgTestSplitMode::Count | CfgTestSplitMode::Require => Some(RustAdapter::new()),
+            CfgTestSplitMode::Off => None,
         };
 
         // Build pattern matcher for exclude patterns only
@@ -106,15 +107,37 @@ impl Check for ClocCheck {
                                 }
                             };
 
-                            let classification = adapter.classify_lines(relative_path, &content);
-
-                            // File is considered "test" for size limits if it has more test than source
-                            let is_test = classification.test_lines > classification.source_lines;
-                            (
-                                classification.source_lines,
-                                classification.test_lines,
-                                is_test,
-                            )
+                            match rust_config.cfg_test_split {
+                                CfgTestSplitMode::Require => {
+                                    // Check for inline tests and generate violation
+                                    let cfg_info = CfgTestInfo::parse(&content);
+                                    if cfg_info.has_inline_tests()
+                                        && let Some(line) = cfg_info.first_inline_test_line()
+                                    {
+                                        violations.push(create_inline_cfg_test_violation(
+                                            ctx,
+                                            &file.path,
+                                            line as u32 + 1,
+                                        ));
+                                    }
+                                    // Still count as source (no splitting)
+                                    (nonblank_lines, 0, false)
+                                }
+                                CfgTestSplitMode::Count => {
+                                    // Existing behavior: split source/test
+                                    let classification =
+                                        adapter.classify_lines(relative_path, &content);
+                                    // File is considered "test" for size limits if it has more test than source
+                                    let is_test =
+                                        classification.test_lines > classification.source_lines;
+                                    (
+                                        classification.source_lines,
+                                        classification.test_lines,
+                                        is_test,
+                                    )
+                                }
+                                CfgTestSplitMode::Off => unreachable!(), // Adapter is None
+                            }
                         } else {
                             // Use whole-file classification
                             let is_test = file_kind == FileKind::Test;
@@ -394,6 +417,17 @@ fn try_create_token_violation(
     Some(
         Violation::file_only(display_path, "file_too_large", advice)
             .with_threshold(value as i64, threshold as i64),
+    )
+}
+
+/// Create a violation for inline #[cfg(test)] block.
+fn create_inline_cfg_test_violation(ctx: &CheckContext, file_path: &Path, line: u32) -> Violation {
+    let display_path = file_path.strip_prefix(ctx.root).unwrap_or(file_path);
+    Violation::file(
+        display_path,
+        line,
+        "inline_cfg_test",
+        "Move tests to a sibling _tests.rs file.",
     )
 }
 

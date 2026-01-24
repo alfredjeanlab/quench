@@ -6,9 +6,9 @@
 use std::path::Path;
 
 use super::{
-    AgentsConfig, AgentsScopeConfig, CheckLevel, ClocConfig, DocsConfig, EscapeAction,
-    EscapePattern, EscapesConfig, GoConfig, GoPolicyConfig, GoSuppressConfig, LineMetric,
-    LintChangesPolicy, RustConfig, RustPolicyConfig, ShellConfig, ShellPolicyConfig,
+    AgentsConfig, AgentsScopeConfig, CfgTestSplitMode, CheckLevel, ClocConfig, DocsConfig,
+    EscapeAction, EscapePattern, EscapesConfig, GoConfig, GoPolicyConfig, GoSuppressConfig,
+    LineMetric, LintChangesPolicy, RustConfig, RustPolicyConfig, ShellConfig, ShellPolicyConfig,
     ShellSuppressConfig, SuppressConfig, SuppressLevel, SuppressScopeConfig, TocConfig,
 };
 use crate::checks::agents::config::{ContentRule, RequiredSection, SectionsConfig};
@@ -22,16 +22,32 @@ fn parse_string_array(value: Option<&toml::Value>) -> Option<Vec<String>> {
     })
 }
 
+/// Parse cfg_test_split from TOML value.
+/// Supports both legacy boolean and new string modes.
+fn parse_cfg_test_split(value: Option<&toml::Value>) -> CfgTestSplitMode {
+    match value {
+        // Legacy boolean support
+        Some(toml::Value::Boolean(true)) => CfgTestSplitMode::Count,
+        Some(toml::Value::Boolean(false)) => CfgTestSplitMode::Off,
+        // New string modes
+        Some(toml::Value::String(s)) => match s.as_str() {
+            "count" => CfgTestSplitMode::Count,
+            "require" => CfgTestSplitMode::Require,
+            "off" => CfgTestSplitMode::Off,
+            _ => CfgTestSplitMode::Count, // Default on unknown
+        },
+        None => CfgTestSplitMode::Count,
+        _ => CfgTestSplitMode::Count,
+    }
+}
+
 /// Parse Rust-specific configuration from TOML value.
 pub(super) fn parse_rust_config(value: Option<&toml::Value>) -> RustConfig {
     let Some(toml::Value::Table(t)) = value else {
         return RustConfig::default();
     };
 
-    let cfg_test_split = t
-        .get("cfg_test_split")
-        .and_then(|v| v.as_bool())
-        .unwrap_or_else(RustConfig::default_cfg_test_split);
+    let cfg_test_split = parse_cfg_test_split(t.get("cfg_test_split"));
 
     let suppress = parse_suppress_config(t.get("suppress"));
     let policy = parse_policy_config(t.get("policy"));
