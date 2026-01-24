@@ -20,10 +20,17 @@ use crate::check::{Check, CheckContext, CheckResult, Violation};
 use crate::config::TestsCommitConfig;
 
 use self::correlation::{
-    CorrelationConfig, analyze_commit, analyze_correlation, has_inline_test_changes,
-    has_placeholder_test,
+    CorrelationConfig, DiffRange, analyze_commit, analyze_correlation, candidate_test_paths,
+    has_inline_test_changes, has_placeholder_test,
 };
 use self::diff::{ChangeType, get_base_changes, get_commits_since, get_staged_changes};
+use std::path::Path;
+
+/// File extension for Rust source files.
+const RUST_EXT: &str = "rs";
+
+/// Length for truncating git hashes in display.
+const SHORT_HASH_LEN: usize = 7;
 
 pub struct TestsCheck;
 
@@ -101,37 +108,26 @@ impl TestsCheck {
         let mut result = analyze_correlation(&changes, correlation_config, ctx.root);
 
         // Check for inline test changes in Rust files
-        let base_ref = if ctx.staged { None } else { ctx.base_branch };
+        let diff_range = if ctx.staged {
+            DiffRange::Staged
+        } else if let Some(base) = ctx.base_branch {
+            DiffRange::Branch(base)
+        } else {
+            DiffRange::Staged // fallback, shouldn't reach here due to earlier check
+        };
         let allow_placeholders = config.placeholders == "allow";
 
         result.without_tests.retain(|path| {
             // If the file has inline test changes, move it to with_tests
-            if path.extension().is_some_and(|e| e == "rs")
-                && has_inline_test_changes(path, ctx.root, base_ref)
+            if path.extension().is_some_and(|e| e == RUST_EXT)
+                && has_inline_test_changes(path, ctx.root, diff_range)
             {
                 return false; // Remove from without_tests
             }
 
             // If placeholders are allowed, check for placeholder tests
-            if allow_placeholders && let Some(base_name) = path.file_stem().and_then(|s| s.to_str())
-            {
-                // Check common test file locations for placeholders
-                let test_paths = [
-                    format!("tests/{}_tests.rs", base_name),
-                    format!("tests/{}_test.rs", base_name),
-                    format!("tests/{}.rs", base_name),
-                    format!("test/{}_tests.rs", base_name),
-                    format!("test/{}.rs", base_name),
-                ];
-
-                for test_path in &test_paths {
-                    let test_file = std::path::Path::new(test_path);
-                    if ctx.root.join(test_file).exists()
-                        && has_placeholder_test(test_file, base_name, ctx.root).unwrap_or(false)
-                    {
-                        return false; // Placeholder test satisfies requirement
-                    }
-                }
+            if allow_placeholders && has_placeholder_for_source(path, ctx.root) {
+                return false; // Placeholder test satisfies requirement
             }
 
             true // Keep in without_tests
@@ -142,7 +138,7 @@ impl TestsCheck {
         for path in &result.without_tests {
             let change = changes
                 .iter()
-                .find(|c| c.path.strip_prefix(ctx.root).unwrap_or(&c.path).eq(path));
+                .find(|c| relative_to_root(&c.path, ctx.root).eq(path));
 
             let file_stem = path.file_stem().and_then(|s| s.to_str()).unwrap_or("file");
 
@@ -219,46 +215,22 @@ impl TestsCheck {
             // Check each source file without tests
             for path in &analysis.source_without_tests {
                 // Check for inline test changes within this commit
-                if path.extension().is_some_and(|e| e == "rs")
-                    && self.has_inline_test_changes_in_commit(path, &commit.hash, ctx.root)
+                if path.extension().is_some_and(|e| e == RUST_EXT)
+                    && has_inline_test_changes(path, ctx.root, DiffRange::Commit(&commit.hash))
                 {
                     continue;
                 }
 
                 // Check for placeholder tests
-                if allow_placeholders
-                    && let Some(base_name) = path.file_stem().and_then(|s| s.to_str())
-                {
-                    let test_paths = [
-                        format!("tests/{}_tests.rs", base_name),
-                        format!("tests/{}_test.rs", base_name),
-                        format!("tests/{}.rs", base_name),
-                        format!("test/{}_tests.rs", base_name),
-                        format!("test/{}.rs", base_name),
-                    ];
-
-                    let has_placeholder = test_paths.iter().any(|test_path| {
-                        let test_file = std::path::Path::new(test_path);
-                        ctx.root.join(test_file).exists()
-                            && has_placeholder_test(test_file, base_name, ctx.root).unwrap_or(false)
-                    });
-
-                    if has_placeholder {
-                        continue;
-                    }
+                if allow_placeholders && has_placeholder_for_source(path, ctx.root) {
+                    continue;
                 }
 
                 failing_commits.push(analysis.hash.clone());
 
-                let short_hash = if analysis.hash.len() >= 7 {
-                    &analysis.hash[..7]
-                } else {
-                    &analysis.hash
-                };
-
                 let advice = format!(
                     "Commit {} modifies {} without test changes",
-                    short_hash,
+                    short_hash(&analysis.hash),
                     path.display()
                 );
 
@@ -266,7 +238,7 @@ impl TestsCheck {
                 let change = commit
                     .changes
                     .iter()
-                    .find(|c| c.path.strip_prefix(ctx.root).unwrap_or(&c.path).eq(path));
+                    .find(|c| relative_to_root(&c.path, ctx.root).eq(path));
 
                 let mut v = Violation::file_only(path, "missing_tests", advice);
 
@@ -309,37 +281,6 @@ impl TestsCheck {
             CheckResult::failed(self.name(), violations).with_metrics(metrics)
         }
     }
-
-    /// Check if a file has inline test changes within a specific commit.
-    fn has_inline_test_changes_in_commit(
-        &self,
-        file_path: &std::path::Path,
-        commit_hash: &str,
-        root: &std::path::Path,
-    ) -> bool {
-        use correlation::changes_in_cfg_test;
-        use std::process::Command;
-
-        let rel_path = file_path.strip_prefix(root).unwrap_or(file_path);
-        let rel_path_str = match rel_path.to_str() {
-            Some(s) => s,
-            None => return false,
-        };
-
-        let range = format!("{}^..{}", commit_hash, commit_hash);
-        let output = Command::new("git")
-            .args(["diff", &range, "--", rel_path_str])
-            .current_dir(root)
-            .output();
-
-        match output {
-            Ok(o) if o.status.success() => {
-                let diff = String::from_utf8_lossy(&o.stdout);
-                changes_in_cfg_test(&diff)
-            }
-            _ => false,
-        }
-    }
 }
 
 fn build_correlation_config(config: &TestsCommitConfig) -> CorrelationConfig {
@@ -348,4 +289,32 @@ fn build_correlation_config(config: &TestsCommitConfig) -> CorrelationConfig {
         source_patterns: config.source_patterns.clone(),
         exclude_patterns: config.exclude.clone(),
     }
+}
+
+/// Normalize a path relative to root, returning the original if not under root.
+fn relative_to_root<'a>(path: &'a Path, root: &Path) -> &'a Path {
+    path.strip_prefix(root).unwrap_or(path)
+}
+
+/// Truncate a git hash to short form for display.
+fn short_hash(hash: &str) -> &str {
+    if hash.len() >= SHORT_HASH_LEN {
+        &hash[..SHORT_HASH_LEN]
+    } else {
+        hash
+    }
+}
+
+/// Check if any placeholder test satisfies the test requirement for a source file.
+fn has_placeholder_for_source(source_path: &Path, root: &Path) -> bool {
+    let base_name = match source_path.file_stem().and_then(|s| s.to_str()) {
+        Some(n) => n,
+        None => return false,
+    };
+
+    candidate_test_paths(base_name).iter().any(|test_path| {
+        let test_file = Path::new(test_path);
+        root.join(test_file).exists()
+            && has_placeholder_test(test_file, base_name, root).unwrap_or(false)
+    })
 }
