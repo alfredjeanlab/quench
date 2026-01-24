@@ -1,7 +1,7 @@
 # Checkpoint 8H: Tests Correlation Tech Debt
 
 **Plan:** `checkpoint-8h-techdebt`
-**Root Feature:** `tests-correlation`
+**Root Feature:** `quench-b04d`
 **Depends On:** `checkpoint-8g-bugfix` (Edge cases in tests correlation check)
 
 ## Overview
