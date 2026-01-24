@@ -1,5 +1,5 @@
 version = 1
 
-[check.docs]
+[check.docs.specs]
 path = "docs/specs"
 index = "linked"

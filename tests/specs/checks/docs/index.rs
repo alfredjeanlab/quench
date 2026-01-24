@@ -30,7 +30,6 @@ fn specs_directory_index_file_detected() {
 ///
 /// > `linked` mode: All spec files must be reachable via markdown links.
 #[test]
-#[ignore = "TODO: Phase 602 - Docs Check Implementation"]
 fn unreachable_spec_file_generates_violation_linked_mode() {
     check("docs")
         .on("docs/unreachable-spec")

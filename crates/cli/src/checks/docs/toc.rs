@@ -11,29 +11,29 @@ use crate::check::{CheckContext, Violation};
 
 /// A fenced code block extracted from markdown.
 #[derive(Debug)]
-struct FencedBlock {
+pub(super) struct FencedBlock {
     /// Line number where the block starts (1-indexed, after the opening ```).
-    start_line: u32,
+    pub(super) start_line: u32,
     /// Content lines within the block.
-    lines: Vec<String>,
+    pub(super) lines: Vec<String>,
     /// Language tag from the opening fence (e.g., "rust", "bash", "text").
     /// None if no tag was specified.
-    language: Option<String>,
+    pub(super) language: Option<String>,
 }
 
 /// A parsed entry from a directory tree.
 #[derive(Debug, PartialEq)]
-struct TreeEntry {
+pub(super) struct TreeEntry {
     /// Relative line offset within the block (0-indexed).
-    line_offset: u32,
+    pub(super) line_offset: u32,
     /// The extracted path (may be file or directory).
-    path: String,
+    pub(super) path: String,
     /// True if this appears to be a directory (ends with /).
-    is_dir: bool,
+    pub(super) is_dir: bool,
 }
 
 /// Extract all fenced code blocks from markdown content.
-fn extract_fenced_blocks(content: &str) -> Vec<FencedBlock> {
+pub(super) fn extract_fenced_blocks(content: &str) -> Vec<FencedBlock> {
     let mut blocks = Vec::new();
     let mut in_block = false;
     let mut current_lines = Vec::new();
@@ -82,7 +82,7 @@ fn extract_fenced_blocks(content: &str) -> Vec<FencedBlock> {
 }
 
 /// Parse a directory tree block into entries.
-fn parse_tree_block(block: &FencedBlock) -> Vec<TreeEntry> {
+pub(super) fn parse_tree_block(block: &FencedBlock) -> Vec<TreeEntry> {
     let mut entries = Vec::new();
     let mut current_path_stack: Vec<String> = Vec::new();
 
@@ -422,7 +422,7 @@ const NON_TREE_LANGUAGES: &[&str] = &[
 ];
 
 /// Check if a fenced block looks like a directory tree.
-fn looks_like_tree(block: &FencedBlock) -> bool {
+pub(super) fn looks_like_tree(block: &FencedBlock) -> bool {
     // Blocks with known non-tree language tags are skipped
     if let Some(ref lang) = block.language
         && NON_TREE_LANGUAGES.contains(&lang.as_str())

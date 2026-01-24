@@ -16,15 +16,15 @@ const LINK_PATTERN: &str = r"\[(?:[^\[\]]|\[[^\]]*\])*\]\(([^)]+)\)";
 
 /// A markdown link extracted from content.
 #[derive(Debug)]
-struct ExtractedLink {
+pub(super) struct ExtractedLink {
     /// Line number (1-indexed) where the link appears.
-    line: u32,
+    pub(super) line: u32,
     /// The URL/path from the link.
-    target: String,
+    pub(super) target: String,
 }
 
 /// Extract all markdown links from content, skipping links inside fenced code blocks.
-fn extract_links(content: &str) -> Vec<ExtractedLink> {
+pub(super) fn extract_links(content: &str) -> Vec<ExtractedLink> {
     let mut links = Vec::new();
     let Ok(pattern) = Regex::new(LINK_PATTERN) else {
         return links;
@@ -60,7 +60,7 @@ fn extract_links(content: &str) -> Vec<ExtractedLink> {
 }
 
 /// Check if a link target is a local file path (not external URL).
-fn is_local_link(target: &str) -> bool {
+pub(super) fn is_local_link(target: &str) -> bool {
     // Skip external URLs
     if target.starts_with("http://") || target.starts_with("https://") {
         return false;
@@ -85,7 +85,7 @@ fn is_local_link(target: &str) -> bool {
 }
 
 /// Strip fragment from link target.
-fn strip_fragment(target: &str) -> &str {
+pub(super) fn strip_fragment(target: &str) -> &str {
     target.split('#').next().unwrap_or(target)
 }
 
