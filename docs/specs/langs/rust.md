@@ -240,7 +240,7 @@ By default, common lint suppressions require specific comment patterns:
 
 | Lint Code | Required Comment (any of) |
 |-----------|---------------------------|
-| `dead_code` | `// KEEP UNTIL:`, `// NOTE(compat):`, `// NOTE(compatibility):` |
+| `dead_code` | `// KEEP UNTIL:`, `// NOTE(compat):`, `// NOTE(compatibility):`, `// NOTE(lifetime):` |
 | `clippy::too_many_arguments` | `// TODO(refactor):` |
 | `clippy::cast_possible_truncation` | `// CORRECTNESS:`, `// SAFETY:` |
 | `deprecated` | `// TODO(refactor):`, `// NOTE(compat):`, `// NOTE(compatibility):` |

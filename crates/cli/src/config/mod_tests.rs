@@ -527,6 +527,7 @@ fn rust_suppress_source_has_defaults() {
         .unwrap();
     assert!(dead_code_patterns.contains(&"// KEEP UNTIL:".to_string()));
     assert!(dead_code_patterns.contains(&"// NOTE(compat):".to_string()));
+    assert!(dead_code_patterns.contains(&"// NOTE(lifetime):".to_string()));
 }
 
 #[test]

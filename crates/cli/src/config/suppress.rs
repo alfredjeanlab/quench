@@ -218,13 +218,14 @@ impl SuppressScopeConfig {
     pub(crate) fn default_for_source() -> Self {
         use std::collections::HashMap;
         let patterns: HashMap<String, Vec<String>> = [
-            // dead_code requires KEEP UNTIL or NOTE(compat) comment
+            // dead_code requires KEEP UNTIL, NOTE(compat), or NOTE(lifetime) comment
             (
                 "dead_code",
                 vec![
                     "// KEEP UNTIL:",
                     "// NOTE(compat):",
                     "// NOTE(compatibility):",
+                    "// NOTE(lifetime):",
                 ],
             ),
             // too_many_arguments requires TODO(refactor) comment
