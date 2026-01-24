@@ -8,7 +8,7 @@ use std::fmt::Write;
 use crate::baseline::Baseline;
 use crate::cli::CheckFilter;
 
-use super::{FilteredMetrics, ReportFormatter};
+use super::{FilteredMetrics, ReportFormatter, human_bytes};
 
 /// Text format report formatter.
 pub struct TextFormatter;
@@ -65,12 +65,31 @@ impl TextFormatter {
         // Coverage (mapped to "tests" check)
         if let Some(coverage) = filtered.coverage() {
             writeln!(output, "coverage: {:.1}%", coverage.total)?;
+
+            if let Some(ref packages) = coverage.by_package {
+                let mut keys: Vec<_> = packages.keys().collect();
+                keys.sort();
+                for name in keys {
+                    writeln!(output, "  {}: {:.1}%", name, packages[name])?;
+                }
+            }
         }
 
         // Escapes
         if let Some(escapes) = filtered.escapes() {
-            for (name, count) in &escapes.source {
-                writeln!(output, "escapes.{}: {}", name, count)?;
+            let mut keys: Vec<_> = escapes.source.keys().collect();
+            keys.sort();
+            for name in keys {
+                writeln!(output, "escapes.{}: {}", name, escapes.source[name])?;
+            }
+
+            // Test escapes (if present)
+            if let Some(ref test) = escapes.test {
+                let mut keys: Vec<_> = test.keys().collect();
+                keys.sort();
+                for name in keys {
+                    writeln!(output, "escapes.test.{}: {}", name, test[name])?;
+                }
             }
         }
 
@@ -87,8 +106,10 @@ impl TextFormatter {
 
         // Binary size
         if let Some(sizes) = filtered.binary_size() {
-            for (name, size) in sizes {
-                writeln!(output, "binary_size.{}: {} bytes", name, size)?;
+            let mut keys: Vec<_> = sizes.keys().collect();
+            keys.sort();
+            for name in keys {
+                writeln!(output, "binary_size.{}: {}", name, human_bytes(sizes[name]))?;
             }
         }
 
@@ -117,12 +138,31 @@ impl TextFormatter {
         // Coverage (mapped to "tests" check)
         if let Some(coverage) = filtered.coverage() {
             writeln!(writer, "coverage: {:.1}%", coverage.total)?;
+
+            if let Some(ref packages) = coverage.by_package {
+                let mut keys: Vec<_> = packages.keys().collect();
+                keys.sort();
+                for name in keys {
+                    writeln!(writer, "  {}: {:.1}%", name, packages[name])?;
+                }
+            }
         }
 
         // Escapes
         if let Some(escapes) = filtered.escapes() {
-            for (name, count) in &escapes.source {
-                writeln!(writer, "escapes.{}: {}", name, count)?;
+            let mut keys: Vec<_> = escapes.source.keys().collect();
+            keys.sort();
+            for name in keys {
+                writeln!(writer, "escapes.{}: {}", name, escapes.source[name])?;
+            }
+
+            // Test escapes (if present)
+            if let Some(ref test) = escapes.test {
+                let mut keys: Vec<_> = test.keys().collect();
+                keys.sort();
+                for name in keys {
+                    writeln!(writer, "escapes.test.{}: {}", name, test[name])?;
+                }
             }
         }
 
@@ -139,8 +179,10 @@ impl TextFormatter {
 
         // Binary size
         if let Some(sizes) = filtered.binary_size() {
-            for (name, size) in sizes {
-                writeln!(writer, "binary_size.{}: {} bytes", name, size)?;
+            let mut keys: Vec<_> = sizes.keys().collect();
+            keys.sort();
+            for name in keys {
+                writeln!(writer, "binary_size.{}: {}", name, human_bytes(sizes[name]))?;
             }
         }
 

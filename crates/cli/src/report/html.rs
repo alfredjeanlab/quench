@@ -146,11 +146,25 @@ impl HtmlFormatter {
                 "coverage",
                 &format!("{:.1}%", coverage.total),
             ));
+
+            if let Some(ref packages) = coverage.by_package {
+                let mut keys: Vec<_> = packages.keys().collect();
+                keys.sort();
+                for name in keys {
+                    rows.push(Self::render_table_row(
+                        &format!("coverage.{}", name),
+                        &format!("{:.1}%", packages[name]),
+                    ));
+                }
+            }
         }
 
         // Escapes cards
         if let Some(escapes) = filtered.escapes() {
-            for (name, count) in &escapes.source {
+            let mut keys: Vec<_> = escapes.source.keys().collect();
+            keys.sort();
+            for name in keys {
+                let count = escapes.source[name];
                 cards.push(Self::render_card(
                     &format!("Escapes: {}", name),
                     &count.to_string(),
@@ -160,6 +174,19 @@ impl HtmlFormatter {
                     &format!("escapes.{}", name),
                     &count.to_string(),
                 ));
+            }
+
+            // Test escapes (if present)
+            if let Some(ref test) = escapes.test {
+                let mut keys: Vec<_> = test.keys().collect();
+                keys.sort();
+                for name in keys {
+                    let count = test[name];
+                    rows.push(Self::render_table_row(
+                        &format!("escapes.test.{}", name),
+                        &count.to_string(),
+                    ));
+                }
             }
         }
 
@@ -186,8 +213,10 @@ impl HtmlFormatter {
         }
 
         if let Some(sizes) = filtered.binary_size() {
-            for (name, size) in sizes {
-                let human = human_bytes(*size);
+            let mut keys: Vec<_> = sizes.keys().collect();
+            keys.sort();
+            for name in keys {
+                let human = human_bytes(sizes[name]);
                 cards.push(Self::render_card(
                     &format!("Binary: {}", name),
                     &human,

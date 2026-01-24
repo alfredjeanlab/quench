@@ -7,6 +7,7 @@
 
 mod html;
 mod json;
+mod markdown;
 mod text;
 
 use std::collections::HashMap;
@@ -18,6 +19,7 @@ use crate::cli::{CheckFilter, OutputFormat};
 
 pub use html::HtmlFormatter;
 pub use json::JsonFormatter;
+pub use markdown::MarkdownFormatter;
 pub use text::TextFormatter;
 
 /// Helper for accessing filtered metrics.
@@ -150,6 +152,7 @@ pub fn format_report_with_options<F: CheckFilter>(
         OutputFormat::Text => Box::new(TextFormatter),
         OutputFormat::Json => Box::new(JsonFormatter::new(compact)),
         OutputFormat::Html => Box::new(HtmlFormatter),
+        OutputFormat::Markdown => Box::new(MarkdownFormatter),
     };
 
     match baseline {
@@ -172,6 +175,7 @@ pub fn format_report_to<F: CheckFilter>(
         OutputFormat::Text => Box::new(TextFormatter),
         OutputFormat::Json => Box::new(JsonFormatter::new(compact)),
         OutputFormat::Html => Box::new(HtmlFormatter),
+        OutputFormat::Markdown => Box::new(MarkdownFormatter),
     };
 
     match baseline {
