@@ -1,0 +1,10 @@
+version = 1
+
+[project]
+name = "agents-package-violation"
+packages = ["crates/*"]
+
+[check.agents]
+files = ["CLAUDE.md"]
+required = ["CLAUDE.md"]
+tables = "forbid"

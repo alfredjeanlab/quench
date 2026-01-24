@@ -49,6 +49,46 @@ impl ContentType {
             }
         }
     }
+
+    /// Get lowercase advice for use with a location prefix.
+    ///
+    /// Suggests allowed alternatives based on what content types are permitted.
+    pub fn advice_with_alternatives(&self, mermaid_allowed: bool, box_allowed: bool) -> String {
+        let alternatives = match self {
+            ContentType::MarkdownTable => {
+                // Tables can suggest either mermaid or box diagrams if allowed
+                if mermaid_allowed {
+                    "a list or mermaid diagram"
+                } else if box_allowed {
+                    "a list or ASCII diagram"
+                } else {
+                    "a list"
+                }
+            }
+            ContentType::BoxDiagram => {
+                if mermaid_allowed {
+                    "a list or mermaid diagram"
+                } else {
+                    "a list"
+                }
+            }
+            ContentType::MermaidBlock => {
+                if box_allowed {
+                    "a list or ASCII diagram"
+                } else {
+                    "a list"
+                }
+            }
+        };
+
+        let kind = match self {
+            ContentType::MarkdownTable => "tables are",
+            ContentType::BoxDiagram => "box diagrams are",
+            ContentType::MermaidBlock => "mermaid diagrams are",
+        };
+
+        format!("{} forbidden. Use {} instead.", kind, alternatives)
+    }
 }
 
 /// Scan content for markdown tables.
@@ -169,6 +209,20 @@ impl SizeLimitType {
             ),
             SizeLimitType::Tokens => format!(
                 "File has ~{} tokens (max: {}). Reduce content for token efficiency.",
+                value, threshold
+            ),
+        }
+    }
+
+    /// Generate lowercase advice for use with a location prefix.
+    pub fn advice_lowercase(&self, value: usize, threshold: usize) -> String {
+        match self {
+            SizeLimitType::Lines => format!(
+                "file has {} lines (max: {}). Split into smaller files or reduce content.",
+                value, threshold
+            ),
+            SizeLimitType::Tokens => format!(
+                "file has ~{} tokens (max: {}). Reduce content for token efficiency.",
                 value, threshold
             ),
         }

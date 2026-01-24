@@ -48,30 +48,88 @@ pub fn detect_agent_files(
         }
     }
 
-    // Check package directories
+    // Check package directories (expand globs like "crates/*")
     for pkg in packages {
-        let pkg_path = root.join(pkg);
-        if !pkg_path.is_dir() {
-            continue;
-        }
+        let pkg_dirs = expand_package_glob(root, pkg);
+        for pkg_path in pkg_dirs {
+            let pkg_name = pkg_path
+                .strip_prefix(root)
+                .unwrap_or(&pkg_path)
+                .to_string_lossy()
+                .to_string();
 
-        for pattern in patterns {
-            // Only check exact file names in packages, not glob patterns
-            if pattern.contains('*') {
-                continue;
-            }
+            for pattern in patterns {
+                // Only check exact file names in packages, not glob patterns
+                if pattern.contains('*') {
+                    continue;
+                }
 
-            let file_path = pkg_path.join(pattern);
-            if file_path.exists() {
-                detected.push(DetectedFile {
-                    path: file_path,
-                    scope: Scope::Package(pkg.clone()),
-                });
+                let file_path = pkg_path.join(pattern);
+                if file_path.exists() {
+                    detected.push(DetectedFile {
+                        path: file_path,
+                        scope: Scope::Package(pkg_name.clone()),
+                    });
+                }
             }
         }
     }
 
     detected
+}
+
+/// Expand a package pattern (which may contain globs) into actual directories.
+///
+/// For example, "crates/*" expands to ["crates/core", "crates/cli", ...].
+fn expand_package_glob(root: &Path, pkg_pattern: &str) -> Vec<PathBuf> {
+    if !pkg_pattern.contains('*') {
+        // Exact path, no glob
+        let pkg_path = root.join(pkg_pattern);
+        if pkg_path.is_dir() {
+            return vec![pkg_path];
+        }
+        return vec![];
+    }
+
+    // Handle glob pattern like "crates/*"
+    let pattern_path = Path::new(pkg_pattern);
+    let Some(parent) = pattern_path.parent() else {
+        return vec![];
+    };
+    let Some(name_pattern) = pattern_path.file_name().and_then(|s| s.to_str()) else {
+        return vec![];
+    };
+
+    let search_dir = root.join(parent);
+    if !search_dir.is_dir() {
+        return vec![];
+    }
+
+    let Ok(glob) = Glob::new(name_pattern) else {
+        return vec![];
+    };
+    let matcher = glob.compile_matcher();
+
+    let Ok(entries) = std::fs::read_dir(&search_dir) else {
+        return vec![];
+    };
+
+    entries
+        .filter_map(|entry| {
+            let entry = entry.ok()?;
+            let path = entry.path();
+            if !path.is_dir() {
+                return None;
+            }
+            let name = entry.file_name();
+            let name_str = name.to_str()?;
+            if matcher.is_match(name_str) {
+                Some(path)
+            } else {
+                None
+            }
+        })
+        .collect()
 }
 
 /// Match a pattern against files in a directory.

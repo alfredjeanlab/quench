@@ -260,13 +260,13 @@ fn exact_out_of_sync_text() {
   .cursorrules: out of sync with CLAUDE.md
     Code Style differs. Use --fix to sync from CLAUDE.md, or reconcile manually.
   CLAUDE.md: missing required section
-    Add a "## Directory Structure" section: Overview of project layout and key directories
+    In the root CLAUDE.md, add a "## Directory Structure" section: Overview of project layout and key directories
   CLAUDE.md: missing required section
-    Add a "## Landing the Plane" section: Checklist for AI agents before completing work
+    In the root CLAUDE.md, add a "## Landing the Plane" section: Checklist for AI agents before completing work
   .cursorrules: missing required section
-    Add a "## Directory Structure" section: Overview of project layout and key directories
+    In the root .cursorrules, add a "## Directory Structure" section: Overview of project layout and key directories
   .cursorrules: missing required section
-    Add a "## Landing the Plane" section: Checklist for AI agents before completing work
+    In the root .cursorrules, add a "## Landing the Plane" section: Checklist for AI agents before completing work
 FAIL: agents
 "###,
     );
@@ -280,11 +280,11 @@ fn exact_forbidden_table_text() {
     check("agents").on("agents/with-table").fails().stdout_eq(
         r###"agents: FAIL
   CLAUDE.md: missing required section
-    Add a "## Directory Structure" section: Overview of project layout and key directories
+    In the root CLAUDE.md, add a "## Directory Structure" section: Overview of project layout and key directories
   CLAUDE.md: missing required section
-    Add a "## Landing the Plane" section: Checklist for AI agents before completing work
+    In the root CLAUDE.md, add a "## Landing the Plane" section: Checklist for AI agents before completing work
   CLAUDE.md:7: forbidden table
-    Tables are not token-efficient. Convert to a list or prose.
+    In the root CLAUDE.md, tables are forbidden. Use a list or mermaid diagram instead.
 FAIL: agents
 "###,
     );
@@ -301,7 +301,7 @@ fn exact_missing_section_text() {
         .stdout_eq(
             r###"agents: FAIL
   CLAUDE.md: missing required section
-    Add a "## Landing the Plane" section: Checklist for AI agents before finishing work
+    In the root CLAUDE.md, add a "## Landing the Plane" section: Checklist for AI agents before finishing work
 FAIL: agents
 "###,
         );
@@ -318,11 +318,11 @@ fn exact_oversized_lines_text() {
         .stdout_eq(
             r###"agents: FAIL
   CLAUDE.md: missing required section
-    Add a "## Directory Structure" section: Overview of project layout and key directories
+    In the root CLAUDE.md, add a "## Directory Structure" section: Overview of project layout and key directories
   CLAUDE.md: missing required section
-    Add a "## Landing the Plane" section: Checklist for AI agents before completing work
+    In the root CLAUDE.md, add a "## Landing the Plane" section: Checklist for AI agents before completing work
   CLAUDE.md: file too large (tokens: 59 vs 50)
-    File has 59 lines (max: 50). Split into smaller files or reduce content.
+    In the root CLAUDE.md, file has 59 lines (max: 50). Split into smaller files or reduce content.
 FAIL: agents
 "###,
         );
@@ -355,4 +355,16 @@ fn exact_agents_project_json() {
     assert!(files_missing.is_empty());
 
     assert_eq!(metrics.get("in_sync").unwrap().as_bool(), Some(true));
+}
+
+/// Spec: docs/specs/checks/agents.md#output
+///
+/// > Package-level violations show example pattern in advice.
+#[test]
+fn exact_package_level_violation_text() {
+    check("agents")
+        .on("agents-package-violation")
+        .fails()
+        .stdout_has("In a package-level file (e.g. crates/**/CLAUDE.md)")
+        .stdout_has("tables are forbidden");
 }

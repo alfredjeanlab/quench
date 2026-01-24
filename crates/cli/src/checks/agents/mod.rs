@@ -49,7 +49,12 @@ impl Check for AgentsCheck {
             return CheckResult::passed(self.name());
         }
 
-        let packages = &ctx.config.workspace.packages;
+        // Use workspace.packages (auto-detected) or fall back to project.packages
+        let packages = if ctx.config.workspace.packages.is_empty() {
+            &ctx.config.project.packages
+        } else {
+            &ctx.config.workspace.packages
+        };
 
         // Detect all agent files
         let detected = detect_agent_files(ctx.root, packages, &config.files);
@@ -75,7 +80,7 @@ impl Check for AgentsCheck {
         check_sections(ctx, config, &detected, &mut violations);
 
         // Check content rules (tables, diagrams, size limits)
-        check_content(config, &detected, &mut violations);
+        check_content(ctx, config, &detected, &mut violations);
 
         // Build metrics
         let files_found: Vec<String> = detected
@@ -424,9 +429,44 @@ fn check_sync(
     all_in_sync
 }
 
+/// Get the relative path of a detected file from the project root.
+fn relative_path(root: &std::path::Path, file: &DetectedFile) -> String {
+    file.path
+        .strip_prefix(root)
+        .unwrap_or(&file.path)
+        .to_string_lossy()
+        .to_string()
+}
+
+/// Generate a human-readable location prefix for an agent file.
+///
+/// Communicates the scope concept with example patterns:
+/// - "In the root CLAUDE.md" for files at project root
+/// - "In a package-level file (e.g. crates/**/CLAUDE.md)" for package files
+/// - "In a folder-level file (e.g. src/**/CLAUDE.md)" for nested module files
+fn location_prefix(file: &DetectedFile) -> String {
+    let filename = file
+        .path
+        .file_name()
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_default();
+
+    match &file.scope {
+        Scope::Root => format!("In the root {}", filename),
+        Scope::Package(pkg) => {
+            // Extract the package pattern prefix (e.g. "crates" from "crates/cli")
+            let prefix = pkg.split('/').next().unwrap_or("packages");
+            format!("In a package-level file (e.g. {}/**/{})", prefix, filename)
+        }
+        Scope::Module => {
+            format!("In a folder-level file (e.g. src/**/{})", filename)
+        }
+    }
+}
+
 /// Check section requirements in agent files.
 fn check_sections(
-    _ctx: &CheckContext,
+    ctx: &CheckContext,
     config: &AgentsConfig,
     detected: &[DetectedFile],
     violations: &mut Vec<Violation>,
@@ -445,32 +485,32 @@ fn check_sections(
         };
 
         let validation = validate_sections(&content, &config.sections);
-        let filename = file
-            .path
-            .file_name()
-            .map(|n| n.to_string_lossy().to_string())
-            .unwrap_or_default();
+        let rel_path = relative_path(ctx.root, file);
+        let location = location_prefix(file);
 
         // Generate violations for missing required sections
         for missing in validation.missing {
             let advice = if let Some(ref section_advice) = missing.advice {
-                format!("Add a \"## {}\" section: {}", missing.name, section_advice)
+                format!(
+                    "{}, add a \"## {}\" section: {}",
+                    location, missing.name, section_advice
+                )
             } else {
-                format!("Add a \"## {}\" section", missing.name)
+                format!("{}, add a \"## {}\" section", location, missing.name)
             };
 
-            violations.push(Violation::file_only(&filename, "missing_section", advice));
+            violations.push(Violation::file_only(&rel_path, "missing_section", advice));
         }
 
         // Generate violations for forbidden sections
         for forbidden in validation.forbidden {
             let advice = format!(
-                "Remove or rename the \"{}\" section (matches forbidden pattern \"{}\")",
-                forbidden.heading, forbidden.matched_pattern
+                "{}, remove or rename the \"{}\" section (matches forbidden pattern \"{}\")",
+                location, forbidden.heading, forbidden.matched_pattern
             );
 
             violations.push(Violation::file(
-                &filename,
+                &rel_path,
                 forbidden.line,
                 "forbidden_section",
                 advice,
@@ -481,6 +521,7 @@ fn check_sections(
 
 /// Check content rules in agent files.
 fn check_content(
+    ctx: &CheckContext,
     config: &AgentsConfig,
     detected: &[DetectedFile],
     violations: &mut Vec<Violation>,
@@ -490,45 +531,55 @@ fn check_content(
             continue;
         };
 
-        let filename = file
-            .path
-            .file_name()
-            .map(|n| n.to_string_lossy().to_string())
-            .unwrap_or_default();
+        let rel_path = relative_path(ctx.root, file);
+        let location = location_prefix(file);
 
         // Get effective limits for this scope
         let (max_lines, max_tokens) = get_scope_limits(config, &file.scope);
 
+        // Determine which alternatives are allowed for advice messages
+        let mermaid_allowed = config.mermaid == ContentRule::Allow;
+        let box_allowed = config.box_diagrams == ContentRule::Allow;
+
         // Check content rules
         if config.tables == ContentRule::Forbid {
             for issue in detect_tables(&content) {
+                let advice = issue
+                    .content_type
+                    .advice_with_alternatives(mermaid_allowed, box_allowed);
                 violations.push(Violation::file(
-                    &filename,
+                    &rel_path,
                     issue.line,
                     issue.content_type.violation_type(),
-                    issue.content_type.advice(),
+                    format!("{}, {}", location, advice),
                 ));
             }
         }
 
         if config.box_diagrams == ContentRule::Forbid {
             for issue in detect_box_diagrams(&content) {
+                let advice = issue
+                    .content_type
+                    .advice_with_alternatives(mermaid_allowed, box_allowed);
                 violations.push(Violation::file(
-                    &filename,
+                    &rel_path,
                     issue.line,
                     issue.content_type.violation_type(),
-                    issue.content_type.advice(),
+                    format!("{}, {}", location, advice),
                 ));
             }
         }
 
         if config.mermaid == ContentRule::Forbid {
             for issue in detect_mermaid_blocks(&content) {
+                let advice = issue
+                    .content_type
+                    .advice_with_alternatives(mermaid_allowed, box_allowed);
                 violations.push(Violation::file(
-                    &filename,
+                    &rel_path,
                     issue.line,
                     issue.content_type.violation_type(),
-                    issue.content_type.advice(),
+                    format!("{}, {}", location, advice),
                 ));
             }
         }
@@ -539,11 +590,15 @@ fn check_content(
         {
             violations.push(
                 Violation::file_only(
-                    &filename,
+                    &rel_path,
                     "file_too_large",
-                    violation
-                        .limit_type
-                        .advice(violation.value, violation.threshold),
+                    format!(
+                        "{}, {}",
+                        location,
+                        violation
+                            .limit_type
+                            .advice_lowercase(violation.value, violation.threshold)
+                    ),
                 )
                 .with_threshold(violation.value as i64, violation.threshold as i64),
             );
@@ -554,11 +609,15 @@ fn check_content(
         {
             violations.push(
                 Violation::file_only(
-                    &filename,
+                    &rel_path,
                     "file_too_large",
-                    violation
-                        .limit_type
-                        .advice(violation.value, violation.threshold),
+                    format!(
+                        "{}, {}",
+                        location,
+                        violation
+                            .limit_type
+                            .advice_lowercase(violation.value, violation.threshold)
+                    ),
                 )
                 .with_threshold(violation.value as i64, violation.threshold as i64),
             );

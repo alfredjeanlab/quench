@@ -64,6 +64,5 @@ Before committing changes:
   - `cargo clippy --all-targets --all-features -- -D warnings`
   - `cargo test --all`
   - `cargo build --all`
-  - `./scripts/bootstrap` (file sizes, test conventions)
   - `cargo audit`
   - `cargo deny check`
