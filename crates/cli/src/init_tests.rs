@@ -1,0 +1,93 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+
+use super::*;
+use std::fs;
+use tempfile::TempDir;
+
+#[test]
+fn detect_rust_from_cargo_toml() {
+    let temp = TempDir::new().unwrap();
+    fs::write(temp.path().join("Cargo.toml"), "[package]\nname = \"test\"").unwrap();
+
+    let detected = detect_languages(temp.path());
+    assert!(detected.contains(&DetectedLanguage::Rust));
+}
+
+#[test]
+fn detect_golang_from_go_mod() {
+    let temp = TempDir::new().unwrap();
+    fs::write(temp.path().join("go.mod"), "module test").unwrap();
+
+    let detected = detect_languages(temp.path());
+    assert!(detected.contains(&DetectedLanguage::Golang));
+}
+
+#[test]
+fn detect_javascript_from_package_json() {
+    let temp = TempDir::new().unwrap();
+    fs::write(temp.path().join("package.json"), "{}").unwrap();
+
+    let detected = detect_languages(temp.path());
+    assert!(detected.contains(&DetectedLanguage::JavaScript));
+}
+
+#[test]
+fn detect_javascript_from_tsconfig() {
+    let temp = TempDir::new().unwrap();
+    fs::write(temp.path().join("tsconfig.json"), "{}").unwrap();
+
+    let detected = detect_languages(temp.path());
+    assert!(detected.contains(&DetectedLanguage::JavaScript));
+}
+
+#[test]
+fn detect_shell_from_root_sh() {
+    let temp = TempDir::new().unwrap();
+    fs::write(temp.path().join("build.sh"), "#!/bin/bash").unwrap();
+
+    let detected = detect_languages(temp.path());
+    assert!(detected.contains(&DetectedLanguage::Shell));
+}
+
+#[test]
+fn detect_shell_from_scripts_dir() {
+    let temp = TempDir::new().unwrap();
+    fs::create_dir(temp.path().join("scripts")).unwrap();
+    fs::write(temp.path().join("scripts/deploy.sh"), "#!/bin/bash").unwrap();
+
+    let detected = detect_languages(temp.path());
+    assert!(detected.contains(&DetectedLanguage::Shell));
+}
+
+#[test]
+fn detect_shell_from_bin_dir() {
+    let temp = TempDir::new().unwrap();
+    fs::create_dir(temp.path().join("bin")).unwrap();
+    fs::write(temp.path().join("bin/run.sh"), "#!/bin/bash").unwrap();
+
+    let detected = detect_languages(temp.path());
+    assert!(detected.contains(&DetectedLanguage::Shell));
+}
+
+#[test]
+fn detection_is_additive() {
+    let temp = TempDir::new().unwrap();
+    fs::write(temp.path().join("Cargo.toml"), "[package]").unwrap();
+    fs::create_dir(temp.path().join("scripts")).unwrap();
+    fs::write(temp.path().join("scripts/test.sh"), "#!/bin/bash").unwrap();
+
+    let detected = detect_languages(temp.path());
+    assert!(detected.contains(&DetectedLanguage::Rust));
+    assert!(detected.contains(&DetectedLanguage::Shell));
+}
+
+#[test]
+fn no_markers_returns_empty() {
+    let temp = TempDir::new().unwrap();
+
+    let detected = detect_languages(temp.path());
+    assert!(detected.is_empty());
+}

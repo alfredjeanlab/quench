@@ -10,6 +10,7 @@ pub mod color;
 pub mod config;
 pub mod discovery;
 pub mod error;
+pub mod init;
 pub mod output;
 pub mod pattern;
 pub mod runner;

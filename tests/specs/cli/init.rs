@@ -124,7 +124,6 @@ fn init_with_accepts_comma_separated_profiles() {
 ///
 /// > --with skips auto-detection
 #[test]
-#[ignore = "TODO: Phase 1520 - Language Auto-Detection"]
 fn init_with_skips_auto_detection() {
     let temp = Project::empty();
     temp.file("Cargo.toml", "[package]\nname = \"test\"\n");
@@ -138,12 +137,13 @@ fn init_with_skips_auto_detection() {
 
     let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
     assert!(config.contains("[shell]"));
+    // Check for actual section headers, not comments
     assert!(
-        !config.contains("[rust]"),
+        !config.lines().any(|l| l.trim() == "[rust]"),
         "--with should skip rust detection"
     );
     assert!(
-        !config.contains("[golang]"),
+        !config.lines().any(|l| l.trim() == "[golang]"),
         "--with should skip go detection"
     );
 }
@@ -152,7 +152,6 @@ fn init_with_skips_auto_detection() {
 ///
 /// > no --with triggers auto-detection
 #[test]
-#[ignore = "TODO: Phase 1520 - Language Auto-Detection"]
 fn init_without_with_triggers_auto_detection() {
     let temp = Project::empty();
     temp.file("Cargo.toml", "[package]\nname = \"test\"\n");
@@ -175,7 +174,6 @@ fn init_without_with_triggers_auto_detection() {
 ///
 /// > Cargo.toml -> rust
 #[test]
-#[ignore = "TODO: Phase 1520 - Language Auto-Detection"]
 fn init_detects_rust_from_cargo_toml() {
     let temp = Project::empty();
     temp.file("Cargo.toml", "[package]\nname = \"test\"\n");
@@ -195,7 +193,6 @@ fn init_detects_rust_from_cargo_toml() {
 ///
 /// > go.mod -> golang
 #[test]
-#[ignore = "TODO: Phase 1520 - Language Auto-Detection"]
 fn init_detects_golang_from_go_mod() {
     let temp = Project::empty();
     temp.file("go.mod", "module test\n");
@@ -214,7 +211,6 @@ fn init_detects_golang_from_go_mod() {
 ///
 /// > package.json -> javascript
 #[test]
-#[ignore = "TODO: Phase 1520 - Language Auto-Detection"]
 fn init_detects_javascript_from_package_json() {
     let temp = Project::empty();
     temp.file("package.json", "{\"name\": \"test\"}\n");
@@ -233,7 +229,6 @@ fn init_detects_javascript_from_package_json() {
 ///
 /// > *.sh in root/bin/scripts -> shell
 #[test]
-#[ignore = "TODO: Phase 1520 - Language Auto-Detection"]
 fn init_detects_shell_from_scripts_dir() {
     let temp = Project::empty();
     temp.file("scripts/build.sh", "#!/bin/bash\necho hello\n");
@@ -252,7 +247,6 @@ fn init_detects_shell_from_scripts_dir() {
 ///
 /// > Detection is additive (multiple languages/agents)
 #[test]
-#[ignore = "TODO: Phase 1520 - Language Auto-Detection"]
 fn init_detection_is_additive() {
     let temp = Project::empty();
     temp.file("Cargo.toml", "[package]\nname = \"test\"\n");

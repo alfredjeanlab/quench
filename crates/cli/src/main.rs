@@ -16,6 +16,7 @@ use quench::color::{is_no_color_env, resolve_color};
 use quench::config;
 use quench::discovery;
 use quench::error::ExitCode;
+use quench::init::{DetectedLanguage, detect_languages};
 use quench::output::FormatOptions;
 use quench::output::json::{self, JsonFormatter};
 use quench::output::text::TextFormatter;
@@ -501,7 +502,9 @@ fn run_report(_cli: &Cli, args: &ReportArgs) -> anyhow::Result<()> {
 
 fn run_init(_cli: &Cli, args: &InitArgs) -> anyhow::Result<ExitCode> {
     use quench::cli::{
-        default_template, golang_profile_defaults, rust_profile_defaults, shell_profile_defaults,
+        default_template, golang_detected_section, golang_profile_defaults,
+        javascript_detected_section, rust_detected_section, rust_profile_defaults,
+        shell_detected_section, shell_profile_defaults,
     };
 
     let cwd = std::env::current_dir()?;
@@ -512,11 +515,9 @@ fn run_init(_cli: &Cli, args: &InitArgs) -> anyhow::Result<ExitCode> {
         return Ok(ExitCode::ConfigError);
     }
 
-    // Build config: start with default template
-    let config = if args.with_profiles.is_empty() {
-        default_template().to_string()
-    } else {
-        // With profiles: start with template, append profile sections
+    // Determine what to include
+    let (config, message) = if !args.with_profiles.is_empty() {
+        // --with specified: use full profiles, skip detection
         let mut cfg = default_template().to_string();
         for profile in &args.with_profiles {
             match profile.as_str() {
@@ -537,17 +538,44 @@ fn run_init(_cli: &Cli, args: &InitArgs) -> anyhow::Result<ExitCode> {
                 }
             }
         }
-        cfg
-    };
-
-    std::fs::write(&config_path, config)?;
-    if args.with_profiles.is_empty() {
-        println!("Created quench.toml");
-    } else {
-        println!(
+        let msg = format!(
             "Created quench.toml with profile(s): {}",
             args.with_profiles.join(", ")
         );
-    }
+        (cfg, msg)
+    } else {
+        // No --with: run auto-detection
+        let detected = detect_languages(&cwd);
+
+        let mut cfg = default_template().to_string();
+        for lang in &detected {
+            cfg.push('\n');
+            match lang {
+                DetectedLanguage::Rust => cfg.push_str(rust_detected_section()),
+                DetectedLanguage::Golang => cfg.push_str(golang_detected_section()),
+                DetectedLanguage::JavaScript => cfg.push_str(javascript_detected_section()),
+                DetectedLanguage::Shell => cfg.push_str(shell_detected_section()),
+            }
+        }
+
+        let msg = if detected.is_empty() {
+            "Created quench.toml".to_string()
+        } else {
+            let names: Vec<_> = detected
+                .iter()
+                .map(|l| match l {
+                    DetectedLanguage::Rust => "rust",
+                    DetectedLanguage::Golang => "golang",
+                    DetectedLanguage::JavaScript => "javascript",
+                    DetectedLanguage::Shell => "shell",
+                })
+                .collect();
+            format!("Created quench.toml (detected: {})", names.join(", "))
+        };
+        (cfg, msg)
+    };
+
+    std::fs::write(&config_path, config)?;
+    println!("{}", message);
     Ok(ExitCode::Success)
 }

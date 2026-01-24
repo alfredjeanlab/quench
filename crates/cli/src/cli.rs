@@ -389,6 +389,50 @@ pub fn golang_landing_items() -> &'static [&'static str] {
 }
 
 // =============================================================================
+// DETECTED LANGUAGE SECTIONS
+// =============================================================================
+
+/// Minimal Rust section for auto-detection output.
+///
+/// Uses dotted keys per spec: docs/specs/commands/quench-init.md
+pub fn rust_detected_section() -> &'static str {
+    r#"[rust]
+rust.cloc.check = "error"
+rust.policy.check = "error"
+rust.suppress.check = "comment"
+"#
+}
+
+/// Minimal Go section for auto-detection output.
+pub fn golang_detected_section() -> &'static str {
+    r#"[golang]
+golang.cloc.check = "error"
+golang.policy.check = "error"
+golang.suppress.check = "comment"
+"#
+}
+
+/// Minimal JavaScript section for auto-detection output.
+pub fn javascript_detected_section() -> &'static str {
+    r#"[javascript]
+javascript.cloc.check = "error"
+javascript.policy.check = "error"
+javascript.suppress.check = "comment"
+"#
+}
+
+/// Minimal Shell section for auto-detection output.
+///
+/// Note: Shell uses "forbid" for suppress by default.
+pub fn shell_detected_section() -> &'static str {
+    r#"[shell]
+shell.cloc.check = "error"
+shell.policy.check = "error"
+shell.suppress.check = "forbid"
+"#
+}
+
+// =============================================================================
 // DEFAULT TEMPLATE
 // =============================================================================
 
