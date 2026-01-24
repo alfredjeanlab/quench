@@ -3,14 +3,18 @@
 
 //! Source/test file correlation logic.
 
+use std::borrow::Cow;
+use std::collections::HashSet;
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
 
 use globset::{Glob, GlobSet, GlobSetBuilder};
+use rayon::prelude::*;
 
 use super::diff::{ChangeType, CommitChanges, FileChange};
 
 /// Configuration for correlation detection.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CorrelationConfig {
     /// Patterns that identify test files.
     pub test_patterns: Vec<String>,
@@ -65,6 +69,115 @@ pub struct CommitAnalysis {
     pub is_test_only: bool,
 }
 
+// Performance optimizations for O(1) test lookup and early termination paths.
+
+/// Threshold for switching to parallel file classification.
+/// Below this, sequential iteration is faster due to rayon overhead.
+const PARALLEL_THRESHOLD: usize = 50;
+
+/// Pre-computed test correlation index for O(1) lookups.
+///
+/// Build once per `analyze_correlation()` call, then use for all source files.
+/// This avoids O(n*m) complexity when checking many source files against many tests.
+pub struct TestIndex {
+    /// All test file paths for direct matching
+    all_paths: HashSet<PathBuf>,
+    /// Normalized base names (stripped of _test/_tests suffixes)
+    base_names: HashSet<String>,
+}
+
+impl TestIndex {
+    /// Build a test index from a list of test file paths.
+    pub fn new(test_changes: &[PathBuf]) -> Self {
+        let mut base_names = HashSet::new();
+
+        for path in test_changes {
+            if let Some(base) = extract_base_name(path) {
+                base_names.insert(base);
+            }
+        }
+
+        Self {
+            all_paths: test_changes.iter().cloned().collect(),
+            base_names,
+        }
+    }
+
+    /// O(1) check for correlated test by base name.
+    pub fn has_test_for(&self, source_path: &Path) -> bool {
+        let base_name = match source_path.file_stem().and_then(|s| s.to_str()) {
+            Some(n) => n,
+            None => return false,
+        };
+
+        // Check direct base name match
+        if self.base_names.contains(base_name) {
+            return true;
+        }
+
+        // Check with common suffixes/prefixes
+        self.base_names.contains(&format!("{}_test", base_name))
+            || self.base_names.contains(&format!("{}_tests", base_name))
+            || self.base_names.contains(&format!("test_{}", base_name))
+    }
+
+    /// Check if a test file exists at any of the expected locations for a source file.
+    pub fn has_test_at_location(&self, source_path: &Path) -> bool {
+        let expected_locations = find_test_locations(source_path);
+        for test_path in &self.all_paths {
+            if expected_locations
+                .iter()
+                .any(|loc| test_path.ends_with(loc))
+            {
+                return true;
+            }
+        }
+        false
+    }
+
+    /// Check if the source path itself appears in test changes (for inline #[cfg(test)] blocks).
+    pub fn has_inline_test(&self, rel_path: &Path) -> bool {
+        self.all_paths.contains(rel_path)
+    }
+}
+
+/// Cached GlobSets for common pattern configurations.
+#[derive(Clone)]
+struct CompiledPatterns {
+    test_patterns: GlobSet,
+    source_patterns: GlobSet,
+    exclude_patterns: GlobSet,
+}
+
+impl CompiledPatterns {
+    fn from_config(config: &CorrelationConfig) -> Result<Self, String> {
+        Ok(Self {
+            test_patterns: build_glob_set(&config.test_patterns)?,
+            source_patterns: build_glob_set(&config.source_patterns)?,
+            exclude_patterns: build_glob_set(&config.exclude_patterns)?,
+        })
+    }
+
+    fn empty() -> Self {
+        Self {
+            test_patterns: GlobSet::empty(),
+            source_patterns: GlobSet::empty(),
+            exclude_patterns: GlobSet::empty(),
+        }
+    }
+}
+
+/// Get cached patterns for the default configuration.
+fn default_patterns() -> &'static CompiledPatterns {
+    static PATTERNS: OnceLock<CompiledPatterns> = OnceLock::new();
+    PATTERNS.get_or_init(|| {
+        // Default patterns are hardcoded and known to be valid, but we handle
+        // the error case defensively by returning empty patterns.
+        CompiledPatterns::from_config(&CorrelationConfig::default())
+            .unwrap_or_else(|_| CompiledPatterns::empty())
+    })
+}
+
 /// Analyze a single commit for source/test correlation.
 ///
 /// Returns analysis of whether the commit follows proper test hygiene:
@@ -96,13 +209,116 @@ pub fn analyze_correlation(
     config: &CorrelationConfig,
     root: &Path,
 ) -> CorrelationResult {
-    let test_patterns = build_glob_set(&config.test_patterns).unwrap_or_else(|_| empty_glob_set());
-    let source_patterns =
-        build_glob_set(&config.source_patterns).unwrap_or_else(|_| empty_glob_set());
-    let exclude_patterns =
-        build_glob_set(&config.exclude_patterns).unwrap_or_else(|_| empty_glob_set());
+    // Early termination: empty changes
+    if changes.is_empty() {
+        return CorrelationResult {
+            with_tests: vec![],
+            without_tests: vec![],
+            test_only: vec![],
+        };
+    }
 
-    // Classify changes
+    // Use cached patterns for default config, otherwise compile
+    let patterns: Cow<'_, CompiledPatterns> = if *config == CorrelationConfig::default() {
+        Cow::Borrowed(default_patterns())
+    } else {
+        Cow::Owned(
+            CompiledPatterns::from_config(config).unwrap_or_else(|_| CompiledPatterns::empty()),
+        )
+    };
+
+    // Classify changes (parallel for large sets)
+    let (source_changes, test_changes) = classify_changes(changes, patterns.as_ref(), root);
+
+    // Early termination: no source changes
+    if source_changes.is_empty() {
+        return CorrelationResult {
+            with_tests: vec![],
+            without_tests: vec![],
+            test_only: test_changes,
+        };
+    }
+
+    // Early termination: single source file (inline lookup, skip index build)
+    if source_changes.len() == 1 {
+        return analyze_single_source(source_changes[0], test_changes, root);
+    }
+
+    // Build test index for O(1) lookups
+    let test_index = TestIndex::new(&test_changes);
+
+    // Analyze each source file
+    let mut with_tests = Vec::new();
+    let mut without_tests = Vec::new();
+
+    for source in &source_changes {
+        let rel_path = source.path.strip_prefix(root).unwrap_or(&source.path);
+
+        // Use indexed lookups (O(1) base name + location check)
+        let has_test =
+            test_index.has_test_for(rel_path) || test_index.has_test_at_location(rel_path);
+
+        // Check if the source file itself appears in test changes (inline #[cfg(test)] blocks)
+        let has_inline_test = test_index.has_inline_test(rel_path);
+
+        if has_test || has_inline_test {
+            with_tests.push(rel_path.to_path_buf());
+        } else {
+            without_tests.push(rel_path.to_path_buf());
+        }
+    }
+
+    // Test-only changes (no corresponding source changes)
+    let source_base_names: HashSet<String> = with_tests
+        .iter()
+        .chain(without_tests.iter())
+        .filter_map(|p| correlation_base_name(p).map(|s| s.to_string()))
+        .collect();
+
+    let test_only: Vec<PathBuf> = test_changes
+        .into_iter()
+        .filter(|t| {
+            let test_base = extract_base_name(t).unwrap_or_default();
+            !source_base_names.contains(&test_base)
+                && !source_base_names.contains(&format!("{}_test", test_base))
+                && !source_base_names.contains(&format!("{}_tests", test_base))
+                && !source_base_names.contains(&format!("test_{}", test_base))
+                && !source_base_names.iter().any(|s| {
+                    test_base == format!("{}_test", s)
+                        || test_base == format!("{}_tests", s)
+                        || test_base == format!("test_{}", s)
+                })
+        })
+        .collect();
+
+    CorrelationResult {
+        with_tests,
+        without_tests,
+        test_only,
+    }
+}
+
+/// Classify changes into source and test files.
+///
+/// Uses parallel processing for large change sets (>= PARALLEL_THRESHOLD files).
+fn classify_changes<'a>(
+    changes: &'a [FileChange],
+    patterns: &CompiledPatterns,
+    root: &Path,
+) -> (Vec<&'a FileChange>, Vec<PathBuf>) {
+    if changes.len() >= PARALLEL_THRESHOLD {
+        classify_changes_parallel(changes, patterns, root)
+    } else {
+        classify_changes_sequential(changes, patterns, root)
+    }
+}
+
+/// Sequential classification for small change sets.
+fn classify_changes_sequential<'a>(
+    changes: &'a [FileChange],
+    patterns: &CompiledPatterns,
+    root: &Path,
+) -> (Vec<&'a FileChange>, Vec<PathBuf>) {
     let mut source_changes: Vec<&FileChange> = Vec::new();
     let mut test_changes: Vec<PathBuf> = Vec::new();
 
@@ -115,15 +331,68 @@ pub fn analyze_correlation(
         // Get relative path for pattern matching
         let rel_path = change.path.strip_prefix(root).unwrap_or(&change.path);
 
-        if test_patterns.is_match(rel_path) {
+        if patterns.test_patterns.is_match(rel_path) {
             test_changes.push(rel_path.to_path_buf());
-        } else if source_patterns.is_match(rel_path) {
-            // Check if excluded
-            if !exclude_patterns.is_match(rel_path) {
-                source_changes.push(change);
-            }
+        } else if patterns.source_patterns.is_match(rel_path)
+            && !patterns.exclude_patterns.is_match(rel_path)
+        {
+            source_changes.push(change);
         }
     }
+
+    (source_changes, test_changes)
+}
+
+/// Parallel classification for large change sets.
+fn classify_changes_parallel<'a>(
+    changes: &'a [FileChange],
+    patterns: &CompiledPatterns,
+    root: &Path,
+) -> (Vec<&'a FileChange>, Vec<PathBuf>) {
+    // Use rayon to classify in parallel
+    let classified: Vec<_> = changes
+        .par_iter()
+        .filter(|c| c.change_type != ChangeType::Deleted)
+        .filter_map(|change| {
+            let rel_path = change.path.strip_prefix(root).unwrap_or(&change.path);
+
+            if patterns.test_patterns.is_match(rel_path) {
+                Some((None, Some(rel_path.to_path_buf())))
+            } else if patterns.source_patterns.is_match(rel_path)
+                && !patterns.exclude_patterns.is_match(rel_path)
+            {
+                Some((Some(change), None))
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    // Separate into source and test changes
+    let mut source_changes = Vec::new();
+    let mut test_changes = Vec::new();
+
+    for (source, test) in classified {
+        if let Some(s) = source {
+            source_changes.push(s);
+        }
+        if let Some(t) = test {
+            test_changes.push(t);
+        }
+    }
+
+    (source_changes, test_changes)
+}
+
+/// Optimized analysis for a single source file.
+///
+/// Avoids building TestIndex when there's only one source file to check.
+fn analyze_single_source(
+    source: &FileChange,
+    test_changes: Vec<PathBuf>,
+    root: &Path,
+) -> CorrelationResult {
+    let rel_path = source.path.strip_prefix(root).unwrap_or(&source.path);
 
     // Extract test base names for matching
     let test_base_names: Vec<String> = test_changes
@@ -131,44 +400,33 @@ pub fn analyze_correlation(
         .filter_map(|p| extract_base_name(p))
         .collect();
 
-    // Analyze each source file
-    let mut with_tests = Vec::new();
-    let mut without_tests = Vec::new();
+    // Use the existing correlation check (efficient for single file)
+    let has_test = has_correlated_test(rel_path, &test_changes, &test_base_names);
 
-    for source in source_changes {
-        let rel_path = source.path.strip_prefix(root).unwrap_or(&source.path);
+    // Check if the source file itself appears in test changes
+    let has_inline_test = test_changes.iter().any(|t| t == rel_path);
 
-        // Use the enhanced correlation check
-        let has_test = has_correlated_test(rel_path, &test_changes, &test_base_names);
+    let (with_tests, without_tests) = if has_test || has_inline_test {
+        (vec![rel_path.to_path_buf()], vec![])
+    } else {
+        (vec![], vec![rel_path.to_path_buf()])
+    };
 
-        // Also check if the source file itself appears in test changes
-        // (for inline #[cfg(test)] blocks)
-        let has_inline_test = test_changes.iter().any(|t| t == rel_path);
-
-        if has_test || has_inline_test {
-            with_tests.push(rel_path.to_path_buf());
-        } else {
-            without_tests.push(rel_path.to_path_buf());
-        }
-    }
-
-    // Test-only changes (no corresponding source changes)
-    let source_base_names: Vec<String> = with_tests
-        .iter()
-        .chain(without_tests.iter())
-        .filter_map(|p| correlation_base_name(p).map(|s| s.to_string()))
-        .collect();
-
+    // Determine test-only changes
+    let source_base = correlation_base_name(rel_path).map(|s| s.to_string());
     let test_only: Vec<PathBuf> = test_changes
         .into_iter()
         .filter(|t| {
             let test_base = extract_base_name(t).unwrap_or_default();
-            !source_base_names.iter().any(|s| {
-                test_base == *s
-                    || test_base == format!("{}_test", s)
-                    || test_base == format!("{}_tests", s)
-                    || test_base == format!("test_{}", s)
-            })
+            match &source_base {
+                Some(s) => {
+                    test_base != *s
+                        && test_base != format!("{}_test", s)
+                        && test_base != format!("{}_tests", s)
+                        && test_base != format!("test_{}", s)
+                }
+                None => true,
+            }
         })
         .collect();
 
@@ -291,11 +549,6 @@ fn build_glob_set(patterns: &[String]) -> Result<GlobSet, String> {
         builder.add(glob);
     }
     builder.build().map_err(|e| e.to_string())
-}
-
-/// Create an empty GlobSet that matches nothing.
-fn empty_glob_set() -> GlobSet {
-    GlobSet::empty()
 }
 
 /// Check if a test file contains placeholder tests for a given source file.

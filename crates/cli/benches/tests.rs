@@ -19,7 +19,7 @@ use std::process::Command;
 use globset::{Glob, GlobSet, GlobSetBuilder};
 
 use quench::checks::tests::correlation::{
-    CorrelationConfig, analyze_correlation, candidate_test_paths, changes_in_cfg_test,
+    CorrelationConfig, TestIndex, analyze_correlation, candidate_test_paths, changes_in_cfg_test,
     find_test_locations, has_correlated_test,
 };
 use quench::checks::tests::diff::{ChangeType, FileChange};
@@ -402,6 +402,123 @@ fn bench_cli_check(c: &mut Criterion) {
 }
 
 //=============================================================================
+// Phase 5: Optimization Comparison Benchmarks
+//=============================================================================
+
+/// Benchmark TestIndex creation and lookup vs linear search.
+fn bench_optimization_comparison(c: &mut Criterion) {
+    let mut group = c.benchmark_group("tests-optimization");
+
+    // Generate test files for index
+    let test_files: Vec<PathBuf> = (0..100)
+        .map(|i| PathBuf::from(format!("tests/module{}_tests.rs", i)))
+        .collect();
+
+    // Pre-extract base names for the old linear approach
+    let test_base_names: Vec<String> = test_files
+        .iter()
+        .filter_map(|p| {
+            p.file_stem()
+                .and_then(|s| s.to_str())
+                .map(|s| s.strip_suffix("_tests").unwrap_or(s).to_string())
+        })
+        .collect();
+
+    // Benchmark: Index creation
+    group.bench_function("index_creation", |b| {
+        b.iter(|| black_box(TestIndex::new(&test_files)))
+    });
+
+    // Create index once for lookup benchmarks
+    let index = TestIndex::new(&test_files);
+
+    // Benchmark: Index lookup hit (middle of range)
+    group.bench_function("index_lookup_hit", |b| {
+        let source = Path::new("src/module50.rs");
+        b.iter(|| black_box(index.has_test_for(source)))
+    });
+
+    // Benchmark: Index lookup miss
+    group.bench_function("index_lookup_miss", |b| {
+        let source = Path::new("src/nonexistent.rs");
+        b.iter(|| black_box(index.has_test_for(source)))
+    });
+
+    // Benchmark: Old linear has_correlated_test (for comparison)
+    group.bench_function("linear_lookup_hit", |b| {
+        let source = Path::new("src/module50.rs");
+        b.iter(|| black_box(has_correlated_test(source, &test_files, &test_base_names)))
+    });
+
+    group.bench_function("linear_lookup_miss", |b| {
+        let source = Path::new("src/nonexistent.rs");
+        b.iter(|| black_box(has_correlated_test(source, &test_files, &test_base_names)))
+    });
+
+    // Benchmark: Multiple lookups (realistic scenario)
+    let source_files: Vec<PathBuf> = (0..50)
+        .map(|i| PathBuf::from(format!("src/module{}.rs", i)))
+        .collect();
+
+    group.bench_function("index_50_lookups", |b| {
+        b.iter(|| {
+            for source in &source_files {
+                black_box(index.has_test_for(source));
+            }
+        })
+    });
+
+    group.bench_function("linear_50_lookups", |b| {
+        b.iter(|| {
+            for source in &source_files {
+                black_box(has_correlated_test(source, &test_files, &test_base_names));
+            }
+        })
+    });
+
+    group.finish();
+}
+
+/// Benchmark early termination paths.
+fn bench_early_termination(c: &mut Criterion) {
+    let mut group = c.benchmark_group("tests-early-termination");
+    let config = CorrelationConfig::default();
+    let root = Path::new("/project");
+
+    // Empty changes (should be very fast)
+    group.bench_function("empty_changes", |b| {
+        let changes: Vec<FileChange> = vec![];
+        b.iter(|| black_box(analyze_correlation(&changes, &config, root)))
+    });
+
+    // Single source file (uses fast path)
+    group.bench_function("single_source", |b| {
+        let changes = vec![FileChange {
+            path: PathBuf::from("/project/src/parser.rs"),
+            change_type: ChangeType::Modified,
+            lines_added: 10,
+            lines_deleted: 5,
+        }];
+        b.iter(|| black_box(analyze_correlation(&changes, &config, root)))
+    });
+
+    // Test-only changes (no source files to correlate)
+    group.bench_function("test_only", |b| {
+        let changes: Vec<FileChange> = (0..10)
+            .map(|i| FileChange {
+                path: PathBuf::from(format!("/project/tests/module{}_tests.rs", i)),
+                change_type: ChangeType::Modified,
+                lines_added: 10,
+                lines_deleted: 5,
+            })
+            .collect();
+        b.iter(|| black_box(analyze_correlation(&changes, &config, root)))
+    });
+
+    group.finish();
+}
+
+//=============================================================================
 // Criterion Configuration
 //=============================================================================
 
@@ -417,5 +534,8 @@ criterion_group!(
     bench_inline_test_detection,
     // Phase 4: CLI
     bench_cli_check,
+    // Phase 5: Optimization comparison
+    bench_optimization_comparison,
+    bench_early_termination,
 );
 criterion_main!(benches);

@@ -480,3 +480,152 @@ fn analyze_commit_source_with_tests_passes() {
     assert_eq!(analysis.source_without_tests.len(), 0);
     assert!(!analysis.is_test_only);
 }
+
+// =============================================================================
+// PERFORMANCE OPTIMIZATION TESTS (Phase 1-4)
+// =============================================================================
+
+#[test]
+fn analyze_correlation_empty_changes_fast_path() {
+    let root = Path::new("/project");
+    let changes: Vec<FileChange> = vec![];
+
+    let config = CorrelationConfig::default();
+    let result = analyze_correlation(&changes, &config, root);
+
+    assert!(result.with_tests.is_empty());
+    assert!(result.without_tests.is_empty());
+    assert!(result.test_only.is_empty());
+}
+
+#[test]
+fn analyze_correlation_single_source_fast_path() {
+    let root = Path::new("/project");
+    let changes = vec![
+        make_change("/project/src/parser.rs", ChangeType::Modified),
+        make_change("/project/tests/parser_tests.rs", ChangeType::Modified),
+    ];
+
+    let config = CorrelationConfig::default();
+    let result = analyze_correlation(&changes, &config, root);
+
+    // Should use single source optimization
+    assert_eq!(result.with_tests.len(), 1);
+    assert_eq!(result.without_tests.len(), 0);
+}
+
+#[test]
+fn analyze_correlation_source_only_no_tests_fast_path() {
+    let root = Path::new("/project");
+    // Only source changes, no test changes
+    let changes = vec![
+        make_change("/project/src/parser.rs", ChangeType::Modified),
+        make_change("/project/src/lexer.rs", ChangeType::Modified),
+    ];
+
+    let config = CorrelationConfig::default();
+    let result = analyze_correlation(&changes, &config, root);
+
+    assert!(result.with_tests.is_empty());
+    assert_eq!(result.without_tests.len(), 2);
+    assert!(result.test_only.is_empty());
+}
+
+#[test]
+fn analyze_correlation_test_only_fast_path() {
+    let root = Path::new("/project");
+    // Only test changes, no source changes
+    let changes = vec![
+        make_change("/project/tests/parser_tests.rs", ChangeType::Modified),
+        make_change("/project/tests/lexer_tests.rs", ChangeType::Modified),
+    ];
+
+    let config = CorrelationConfig::default();
+    let result = analyze_correlation(&changes, &config, root);
+
+    assert!(result.with_tests.is_empty());
+    assert!(result.without_tests.is_empty());
+    assert_eq!(result.test_only.len(), 2);
+}
+
+#[test]
+fn test_index_has_test_for_direct_match() {
+    let test_changes = vec![
+        PathBuf::from("tests/parser_tests.rs"),
+        PathBuf::from("tests/lexer_tests.rs"),
+    ];
+    let index = TestIndex::new(&test_changes);
+
+    // Should find test by base name
+    assert!(index.has_test_for(Path::new("src/parser.rs")));
+    assert!(index.has_test_for(Path::new("src/lexer.rs")));
+    assert!(!index.has_test_for(Path::new("src/codegen.rs")));
+}
+
+#[test]
+fn test_index_has_test_for_suffixed_names() {
+    let test_changes = vec![
+        PathBuf::from("tests/parser_test.rs"), // _test suffix
+        PathBuf::from("tests/test_lexer.rs"),  // test_ prefix
+    ];
+    let index = TestIndex::new(&test_changes);
+
+    assert!(index.has_test_for(Path::new("src/parser.rs")));
+    assert!(index.has_test_for(Path::new("src/lexer.rs")));
+}
+
+#[test]
+fn test_index_has_inline_test() {
+    let test_changes = vec![
+        PathBuf::from("src/parser.rs"), // Inline test in source file
+        PathBuf::from("tests/lexer_tests.rs"),
+    ];
+    let index = TestIndex::new(&test_changes);
+
+    assert!(index.has_inline_test(Path::new("src/parser.rs")));
+    assert!(!index.has_inline_test(Path::new("src/lexer.rs")));
+}
+
+#[test]
+fn test_index_has_test_at_location() {
+    let test_changes = vec![
+        PathBuf::from("tests/parser_tests.rs"),
+        PathBuf::from("src/lexer_tests.rs"), // Sibling test
+    ];
+    let index = TestIndex::new(&test_changes);
+
+    // Should find test at expected location
+    assert!(index.has_test_at_location(Path::new("src/parser.rs")));
+    assert!(index.has_test_at_location(Path::new("src/lexer.rs")));
+    assert!(!index.has_test_at_location(Path::new("src/codegen.rs")));
+}
+
+#[test]
+fn analyze_correlation_many_sources_uses_index() {
+    let root = Path::new("/project");
+
+    // Create many source and test changes
+    let mut changes: Vec<FileChange> = (0..20)
+        .map(|i| {
+            make_change(
+                &format!("/project/src/module{}.rs", i),
+                ChangeType::Modified,
+            )
+        })
+        .collect();
+
+    // Add matching tests for half of them
+    for i in 0..10 {
+        changes.push(make_change(
+            &format!("/project/tests/module{}_tests.rs", i),
+            ChangeType::Modified,
+        ));
+    }
+
+    let config = CorrelationConfig::default();
+    let result = analyze_correlation(&changes, &config, root);
+
+    // First 10 modules should have tests, last 10 should not
+    assert_eq!(result.with_tests.len(), 10);
+    assert_eq!(result.without_tests.len(), 10);
+}
