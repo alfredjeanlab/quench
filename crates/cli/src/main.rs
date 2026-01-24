@@ -4,6 +4,7 @@
 //! Quench CLI entry point.
 
 mod git;
+mod report;
 
 use std::sync::Arc;
 
@@ -532,16 +533,38 @@ fn run_check(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
     Ok(exit_code)
 }
 
-fn run_report(_cli: &Cli, args: &ReportArgs) -> anyhow::Result<()> {
-    match args.output {
-        OutputFormat::Text => println!("No metrics collected yet."),
-        OutputFormat::Json => println!(r#"{{"metrics": {{}}}}"#),
+fn run_report(cli: &Cli, args: &ReportArgs) -> anyhow::Result<()> {
+    let cwd = std::env::current_dir()?;
+
+    // Find and load config
+    let config = if let Some(ref path) = cli.config {
+        config::load_with_warnings(path)?
+    } else if let Some(path) = discovery::find_config(&cwd) {
+        config::load_with_warnings(&path)?
+    } else {
+        config::Config::default()
+    };
+
+    // Determine baseline path
+    let baseline_path = cwd.join(&config.git.baseline);
+
+    // Load baseline
+    let baseline = Baseline::load(&baseline_path)?;
+
+    match baseline {
+        Some(baseline) => report::format_report(args, &baseline),
+        None => {
+            match args.output {
+                OutputFormat::Text => println!("No baseline found."),
+                OutputFormat::Json => println!(r#"{{"metrics": {{}}}}"#),
+            }
+            Ok(())
+        }
     }
-    Ok(())
 }
 
 fn run_init(_cli: &Cli, args: &InitArgs) -> anyhow::Result<ExitCode> {
-    use quench::cli::{
+    use quench::profiles::{
         ProfileRegistry, agents_section, default_template_base, default_template_suffix,
         golang_detected_section, javascript_detected_section, rust_detected_section,
         shell_detected_section,

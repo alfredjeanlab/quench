@@ -1,0 +1,449 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
+//! Profile defaults and templates for quench init command.
+//!
+//! Provides configuration templates for various languages and agent types.
+
+use crate::init::{CursorMarker, DetectedAgent};
+
+// =============================================================================
+// PROFILE DEFAULTS
+// =============================================================================
+
+/// Claude agent profile configuration for quench init.
+///
+/// Sets up [check.agents] with CLAUDE.md as required.
+pub fn claude_profile_defaults() -> &'static str {
+    r#"[check.agents]
+check = "error"
+required = ["CLAUDE.md"]
+"#
+}
+
+/// Cursor agent profile configuration for quench init.
+///
+/// Sets up [check.agents] with .cursorrules as required.
+pub fn cursor_profile_defaults() -> &'static str {
+    r#"[check.agents]
+check = "error"
+required = [".cursorrules"]
+"#
+}
+
+/// JavaScript profile configuration for quench init.
+pub fn javascript_profile_defaults() -> String {
+    r#"[javascript]
+source = ["**/*.js", "**/*.jsx", "**/*.ts", "**/*.tsx", "**/*.mjs", "**/*.mts"]
+tests = ["**/*.test.*", "**/*.spec.*", "**/test/**", "**/tests/**", "**/__tests__/**"]
+
+[javascript.suppress]
+check = "comment"
+
+[javascript.suppress.test]
+check = "allow"
+
+[javascript.policy]
+lint_changes = "standalone"
+lint_config = [".eslintrc", ".eslintrc.json", ".eslintrc.js", "eslint.config.js", ".prettierrc", ".prettierrc.json"]
+
+[[check.escapes.patterns]]
+name = "any_type"
+pattern = ": any\\b"
+action = "comment"
+comment = "// ANY:"
+advice = "Add a // ANY: comment explaining why any is needed."
+
+[[check.escapes.patterns]]
+name = "ts_ignore"
+pattern = "@ts-ignore"
+action = "forbid"
+advice = "Use @ts-expect-error with an explanation instead."
+
+[[check.escapes.patterns]]
+name = "eslint_disable"
+pattern = "eslint-disable"
+action = "comment"
+advice = "Add a comment explaining why this rule is disabled."
+"#
+    .to_string()
+}
+
+/// Default Rust profile configuration for quench init.
+///
+/// Note: The transmute pattern uses concat to avoid self-matching.
+pub fn rust_profile_defaults() -> String {
+    // SAFETY: String concatenation to avoid pattern self-match in escapes check.
+    let transmute_pattern = format!("mem{}transmute", "::");
+    format!(
+        r#"[rust]
+cfg_test_split = true
+
+[rust.suppress]
+check = "comment"
+
+[rust.suppress.test]
+check = "allow"
+
+[rust.policy]
+lint_changes = "standalone"
+lint_config = ["rustfmt.toml", ".rustfmt.toml", "clippy.toml", ".clippy.toml"]
+
+[[check.escapes.patterns]]
+name = "unsafe"
+pattern = "unsafe\\s*\\{{"
+action = "comment"
+comment = "// SAFETY:"
+advice = "Add a // SAFETY: comment explaining the invariants."
+
+[[check.escapes.patterns]]
+name = "unwrap"
+pattern = "\\.unwrap\\(\\)"
+action = "forbid"
+advice = "Use ? operator or handle the error explicitly."
+
+[[check.escapes.patterns]]
+name = "expect"
+pattern = "\\.expect\\("
+action = "forbid"
+advice = "Use ? operator or handle the error explicitly."
+
+[[check.escapes.patterns]]
+name = "transmute"
+pattern = "{transmute_pattern}"
+action = "comment"
+comment = "// SAFETY:"
+advice = "Add a // SAFETY: comment explaining type compatibility."
+"#
+    )
+}
+
+/// Rust-specific Landing the Plane checklist items.
+pub fn rust_landing_items() -> &'static [&'static str] {
+    &[
+        "cargo fmt --check",
+        "cargo clippy -- -D warnings",
+        "cargo test",
+        "cargo build",
+    ]
+}
+
+/// Default Shell profile configuration for quench init.
+pub fn shell_profile_defaults() -> String {
+    r##"[shell]
+source = ["**/*.sh", "**/*.bash"]
+tests = ["tests/**/*.bats", "test/**/*.bats", "*_test.sh", "**/*_test.sh"]
+
+[shell.suppress]
+check = "comment"
+comment = "# OK:"
+
+[shell.suppress.test]
+check = "allow"
+
+[shell.policy]
+lint_changes = "standalone"
+lint_config = [".shellcheckrc"]
+
+[[check.escapes.patterns]]
+name = "set_plus_e"
+pattern = "set \\+e"
+action = "comment"
+comment = "# OK:"
+advice = "Add a # OK: comment explaining why error checking is disabled."
+
+[[check.escapes.patterns]]
+name = "eval"
+pattern = "\\beval\\s"
+action = "comment"
+comment = "# OK:"
+advice = "Add a # OK: comment explaining why eval is safe here."
+
+[[check.escapes.patterns]]
+name = "rm_rf"
+pattern = "rm\\s+-rf"
+action = "comment"
+comment = "# OK:"
+advice = "Add a # OK: comment explaining the rm -rf is safe."
+"##
+    .to_string()
+}
+
+/// Shell-specific Landing the Plane checklist items.
+pub fn shell_landing_items() -> &'static [&'static str] {
+    &["shellcheck **/*.sh", "bats tests/"]
+}
+
+/// Default Go profile configuration for quench init.
+pub fn golang_profile_defaults() -> String {
+    r#"[golang]
+binary_size = true
+build_time = true
+
+[golang.suppress]
+check = "comment"
+
+[golang.suppress.test]
+check = "allow"
+
+[golang.policy]
+lint_changes = "standalone"
+lint_config = [".golangci.yml", ".golangci.yaml", ".golangci.toml"]
+
+[[check.escapes.patterns]]
+name = "unsafe_pointer"
+pattern = "unsafe\\.Pointer"
+action = "comment"
+comment = "// SAFETY:"
+advice = "Add a // SAFETY: comment explaining pointer validity."
+
+[[check.escapes.patterns]]
+name = "go_linkname"
+pattern = "//go:linkname"
+action = "comment"
+comment = "// LINKNAME:"
+advice = "Add a // LINKNAME: comment explaining the external symbol dependency."
+
+[[check.escapes.patterns]]
+name = "go_noescape"
+pattern = "//go:noescape"
+action = "comment"
+comment = "// NOESCAPE:"
+advice = "Add a // NOESCAPE: comment explaining why escape analysis should be bypassed."
+"#
+    .to_string()
+}
+
+/// Go-specific Landing the Plane checklist items.
+pub fn golang_landing_items() -> &'static [&'static str] {
+    &[
+        "go fmt ./...",
+        "go vet ./...",
+        "golangci-lint run",
+        "go test ./...",
+        "go build ./...",
+    ]
+}
+
+// =============================================================================
+// PROFILE REGISTRY
+// =============================================================================
+
+/// Profile registry for init command.
+///
+/// Centralizes profile lookup for maintainability and extensibility.
+pub struct ProfileRegistry;
+
+impl ProfileRegistry {
+    /// Get all available profile names.
+    pub fn available() -> &'static [&'static str] {
+        &["rust", "golang", "javascript", "shell", "claude", "cursor"]
+    }
+
+    /// Get profile content by name.
+    ///
+    /// Returns the full profile configuration string for the given profile name,
+    /// or None if the profile is not recognized.
+    pub fn get(name: &str) -> Option<String> {
+        match name.to_lowercase().as_str() {
+            "rust" => Some(rust_profile_defaults()),
+            "shell" => Some(shell_profile_defaults()),
+            "golang" | "go" => Some(golang_profile_defaults()),
+            "javascript" | "js" | "typescript" | "ts" => Some(javascript_profile_defaults()),
+            "claude" => Some(claude_profile_defaults().to_string()),
+            "cursor" => Some(cursor_profile_defaults().to_string()),
+            _ => None,
+        }
+    }
+
+    /// Check if a profile name is valid.
+    pub fn is_valid(name: &str) -> bool {
+        Self::get(name).is_some()
+    }
+
+    /// Check if a profile is an agent profile (vs language profile).
+    pub fn is_agent_profile(name: &str) -> bool {
+        matches!(name.to_lowercase().as_str(), "claude" | "cursor")
+    }
+
+    /// Suggest similar profile names for typos.
+    ///
+    /// Uses simple prefix matching to suggest corrections.
+    pub fn suggest(name: &str) -> Option<&'static str> {
+        let lower = name.to_lowercase();
+
+        // Check for common prefixes
+        for &profile in Self::available() {
+            if profile.starts_with(&lower) || lower.starts_with(profile) {
+                return Some(profile);
+            }
+        }
+
+        // Check for common aliases
+        match lower.as_str() {
+            "js" | "ts" | "typescript" | "node" => Some("javascript"),
+            "go" => Some("golang"),
+            "bash" | "zsh" | "sh" => Some("shell"),
+            _ => None,
+        }
+    }
+}
+
+// =============================================================================
+// DETECTED AGENT SECTIONS
+// =============================================================================
+
+/// Generate [check.agents] section with detected agents.
+///
+/// Returns the TOML section with required files based on detected agents.
+pub fn agents_detected_section(agents: &[DetectedAgent]) -> String {
+    if agents.is_empty() {
+        return String::new();
+    }
+
+    let required: Vec<&str> = agents
+        .iter()
+        .map(|a| match a {
+            DetectedAgent::Claude => "CLAUDE.md",
+            DetectedAgent::Cursor(CursorMarker::Cursorrules) => ".cursorrules",
+            DetectedAgent::Cursor(CursorMarker::CursorRulesDir) => ".cursor/rules/*.mdc",
+        })
+        .collect();
+
+    format!(
+        r#"[check.agents]
+check = "error"
+required = {:?}
+"#,
+        required
+    )
+}
+
+// =============================================================================
+// DETECTED LANGUAGE SECTIONS
+// =============================================================================
+
+/// Minimal Rust section for auto-detection output.
+///
+/// Uses dotted keys per spec: docs/specs/commands/quench-init.md
+pub fn rust_detected_section() -> &'static str {
+    r#"[rust]
+rust.cloc.check = "error"
+rust.policy.check = "error"
+rust.suppress.check = "comment"
+"#
+}
+
+/// Minimal Go section for auto-detection output.
+pub fn golang_detected_section() -> &'static str {
+    r#"[golang]
+golang.cloc.check = "error"
+golang.policy.check = "error"
+golang.suppress.check = "comment"
+"#
+}
+
+/// Minimal JavaScript section for auto-detection output.
+pub fn javascript_detected_section() -> &'static str {
+    r#"[javascript]
+javascript.cloc.check = "error"
+javascript.policy.check = "error"
+javascript.suppress.check = "comment"
+"#
+}
+
+/// Minimal Shell section for auto-detection output.
+///
+/// Note: Shell uses "forbid" for suppress by default.
+pub fn shell_detected_section() -> &'static str {
+    r#"[shell]
+shell.cloc.check = "error"
+shell.policy.check = "error"
+shell.suppress.check = "forbid"
+"#
+}
+
+// =============================================================================
+// DEFAULT TEMPLATE
+// =============================================================================
+
+/// Base template without [check.agents] section.
+/// The agents section is generated separately to support required field.
+pub fn default_template_base() -> &'static str {
+    r#"# Quench configuration
+# https://github.com/alfredjeanlab/quench
+version = 1
+
+[check.cloc]
+check = "error"
+
+[check.escapes]
+check = "error"
+
+"#
+}
+
+/// Portion of template after agents section.
+pub fn default_template_suffix() -> &'static str {
+    r#"
+[check.docs]
+check = "error"
+
+[check.tests]
+check = "off"  # stub in quench v0.3.0
+
+[check.license]
+check = "off"  # stub in quench v0.3.0
+
+[git]
+baseline = ".quench/baseline.json"
+
+[git.commit]
+check = "off"  # stub in quench v0.3.0
+
+[ratchet]
+check = "error"       # error | warn | off
+coverage = true       # Coverage can't drop
+escapes = true        # Escape counts can't increase
+# binary_size = false # Opt-in: binaries can't grow
+# build_time_cold = false
+# build_time_hot = false
+# test_time_total = false
+
+# Supported Languages:
+# [rust], [golang], [javascript], [shell]
+"#
+}
+
+/// Generate [check.agents] section with optional required field.
+pub fn agents_section(agents: &[DetectedAgent]) -> String {
+    if agents.is_empty() {
+        return "[check.agents]\ncheck = \"error\"\n".to_string();
+    }
+
+    let required: Vec<&str> = agents
+        .iter()
+        .map(|a| match a {
+            DetectedAgent::Claude => "CLAUDE.md",
+            DetectedAgent::Cursor(CursorMarker::Cursorrules) => ".cursorrules",
+            DetectedAgent::Cursor(CursorMarker::CursorRulesDir) => ".cursor/rules/*.mdc",
+        })
+        .collect();
+
+    format!(
+        "[check.agents]\ncheck = \"error\"\nrequired = {:?}\n",
+        required
+    )
+}
+
+/// Full default template for quench init without profiles.
+///
+/// Matches docs/specs/templates/init.default.toml
+pub fn default_template() -> String {
+    format!(
+        "{}{}{}",
+        default_template_base(),
+        agents_section(&[]),
+        default_template_suffix()
+    )
+}

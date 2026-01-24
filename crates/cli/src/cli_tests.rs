@@ -4,6 +4,7 @@
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
 use super::*;
+use crate::init::CursorMarker;
 
 #[test]
 fn parse_bare_invocation() {

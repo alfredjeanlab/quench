@@ -14,6 +14,7 @@ pub mod error;
 pub mod init;
 pub mod output;
 pub mod pattern;
+pub mod profiles;
 pub mod ratchet;
 pub mod runner;
 pub mod tolerance;

@@ -18,7 +18,6 @@ use crate::prelude::*;
 ///
 /// > Reports read from .quench/baseline.json
 #[test]
-#[ignore = "TODO: Phase 1302 - Report Implementation"]
 fn report_reads_baseline_file() {
     report()
         .on("report/with-baseline")
@@ -30,7 +29,6 @@ fn report_reads_baseline_file() {
 ///
 /// > Report without baseline shows appropriate message
 #[test]
-#[ignore = "TODO: Phase 1302 - Report Implementation"]
 fn report_without_baseline_shows_message() {
     report()
         .on("report/no-baseline")
@@ -46,7 +44,6 @@ fn report_without_baseline_shows_message() {
 ///
 /// > Default output format is text
 #[test]
-#[ignore = "TODO: Phase 1302 - Report Implementation"]
 fn report_default_format_is_text() {
     // Should not be JSON or HTML
     report()
@@ -60,7 +57,6 @@ fn report_default_format_is_text() {
 ///
 /// > Text format shows summary with metrics
 #[test]
-#[ignore = "TODO: Phase 1302 - Report Implementation"]
 fn report_text_shows_summary() {
     report()
         .on("report/with-baseline")
@@ -73,7 +69,6 @@ fn report_text_shows_summary() {
 ///
 /// > Text format shows baseline commit and timestamp
 #[test]
-#[ignore = "TODO: Phase 1302 - Report Implementation"]
 fn report_text_shows_baseline_info() {
     report()
         .on("report/with-baseline")
@@ -90,7 +85,6 @@ fn report_text_shows_baseline_info() {
 ///
 /// > JSON format outputs machine-readable metrics
 #[test]
-#[ignore = "TODO: Phase 1302 - Report Implementation"]
 fn report_json_outputs_metrics() {
     let output = report().on("report/with-baseline").json().runs();
 
@@ -107,7 +101,6 @@ fn report_json_outputs_metrics() {
 ///
 /// > JSON format includes baseline metadata
 #[test]
-#[ignore = "TODO: Phase 1302 - Report Implementation"]
 fn report_json_includes_metadata() {
     let output = report().on("report/with-baseline").json().runs();
 
@@ -121,7 +114,6 @@ fn report_json_includes_metadata() {
 ///
 /// > JSON format with no baseline outputs empty metrics
 #[test]
-#[ignore = "TODO: Phase 1302 - Report Implementation"]
 fn report_json_no_baseline_empty_metrics() {
     let output = report().on("report/no-baseline").json().runs();
 
@@ -139,7 +131,7 @@ fn report_json_no_baseline_empty_metrics() {
 ///
 /// > HTML format produces valid HTML document
 #[test]
-#[ignore = "TODO: Phase 1302 - Report Implementation"]
+#[ignore = "TODO: Phase 1306 - HTML Report Format"]
 fn report_html_produces_valid_html() {
     report()
         .on("report/with-baseline")
@@ -154,7 +146,7 @@ fn report_html_produces_valid_html() {
 ///
 /// > HTML format includes metrics data
 #[test]
-#[ignore = "TODO: Phase 1302 - Report Implementation"]
+#[ignore = "TODO: Phase 1306 - HTML Report Format"]
 fn report_html_includes_metrics() {
     report()
         .on("report/with-baseline")
@@ -172,7 +164,7 @@ fn report_html_includes_metrics() {
 ///
 /// > -o report.html writes to file instead of stdout
 #[test]
-#[ignore = "TODO: Phase 1302 - Report Implementation"]
+#[ignore = "TODO: Phase 1306 - File Output"]
 fn report_writes_to_file() {
     let temp = Project::with_defaults();
 
