@@ -1,0 +1,10 @@
+version = 1
+
+[check.agents]
+required = []
+
+[javascript.suppress]
+check = "comment"
+
+[javascript.suppress.test]
+check = "allow"

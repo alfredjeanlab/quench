@@ -1,0 +1,11 @@
+version = 1
+
+[check.agents]
+required = []
+
+[[check.escapes.patterns]]
+pattern = "as unknown"
+action = "comment"
+comment = "// CAST:"
+source = ["**/*.ts", "**/*.tsx"]
+advice = "Add a // CAST: comment explaining why the type assertion is necessary."

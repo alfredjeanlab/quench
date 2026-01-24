@@ -1,0 +1,12 @@
+version = 1
+
+[check.agents]
+required = []
+
+[[check.escapes.patterns]]
+pattern = "@ts-ignore"
+action = "forbid"
+in_tests = "allow"
+source = ["**/*.ts", "**/*.tsx"]
+tests = ["**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts", "**/*.spec.tsx"]
+advice = "Use @ts-expect-error instead, which fails if the error is resolved."
