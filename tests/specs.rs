@@ -47,6 +47,9 @@ mod checks_agents;
 #[path = "specs/checks/docs/mod.rs"]
 mod checks_docs;
 
+#[path = "specs/checks/tests/mod.rs"]
+mod checks_tests;
+
 // output/
 #[path = "specs/output/format.rs"]
 mod output_format;
