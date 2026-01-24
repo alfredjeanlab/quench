@@ -21,6 +21,7 @@ pub mod escapes;
 pub mod git;
 pub mod stub;
 pub mod testing;
+pub mod tests;
 
 use std::sync::Arc;
 
@@ -41,7 +42,7 @@ pub fn all_checks() -> Vec<Arc<dyn Check>> {
         Arc::new(escapes::EscapesCheck),
         Arc::new(agents::AgentsCheck),
         Arc::new(docs::DocsCheck),
-        Arc::new(testing::TestsCheck),
+        tests::TestsCheck::new(),
         Arc::new(git::GitCheck),
         Arc::new(build::BuildCheck),
         Arc::new(stub::StubCheck::new("license", "License headers", false)),
@@ -77,4 +78,4 @@ pub fn filter_checks(enabled: &[String], disabled: &[String]) -> Vec<Arc<dyn Che
 
 #[cfg(test)]
 #[path = "mod_tests.rs"]
-mod tests;
+mod unit_tests;

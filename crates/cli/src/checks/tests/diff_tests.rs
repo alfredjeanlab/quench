@@ -1,0 +1,115 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
+//! Unit tests for git diff parsing.
+
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+
+use super::*;
+
+#[test]
+fn parse_numstat_basic() {
+    let output = "10\t5\tsrc/parser.rs
+3\t1\tsrc/lexer.rs";
+
+    let result = parse_numstat(output);
+    assert_eq!(result.len(), 2);
+    assert_eq!(result[0].0, PathBuf::from("src/parser.rs"));
+    assert_eq!(result[0].1, 10); // added
+    assert_eq!(result[0].2, 5); // deleted
+    assert_eq!(result[1].0, PathBuf::from("src/lexer.rs"));
+    assert_eq!(result[1].1, 3);
+    assert_eq!(result[1].2, 1);
+}
+
+#[test]
+fn parse_numstat_binary_files() {
+    let output = "-\t-\timage.png
+10\t5\tsrc/parser.rs";
+
+    let result = parse_numstat(output);
+    assert_eq!(result.len(), 2);
+    // Binary files have 0 for counts
+    assert_eq!(result[0].0, PathBuf::from("image.png"));
+    assert_eq!(result[0].1, 0);
+    assert_eq!(result[0].2, 0);
+}
+
+#[test]
+fn parse_numstat_empty() {
+    let output = "";
+    let result = parse_numstat(output);
+    assert!(result.is_empty());
+}
+
+#[test]
+fn parse_name_status_basic() {
+    let output = "A\tsrc/new_file.rs
+M\tsrc/parser.rs
+D\tsrc/old_file.rs";
+
+    let result = parse_name_status(output);
+    assert_eq!(result.len(), 3);
+    assert_eq!(result[0].0, PathBuf::from("src/new_file.rs"));
+    assert_eq!(result[0].1, ChangeType::Added);
+    assert_eq!(result[1].0, PathBuf::from("src/parser.rs"));
+    assert_eq!(result[1].1, ChangeType::Modified);
+    assert_eq!(result[2].0, PathBuf::from("src/old_file.rs"));
+    assert_eq!(result[2].1, ChangeType::Deleted);
+}
+
+#[test]
+fn parse_name_status_renamed() {
+    let output = "R100\told_name.rs\tnew_name.rs";
+
+    let result = parse_name_status(output);
+    assert_eq!(result.len(), 1);
+    assert_eq!(result[0].0, PathBuf::from("new_name.rs"));
+    assert_eq!(result[0].1, ChangeType::Modified);
+}
+
+#[test]
+fn parse_name_status_empty() {
+    let output = "";
+    let result = parse_name_status(output);
+    assert!(result.is_empty());
+}
+
+#[test]
+fn file_change_lines_changed() {
+    let change = FileChange {
+        path: PathBuf::from("src/test.rs"),
+        change_type: ChangeType::Modified,
+        lines_added: 10,
+        lines_deleted: 5,
+    };
+
+    assert_eq!(change.lines_changed(), 15);
+}
+
+#[test]
+fn merge_outputs_combines_data() {
+    let numstat = "10\t5\tsrc/parser.rs";
+    let name_status = "M\tsrc/parser.rs";
+    let root = Path::new("/project");
+
+    let result = merge_diff_outputs(numstat, name_status, root).unwrap();
+    assert_eq!(result.len(), 1);
+    assert_eq!(result[0].path, PathBuf::from("/project/src/parser.rs"));
+    assert_eq!(result[0].change_type, ChangeType::Modified);
+    assert_eq!(result[0].lines_added, 10);
+    assert_eq!(result[0].lines_deleted, 5);
+}
+
+#[test]
+fn merge_outputs_handles_missing_counts() {
+    // File appears in name-status but not numstat (e.g., binary)
+    let numstat = "";
+    let name_status = "A\tsrc/image.png";
+    let root = Path::new("/project");
+
+    let result = merge_diff_outputs(numstat, name_status, root).unwrap();
+    assert_eq!(result.len(), 1);
+    assert_eq!(result[0].lines_added, 0);
+    assert_eq!(result[0].lines_deleted, 0);
+}

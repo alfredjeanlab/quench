@@ -78,6 +78,7 @@ fn runner_executes_all_checks() {
         dry_run: false,
         ci_mode: false,
         base_branch: None,
+        staged: false,
     });
     let config = Config::default();
     let files = vec![];
@@ -103,6 +104,7 @@ fn runner_isolates_panicking_check() {
         dry_run: false,
         ci_mode: false,
         base_branch: None,
+        staged: false,
     });
     let config = Config::default();
     let files = vec![];
@@ -137,6 +139,7 @@ fn runner_continues_after_check_failure() {
         dry_run: false,
         ci_mode: false,
         base_branch: None,
+        staged: false,
     });
     let config = Config::default();
     let files = vec![];
@@ -169,6 +172,7 @@ fn should_terminate_with_limit() {
         dry_run: false,
         ci_mode: false,
         base_branch: None,
+        staged: false,
     });
     assert!(!runner.should_terminate(5));
     assert!(runner.should_terminate(10));
@@ -184,6 +188,7 @@ fn should_terminate_without_limit() {
         dry_run: false,
         ci_mode: false,
         base_branch: None,
+        staged: false,
     });
     assert!(!runner.should_terminate(1000));
 }

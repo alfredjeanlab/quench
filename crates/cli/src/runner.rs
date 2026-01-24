@@ -33,6 +33,8 @@ pub struct RunnerConfig {
     pub ci_mode: bool,
     /// Base branch for commit comparison in CI mode.
     pub base_branch: Option<String>,
+    /// Whether checking only staged changes (--staged flag).
+    pub staged: bool,
 }
 
 /// The check runner executes multiple checks in parallel.
@@ -134,6 +136,7 @@ impl CheckRunner {
                     dry_run: self.config.dry_run,
                     ci_mode: self.config.ci_mode,
                     base_branch: self.config.base_branch.as_deref(),
+                    staged: self.config.staged,
                 };
 
                 // Run check on uncached files
@@ -249,6 +252,7 @@ impl CheckRunner {
                     dry_run: self.config.dry_run,
                     ci_mode: self.config.ci_mode,
                     base_branch: self.config.base_branch.as_deref(),
+                    staged: self.config.staged,
                 };
 
                 // Catch panics to ensure error isolation
