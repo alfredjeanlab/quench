@@ -4,7 +4,7 @@ Quench uses convention over configuration with a single optional `quench.toml` a
 
 ## File Location
 
-```
+```text
 project-root/
 ├── quench.toml              # Single config file (optional)
 ├── .quench/
