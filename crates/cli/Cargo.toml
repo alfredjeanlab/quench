@@ -69,5 +69,9 @@ harness = false
 name = "stress"
 harness = false
 
+[[bench]]
+name = "dogfood"
+harness = false
+
 [lints]
 workspace = true

@@ -1,0 +1,613 @@
+#!/bin/bash
+# SPDX-License-Identifier: MIT
+# Generate benchmark fixtures for criterion tests
+set -euo pipefail
+
+FIXTURES_DIR="${1:-tests/fixtures}"
+
+# Helper to capitalize first letter (portable)
+capitalize() {
+    echo "$1" | awk '{print toupper(substr($0,1,1)) tolower(substr($0,2))}'
+}
+
+# Helper to generate a Rust function
+gen_function() {
+    local name="$1"
+    local lines="${2:-10}"
+    echo "pub fn $name() -> i32 {"
+    echo "    let mut result = 0;"
+    local i=1
+    while [ $i -lt $((lines-3)) ]; do
+        echo "    result += $i;"
+        i=$((i+1))
+    done
+    echo "    result"
+    echo "}"
+    echo
+}
+
+# Helper to generate a struct with impl
+gen_struct() {
+    local name="$1"
+    local fields="${2:-3}"
+    echo "#[derive(Debug, Clone, Default)]"
+    echo "pub struct $name {"
+    local i=1
+    while [ $i -le $fields ]; do
+        echo "    pub field_$i: i32,"
+        i=$((i+1))
+    done
+    echo "}"
+    echo
+    echo "impl $name {"
+    echo "    pub fn new() -> Self {"
+    echo "        Self::default()"
+    echo "    }"
+    echo
+    echo "    pub fn calculate(&self) -> i32 {"
+    local calc="0"
+    i=1
+    while [ $i -le $fields ]; do
+        calc="$calc + self.field_$i"
+        i=$((i+1))
+    done
+    echo "        $calc"
+    echo "    }"
+    echo "}"
+    echo
+}
+
+# bench-small: ~10 files, ~500 LOC
+create_bench_small() {
+    local dir="$FIXTURES_DIR/bench-small"
+    rm -rf "$dir"
+    mkdir -p "$dir/src" "$dir/tests"
+
+    # Cargo.toml
+    cat > "$dir/Cargo.toml" << 'EOF'
+[package]
+name = "bench-small"
+version = "0.1.0"
+edition = "2024"
+EOF
+
+    # main.rs (~50 lines)
+    cat > "$dir/src/main.rs" << 'EOF'
+//! Main entry point for bench-small fixture
+
+mod lib;
+mod parser;
+mod output;
+
+use lib::Config;
+use parser::parse_input;
+use output::format_result;
+
+fn main() {
+    let config = Config::new();
+    let data = vec![1, 2, 3, 4, 5];
+    let parsed = parse_input(&data);
+    let result = format_result(&parsed, &config);
+    println!("{}", result);
+}
+
+fn helper_a() -> i32 {
+    let mut sum = 0;
+    for i in 0..10 {
+        sum += i;
+    }
+    sum
+}
+
+fn helper_b() -> String {
+    let parts: Vec<&str> = vec!["hello", "world"];
+    parts.join(" ")
+}
+
+fn helper_c(n: i32) -> i32 {
+    if n <= 1 { 1 } else { n * helper_c(n - 1) }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_helper_a() {
+        assert_eq!(helper_a(), 45);
+    }
+
+    #[test]
+    fn test_helper_b() {
+        assert_eq!(helper_b(), "hello world");
+    }
+}
+EOF
+
+    # lib.rs (~100 lines)
+    {
+        echo "//! Library module for bench-small"
+        echo
+        echo "#[derive(Debug, Clone)]"
+        echo "pub struct Config {"
+        echo "    pub verbose: bool,"
+        echo "    pub max_items: usize,"
+        echo "    pub output_format: String,"
+        echo "}"
+        echo
+        echo "impl Config {"
+        echo "    pub fn new() -> Self {"
+        echo "        Self {"
+        echo "            verbose: false,"
+        echo "            max_items: 100,"
+        echo "            output_format: String::from(\"json\"),"
+        echo "        }"
+        echo "    }"
+        echo "}"
+        echo
+        echo "impl Default for Config {"
+        echo "    fn default() -> Self {"
+        echo "        Self::new()"
+        echo "    }"
+        echo "}"
+        echo
+        gen_struct "DataItem" 4
+        gen_function "process_items" 15
+        gen_function "validate_config" 12
+        gen_function "initialize_state" 10
+    } > "$dir/src/lib.rs"
+
+    # parser.rs (~150 lines)
+    {
+        echo "//! Parser module for input processing"
+        echo
+        echo "#[allow(unused_imports)]"
+        echo "use crate::lib::DataItem;"
+        echo
+        gen_struct "ParseState" 5
+        gen_struct "ParseResult" 3
+        echo "pub fn parse_input(data: &[i32]) -> ParseResult {"
+        echo "    let mut state = ParseState::new();"
+        echo "    for item in data {"
+        echo "        state.field_1 += item;"
+        echo "    }"
+        echo "    let _ = state;"
+        echo "    ParseResult::new()"
+        echo "}"
+        echo
+        gen_function "tokenize" 20
+        gen_function "validate_tokens" 15
+        gen_function "build_ast" 25
+        gen_function "optimize_ast" 18
+    } > "$dir/src/parser.rs"
+
+    # output.rs (~100 lines)
+    {
+        echo "//! Output formatting module"
+        echo
+        echo "use crate::lib::Config;"
+        echo "use crate::parser::ParseResult;"
+        echo
+        gen_struct "Formatter" 3
+        echo "pub fn format_result(result: &ParseResult, config: &Config) -> String {"
+        echo "    let _ = (result, config);"
+        echo "    String::from(\"formatted output\")"
+        echo "}"
+        echo
+        gen_function "format_json" 15
+        gen_function "format_text" 12
+        gen_function "format_table" 18
+    } > "$dir/src/output.rs"
+
+    # tests/integration.rs (~100 lines)
+    {
+        echo "//! Integration tests for bench-small"
+        echo
+        local i=1
+        while [ $i -le 15 ]; do
+            echo "#[test]"
+            echo "fn integration_test_case_$i() {"
+            echo "    // Test case $i"
+            echo "    let result = $i * 2;"
+            echo "    assert_eq!(result, $((i * 2)));"
+            echo "}"
+            echo
+            i=$((i+1))
+        done
+    } > "$dir/tests/integration.rs"
+
+    echo "Created bench-small"
+}
+
+# bench-medium: ~50 files, ~5k LOC
+create_bench_medium() {
+    local dir="$FIXTURES_DIR/bench-medium"
+    rm -rf "$dir"
+    mkdir -p "$dir/src/core" "$dir/src/utils" "$dir/src/handlers" "$dir/tests"
+
+    # Cargo.toml
+    cat > "$dir/Cargo.toml" << 'EOF'
+[package]
+name = "bench-medium"
+version = "0.1.0"
+edition = "2024"
+EOF
+
+    # main.rs
+    cat > "$dir/src/main.rs" << 'EOF'
+//! Main entry point for bench-medium fixture
+
+mod core;
+mod utils;
+mod handlers;
+
+fn main() {
+    println!("bench-medium");
+}
+EOF
+
+    # Generate core modules
+    for module in config state engine processor validator; do
+        local cap_module=$(capitalize "$module")
+        {
+            echo "//! Core $module module"
+            echo
+            gen_struct "${cap_module}Config" 6
+            gen_struct "${cap_module}State" 4
+            for fn_name in init process validate cleanup reset; do
+                gen_function "${module}_${fn_name}" 20
+            done
+        } > "$dir/src/core/${module}.rs"
+    done
+
+    cat > "$dir/src/core/mod.rs" << 'EOF'
+pub mod config;
+pub mod state;
+pub mod engine;
+pub mod processor;
+pub mod validator;
+EOF
+
+    # Generate utils modules
+    for module in string math myio cache format; do
+        local cap_module=$(capitalize "$module")
+        {
+            echo "//! Utils $module module"
+            echo
+            gen_struct "${cap_module}Helper" 3
+            for fn_name in parse format convert validate; do
+                gen_function "${module}_${fn_name}" 15
+            done
+        } > "$dir/src/utils/${module}.rs"
+    done
+
+    cat > "$dir/src/utils/mod.rs" << 'EOF'
+pub mod string;
+pub mod math;
+pub mod myio;
+pub mod cache;
+pub mod format;
+EOF
+
+    # Generate handler modules
+    for module in request response error event stream; do
+        local cap_module=$(capitalize "$module")
+        {
+            echo "//! Handler $module module"
+            echo
+            gen_struct "${cap_module}Handler" 5
+            gen_struct "${cap_module}Context" 4
+            for fn_name in handle process dispatch complete; do
+                gen_function "handle_${module}_${fn_name}" 18
+            done
+        } > "$dir/src/handlers/${module}.rs"
+    done
+
+    cat > "$dir/src/handlers/mod.rs" << 'EOF'
+pub mod request;
+pub mod response;
+pub mod error;
+pub mod event;
+pub mod stream;
+EOF
+
+    # Generate test files
+    for module in core_tests utils_tests handlers_tests integration_tests; do
+        {
+            echo "//! Test module: $module"
+            echo
+            local i=1
+            while [ $i -le 25 ]; do
+                echo "#[test]"
+                echo "fn ${module}_case_$i() {"
+                echo "    assert!(true);"
+                echo "}"
+                echo
+                i=$((i+1))
+            done
+        } > "$dir/tests/${module}.rs"
+    done
+
+    echo "Created bench-medium"
+}
+
+# bench-large: ~200 files, ~20k LOC (workspace with 3 crates)
+create_bench_large() {
+    local dir="$FIXTURES_DIR/bench-large"
+    rm -rf "$dir"
+    mkdir -p "$dir/crates/core/src" "$dir/crates/cli/src" "$dir/crates/utils/src" "$dir/tests/integration"
+
+    # Workspace Cargo.toml
+    cat > "$dir/Cargo.toml" << 'EOF'
+[workspace]
+resolver = "2"
+members = ["crates/core", "crates/cli", "crates/utils"]
+EOF
+
+    # Core crate
+    cat > "$dir/crates/core/Cargo.toml" << 'EOF'
+[package]
+name = "bench-large-core"
+version = "0.1.0"
+edition = "2024"
+EOF
+
+    # Generate core modules
+    for module in config state engine processor validator analyzer optimizer transformer executor monitor; do
+        local cap_module=$(capitalize "$module")
+        mkdir -p "$dir/crates/core/src/$module"
+
+        for sub in base impl_ tests utils types; do
+            local cap_sub=$(capitalize "$sub")
+            {
+                echo "//! Core $module/$sub module"
+                echo
+                gen_struct "${cap_module}${cap_sub}" 5
+                for fn_name in init process validate cleanup reset transform; do
+                    gen_function "${module}_${sub}_${fn_name}" 20
+                done
+            } > "$dir/crates/core/src/$module/${sub}.rs"
+        done
+
+        cat > "$dir/crates/core/src/$module/mod.rs" << 'EOF'
+pub mod base;
+pub mod impl_;
+pub mod tests;
+pub mod utils;
+pub mod types;
+EOF
+    done
+
+    {
+        echo "//! Core library"
+        for module in config state engine processor validator analyzer optimizer transformer executor monitor; do
+            echo "pub mod $module;"
+        done
+    } > "$dir/crates/core/src/lib.rs"
+
+    # CLI crate
+    cat > "$dir/crates/cli/Cargo.toml" << 'EOF'
+[package]
+name = "bench-large-cli"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "bench-large"
+path = "src/main.rs"
+EOF
+
+    for module in args commands output handlers; do
+        local cap_module=$(capitalize "$module")
+        mkdir -p "$dir/crates/cli/src/$module"
+
+        for sub in base impl_ utils; do
+            local cap_sub=$(capitalize "$sub")
+            {
+                echo "//! CLI $module/$sub module"
+                echo
+                gen_struct "Cli${cap_module}${cap_sub}" 4
+                for fn_name in parse execute format; do
+                    gen_function "cli_${module}_${sub}_${fn_name}" 18
+                done
+            } > "$dir/crates/cli/src/$module/${sub}.rs"
+        done
+
+        cat > "$dir/crates/cli/src/$module/mod.rs" << 'EOF'
+pub mod base;
+pub mod impl_;
+pub mod utils;
+EOF
+    done
+
+    {
+        echo "//! CLI main"
+        for module in args commands output handlers; do
+            echo "mod $module;"
+        done
+        echo
+        echo "fn main() {"
+        echo "    println!(\"bench-large\");"
+        echo "}"
+    } > "$dir/crates/cli/src/main.rs"
+
+    # Utils crate
+    cat > "$dir/crates/utils/Cargo.toml" << 'EOF'
+[package]
+name = "bench-large-utils"
+version = "0.1.0"
+edition = "2024"
+EOF
+
+    for module in string math myio cache format hash; do
+        local cap_module=$(capitalize "$module")
+        mkdir -p "$dir/crates/utils/src/$module"
+
+        for sub in base impl_ utils; do
+            local cap_sub=$(capitalize "$sub")
+            {
+                echo "//! Utils $module/$sub module"
+                echo
+                gen_struct "Util${cap_module}${cap_sub}" 3
+                for fn_name in convert validate format; do
+                    gen_function "util_${module}_${sub}_${fn_name}" 15
+                done
+            } > "$dir/crates/utils/src/$module/${sub}.rs"
+        done
+
+        cat > "$dir/crates/utils/src/$module/mod.rs" << 'EOF'
+pub mod base;
+pub mod impl_;
+pub mod utils;
+EOF
+    done
+
+    {
+        echo "//! Utils library"
+        for module in string math myio cache format hash; do
+            echo "pub mod $module;"
+        done
+    } > "$dir/crates/utils/src/lib.rs"
+
+    # Integration tests
+    local i=1
+    while [ $i -le 20 ]; do
+        {
+            echo "//! Integration test $i"
+            echo
+            local j=1
+            while [ $j -le 50 ]; do
+                echo "#[test]"
+                echo "fn integration_${i}_case_$j() {"
+                echo "    assert!(true);"
+                echo "}"
+                echo
+                j=$((j+1))
+            done
+        } > "$dir/tests/integration/test_${i}.rs"
+        i=$((i+1))
+    done
+
+    echo "Created bench-large"
+}
+
+# bench-deep: 10-level deep directories
+create_bench_deep() {
+    local dir="$FIXTURES_DIR/bench-deep"
+    rm -rf "$dir"
+    mkdir -p "$dir/src"
+
+    # Cargo.toml
+    cat > "$dir/Cargo.toml" << 'EOF'
+[package]
+name = "bench-deep"
+version = "0.1.0"
+edition = "2024"
+EOF
+
+    # Create deeply nested structure
+    local current="$dir/src"
+
+    local level=1
+    while [ $level -le 10 ]; do
+        mkdir -p "$current/level_$level"
+
+        # Create module file at this level
+        {
+            echo "//! Level $level module"
+            echo
+            gen_struct "Level${level}Data" 3
+            gen_function "level_${level}_process" 15
+            if [ $level -lt 10 ]; then
+                echo "pub mod level_$((level+1));"
+            fi
+        } > "$current/level_$level/mod.rs"
+
+        # Create additional files at each level
+        for file in utils helpers types; do
+            local cap_file=$(capitalize "$file")
+            {
+                echo "//! Level $level $file"
+                echo
+                gen_struct "Level${level}${cap_file}" 2
+                gen_function "level_${level}_${file}" 10
+            } > "$current/level_$level/${file}.rs"
+            # Add to mod.rs
+            echo "pub mod $file;" >> "$current/level_$level/mod.rs"
+        done
+
+        current="$current/level_$level"
+        level=$((level+1))
+    done
+
+    # lib.rs at root
+    cat > "$dir/src/lib.rs" << 'EOF'
+//! Deeply nested module structure for benchmarking
+
+pub mod level_1;
+EOF
+
+    echo "Created bench-deep"
+}
+
+# bench-large-files: Few files, 1000+ lines each
+create_bench_large_files() {
+    local dir="$FIXTURES_DIR/bench-large-files"
+    rm -rf "$dir"
+    mkdir -p "$dir/src"
+
+    # Cargo.toml
+    cat > "$dir/Cargo.toml" << 'EOF'
+[package]
+name = "bench-large-files"
+version = "0.1.0"
+edition = "2024"
+EOF
+
+    # Generate large files
+    for file in parser engine validator output config; do
+        local cap_file=$(capitalize "$file")
+        {
+            echo "//! Large $file module (~1000 lines)"
+            echo
+
+            # Generate many structs
+            local i=1
+            while [ $i -le 15 ]; do
+                gen_struct "${cap_file}Type$i" 6
+                i=$((i+1))
+            done
+
+            # Generate many functions
+            i=1
+            while [ $i -le 40 ]; do
+                gen_function "${file}_function_$i" 15
+                i=$((i+1))
+            done
+        } > "$dir/src/${file}.rs"
+    done
+
+    # lib.rs
+    cat > "$dir/src/lib.rs" << 'EOF'
+//! Benchmark fixture with large files
+
+pub mod parser;
+pub mod engine;
+pub mod validator;
+pub mod output;
+pub mod config;
+EOF
+
+    echo "Created bench-large-files"
+}
+
+# Main execution
+cd "$(dirname "$0")/.."
+echo "Generating benchmark fixtures in $FIXTURES_DIR..."
+create_bench_small
+create_bench_medium
+create_bench_large
+create_bench_deep
+create_bench_large_files
+echo "Done! Generated fixtures:"
+ls -la "$FIXTURES_DIR"/bench-*/

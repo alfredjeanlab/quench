@@ -18,6 +18,7 @@ exclude = [
     # ONLY for intentionally large fixture/test data
     # NEVER for tests or source files
     "tests/fixtures/cloc/**",
+    "tests/fixtures/bench-*/**",
 ]
 
 [check.agents]
