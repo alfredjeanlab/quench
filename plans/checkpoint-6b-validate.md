@@ -1,5 +1,7 @@
 # Checkpoint 6B: Dogfooding Milestone 1 - Validation
 
+**Root Feature:** `quench-2bcc`
+
 ## Overview
 
 This checkpoint validates that quench can successfully lint itself (dogfooding) and that the agents check properly detects all violation types. The work involves:
