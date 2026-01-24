@@ -33,8 +33,8 @@ use parse::FencedBlock;
 #[allow(unused_imports)]
 use resolve::{ResolutionStrategy, is_glob_pattern};
 
-/// Validate TOC entries in all markdown files.
-pub fn validate_toc(ctx: &CheckContext, violations: &mut Vec<Violation>) {
+/// Validate TOC entries in all markdown files (parallel version).
+pub fn validate_toc_parallel(ctx: &CheckContext, path_cache: &super::PathCache) -> Vec<Violation> {
     let config = &ctx.config.check.docs.toc;
 
     // Check if TOC validation is disabled
@@ -42,25 +42,26 @@ pub fn validate_toc(ctx: &CheckContext, violations: &mut Vec<Violation>) {
         config.check.as_deref(),
         ctx.config.check.docs.check.as_deref(),
     ) {
-        return;
+        return Vec::new();
     }
 
-    super::process_markdown_files(
+    super::process_markdown_files_parallel(
         ctx,
         &config.include,
         &config.exclude,
-        violations,
-        validate_file_toc,
-    );
+        path_cache,
+        validate_file_toc_cached,
+    )
 }
 
-/// Validate TOC entries in a single file.
-fn validate_file_toc(
+/// Validate TOC entries in a single file (uses path cache).
+fn validate_file_toc_cached(
     ctx: &CheckContext,
     relative_path: &Path,
     content: &str,
-    violations: &mut Vec<Violation>,
-) {
+    _path_cache: &super::PathCache,
+) -> Vec<Violation> {
+    let mut violations = Vec::new();
     let blocks = extract_fenced_blocks(content);
     let strategies = [
         ResolutionStrategy::RelativeToFile,
@@ -155,6 +156,7 @@ fn validate_file_toc(
             );
         }
     }
+    violations
 }
 
 #[cfg(test)]

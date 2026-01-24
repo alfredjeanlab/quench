@@ -26,7 +26,8 @@ use crate::check::Violation;
 /// v13: Added content validation for spec files (sections, tables, size limits).
 /// v14: Added source-based area detection for docs commit checking.
 /// v17: Removed WorkspaceConfig, consolidated packages into ProjectConfig.
-pub const CACHE_VERSION: u32 = 17;
+/// v18: Added target_path for docs cache.
+pub const CACHE_VERSION: u32 = 18;
 
 /// Cache file name within .quench directory.
 pub const CACHE_FILE_NAME: &str = "cache.bin";
@@ -120,6 +121,8 @@ pub struct CachedViolation {
     pub lines: Option<i64>,
     /// Non-blank line count (for cloc violations).
     pub nonblank: Option<i64>,
+    /// Path in TOC/link that was broken (for docs violations).
+    pub target_path: Option<String>,
 }
 
 impl CachedViolation {
@@ -135,6 +138,7 @@ impl CachedViolation {
             pattern: v.pattern.clone(),
             lines: v.lines,
             nonblank: v.nonblank,
+            target_path: v.target.clone().or_else(|| v.path.clone()),
         }
     }
 
@@ -158,7 +162,7 @@ impl CachedViolation {
             area: None,
             area_match: None,
             path: None,
-            target: None,
+            target: self.target_path.clone(),
         }
     }
 }
