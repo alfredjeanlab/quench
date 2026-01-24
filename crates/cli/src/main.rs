@@ -502,9 +502,10 @@ fn run_report(_cli: &Cli, args: &ReportArgs) -> anyhow::Result<()> {
 
 fn run_init(_cli: &Cli, args: &InitArgs) -> anyhow::Result<ExitCode> {
     use quench::cli::{
-        agents_detected_section, default_template, golang_detected_section,
-        golang_profile_defaults, javascript_detected_section, rust_detected_section,
-        rust_profile_defaults, shell_detected_section, shell_profile_defaults,
+        agents_section, default_template, default_template_base, default_template_suffix,
+        golang_detected_section, golang_profile_defaults, javascript_detected_section,
+        rust_detected_section, rust_profile_defaults, shell_detected_section,
+        shell_profile_defaults,
     };
 
     let cwd = std::env::current_dir()?;
@@ -518,7 +519,7 @@ fn run_init(_cli: &Cli, args: &InitArgs) -> anyhow::Result<ExitCode> {
     // Determine what to include
     let (config, message) = if !args.with_profiles.is_empty() {
         // --with specified: use full profiles, skip detection
-        let mut cfg = default_template().to_string();
+        let mut cfg = default_template();
         for profile in &args.with_profiles {
             match profile.as_str() {
                 "rust" => {
@@ -548,9 +549,12 @@ fn run_init(_cli: &Cli, args: &InitArgs) -> anyhow::Result<ExitCode> {
         let detected_langs = detect_languages(&cwd);
         let detected_agents = detect_agents(&cwd);
 
-        let mut cfg = default_template().to_string();
+        // Build config with proper agents section placement
+        let mut cfg = default_template_base().to_string();
+        cfg.push_str(&agents_section(&detected_agents));
+        cfg.push_str(default_template_suffix());
 
-        // Add language sections
+        // Add language sections (after # Supported Languages:)
         for lang in &detected_langs {
             cfg.push('\n');
             match lang {
@@ -559,12 +563,6 @@ fn run_init(_cli: &Cli, args: &InitArgs) -> anyhow::Result<ExitCode> {
                 DetectedLanguage::JavaScript => cfg.push_str(javascript_detected_section()),
                 DetectedLanguage::Shell => cfg.push_str(shell_detected_section()),
             }
-        }
-
-        // Add agent section if any detected
-        if !detected_agents.is_empty() {
-            cfg.push('\n');
-            cfg.push_str(&agents_detected_section(&detected_agents));
         }
 
         // Build message listing detected items

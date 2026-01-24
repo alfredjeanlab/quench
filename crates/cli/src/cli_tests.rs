@@ -98,3 +98,51 @@ fn default_template_has_explicit_check_levels() {
     // Disabled checks with stub comments
     assert!(template.contains("check = \"off\"  # stub in quench v0.3.0"));
 }
+
+// =============================================================================
+// agents_section() Tests
+// =============================================================================
+
+use crate::init::DetectedAgent;
+
+#[test]
+fn agents_section_empty_has_no_required() {
+    let section = agents_section(&[]);
+    assert!(section.contains("[check.agents]"));
+    assert!(section.contains("check = \"error\""));
+    assert!(!section.contains("required"));
+}
+
+#[test]
+fn agents_section_claude_requires_claude_md() {
+    let section = agents_section(&[DetectedAgent::Claude]);
+    assert!(section.contains("[check.agents]"));
+    assert!(section.contains("check = \"error\""));
+    assert!(section.contains("required"));
+    assert!(section.contains("CLAUDE.md"));
+}
+
+#[test]
+fn agents_section_cursor_requires_cursorrules() {
+    let section = agents_section(&[DetectedAgent::Cursor]);
+    assert!(section.contains("[check.agents]"));
+    assert!(section.contains("required"));
+    assert!(section.contains(".cursorrules"));
+}
+
+#[test]
+fn agents_section_both_merges_required() {
+    let section = agents_section(&[DetectedAgent::Claude, DetectedAgent::Cursor]);
+    assert!(section.contains("required"));
+    assert!(section.contains("CLAUDE.md"));
+    assert!(section.contains(".cursorrules"));
+    // Should be a single array with both
+    assert_eq!(section.matches("required").count(), 1);
+}
+
+#[test]
+fn default_template_no_duplicate_agents_section() {
+    let template = default_template();
+    let count = template.matches("[check.agents]").count();
+    assert_eq!(count, 1, "should have exactly one [check.agents] section");
+}

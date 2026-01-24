@@ -467,10 +467,9 @@ shell.suppress.check = "forbid"
 // DEFAULT TEMPLATE
 // =============================================================================
 
-/// Default template for quench init without profiles.
-///
-/// Matches docs/specs/templates/init.default.toml
-pub fn default_template() -> &'static str {
+/// Base template without [check.agents] section.
+/// The agents section is generated separately to support required field.
+pub fn default_template_base() -> &'static str {
     r#"# Quench configuration
 # https://github.com/alfredjeanlab/quench
 version = 1
@@ -481,9 +480,12 @@ check = "error"
 [check.escapes]
 check = "error"
 
-[check.agents]
-check = "error"
+"#
+}
 
+/// Portion of template after agents section.
+pub fn default_template_suffix() -> &'static str {
+    r#"
 [check.docs]
 check = "error"
 
@@ -499,6 +501,38 @@ check = "off"  # stub in quench v0.3.0
 # Supported Languages:
 # [rust], [golang], [javascript], [shell]
 "#
+}
+
+/// Generate [check.agents] section with optional required field.
+pub fn agents_section(agents: &[DetectedAgent]) -> String {
+    if agents.is_empty() {
+        return "[check.agents]\ncheck = \"error\"\n".to_string();
+    }
+
+    let required: Vec<&str> = agents
+        .iter()
+        .map(|a| match a {
+            DetectedAgent::Claude => "CLAUDE.md",
+            DetectedAgent::Cursor => ".cursorrules",
+        })
+        .collect();
+
+    format!(
+        "[check.agents]\ncheck = \"error\"\nrequired = {:?}\n",
+        required
+    )
+}
+
+/// Full default template for quench init without profiles.
+///
+/// Matches docs/specs/templates/init.default.toml
+pub fn default_template() -> String {
+    format!(
+        "{}{}{}",
+        default_template_base(),
+        agents_section(&[]),
+        default_template_suffix()
+    )
 }
 
 #[cfg(test)]
