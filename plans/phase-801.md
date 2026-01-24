@@ -1,5 +1,7 @@
 # Phase 801: Git Check - Specs
 
+**Root Feature:** `quench-3153`
+
 ## Overview
 
 Write behavioral specifications (black-box tests) for the `git` check feature. These specs validate commit message format enforcement, type/scope restrictions, agent documentation requirements, and `--fix` template creation behavior. All specs will be marked with `#[ignore = "TODO: Phase N"]` since the git check is not yet implemented.
