@@ -200,12 +200,19 @@ fn check_forbidden_files(
 }
 
 /// Track fixes applied during check execution.
+///
+/// Uses separate types for real syncs vs previews because:
+/// - They serve different purposes (actual changes vs proposed changes)
+/// - They're mutually exclusive (fix mode populates `files_synced`, dry-run populates `previews`)
+/// - SyncPreview needs content for diff display, SyncedFile doesn't
+/// - Separate JSON arrays (`files_synced` vs `previews`) match their semantic purpose
 #[derive(Debug, Default)]
 struct FixSummary {
     files_synced: Vec<SyncedFile>,
     previews: Vec<SyncPreview>,
 }
 
+/// A file that was synced during fix mode.
 #[derive(Debug)]
 struct SyncedFile {
     file: String,
@@ -213,6 +220,7 @@ struct SyncedFile {
     sections: usize,
 }
 
+/// A preview of what would be synced in dry-run mode.
 #[derive(Debug)]
 struct SyncPreview {
     file: String,

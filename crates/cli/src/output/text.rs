@@ -159,16 +159,34 @@ impl TextFormatter {
     }
 
     fn write_unified_diff(&mut self, file: &str, old: &str, new: &str) -> std::io::Result<()> {
-        writeln!(self.stdout, "  --- a/{}", file)?;
-        writeln!(self.stdout, "  +++ b/{}", file)?;
+        // Unified diff headers with descriptive labels
+        self.stdout.set_color(&scheme::diff_remove())?;
+        writeln!(self.stdout, "  --- {} (original)", file)?;
+        self.stdout.reset()?;
+        self.stdout.set_color(&scheme::diff_add())?;
+        writeln!(self.stdout, "  +++ {} (synced)", file)?;
+        self.stdout.reset()?;
 
-        // Simple line-by-line diff
-        for line in old.lines() {
+        let old_lines: Vec<_> = old.lines().collect();
+        let new_lines: Vec<_> = new.lines().collect();
+
+        // Hunk header showing line counts
+        writeln!(
+            self.stdout,
+            "  @@ -1,{} +1,{} @@",
+            old_lines.len(),
+            new_lines.len()
+        )?;
+
+        // Show removed lines (old content)
+        for line in &old_lines {
             self.stdout.set_color(&scheme::diff_remove())?;
             writeln!(self.stdout, "  -{}", line)?;
             self.stdout.reset()?;
         }
-        for line in new.lines() {
+
+        // Show added lines (new content)
+        for line in &new_lines {
             self.stdout.set_color(&scheme::diff_add())?;
             writeln!(self.stdout, "  +{}", line)?;
             self.stdout.reset()?;
