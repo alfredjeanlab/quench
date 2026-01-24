@@ -217,8 +217,14 @@ impl TextFormatter {
         // Violation description (includes type-specific info)
         writeln!(self.stdout, "{}", self.format_violation_desc(v))?;
 
-        // Advice (4-space indent)
-        writeln!(self.stdout, "    {}", v.advice)?;
+        // Advice (4-space indent for each line, skip indent on blank lines)
+        for line in v.advice.lines() {
+            if line.is_empty() {
+                writeln!(self.stdout)?;
+            } else {
+                writeln!(self.stdout, "    {}", line)?;
+            }
+        }
 
         Ok(())
     }
