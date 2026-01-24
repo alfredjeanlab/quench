@@ -16,9 +16,10 @@ use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_ma
 use globset::{Glob, GlobSetBuilder};
 use std::path::{Path, PathBuf};
 
+use quench::adapter::go::{GoAdapter, parse_go_mod, parse_nolint_directives};
 use quench::adapter::rust::{CargoWorkspace, CfgTestInfo, RustAdapter, parse_suppress_attrs};
 use quench::adapter::shell::{ShellAdapter, parse_shellcheck_suppresses};
-use quench::adapter::{Adapter, GenericAdapter};
+use quench::adapter::{Adapter, GenericAdapter, enumerate_packages};
 
 fn fixture_path(name: &str) -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -526,6 +527,181 @@ fn bench_shellcheck_suppress_parse(c: &mut Criterion) {
     group.finish();
 }
 
+// =============================================================================
+// GO ADAPTER BENCHMARKS
+// =============================================================================
+
+/// Benchmark GoAdapter creation (GlobSet compilation).
+fn bench_go_adapter_creation(c: &mut Criterion) {
+    let mut group = c.benchmark_group("go_adapter_creation");
+
+    group.bench_function("GoAdapter::new", |b| b.iter(|| black_box(GoAdapter::new())));
+
+    group.finish();
+}
+
+/// Benchmark Go file classification.
+fn bench_go_classify(c: &mut Criterion) {
+    let go_adapter = GoAdapter::new();
+
+    // Generate test paths
+    let source_paths: Vec<PathBuf> = (0..1000)
+        .map(|i| PathBuf::from(format!("pkg/module_{}/handler.go", i)))
+        .collect();
+    let test_paths: Vec<PathBuf> = (0..1000)
+        .map(|i| PathBuf::from(format!("pkg/module_{}/handler_test.go", i)))
+        .collect();
+    let vendor_paths: Vec<PathBuf> = (0..1000)
+        .map(|i| PathBuf::from(format!("vendor/github.com/pkg/lib_{}.go", i)))
+        .collect();
+
+    let mut group = c.benchmark_group("go_classify");
+
+    group.bench_function("go_1k_source", |b| {
+        b.iter(|| {
+            for path in &source_paths {
+                black_box(go_adapter.classify(path));
+            }
+        })
+    });
+
+    group.bench_function("go_1k_test", |b| {
+        b.iter(|| {
+            for path in &test_paths {
+                black_box(go_adapter.classify(path));
+            }
+        })
+    });
+
+    group.bench_function("go_1k_vendor_ignored", |b| {
+        b.iter(|| {
+            for path in &vendor_paths {
+                black_box(go_adapter.classify(path));
+            }
+        })
+    });
+
+    group.finish();
+}
+
+/// Benchmark go.mod parsing.
+fn bench_go_mod_parse(c: &mut Criterion) {
+    let simple_go_mod = "module github.com/example/project\n\ngo 1.21\n";
+    let complex_go_mod = r#"
+module github.com/example/complex-project
+
+go 1.22
+
+require (
+    github.com/pkg/errors v0.9.1
+    github.com/stretchr/testify v1.8.4
+    golang.org/x/sync v0.3.0
+)
+
+require (
+    github.com/davecgh/go-spew v1.1.1 // indirect
+    github.com/pmezard/go-difflib v1.0.0 // indirect
+    gopkg.in/yaml.v3 v3.0.1 // indirect
+)
+"#;
+
+    let mut group = c.benchmark_group("go_mod_parse");
+
+    group.bench_function("simple_go_mod", |b| {
+        b.iter(|| black_box(parse_go_mod(simple_go_mod)))
+    });
+
+    group.bench_function("complex_go_mod", |b| {
+        b.iter(|| black_box(parse_go_mod(complex_go_mod)))
+    });
+
+    group.finish();
+}
+
+/// Benchmark package enumeration on fixtures.
+fn bench_package_enumeration(c: &mut Criterion) {
+    let go_simple = fixture_path("go-simple");
+    let go_multi = fixture_path("go-multi");
+    let golang = fixture_path("golang");
+
+    let mut group = c.benchmark_group("go_package_enumeration");
+
+    if go_simple.exists() {
+        group.bench_with_input(
+            BenchmarkId::new("enumerate_packages", "go-simple"),
+            &go_simple,
+            |b, path| b.iter(|| black_box(enumerate_packages(path))),
+        );
+    }
+
+    if go_multi.exists() {
+        group.bench_with_input(
+            BenchmarkId::new("enumerate_packages", "go-multi"),
+            &go_multi,
+            |b, path| b.iter(|| black_box(enumerate_packages(path))),
+        );
+    }
+
+    if golang.exists() {
+        group.bench_with_input(
+            BenchmarkId::new("enumerate_packages", "golang"),
+            &golang,
+            |b, path| b.iter(|| black_box(enumerate_packages(path))),
+        );
+    }
+
+    group.finish();
+}
+
+/// Benchmark //nolint directive parsing.
+fn bench_nolint_parse(c: &mut Criterion) {
+    // Content with various nolint directives
+    let content_with_nolint: String = (0..100)
+        .map(|i| {
+            if i % 10 == 0 {
+                "//nolint:errcheck // OK: error is logged\nfunc process() error {\n".to_string()
+            } else if i % 15 == 0 {
+                "//nolint:gosec,govet\n// REASON: legacy code\nfunc legacy() {}\n".to_string()
+            } else if i % 20 == 0 {
+                "//nolint\nfunc skip() {}\n".to_string()
+            } else {
+                format!("func handler_{}() {{}}\n", i)
+            }
+        })
+        .collect();
+
+    let content_without: String = (0..100)
+        .map(|i| format!("func handler_{}() {{}}\n", i))
+        .collect();
+
+    let mut group = c.benchmark_group("nolint_parse");
+
+    group.bench_function("with_nolint_100_lines", |b| {
+        b.iter(|| black_box(parse_nolint_directives(&content_with_nolint, None)))
+    });
+
+    group.bench_function("without_nolint_100_lines", |b| {
+        b.iter(|| black_box(parse_nolint_directives(&content_without, None)))
+    });
+
+    group.bench_function("with_nolint_100_lines_pattern", |b| {
+        b.iter(|| {
+            black_box(parse_nolint_directives(
+                &content_with_nolint,
+                Some("// REASON:"),
+            ))
+        })
+    });
+
+    // Larger file
+    let large_content: String = content_with_nolint.repeat(10);
+    group.bench_function("with_nolint_1000_lines", |b| {
+        b.iter(|| black_box(parse_nolint_directives(&large_content, None)))
+    });
+
+    group.finish();
+}
+
 criterion_group!(
     benches,
     bench_adapter_creation,
@@ -536,5 +712,11 @@ criterion_group!(
     bench_workspace_detection,
     bench_suppress_parse,
     bench_shellcheck_suppress_parse,
+    // Go adapter benchmarks
+    bench_go_adapter_creation,
+    bench_go_classify,
+    bench_go_mod_parse,
+    bench_package_enumeration,
+    bench_nolint_parse,
 );
 criterion_main!(benches);

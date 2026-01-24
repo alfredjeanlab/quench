@@ -22,7 +22,9 @@ pub use glob::build_glob_set;
 pub use shell::{ShellAdapter, ShellcheckSuppress, parse_shellcheck_suppresses};
 
 pub use generic::GenericAdapter;
-pub use go::{GoAdapter, NolintDirective, parse_go_mod, parse_nolint_directives};
+pub use go::{
+    GoAdapter, NolintDirective, enumerate_packages, parse_go_mod, parse_nolint_directives,
+};
 pub use rust::{CfgTestInfo, RustAdapter, parse_suppress_attrs};
 
 /// File classification result.
