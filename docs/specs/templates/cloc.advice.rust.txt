@@ -1,6 +1,6 @@
 Can the code be made more concise?
 
-If not, split large files into sibling modules or submodules in a folder;
+If not, split large source files into sibling modules or submodules in a folder;
 consider refactoring to be more unit testable.
 
 Avoid picking and removing individual lines to satisfy the linter,
