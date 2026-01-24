@@ -2,6 +2,97 @@
 
 use super::*;
 
+// === Explicit skip annotations ===
+
+#[test]
+fn no_toc_block_skipped() {
+    let block = FencedBlock {
+        start_line: 1,
+        lines: vec!["src/".to_string(), "├── lib.rs".to_string()],
+        language: Some("no-toc".to_string()),
+    };
+    assert!(!looks_like_tree(&block));
+}
+
+#[test]
+fn ignore_block_skipped() {
+    let block = FencedBlock {
+        start_line: 1,
+        lines: vec!["src/".to_string(), "├── lib.rs".to_string()],
+        language: Some("ignore".to_string()),
+    };
+    assert!(!looks_like_tree(&block));
+}
+
+// === Explicit toc tag forces validation ===
+
+#[test]
+fn toc_tag_forces_validation() {
+    let block = FencedBlock {
+        start_line: 1,
+        lines: vec!["just-a-file.txt".to_string()],
+        language: Some("toc".to_string()),
+    };
+    // Single line without tree indicators would normally fail heuristics
+    assert!(looks_like_tree(&block));
+}
+
+#[test]
+fn toc_tag_with_box_drawing() {
+    let block = FencedBlock {
+        start_line: 1,
+        lines: vec!["src/".to_string(), "├── lib.rs".to_string()],
+        language: Some("toc".to_string()),
+    };
+    assert!(looks_like_tree(&block));
+}
+
+// === Format validation for toc-tagged blocks ===
+
+#[test]
+fn toc_tag_invalid_format_detected() {
+    // Test that arbitrary text in a toc block is caught
+    let block = FencedBlock {
+        start_line: 1,
+        lines: vec![
+            "This is not a tree".to_string(),
+            "Just some random text".to_string(),
+        ],
+        language: Some("toc".to_string()),
+    };
+    assert!(!is_valid_tree_format(&block));
+}
+
+#[test]
+fn toc_tag_valid_indentation_format() {
+    let block = FencedBlock {
+        start_line: 1,
+        lines: vec!["src/".to_string(), "  lib.rs".to_string()],
+        language: Some("toc".to_string()),
+    };
+    assert!(is_valid_tree_format(&block));
+}
+
+#[test]
+fn toc_tag_valid_box_drawing_format() {
+    let block = FencedBlock {
+        start_line: 1,
+        lines: vec!["src/".to_string(), "├── lib.rs".to_string()],
+        language: Some("toc".to_string()),
+    };
+    assert!(is_valid_tree_format(&block));
+}
+
+#[test]
+fn toc_tag_empty_block_invalid() {
+    let block = FencedBlock {
+        start_line: 1,
+        lines: vec![],
+        language: Some("toc".to_string()),
+    };
+    assert!(!is_valid_tree_format(&block));
+}
+
 // === Phase 1: Language tag extraction ===
 
 #[test]
@@ -586,4 +677,118 @@ fn directory_tree_without_top_corner_still_detected() {
         language: None,
     };
     assert!(looks_like_tree(&block));
+}
+
+// === Integration tests for toc/no-toc annotations ===
+
+#[test]
+fn toc_annotation_validates_when_explicit() {
+    use tempfile::TempDir;
+
+    let temp = TempDir::new().unwrap();
+    let root = temp.path();
+
+    // Create a file referenced in the toc block
+    std::fs::create_dir_all(root.join("src")).unwrap();
+    std::fs::write(root.join("src/lib.rs"), "").unwrap();
+
+    // Create markdown with explicit toc block
+    let content = r#"# Test
+
+```toc
+src/
+├── lib.rs
+```
+"#;
+    std::fs::write(root.join("README.md"), content).unwrap();
+
+    // Extract and check blocks
+    let blocks = extract_fenced_blocks(content);
+    assert_eq!(blocks.len(), 1);
+    assert_eq!(blocks[0].language, Some("toc".to_string()));
+    assert!(looks_like_tree(&blocks[0]));
+    assert!(is_valid_tree_format(&blocks[0]));
+
+    // Parse entries and verify they resolve
+    let entries = parse_tree_block(&blocks[0]);
+    let md_file = root.join("README.md");
+    let file_entries: Vec<_> = entries.iter().filter(|e| !e.is_dir).collect();
+    assert!(!file_entries.is_empty());
+
+    // All file entries should resolve
+    for entry in file_entries {
+        assert!(
+            try_resolve(
+                root,
+                &md_file,
+                &entry.path,
+                ResolutionStrategy::RelativeToFile
+            ),
+            "Entry {} should resolve",
+            entry.path
+        );
+    }
+}
+
+#[test]
+fn no_toc_annotation_skips_validation() {
+    use tempfile::TempDir;
+
+    let temp = TempDir::new().unwrap();
+    let root = temp.path();
+
+    // Create markdown with no-toc block (file doesn't need to exist)
+    let content = r#"# Test
+
+```no-toc
+nonexistent/
+├── fake.rs
+```
+"#;
+    std::fs::write(root.join("README.md"), content).unwrap();
+
+    // Extract and check blocks
+    let blocks = extract_fenced_blocks(content);
+    assert_eq!(blocks.len(), 1);
+    assert_eq!(blocks[0].language, Some("no-toc".to_string()));
+
+    // Block should NOT be detected as tree due to no-toc tag
+    assert!(!looks_like_tree(&blocks[0]));
+}
+
+#[test]
+fn ignore_annotation_skips_validation() {
+    let content = r#"# Test
+
+```ignore
+nonexistent/
+├── fake.rs
+```
+"#;
+
+    let blocks = extract_fenced_blocks(content);
+    assert_eq!(blocks.len(), 1);
+    assert_eq!(blocks[0].language, Some("ignore".to_string()));
+    assert!(!looks_like_tree(&blocks[0]));
+}
+
+#[test]
+fn toc_annotation_invalid_format_detected() {
+    let content = r#"# Test
+
+```toc
+This is not a tree
+Just random text
+```
+"#;
+
+    let blocks = extract_fenced_blocks(content);
+    assert_eq!(blocks.len(), 1);
+    assert_eq!(blocks[0].language, Some("toc".to_string()));
+
+    // looks_like_tree returns true because of toc tag
+    assert!(looks_like_tree(&blocks[0]));
+
+    // But format validation should fail
+    assert!(!is_valid_tree_format(&blocks[0]));
 }
