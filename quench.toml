@@ -1,15 +1,6 @@
 version = 1
 
 [check.cloc]
-advice = """
-Can the code be made more concise?
-
-If not, split large source files into sibling modules or submodules in a folder;
-consider refactoring to be more unit testable.
-
-Avoid picking and removing individual lines to satisfy the linter,
-prefer properly refactoring out testable code blocks.
-"""
 advice_test = """
 Can tests be parameterized using `yare` to be more concise?
 If not, split large test files into a {module}_tests/ folder.
@@ -22,13 +13,7 @@ exclude = [
 ]
 
 [check.agents]
-check = "error"
-files = ["CLAUDE.md"]
 required = ["CLAUDE.md"]
-sync = false                    # Only one agent file in quench
-tables = "forbid"
-max_lines = 500
-max_tokens = 20000
 
 [[check.agents.sections.required]]
 name = "Directory Structure"

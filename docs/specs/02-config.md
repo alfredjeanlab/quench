@@ -115,7 +115,7 @@ Rust language configuration. Auto-detected when `Cargo.toml` exists.
 [rust]
 # Source/test patterns (defaults shown, override if needed)
 # source = ["**/*.rs"]
-# tests = ["tests/**", "test/**/*.rs", "*_test.rs", "*_tests.rs"]
+# tests = ["tests/**", "test/**/*.rs", "benches/**", "*_test.rs", "*_tests.rs"]
 # ignore = ["target/"]
 
 cfg_test_split = true                  # Count #[cfg(test)] as test LOC

@@ -51,6 +51,10 @@ max_lines = 750  # default: 500
 [check.agents.package]
 required = ["CLAUDE.md"]  # require agent file in each package
 sections.required = ["API"]  # with an "API" section
+
+[[check.agents.sections.required]]
+name = "Error Handling"
+advice = "Document expected errors and recovery strategies"
 ```
 
 ## Checks

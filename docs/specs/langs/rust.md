@@ -50,7 +50,7 @@ advice = "Add a // SAFETY: comment explaining type compatibility."
 ```toml
 [rust]
 source = ["**/*.rs"]
-tests = ["tests/**", "test/**/*.rs", "*_test.rs", "*_tests.rs"]
+tests = ["tests/**", "test/**/*.rs", "benches/**", "*_test.rs", "*_tests.rs"]
 ignore = ["target/"]
 ```
 
@@ -83,7 +83,7 @@ mod tests {
 External test modules are detected via file patterns, not by parsing the `mod` declaration. The default test patterns are:
 
 ```toml
-tests = ["tests/**", "test/**/*.rs", "*_test.rs", "*_tests.rs"]
+tests = ["tests/**", "test/**/*.rs", "benches/**", "*_test.rs", "*_tests.rs"]
 ```
 
 Example using the sibling `_tests.rs` convention:
@@ -315,7 +315,7 @@ Multiple test suites contribute to coverage via LLVM profile merging.
 [rust]
 # Source/test patterns (defaults shown)
 # source = ["**/*.rs"]
-# tests = ["tests/**", "test/**/*.rs", "*_test.rs", "*_tests.rs"]
+# tests = ["tests/**", "test/**/*.rs", "benches/**", "*_test.rs", "*_tests.rs"]
 # ignore = ["target/"]
 
 cfg_test_split = true            # Count #[cfg(test)] as test LOC
