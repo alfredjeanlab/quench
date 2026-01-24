@@ -5,9 +5,10 @@
 //!
 //! Validates:
 //! - TOC entries reference existing files
-//! - (Future) Markdown links point to existing files
+//! - Markdown links point to existing files
 //! - (Future) Specs have required sections
 
+mod links;
 mod toc;
 
 use crate::check::{Check, CheckContext, CheckResult};
@@ -34,6 +35,9 @@ impl Check for DocsCheck {
 
         // Run TOC validation
         toc::validate_toc(ctx, &mut violations);
+
+        // Run link validation
+        links::validate_links(ctx, &mut violations);
 
         // Respect violation limit
         if let Some(limit) = ctx.limit {
