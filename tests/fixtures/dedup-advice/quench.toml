@@ -3,6 +3,9 @@ version = 1
 [project]
 name = "dedup-advice"
 
+[git.commit]
+agents = false
+
 [check.cloc]
 check = "error"
 max_lines = 5

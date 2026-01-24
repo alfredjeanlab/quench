@@ -13,8 +13,10 @@ use crate::check::{Check, CheckContext, CheckResult, Violation};
 use crate::config::GitCommitConfig;
 use crate::git::{Commit, get_all_branch_commits, get_commits_since};
 
+mod docs;
 pub mod parse;
 
+use docs::{DocsResult, check_commit_docs, primary_agent_file};
 pub use parse::{DEFAULT_TYPES, ParseResult, ParsedCommit, parse_conventional_commit};
 
 /// The git check validates commit message format.
@@ -48,19 +50,20 @@ impl Check for GitCheck {
             return CheckResult::passed(self.name());
         }
 
+        let mut violations = Vec::new();
+
+        // Check agent documentation (if enabled)
+        if config.agents {
+            check_agent_docs(ctx.root, &mut violations);
+        }
+
         // Get commits to validate
         let commits = match get_commits_to_check(ctx) {
             Ok(commits) => commits,
             Err(e) => return CheckResult::skipped(self.name(), e.to_string()),
         };
 
-        // Skip if no commits to check
-        if commits.is_empty() {
-            return CheckResult::passed(self.name());
-        }
-
-        // Validate each commit
-        let mut violations = Vec::new();
+        // Validate each commit (if any)
         for commit in &commits {
             validate_commit(commit, config, &mut violations);
         }
@@ -74,6 +77,31 @@ impl Check for GitCheck {
 
     fn default_enabled(&self) -> bool {
         false
+    }
+}
+
+/// Check that commit format is documented in agent files.
+fn check_agent_docs(root: &Path, violations: &mut Vec<Violation>) {
+    match check_commit_docs(root) {
+        DocsResult::Found(_) => {
+            // Documentation found, nothing to do
+        }
+        DocsResult::NotFound(_checked) => {
+            // Files exist but lack documentation
+            let file = primary_agent_file(root);
+            violations.push(Violation::file_only(
+                file,
+                "missing_docs",
+                "Add a Commits section describing the format, e.g.:\n\n\
+                ## Commits\n\n\
+                Use conventional commit format: `type(scope): description`\n\
+                Types: feat, fix, chore, docs, test, refactor",
+            ));
+        }
+        DocsResult::NoAgentFiles => {
+            // No agent files to check - this is handled by agents check
+            // or the user may not want agent files at all
+        }
     }
 }
 
