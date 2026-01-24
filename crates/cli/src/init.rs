@@ -14,6 +14,13 @@ pub enum DetectedLanguage {
     Shell,
 }
 
+/// Agents that can be detected in a project.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum DetectedAgent {
+    Claude,
+    Cursor,
+}
+
 /// Detect all languages present in a project.
 ///
 /// Returns a list of detected languages. Detection is additive:
@@ -65,6 +72,52 @@ fn has_sh_files(dir: &Path) -> bool {
             })
         })
         .unwrap_or(false)
+}
+
+/// Detect all agents present in a project.
+///
+/// Returns a list of detected agents. Detection is additive:
+/// a project with CLAUDE.md and .cursorrules returns both Claude and Cursor.
+pub fn detect_agents(root: &Path) -> Vec<DetectedAgent> {
+    let mut agents = Vec::new();
+
+    // Claude: CLAUDE.md exists
+    if root.join("CLAUDE.md").exists() {
+        agents.push(DetectedAgent::Claude);
+    }
+
+    // Cursor: .cursorrules or .cursor/rules/*.md[c] exists
+    if has_cursor_markers(root) {
+        agents.push(DetectedAgent::Cursor);
+    }
+
+    agents
+}
+
+/// Check if project has Cursor markers.
+fn has_cursor_markers(root: &Path) -> bool {
+    // Check for .cursorrules
+    if root.join(".cursorrules").exists() {
+        return true;
+    }
+
+    // Check for .cursor/rules/*.md or .cursor/rules/*.mdc
+    let rules_dir = root.join(".cursor/rules");
+    if rules_dir.is_dir()
+        && let Ok(entries) = rules_dir.read_dir()
+    {
+        for entry in entries.filter_map(|e| e.ok()) {
+            let path = entry.path();
+            if path.is_file()
+                && let Some(ext) = path.extension().and_then(|e| e.to_str())
+                && (ext == "md" || ext == "mdc")
+            {
+                return true;
+            }
+        }
+    }
+
+    false
 }
 
 #[cfg(test)]

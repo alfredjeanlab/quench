@@ -271,7 +271,6 @@ fn init_detection_is_additive() {
 ///
 /// > CLAUDE.md -> claude
 #[test]
-#[ignore = "TODO: Phase 1525 - Agent Auto-Detection"]
 fn init_detects_claude_from_claude_md() {
     let temp = Project::empty();
     temp.file("CLAUDE.md", "# Project\n");
@@ -291,7 +290,6 @@ fn init_detects_claude_from_claude_md() {
 ///
 /// > .cursorrules -> cursor
 #[test]
-#[ignore = "TODO: Phase 1525 - Agent Auto-Detection"]
 fn init_detects_cursor_from_cursorrules() {
     let temp = Project::empty();
     temp.file(".cursorrules", "# Cursor rules\n");
@@ -311,7 +309,6 @@ fn init_detects_cursor_from_cursorrules() {
 ///
 /// > .cursor/rules/*.md[c] -> cursor
 #[test]
-#[ignore = "TODO: Phase 1525 - Agent Auto-Detection"]
 fn init_detects_cursor_from_mdc_rules() {
     let temp = Project::empty();
     temp.file(".cursor/rules/project.mdc", "# Cursor rules\n");

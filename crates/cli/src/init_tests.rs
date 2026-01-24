@@ -91,3 +91,64 @@ fn no_markers_returns_empty() {
     let detected = detect_languages(temp.path());
     assert!(detected.is_empty());
 }
+
+// =============================================================================
+// Agent Detection Tests
+// =============================================================================
+
+#[test]
+fn detect_claude_from_claude_md() {
+    let temp = TempDir::new().unwrap();
+    fs::write(temp.path().join("CLAUDE.md"), "# Project").unwrap();
+
+    let detected = detect_agents(temp.path());
+    assert!(detected.contains(&DetectedAgent::Claude));
+}
+
+#[test]
+fn detect_cursor_from_cursorrules() {
+    let temp = TempDir::new().unwrap();
+    fs::write(temp.path().join(".cursorrules"), "# Rules").unwrap();
+
+    let detected = detect_agents(temp.path());
+    assert!(detected.contains(&DetectedAgent::Cursor));
+}
+
+#[test]
+fn detect_cursor_from_mdc_rules() {
+    let temp = TempDir::new().unwrap();
+    fs::create_dir_all(temp.path().join(".cursor/rules")).unwrap();
+    fs::write(temp.path().join(".cursor/rules/project.mdc"), "# Rules").unwrap();
+
+    let detected = detect_agents(temp.path());
+    assert!(detected.contains(&DetectedAgent::Cursor));
+}
+
+#[test]
+fn detect_cursor_from_md_rules() {
+    let temp = TempDir::new().unwrap();
+    fs::create_dir_all(temp.path().join(".cursor/rules")).unwrap();
+    fs::write(temp.path().join(".cursor/rules/project.md"), "# Rules").unwrap();
+
+    let detected = detect_agents(temp.path());
+    assert!(detected.contains(&DetectedAgent::Cursor));
+}
+
+#[test]
+fn agent_detection_is_additive() {
+    let temp = TempDir::new().unwrap();
+    fs::write(temp.path().join("CLAUDE.md"), "# Project").unwrap();
+    fs::write(temp.path().join(".cursorrules"), "# Rules").unwrap();
+
+    let detected = detect_agents(temp.path());
+    assert!(detected.contains(&DetectedAgent::Claude));
+    assert!(detected.contains(&DetectedAgent::Cursor));
+}
+
+#[test]
+fn no_agent_markers_returns_empty() {
+    let temp = TempDir::new().unwrap();
+
+    let detected = detect_agents(temp.path());
+    assert!(detected.is_empty());
+}

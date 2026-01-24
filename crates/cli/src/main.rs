@@ -16,7 +16,7 @@ use quench::color::{is_no_color_env, resolve_color};
 use quench::config;
 use quench::discovery;
 use quench::error::ExitCode;
-use quench::init::{DetectedLanguage, detect_languages};
+use quench::init::{DetectedAgent, DetectedLanguage, detect_agents, detect_languages};
 use quench::output::FormatOptions;
 use quench::output::json::{self, JsonFormatter};
 use quench::output::text::TextFormatter;
@@ -502,9 +502,9 @@ fn run_report(_cli: &Cli, args: &ReportArgs) -> anyhow::Result<()> {
 
 fn run_init(_cli: &Cli, args: &InitArgs) -> anyhow::Result<ExitCode> {
     use quench::cli::{
-        default_template, golang_detected_section, golang_profile_defaults,
-        javascript_detected_section, rust_detected_section, rust_profile_defaults,
-        shell_detected_section, shell_profile_defaults,
+        agents_detected_section, default_template, golang_detected_section,
+        golang_profile_defaults, javascript_detected_section, rust_detected_section,
+        rust_profile_defaults, shell_detected_section, shell_profile_defaults,
     };
 
     let cwd = std::env::current_dir()?;
@@ -544,11 +544,14 @@ fn run_init(_cli: &Cli, args: &InitArgs) -> anyhow::Result<ExitCode> {
         );
         (cfg, msg)
     } else {
-        // No --with: run auto-detection
-        let detected = detect_languages(&cwd);
+        // No --with: run auto-detection for both languages and agents
+        let detected_langs = detect_languages(&cwd);
+        let detected_agents = detect_agents(&cwd);
 
         let mut cfg = default_template().to_string();
-        for lang in &detected {
+
+        // Add language sections
+        for lang in &detected_langs {
             cfg.push('\n');
             match lang {
                 DetectedLanguage::Rust => cfg.push_str(rust_detected_section()),
@@ -558,19 +561,36 @@ fn run_init(_cli: &Cli, args: &InitArgs) -> anyhow::Result<ExitCode> {
             }
         }
 
-        let msg = if detected.is_empty() {
+        // Add agent section if any detected
+        if !detected_agents.is_empty() {
+            cfg.push('\n');
+            cfg.push_str(&agents_detected_section(&detected_agents));
+        }
+
+        // Build message listing detected items
+        let mut detected_names = Vec::new();
+        for lang in &detected_langs {
+            detected_names.push(match lang {
+                DetectedLanguage::Rust => "rust",
+                DetectedLanguage::Golang => "golang",
+                DetectedLanguage::JavaScript => "javascript",
+                DetectedLanguage::Shell => "shell",
+            });
+        }
+        for agent in &detected_agents {
+            detected_names.push(match agent {
+                DetectedAgent::Claude => "claude",
+                DetectedAgent::Cursor => "cursor",
+            });
+        }
+
+        let msg = if detected_names.is_empty() {
             "Created quench.toml".to_string()
         } else {
-            let names: Vec<_> = detected
-                .iter()
-                .map(|l| match l {
-                    DetectedLanguage::Rust => "rust",
-                    DetectedLanguage::Golang => "golang",
-                    DetectedLanguage::JavaScript => "javascript",
-                    DetectedLanguage::Shell => "shell",
-                })
-                .collect();
-            format!("Created quench.toml (detected: {})", names.join(", "))
+            format!(
+                "Created quench.toml (detected: {})",
+                detected_names.join(", ")
+            )
         };
         (cfg, msg)
     };
