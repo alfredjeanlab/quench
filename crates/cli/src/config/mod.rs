@@ -8,6 +8,7 @@
 mod go;
 mod parse;
 mod shell;
+mod suggest;
 mod suppress;
 
 use std::collections::BTreeSet;
@@ -24,6 +25,7 @@ use parse::{
     parse_agents_config, parse_cloc_config, parse_escapes_config, parse_go_config,
     parse_rust_config, parse_shell_config, warn_unknown_key,
 };
+use suggest::warn_unknown_check;
 
 pub use crate::checks::agents::config::{AgentsConfig, AgentsScopeConfig};
 
@@ -658,10 +660,10 @@ pub fn parse_with_warnings(content: &str, path: &Path) -> Result<Config> {
                 "cloc", "escapes", "agents", "docs", "tests", "git", "build", "license",
             ];
 
-            // Warn about unknown check types
+            // Warn about unknown check types with suggestions
             for key in t.keys() {
                 if !KNOWN_CHECKS.contains(&key.as_str()) {
-                    warn_unknown_key(path, &format!("check.{}", key));
+                    warn_unknown_check(path, key);
                 }
             }
 
