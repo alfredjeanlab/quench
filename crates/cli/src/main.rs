@@ -4,7 +4,6 @@
 //! Quench CLI entry point.
 
 mod git;
-mod report;
 
 use std::sync::Arc;
 
@@ -29,6 +28,7 @@ use quench::runner::{CheckRunner, RunnerConfig};
 use quench::walker::{FileWalker, WalkerConfig};
 
 use git::{detect_base_branch, get_changed_files, get_staged_files};
+use quench::report;
 
 fn init_logging() {
     let filter = EnvFilter::try_from_env("QUENCH_LOG").unwrap_or_else(|_| EnvFilter::new("off"));

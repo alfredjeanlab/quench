@@ -3,8 +3,8 @@
 
 //! JSON format report output.
 
-use quench::baseline::Baseline;
-use quench::cli::CheckFilter;
+use crate::baseline::Baseline;
+use crate::cli::CheckFilter;
 use serde_json::json;
 
 use super::{FilteredMetrics, ReportFormatter};

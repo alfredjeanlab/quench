@@ -11,10 +11,10 @@ mod text;
 
 use std::collections::HashMap;
 
-use quench::baseline::{
+use crate::baseline::{
     Baseline, BuildTimeMetrics, CoverageMetrics, EscapesMetrics, TestTimeMetrics,
 };
-use quench::cli::{CheckFilter, OutputFormat};
+use crate::cli::{CheckFilter, OutputFormat};
 
 pub use html::HtmlFormatter;
 pub use json::JsonFormatter;

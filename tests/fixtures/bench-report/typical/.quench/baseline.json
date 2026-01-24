@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "updated": "2026-01-24T00:00:00Z",
+  "commit": "def456",
+  "metrics": {
+    "coverage": {
+      "total": 85.2,
+      "by_package": {
+        "core": 88.1,
+        "cli": 82.3
+      }
+    },
+    "escapes": {
+      "source": {
+        "unsafe": 3,
+        "unwrap": 12,
+        "todo": 5,
+        "panic": 1,
+        "expect": 8
+      }
+    },
+    "binary_size": {
+      "quench": 4521984
+    },
+    "build_time": {
+      "cold": 45.0,
+      "hot": 1.2
+    },
+    "test_time": {
+      "total": 8.5,
+      "avg": 0.054,
+      "max": 1.2
+    }
+  }
+}

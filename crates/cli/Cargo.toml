@@ -86,5 +86,9 @@ harness = false
 name = "tests"
 harness = false
 
+[[bench]]
+name = "report"
+harness = false
+
 [lints]
 workspace = true
