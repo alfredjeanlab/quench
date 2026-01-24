@@ -658,3 +658,31 @@ cloc_advice = "Custom Shell advice here"
         RustConfig::default_cloc_advice()
     );
 }
+
+// Ignore config tests
+
+#[test]
+fn ignore_shorthand_array() {
+    let path = PathBuf::from("quench.toml");
+    let content = r#"
+version = 1
+
+[project]
+ignore = ["*.snapshot", "testdata/**"]
+"#;
+    let config = parse(content, &path).unwrap();
+    assert_eq!(config.project.ignore.patterns, vec!["*.snapshot", "testdata/**"]);
+}
+
+#[test]
+fn ignore_full_table() {
+    let path = PathBuf::from("quench.toml");
+    let content = r#"
+version = 1
+
+[project.ignore]
+patterns = ["*.snapshot"]
+"#;
+    let config = parse(content, &path).unwrap();
+    assert_eq!(config.project.ignore.patterns, vec!["*.snapshot"]);
+}

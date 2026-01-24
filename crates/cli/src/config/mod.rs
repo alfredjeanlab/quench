@@ -311,12 +311,33 @@ impl ProjectConfig {
 }
 
 /// Ignore pattern configuration.
-#[derive(Debug, Default, Clone, Deserialize)]
-#[serde(deny_unknown_fields)]
+///
+/// Accepts either shorthand or full form:
+/// - `ignore = ["pattern1", "pattern2"]`
+/// - `ignore = { patterns = ["pattern1", "pattern2"] }`
+#[derive(Debug, Default, Clone)]
 pub struct IgnoreConfig {
-    /// Glob patterns to ignore (e.g., "*.snapshot", "testdata/", "**/fixtures/**").
-    #[serde(default)]
     pub patterns: Vec<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum IgnoreConfigHelper {
+    Short(Vec<String>),
+    Full { patterns: Vec<String> },
+}
+
+impl<'de> serde::Deserialize<'de> for IgnoreConfig {
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        Ok(match IgnoreConfigHelper::deserialize(deserializer)? {
+            IgnoreConfigHelper::Short(patterns) | IgnoreConfigHelper::Full { patterns } => {
+                Self { patterns }
+            }
+        })
+    }
 }
 
 /// Currently supported config version.
