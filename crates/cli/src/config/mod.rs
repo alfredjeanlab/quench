@@ -54,9 +54,6 @@ struct FlexibleConfig {
     go: Option<toml::Value>,
 
     #[serde(default)]
-    golang: Option<toml::Value>,
-
-    #[serde(default)]
     shell: Option<toml::Value>,
 
     #[serde(flatten)]
@@ -467,7 +464,6 @@ const KNOWN_KEYS: &[&str] = &[
     "check",
     "rust",
     "go",
-    "golang",
     "shell",
 ];
 
@@ -686,8 +682,8 @@ pub fn parse_with_warnings(content: &str, path: &Path) -> Result<Config> {
     // Parse rust config
     let rust = parse_rust_config(flexible.rust.as_ref());
 
-    // Parse go config (supports both "go" and "golang" keys)
-    let go = parse_go_config(flexible.go.as_ref().or(flexible.golang.as_ref()));
+    // Parse go config
+    let go = parse_go_config(flexible.go.as_ref());
 
     // Parse shell config
     let shell = parse_shell_config(flexible.shell.as_ref());

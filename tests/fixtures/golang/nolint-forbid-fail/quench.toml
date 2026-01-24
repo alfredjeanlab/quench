@@ -1,7 +1,7 @@
 version = 1
 
-[golang.suppress]
+[go.suppress]
 check = "comment"
 
-[golang.suppress.source]
+[go.suppress.source]
 forbid = ["govet"]

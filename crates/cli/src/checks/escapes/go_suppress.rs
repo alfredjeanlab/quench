@@ -50,13 +50,6 @@ pub fn check_go_suppress_violations(
             &config.source
         };
 
-        // Get the effective check level for this scope
-        let scope_check = if is_test_file {
-            config.test.check.unwrap_or(SuppressLevel::Allow)
-        } else {
-            scope_config.check.unwrap_or(config.check)
-        };
-
         // Format pattern for reporting
         let pattern = if directive.codes.is_empty() {
             "//nolint".to_string()
@@ -103,7 +96,7 @@ pub fn check_go_suppress_violations(
             }
 
             // Check if comment is required
-            if scope_check == SuppressLevel::Comment && !directive.has_comment {
+            if effective_check == SuppressLevel::Comment && !directive.has_comment {
                 let advice = if let Some(ref pat) = config.comment {
                     format!(
                         "Lint suppression requires justification. Add a {} comment or inline reason.",
@@ -127,7 +120,7 @@ pub fn check_go_suppress_violations(
             }
 
             // Forbid level means all suppressions fail
-            if scope_check == SuppressLevel::Forbid {
+            if effective_check == SuppressLevel::Forbid {
                 let advice =
                     "Lint suppressions are forbidden. Remove and fix the underlying issue.";
                 if let Some(v) = try_create_violation(
