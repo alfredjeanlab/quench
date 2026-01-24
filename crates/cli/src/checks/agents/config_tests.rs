@@ -18,9 +18,15 @@ fn default_files_includes_cursorrules() {
 }
 
 #[test]
-fn default_files_includes_cursor_rules_glob() {
+fn default_files_includes_cursor_rules_md_glob() {
     let config = AgentsConfig::default();
     assert!(config.files.contains(&".cursor/rules/*.md".to_string()));
+}
+
+#[test]
+fn default_files_includes_cursor_rules_mdc_glob() {
+    let config = AgentsConfig::default();
+    assert!(config.files.contains(&".cursor/rules/*.mdc".to_string()));
 }
 
 #[test]
