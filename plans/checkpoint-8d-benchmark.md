@@ -1,5 +1,7 @@
 # Checkpoint 8D: Benchmark - Tests Correlation
 
+**Root Feature:** `quench-03b8`
+
 ## Overview
 
 Create performance benchmarks for the tests correlation check to establish baselines, validate against performance targets, and enable regression tracking. This follows the established benchmark checkpoint pattern (6D, 7D, etc.) with Criterion-based benchmarks and stress test fixtures.
