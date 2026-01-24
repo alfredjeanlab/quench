@@ -1,5 +1,7 @@
 # Phase 1542: Per-Language Cloc Configuration
 
+**Root Feature:** `quench-eb8d`
+
 ## Overview
 
 Implement per-language cloc configuration allowing each language (`rust`, `golang`, `javascript`, `shell`) to have its own `check` level and `advice` message for cloc violations. This enables projects to disable or warn-only for specific languages while keeping others strict.
