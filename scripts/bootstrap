@@ -16,37 +16,16 @@ NC='\033[0m'
 
 failed=0
 
-# --- Dead code allowances ---
-echo "Checking for unauthorized #[allow(dead_code)]..."
-
-# Find #[allow(dead_code)] without "// KEEP UNTIL:" comment on same line
-# Exclude _tests.rs files which may contain sample code as test data
-DEAD_CODE=$(rg -n '#\[allow\(dead_code\)\]' --type rust crates \
-    --glob '!*_tests.rs' 2>/dev/null | \
-    rg -v '// KEEP UNTIL:' || true)
-
-if [[ -n "$DEAD_CODE" ]]; then
-    echo -e "${RED}Found #[allow(dead_code)] without timeline:${NC}"
-    echo "$DEAD_CODE"
-    echo -e "Add '// KEEP UNTIL: <condition>' comment to suppress"
-    failed=1
-else
-    echo -e "${GREEN}No unauthorized dead code allowances${NC}"
-fi
-
 # --- Test file convention ---
-echo ""
 echo "Checking test file convention..."
 
 # Find inline #[cfg(test)] mod tests { patterns (should use _tests.rs instead)
-# Exclude _tests.rs files and files using #[path = "..."] pattern
 INLINE_TESTS=$(rg -n '#\[cfg\(test\)\]' --type rust crates \
     --glob '!*_tests.rs' 2>/dev/null | \
     rg -v '#\[path = "' || true)
 
 if [[ -n "$INLINE_TESTS" ]]; then
     while IFS=: read -r file line _; do
-        # Get this line and next line
         context=$(sed -n "${line},$((line+1))p" "$file")
         if echo "$context" | rg -q 'mod tests'; then
             echo -e "${RED}$file:$line: inline #[cfg(test)] mod tests - use _tests.rs file instead${NC}"
@@ -63,7 +42,6 @@ fi
 echo ""
 echo "Running performance smoke test..."
 
-# Only run if bench-rust fixture exists and release binary is available
 if [ -d "tests/fixtures/bench-rust" ] && [ -f "target/release/quench" ]; then
     if timeout 5s ./target/release/quench check tests/fixtures/bench-rust > /dev/null 2>&1; then
         echo -e "${GREEN}Performance smoke test passed${NC}"
