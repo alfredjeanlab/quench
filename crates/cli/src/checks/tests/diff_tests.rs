@@ -113,3 +113,26 @@ fn merge_outputs_handles_missing_counts() {
     assert_eq!(result[0].lines_added, 0);
     assert_eq!(result[0].lines_deleted, 0);
 }
+
+// =============================================================================
+// COMMIT CHANGES TESTS
+// =============================================================================
+
+#[test]
+fn commit_changes_struct_fields() {
+    let changes = CommitChanges {
+        hash: "abc123def456".to_string(),
+        message: "feat: add parser".to_string(),
+        changes: vec![FileChange {
+            path: PathBuf::from("src/parser.rs"),
+            change_type: ChangeType::Added,
+            lines_added: 50,
+            lines_deleted: 0,
+        }],
+    };
+
+    assert_eq!(changes.hash, "abc123def456");
+    assert_eq!(changes.message, "feat: add parser");
+    assert_eq!(changes.changes.len(), 1);
+    assert_eq!(changes.changes[0].lines_added, 50);
+}

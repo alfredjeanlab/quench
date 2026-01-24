@@ -427,3 +427,249 @@ check = "error"
     // Should have at least 2 violations
     assert!(result.violations().len() >= 2);
 }
+
+// =============================================================================
+// COMMIT SCOPE SPECS
+// =============================================================================
+
+/// Spec: docs/specs/checks/tests.md#commit-scope
+///
+/// > scope = "commit" # Per-commit with asymmetric rules
+/// > - Tests without code = **OK** (TDD recognized)
+/// > - Code without tests = **FAIL**
+#[test]
+fn commit_scope_fails_on_source_without_tests() {
+    let temp = Project::empty();
+    temp.config(
+        r#"[check.tests.commit]
+check = "error"
+scope = "commit"
+"#,
+    );
+
+    init_git_repo(temp.path());
+    git_branch(temp.path(), "feature/commit-scope");
+
+    // First commit: tests only (TDD) - OK
+    temp.file("tests/parser_tests.rs", "#[test] fn t() {}");
+    git_commit(temp.path(), "test: add parser tests");
+
+    // Second commit: source without tests - FAIL
+    temp.file("src/lexer.rs", "pub fn lex() {}");
+    git_commit(temp.path(), "feat: add lexer");
+
+    check("tests")
+        .pwd(temp.path())
+        .args(&["--base", "main"])
+        .fails()
+        .stdout_has("lexer.rs")
+        .stdout_lacks("parser"); // TDD commit should pass
+}
+
+/// Spec: docs/specs/checks/tests.md#commit-scope
+///
+/// > Tests without code = **OK** (TDD recognized)
+#[test]
+fn commit_scope_passes_test_only_commit_tdd() {
+    let temp = Project::empty();
+    temp.config(
+        r#"[check.tests.commit]
+check = "error"
+scope = "commit"
+"#,
+    );
+
+    init_git_repo(temp.path());
+    git_branch(temp.path(), "feature/tdd-commit");
+
+    // Commit with only test changes - TDD workflow
+    temp.file(
+        "tests/parser_tests.rs",
+        "#[test] fn test_parse() { assert!(true); }",
+    );
+    git_commit(temp.path(), "test: add parser tests first");
+
+    // Should pass - TDD commit is valid
+    check("tests")
+        .pwd(temp.path())
+        .args(&["--base", "main"])
+        .passes();
+}
+
+/// Spec: docs/specs/checks/tests.md#commit-scope
+///
+/// > Each commit checked independently
+#[test]
+fn commit_scope_passes_when_each_commit_has_tests() {
+    let temp = Project::empty();
+    temp.config(
+        r#"[check.tests.commit]
+check = "error"
+scope = "commit"
+"#,
+    );
+
+    init_git_repo(temp.path());
+    git_branch(temp.path(), "feature/proper-commits");
+
+    // First commit: source with tests
+    temp.file("src/parser.rs", "pub fn parse() {}");
+    temp.file("tests/parser_tests.rs", "#[test] fn test_parse() {}");
+    git_commit(temp.path(), "feat: add parser with tests");
+
+    // Second commit: source with tests
+    temp.file("src/lexer.rs", "pub fn lex() {}");
+    temp.file("tests/lexer_tests.rs", "#[test] fn test_lex() {}");
+    git_commit(temp.path(), "feat: add lexer with tests");
+
+    // Should pass - each commit has tests
+    check("tests")
+        .pwd(temp.path())
+        .args(&["--base", "main"])
+        .passes();
+}
+
+/// Spec: docs/specs/checks/tests.md#commit-scope
+///
+/// > Inline #[cfg(test)] changes count as test changes per commit
+#[test]
+fn commit_scope_inline_cfg_test_satisfies() {
+    let temp = Project::empty();
+    temp.config(
+        r#"[check.tests.commit]
+check = "error"
+scope = "commit"
+"#,
+    );
+
+    init_git_repo(temp.path());
+    git_branch(temp.path(), "feature/inline-tests");
+
+    // Commit with source and inline tests
+    temp.file(
+        "src/parser.rs",
+        r#"pub fn parse() -> bool { true }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse() {
+        assert!(parse());
+    }
+}
+"#,
+    );
+    git_commit(temp.path(), "feat: add parser with inline tests");
+
+    // Should pass - inline tests satisfy requirement
+    check("tests")
+        .pwd(temp.path())
+        .args(&["--base", "main"])
+        .passes();
+}
+
+/// Spec: docs/specs/checks/tests.md#commit-scope
+///
+/// > scope = "branch" aggregates all changes (default)
+#[test]
+fn branch_scope_aggregates_all_changes() {
+    let temp = Project::empty();
+    temp.config(
+        r#"[check.tests.commit]
+check = "error"
+scope = "branch"
+"#,
+    );
+
+    init_git_repo(temp.path());
+    git_branch(temp.path(), "feature/branch-scope");
+
+    // First commit: source only
+    temp.file("src/parser.rs", "pub fn parse() {}");
+    git_commit(temp.path(), "feat: add parser");
+
+    // Second commit: tests only
+    temp.file("tests/parser_tests.rs", "#[test] fn test_parse() {}");
+    git_commit(temp.path(), "test: add parser tests");
+
+    // Should pass in branch scope - tests exist somewhere in the branch
+    check("tests")
+        .pwd(temp.path())
+        .args(&["--base", "main"])
+        .passes();
+}
+
+/// Spec: docs/specs/checks/tests.md#commit-scope
+///
+/// > Commit scope with sibling test files
+#[test]
+fn commit_scope_sibling_test_file_satisfies() {
+    let temp = Project::empty();
+    temp.config(
+        r#"[check.tests.commit]
+check = "error"
+scope = "commit"
+"#,
+    );
+
+    init_git_repo(temp.path());
+    git_branch(temp.path(), "feature/sibling-tests");
+
+    // Commit with source and sibling test file
+    temp.file("src/parser.rs", "pub fn parse() {}");
+    temp.file("src/parser_tests.rs", "#[test] fn test_parse() {}");
+    git_commit(temp.path(), "feat: add parser with sibling tests");
+
+    // Should pass - sibling test file satisfies requirement
+    check("tests")
+        .pwd(temp.path())
+        .args(&["--base", "main"])
+        .passes();
+}
+
+/// Spec: docs/specs/checks/tests.md#json-output
+///
+/// > Commit scope includes commits_checked and commits_failing metrics
+#[test]
+fn commit_scope_json_includes_commit_metrics() {
+    let temp = Project::empty();
+    temp.config(
+        r#"[check.tests.commit]
+check = "error"
+scope = "commit"
+"#,
+    );
+
+    init_git_repo(temp.path());
+    git_branch(temp.path(), "feature/commit-metrics");
+
+    // Two commits: one passing, one failing
+    temp.file("src/good.rs", "pub fn good() {}");
+    temp.file("tests/good_tests.rs", "#[test] fn t() {}");
+    git_commit(temp.path(), "feat: add good with tests");
+
+    temp.file("src/bad.rs", "pub fn bad() {}");
+    git_commit(temp.path(), "feat: add bad without tests");
+
+    let result = check("tests")
+        .pwd(temp.path())
+        .args(&["--base", "main"])
+        .json()
+        .fails();
+
+    let metrics = result.require("metrics");
+    assert_eq!(
+        metrics.get("commits_checked").and_then(|v| v.as_u64()),
+        Some(2)
+    );
+    assert_eq!(
+        metrics.get("commits_failing").and_then(|v| v.as_u64()),
+        Some(1)
+    );
+    assert_eq!(
+        metrics.get("scope").and_then(|v| v.as_str()),
+        Some("commit")
+    );
+}

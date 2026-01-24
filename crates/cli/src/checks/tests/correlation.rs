@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 
 use globset::{Glob, GlobSet, GlobSetBuilder};
 
-use super::diff::{ChangeType, FileChange};
+use super::diff::{ChangeType, CommitChanges, FileChange};
 
 /// Configuration for correlation detection.
 #[derive(Debug, Clone)]
@@ -50,6 +50,44 @@ pub struct CorrelationResult {
     pub without_tests: Vec<PathBuf>,
     /// Test-only changes (TDD workflow).
     pub test_only: Vec<PathBuf>,
+}
+
+/// Result of analyzing a single commit for correlation.
+#[derive(Debug)]
+pub struct CommitAnalysis {
+    /// Commit hash.
+    pub hash: String,
+    /// Commit message (first line).
+    pub message: String,
+    /// Source files in this commit without corresponding test changes.
+    pub source_without_tests: Vec<PathBuf>,
+    /// True if this commit contains only test changes (TDD workflow).
+    pub is_test_only: bool,
+}
+
+/// Analyze a single commit for source/test correlation.
+///
+/// Returns analysis of whether the commit follows proper test hygiene:
+/// - TDD commits (test-only) are considered valid
+/// - Commits with source changes must have corresponding test changes
+pub fn analyze_commit(
+    commit: &CommitChanges,
+    config: &CorrelationConfig,
+    root: &Path,
+) -> CommitAnalysis {
+    let result = analyze_correlation(&commit.changes, config, root);
+
+    // A TDD commit has test changes but no source changes
+    let is_test_only = !result.test_only.is_empty()
+        && result.with_tests.is_empty()
+        && result.without_tests.is_empty();
+
+    CommitAnalysis {
+        hash: commit.hash.clone(),
+        message: commit.message.clone(),
+        source_without_tests: result.without_tests,
+        is_test_only,
+    }
 }
 
 /// Analyze changes for source/test correlation.
@@ -99,22 +137,9 @@ pub fn analyze_correlation(
 
     for source in source_changes {
         let rel_path = source.path.strip_prefix(root).unwrap_or(&source.path);
-        let base_name = match correlation_base_name(rel_path) {
-            Some(name) => name,
-            None => {
-                // Can't extract base name, consider it without tests
-                without_tests.push(rel_path.to_path_buf());
-                continue;
-            }
-        };
 
-        // Check if any test file matches this source
-        let has_test = test_base_names.iter().any(|test_name| {
-            test_name == base_name
-                || *test_name == format!("{}_test", base_name)
-                || *test_name == format!("{}_tests", base_name)
-                || *test_name == format!("test_{}", base_name)
-        });
+        // Use the enhanced correlation check
+        let has_test = has_correlated_test(rel_path, &test_changes, &test_base_names);
 
         // Also check if the source file itself appears in test changes
         // (for inline #[cfg(test)] blocks)
@@ -157,6 +182,76 @@ pub fn analyze_correlation(
 /// Extract the base name for correlation (e.g., "parser" from "src/parser.rs").
 fn correlation_base_name(path: &Path) -> Option<&str> {
     path.file_stem()?.to_str()
+}
+
+/// Get candidate test file locations for a source file.
+///
+/// Returns a list of paths where a test file might exist for the given source file.
+/// This implements the test location strategy from the spec:
+/// 1. tests/{base}.rs
+/// 2. tests/{base}_test.rs
+/// 3. tests/{base}_tests.rs
+/// 4. tests/test_{base}.rs
+/// 5. test/{base}.rs (singular)
+/// 6. test/{base}_test.rs
+/// 7. test/{base}_tests.rs
+/// 8. Sibling test files ({parent}/{base}_test.rs, {parent}/{base}_tests.rs)
+pub fn find_test_locations(source_path: &Path) -> Vec<PathBuf> {
+    let base_name = match source_path.file_stem().and_then(|s| s.to_str()) {
+        Some(n) => n,
+        None => return vec![],
+    };
+    let parent = source_path.parent().unwrap_or(Path::new(""));
+
+    vec![
+        // tests/ directory variants
+        PathBuf::from(format!("tests/{}.rs", base_name)),
+        PathBuf::from(format!("tests/{}_test.rs", base_name)),
+        PathBuf::from(format!("tests/{}_tests.rs", base_name)),
+        PathBuf::from(format!("tests/test_{}.rs", base_name)),
+        // test/ directory variants (singular)
+        PathBuf::from(format!("test/{}.rs", base_name)),
+        PathBuf::from(format!("test/{}_test.rs", base_name)),
+        PathBuf::from(format!("test/{}_tests.rs", base_name)),
+        // Sibling test files (same directory as source)
+        parent.join(format!("{}_test.rs", base_name)),
+        parent.join(format!("{}_tests.rs", base_name)),
+    ]
+}
+
+/// Check if any changed test file correlates with a source file.
+///
+/// Uses two strategies:
+/// 1. Check if any test path matches expected locations for this source
+/// 2. Fall back to base name matching
+pub fn has_correlated_test(
+    source_path: &Path,
+    test_changes: &[PathBuf],
+    test_base_names: &[String],
+) -> bool {
+    let base_name = match source_path.file_stem().and_then(|s| s.to_str()) {
+        Some(n) => n,
+        None => return false,
+    };
+
+    // Strategy 1: Check expected test locations
+    let expected_locations = find_test_locations(source_path);
+    for test_path in test_changes {
+        if expected_locations
+            .iter()
+            .any(|loc| test_path.ends_with(loc))
+        {
+            return true;
+        }
+    }
+
+    // Strategy 2: Base name matching (existing logic)
+    test_base_names.iter().any(|test_name| {
+        test_name == base_name
+            || *test_name == format!("{}_test", base_name)
+            || *test_name == format!("{}_tests", base_name)
+            || *test_name == format!("test_{}", base_name)
+    })
 }
 
 /// Extract base name from a test file, stripping test suffixes.

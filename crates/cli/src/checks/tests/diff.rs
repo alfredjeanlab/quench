@@ -49,7 +49,7 @@ pub fn get_base_changes(root: &Path, base: &str) -> Result<Vec<FileChange>, Stri
 }
 
 /// Run a git diff command with the given arguments.
-fn run_git_diff(root: &Path, args: &[&str]) -> Result<String, String> {
+pub fn run_git_diff(root: &Path, args: &[&str]) -> Result<String, String> {
     let mut cmd = Command::new("git");
     cmd.arg("diff").args(args).current_dir(root);
 
@@ -159,6 +159,73 @@ fn parse_name_status(output: &str) -> Vec<(PathBuf, ChangeType)> {
             Some((PathBuf::from(path), change_type))
         })
         .collect()
+}
+
+/// A single commit's changes.
+#[derive(Debug, Clone)]
+pub struct CommitChanges {
+    /// Commit hash (full SHA).
+    pub hash: String,
+    /// Commit message (first line).
+    pub message: String,
+    /// Files changed in this commit.
+    pub changes: Vec<FileChange>,
+}
+
+/// Get changes per commit from base..HEAD.
+///
+/// Returns commits in chronological order (oldest first).
+pub fn get_commits_since(root: &Path, base: &str) -> Result<Vec<CommitChanges>, String> {
+    // Get list of commits in the range
+    let output = Command::new("git")
+        .args(["log", "--format=%H|%s", &format!("{}..HEAD", base)])
+        .current_dir(root)
+        .output()
+        .map_err(|e| format!("failed to run git: {}", e))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("git log failed: {}", stderr.trim()));
+    }
+
+    // Parse commit lines (newest first from git log)
+    let commits: Vec<(String, String)> = String::from_utf8_lossy(&output.stdout)
+        .lines()
+        .filter_map(|line| {
+            let parts: Vec<&str> = line.splitn(2, '|').collect();
+            if parts.len() == 2 {
+                Some((parts[0].to_string(), parts[1].to_string()))
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    // Get changes for each commit (reverse to get oldest first)
+    let mut result = Vec::new();
+    for (hash, message) in commits.into_iter().rev() {
+        let changes = get_commit_changes(root, &hash)?;
+        result.push(CommitChanges {
+            hash,
+            message,
+            changes,
+        });
+    }
+
+    Ok(result)
+}
+
+/// Get file changes for a specific commit.
+fn get_commit_changes(root: &Path, commit_hash: &str) -> Result<Vec<FileChange>, String> {
+    // Use hash^..hash to get changes in that specific commit
+    // Note: This won't work for the initial commit, but for feature branches
+    // comparing to main, we don't need to handle the initial commit.
+    let range = format!("{}^..{}", commit_hash, commit_hash);
+
+    let numstat = run_git_diff(root, &["--numstat", &range])?;
+    let name_status = run_git_diff(root, &["--name-status", &range])?;
+
+    merge_diff_outputs(&numstat, &name_status, root)
 }
 
 #[cfg(test)]

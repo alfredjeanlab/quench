@@ -20,9 +20,10 @@ use crate::check::{Check, CheckContext, CheckResult, Violation};
 use crate::config::TestsCommitConfig;
 
 use self::correlation::{
-    CorrelationConfig, analyze_correlation, has_inline_test_changes, has_placeholder_test,
+    CorrelationConfig, analyze_commit, analyze_correlation, has_inline_test_changes,
+    has_placeholder_test,
 };
-use self::diff::{get_base_changes, get_staged_changes};
+use self::diff::{get_base_changes, get_commits_since, get_staged_changes};
 
 pub struct TestsCheck;
 
@@ -49,6 +50,37 @@ impl Check for TestsCheck {
             return CheckResult::passed(self.name());
         }
 
+        // Build correlation config from user settings
+        let correlation_config = build_correlation_config(config);
+
+        // Commit scope: check each commit individually
+        // Branch scope: aggregate all changes (existing behavior)
+        // Staged mode: always use branch-like behavior (single unit of changes)
+        if config.scope == "commit"
+            && !ctx.staged
+            && let Some(base) = ctx.base_branch
+        {
+            return self.run_commit_scope(ctx, base, &correlation_config);
+        }
+
+        // Default to branch scope
+        self.run_branch_scope(ctx, &correlation_config)
+    }
+
+    fn default_enabled(&self) -> bool {
+        true
+    }
+}
+
+impl TestsCheck {
+    /// Run branch-scope checking (aggregate all changes).
+    fn run_branch_scope(
+        &self,
+        ctx: &CheckContext,
+        correlation_config: &CorrelationConfig,
+    ) -> CheckResult {
+        let config = &ctx.config.check.tests.commit;
+
         // Need either --staged or --base for change detection
         let changes = if ctx.staged {
             match get_staged_changes(ctx.root) {
@@ -65,11 +97,8 @@ impl Check for TestsCheck {
             return CheckResult::passed(self.name());
         };
 
-        // Build correlation config from user settings
-        let correlation_config = build_correlation_config(config);
-
         // Analyze correlation
-        let mut result = analyze_correlation(&changes, &correlation_config, ctx.root);
+        let mut result = analyze_correlation(&changes, correlation_config, ctx.root);
 
         // Check for inline test changes in Rust files
         let base_ref = if ctx.staged { None } else { ctx.base_branch };
@@ -140,7 +169,7 @@ impl Check for TestsCheck {
             "source_files_changed": result.with_tests.len() + result.without_tests.len(),
             "with_test_changes": result.with_tests.len(),
             "without_test_changes": result.without_tests.len(),
-            "scope": config.scope,
+            "scope": "branch",
         });
 
         if violations.is_empty() {
@@ -152,8 +181,142 @@ impl Check for TestsCheck {
         }
     }
 
-    fn default_enabled(&self) -> bool {
-        true
+    /// Run commit-scope checking (each commit independently).
+    ///
+    /// Asymmetric rules:
+    /// - TDD commits (test-only) are OK
+    /// - Code commits without tests FAIL
+    fn run_commit_scope(
+        &self,
+        ctx: &CheckContext,
+        base: &str,
+        correlation_config: &CorrelationConfig,
+    ) -> CheckResult {
+        let config = &ctx.config.check.tests.commit;
+        let allow_placeholders = config.placeholders == "allow";
+
+        let commits = match get_commits_since(ctx.root, base) {
+            Ok(c) => c,
+            Err(e) => return CheckResult::skipped(self.name(), e),
+        };
+
+        let mut violations = Vec::new();
+        let mut failing_commits = Vec::new();
+
+        for commit in &commits {
+            let analysis = analyze_commit(commit, correlation_config, ctx.root);
+
+            // TDD commits (test-only) are OK
+            if analysis.is_test_only {
+                continue;
+            }
+
+            // Check each source file without tests
+            for path in &analysis.source_without_tests {
+                // Check for inline test changes within this commit
+                if path.extension().is_some_and(|e| e == "rs")
+                    && self.has_inline_test_changes_in_commit(path, &commit.hash, ctx.root)
+                {
+                    continue;
+                }
+
+                // Check for placeholder tests
+                if allow_placeholders
+                    && let Some(base_name) = path.file_stem().and_then(|s| s.to_str())
+                {
+                    let test_paths = [
+                        format!("tests/{}_tests.rs", base_name),
+                        format!("tests/{}_test.rs", base_name),
+                        format!("tests/{}.rs", base_name),
+                        format!("test/{}_tests.rs", base_name),
+                        format!("test/{}.rs", base_name),
+                    ];
+
+                    let has_placeholder = test_paths.iter().any(|test_path| {
+                        let test_file = std::path::Path::new(test_path);
+                        ctx.root.join(test_file).exists()
+                            && has_placeholder_test(test_file, base_name, ctx.root).unwrap_or(false)
+                    });
+
+                    if has_placeholder {
+                        continue;
+                    }
+                }
+
+                failing_commits.push(analysis.hash.clone());
+
+                let short_hash = if analysis.hash.len() >= 7 {
+                    &analysis.hash[..7]
+                } else {
+                    &analysis.hash
+                };
+
+                let advice = format!(
+                    "Commit {} modifies {} without test changes",
+                    short_hash,
+                    path.display()
+                );
+
+                violations.push(Violation::file_only(path, "missing_tests", advice));
+
+                if ctx.limit.is_some_and(|l| violations.len() >= l) {
+                    break;
+                }
+            }
+
+            if ctx.limit.is_some_and(|l| violations.len() >= l) {
+                break;
+            }
+        }
+
+        // Deduplicate failing commits
+        failing_commits.sort();
+        failing_commits.dedup();
+
+        let metrics = json!({
+            "commits_checked": commits.len(),
+            "commits_failing": failing_commits.len(),
+            "scope": "commit",
+        });
+
+        if violations.is_empty() {
+            CheckResult::passed(self.name()).with_metrics(metrics)
+        } else if config.check == "warn" {
+            CheckResult::passed_with_warnings(self.name(), violations).with_metrics(metrics)
+        } else {
+            CheckResult::failed(self.name(), violations).with_metrics(metrics)
+        }
+    }
+
+    /// Check if a file has inline test changes within a specific commit.
+    fn has_inline_test_changes_in_commit(
+        &self,
+        file_path: &std::path::Path,
+        commit_hash: &str,
+        root: &std::path::Path,
+    ) -> bool {
+        use correlation::changes_in_cfg_test;
+        use std::process::Command;
+
+        let rel_path = file_path.strip_prefix(root).unwrap_or(file_path);
+        let rel_path_str = match rel_path.to_str() {
+            Some(s) => s,
+            None => return false,
+        };
+
+        let range = format!("{}^..{}", commit_hash, commit_hash);
+        let output = Command::new("git")
+            .args(["diff", &range, "--", rel_path_str])
+            .current_dir(root)
+            .output();
+
+        match output {
+            Ok(o) if o.status.success() => {
+                let diff = String::from_utf8_lossy(&o.stdout);
+                changes_in_cfg_test(&diff)
+            }
+            _ => false,
+        }
     }
 }
 
