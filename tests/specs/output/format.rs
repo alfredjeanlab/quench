@@ -382,8 +382,10 @@ cloc: FAIL
   src/oversized.rs: file_too_large (lines: 15 vs 10)
     Can the code be made more concise?
 
-    If not, split large source files into sibling modules or submodules in a folder;
-    consider refactoring to be more unit testable.
+    Look for repetitive patterns that could be extracted into helper functions
+    or consider refactoring to be more unit testable.
+
+    If not, split large source files into sibling modules or submodules in a folder,
 
     Avoid picking and removing individual lines to satisfy the linter,
     prefer properly refactoring out testable code blocks.

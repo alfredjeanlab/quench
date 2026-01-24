@@ -155,12 +155,6 @@ cfg_test_split = "count"  # count | require | off (default: "count")
 | `"require"` | Fail if source files contain inline `#[cfg(test)]` blocks; require separate `_tests.rs` files |
 | `"off"` | Count all lines as source LOC, don't parse for `#[cfg(test)]` |
 
-### Backward Compatibility
-
-Boolean values are still supported for backward compatibility:
-- `cfg_test_split = true` → same as `"count"`
-- `cfg_test_split = false` → same as `"off"`
-
 ### Mode: "count" (Default)
 
 Lines inside `#[cfg(test)]` blocks are counted as test LOC:

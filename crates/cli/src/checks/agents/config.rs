@@ -4,9 +4,27 @@
 //! Configuration for the agents check.
 
 use serde::Deserialize;
-use serde::de::Deserializer;
+use serde::de::{self, Deserializer};
 
 use crate::config::CheckLevel;
+
+/// Custom deserializer for optional usize that accepts false to mean None.
+fn deserialize_optional_usize<'de, D>(deserializer: D) -> Result<Option<usize>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum OptionalUsize {
+        Number(usize),
+        Bool(bool),
+    }
+    match OptionalUsize::deserialize(deserializer)? {
+        OptionalUsize::Number(n) => Ok(Some(n)),
+        OptionalUsize::Bool(false) => Ok(None),
+        OptionalUsize::Bool(true) => Err(de::Error::custom("expected a number or false, not true")),
+    }
+}
 
 /// Content rule enforcement level.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -44,6 +62,7 @@ impl<'de> Deserialize<'de> for ContentRule {
 
 /// Configuration for the agents check.
 #[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct AgentsConfig {
     /// Check level: error, warn, or off.
     #[serde(default)]
@@ -90,11 +109,17 @@ pub struct AgentsConfig {
     pub mermaid: ContentRule,
 
     /// Maximum lines per file (root scope, default: 500, None to disable).
-    #[serde(default = "AgentsConfig::default_max_lines")]
+    #[serde(
+        default = "AgentsConfig::default_max_lines",
+        deserialize_with = "deserialize_optional_usize"
+    )]
     pub max_lines: Option<usize>,
 
     /// Maximum tokens per file (root scope, default: 20000, None to disable).
-    #[serde(default = "AgentsConfig::default_max_tokens")]
+    #[serde(
+        default = "AgentsConfig::default_max_tokens",
+        deserialize_with = "deserialize_optional_usize"
+    )]
     pub max_tokens: Option<usize>,
 
     /// Root scope settings (overrides flat config).
@@ -169,6 +194,7 @@ impl AgentsConfig {
 
 /// Per-scope configuration for agent files.
 #[derive(Debug, Default, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct AgentsScopeConfig {
     /// Files that must exist at this scope.
     #[serde(default)]
@@ -183,16 +209,17 @@ pub struct AgentsScopeConfig {
     pub forbid: Vec<String>,
 
     /// Maximum lines per file at this scope.
-    #[serde(default)]
+    #[serde(default, deserialize_with = "deserialize_optional_usize")]
     pub max_lines: Option<usize>,
 
     /// Maximum tokens per file at this scope.
-    #[serde(default)]
+    #[serde(default, deserialize_with = "deserialize_optional_usize")]
     pub max_tokens: Option<usize>,
 }
 
 /// Section validation configuration.
 #[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct SectionsConfig {
     /// Required sections (simple form: names only, or extended form with advice).
     #[serde(default = "SectionsConfig::default_required")]
@@ -243,7 +270,7 @@ impl<'de> Deserialize<'de> for RequiredSection {
         D: Deserializer<'de>,
     {
         #[derive(Deserialize)]
-        #[serde(untagged)]
+        #[serde(untagged, deny_unknown_fields)]
         enum RequiredSectionRepr {
             Simple(String),
             Extended {

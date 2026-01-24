@@ -2,10 +2,12 @@
 //!
 //! Used by Rust, Go, and Shell language adapters.
 
-use serde::Deserialize;
+use serde::de::{self, MapAccess, Visitor};
+use serde::{Deserialize, Deserializer};
 
 /// Lint suppression configuration for #[allow(...)] and #[expect(...)].
 #[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct SuppressConfig {
     /// Check level: forbid, comment, or allow (default: "comment").
     #[serde(default = "SuppressConfig::default_check")]
@@ -17,11 +19,11 @@ pub struct SuppressConfig {
     pub comment: Option<String>,
 
     /// Source-specific settings.
-    #[serde(default)]
+    #[serde(default, deserialize_with = "deserialize_source_scope")]
     pub source: SuppressScopeConfig,
 
     /// Test-specific settings (overrides base settings for test code).
-    #[serde(default)]
+    #[serde(default, deserialize_with = "deserialize_test_scope")]
     pub test: SuppressScopeConfig,
 }
 
@@ -42,26 +44,167 @@ impl SuppressConfig {
     }
 }
 
+/// Custom deserializer for source scope that merges with defaults.
+fn deserialize_source_scope<'de, D>(deserializer: D) -> Result<SuppressScopeConfig, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let user_config = SuppressScopeConfig::deserialize(deserializer)?;
+    Ok(merge_with_defaults(
+        user_config,
+        SuppressScopeConfig::default_for_source(),
+    ))
+}
+
+/// Custom deserializer for test scope that merges with defaults.
+fn deserialize_test_scope<'de, D>(deserializer: D) -> Result<SuppressScopeConfig, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let user_config = SuppressScopeConfig::deserialize(deserializer)?;
+    Ok(merge_with_defaults(
+        user_config,
+        SuppressScopeConfig::default_for_test(),
+    ))
+}
+
+/// Merge user config with defaults: user patterns override, but defaults are preserved.
+fn merge_with_defaults(
+    user: SuppressScopeConfig,
+    mut defaults: SuppressScopeConfig,
+) -> SuppressScopeConfig {
+    // User-provided patterns override defaults
+    for (lint_code, patterns) in user.patterns {
+        defaults.patterns.insert(lint_code, patterns);
+    }
+
+    SuppressScopeConfig {
+        check: user.check.or(defaults.check),
+        allow: if user.allow.is_empty() {
+            defaults.allow
+        } else {
+            user.allow
+        },
+        forbid: if user.forbid.is_empty() {
+            defaults.forbid
+        } else {
+            user.forbid
+        },
+        patterns: defaults.patterns,
+    }
+}
+
 /// Scope-specific suppress configuration.
-#[derive(Debug, Clone, Deserialize)]
+///
+/// NOTE: Uses custom deserializer to accept arbitrary lint codes as fields
+/// (e.g., `dead_code = "// REASON:"`), which are parsed into the `patterns` map.
+#[derive(Debug, Clone)]
 pub struct SuppressScopeConfig {
     /// Override check level for this scope.
-    #[serde(default)]
     pub check: Option<SuppressLevel>,
 
     /// Lint codes that don't require comments (per-code allow list).
-    #[serde(default)]
     pub allow: Vec<String>,
 
     /// Lint codes that are never allowed to be suppressed (per-code forbid list).
-    #[serde(default)]
     pub forbid: Vec<String>,
 
     /// Per-lint-code comment patterns. Maps lint code to list of valid comment prefixes.
     /// Any of the patterns is accepted.
     /// Example: {"dead_code" => ["// KEEP UNTIL:", "// NOTE(compat):"]}
-    #[serde(default)]
     pub patterns: std::collections::HashMap<String, Vec<String>>,
+}
+
+impl<'de> Deserialize<'de> for SuppressScopeConfig {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct SuppressScopeVisitor;
+
+        impl<'de> Visitor<'de> for SuppressScopeVisitor {
+            type Value = SuppressScopeConfig;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("a suppress scope configuration")
+            }
+
+            fn visit_map<M>(self, mut map: M) -> Result<Self::Value, M::Error>
+            where
+                M: MapAccess<'de>,
+            {
+                let mut check = None;
+                let mut allow = None;
+                let mut forbid = None;
+                let mut patterns: std::collections::HashMap<String, Vec<String>> =
+                    std::collections::HashMap::new();
+                let mut explicit_patterns: Option<std::collections::HashMap<String, Vec<String>>> =
+                    None;
+
+                while let Some(key) = map.next_key::<String>()? {
+                    match key.as_str() {
+                        "check" => {
+                            if check.is_some() {
+                                return Err(de::Error::duplicate_field("check"));
+                            }
+                            check = Some(map.next_value()?);
+                        }
+                        "allow" => {
+                            if allow.is_some() {
+                                return Err(de::Error::duplicate_field("allow"));
+                            }
+                            allow = Some(map.next_value()?);
+                        }
+                        "forbid" => {
+                            if forbid.is_some() {
+                                return Err(de::Error::duplicate_field("forbid"));
+                            }
+                            forbid = Some(map.next_value()?);
+                        }
+                        "patterns" => {
+                            if explicit_patterns.is_some() {
+                                return Err(de::Error::duplicate_field("patterns"));
+                            }
+                            explicit_patterns = Some(map.next_value()?);
+                        }
+                        lint_code => {
+                            // Parse lint code pattern: string, array, or subsection with comment field
+                            #[derive(Deserialize)]
+                            #[serde(untagged)]
+                            enum PatternValue {
+                                Single(String),
+                                Multiple(Vec<String>),
+                                Subsection { comment: String },
+                            }
+
+                            let value: PatternValue = map.next_value()?;
+                            let pattern_list = match value {
+                                PatternValue::Single(s) => vec![s],
+                                PatternValue::Multiple(v) => v,
+                                PatternValue::Subsection { comment } => vec![comment],
+                            };
+
+                            patterns.insert(lint_code.to_string(), pattern_list);
+                        }
+                    }
+                }
+
+                // Merge explicit patterns map with inline lint codes
+                if let Some(explicit) = explicit_patterns {
+                    patterns.extend(explicit);
+                }
+
+                Ok(SuppressScopeConfig {
+                    check,
+                    allow: allow.unwrap_or_default(),
+                    forbid: forbid.unwrap_or_default(),
+                    patterns,
+                })
+            }
+        }
+
+        deserializer.deserialize_map(SuppressScopeVisitor)
+    }
 }
 
 impl Default for SuppressScopeConfig {

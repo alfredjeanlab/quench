@@ -433,3 +433,72 @@ mod integration_tests {
     assert!(!info.is_test_line(1)); // fn source
     assert!(info.is_test_line(3)); // #[cfg(all(
 }
+
+#[test]
+fn doc_comment_mentioning_cfg_test_not_detected() {
+    // Doc comments that mention #[cfg(test)] should not be detected as cfg(test) blocks
+    let content = r#"
+/// Mode for handling #[cfg(test)] blocks in Rust files.
+#[derive(Debug, Clone, Copy)]
+pub enum CfgTestSplitMode {
+    Count,
+    Require,
+}
+"#;
+    let info = CfgTestInfo::parse(content);
+
+    // Should have no test blocks
+    assert_eq!(info.test_ranges.len(), 0);
+    assert!(!info.has_inline_tests());
+}
+
+#[test]
+fn line_comment_mentioning_cfg_test_not_detected() {
+    // Regular line comments that mention #[cfg(test)] should not be detected
+    let content = r#"
+fn process() {
+    // Check if line is in test code (file-level OR inline #[cfg(test)])
+    let is_test = false;
+}
+"#;
+    let info = CfgTestInfo::parse(content);
+
+    // Should have no test blocks
+    assert_eq!(info.test_ranges.len(), 0);
+    assert!(!info.has_inline_tests());
+}
+
+#[test]
+fn block_comment_mentioning_cfg_test_not_detected() {
+    // Block comments that mention #[cfg(test)] should not be detected
+    let content = r#"
+fn process() {
+    /* This function handles #[cfg(test)] blocks
+       and other conditional compilation */
+    let x = 42;
+}
+"#;
+    let info = CfgTestInfo::parse(content);
+
+    // Should have no test blocks
+    assert_eq!(info.test_ranges.len(), 0);
+    assert!(!info.has_inline_tests());
+}
+
+#[test]
+fn multiline_block_comment_with_cfg_test_not_detected() {
+    // Multi-line block comments spanning several lines should be ignored
+    let content = r#"
+/*
+ * Documentation about test handling:
+ * - Use #[cfg(test)] for test modules
+ * - Keep tests in separate files
+ */
+fn main() {}
+"#;
+    let info = CfgTestInfo::parse(content);
+
+    // Should have no test blocks
+    assert_eq!(info.test_ranges.len(), 0);
+    assert!(!info.has_inline_tests());
+}

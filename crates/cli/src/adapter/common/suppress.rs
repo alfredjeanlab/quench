@@ -27,7 +27,7 @@ impl CommentStyle {
     /// Shell comment style: `#` prefix, `shellcheck` directives.
     pub const SHELL: Self = Self {
         prefix: "#",
-        directive_patterns: &["shellcheck"],
+        directive_patterns: &["shellcheck", "!"],
     };
 }
 
@@ -61,13 +61,14 @@ pub fn check_justification_comment(
             break;
         }
 
+        // Skip directive lines (not justification comments)
+        // This includes: Rust attributes (#[...]), Shell shebangs (#!/...), etc.
+        if style.directive_patterns.iter().any(|p| line.contains(p)) {
+            continue;
+        }
+
         // Check for comment
         if line.starts_with(style.prefix) {
-            // Skip directive lines (not justification comments)
-            if style.directive_patterns.iter().any(|p| line.contains(p)) {
-                continue;
-            }
-
             let comment_text = line.trim_start_matches(style.prefix).trim();
 
             // If specific pattern required, check for it
@@ -84,9 +85,8 @@ pub fn check_justification_comment(
             if !comment_text.is_empty() {
                 return (true, Some(comment_text.to_string()));
             }
-        } else if !line.starts_with('#') {
-            // For Rust: stop at non-attribute, non-comment line
-            // For Shell: this branch won't be reached since # is the prefix
+        } else {
+            // Stop at non-comment, non-directive line (i.e., code)
             break;
         }
     }

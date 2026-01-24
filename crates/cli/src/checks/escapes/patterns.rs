@@ -68,12 +68,15 @@ fn convert_adapter_patterns(adapter_patterns: &[AdapterEscapePattern]) -> Vec<Co
     adapter_patterns
         .iter()
         .map(|p| ConfigEscapePattern {
-            name: p.name.to_string(),
+            name: Some(p.name.to_string()),
             pattern: p.pattern.to_string(),
             action: adapter_action_to_config(p.action),
             comment: p.comment.map(String::from),
             advice: Some(p.advice.to_string()),
             threshold: 0,
+            source: Vec::new(),
+            tests: Vec::new(),
+            in_tests: None,
         })
         .collect()
 }
@@ -94,11 +97,11 @@ pub(super) fn merge_patterns(
     adapter_patterns: &[ConfigEscapePattern],
 ) -> Vec<ConfigEscapePattern> {
     let mut merged = Vec::new();
-    let config_names: HashSet<_> = config_patterns.iter().map(|p| &p.name).collect();
+    let config_names: HashSet<_> = config_patterns.iter().map(|p| p.effective_name()).collect();
 
     // Add adapter defaults not overridden by config
     for pattern in adapter_patterns {
-        if !config_names.contains(&pattern.name) {
+        if !config_names.contains(pattern.effective_name()) {
             merged.push(pattern.clone());
         }
     }
@@ -122,7 +125,7 @@ pub(super) fn compile_merged_patterns(
                 .clone()
                 .unwrap_or_else(|| default_advice(&p.action));
             Ok(CompiledEscapePattern {
-                name: p.name.clone(),
+                name: p.effective_name().to_string(),
                 matcher,
                 action: p.action,
                 advice,

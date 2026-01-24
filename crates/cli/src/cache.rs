@@ -20,7 +20,8 @@ use crate::check::Violation;
 /// Cache version for invalidation on format changes.
 /// Incremented when check logic changes (e.g., counting nonblank vs all lines).
 /// v7: Migrated from bincode to postcard serialization.
-pub const CACHE_VERSION: u32 = 7;
+/// v8: Fixed cfg(test) detection false positives on comments.
+pub const CACHE_VERSION: u32 = 9;
 
 /// Cache file name within .quench directory.
 pub const CACHE_FILE_NAME: &str = "cache.bin";

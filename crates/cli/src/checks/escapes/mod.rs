@@ -672,18 +672,14 @@ fn check_suppress_violations(
                     ("suppress_forbidden", advice)
                 }
                 SuppressViolationKind::MissingComment {
-                    lint_code: _,
-                    required_patterns,
+                    ref lint_code,
+                    ref required_patterns,
                 } => {
-                    let advice = if let Some(pat) = required_patterns.first() {
-                        format!(
-                            "Lint suppression requires justification. Add a {} comment.",
-                            pat
-                        )
-                    } else {
-                        "Lint suppression requires justification. Add a comment above the attribute."
-                            .to_string()
-                    };
+                    let advice = suppress_common::build_suppress_missing_comment_advice(
+                        "rust",
+                        lint_code.as_deref(),
+                        required_patterns,
+                    );
                     ("suppress_missing_comment", advice)
                 }
                 SuppressViolationKind::AllForbidden => {

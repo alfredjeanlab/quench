@@ -126,13 +126,13 @@ fn rust_adapter_cfg_test_blocks_counted_as_test_loc() {
 
 /// Spec: docs/specs/langs/rust.md#test-code-detection
 ///
-/// > Configurable: cfg_test_split = true (default)
+/// > Configurable: cfg_test_split = "count" (default)
 #[test]
 fn rust_adapter_cfg_test_split_can_be_disabled() {
     let temp = Project::empty();
     temp.config(
         r#"[rust]
-cfg_test_split = false
+cfg_test_split = "off"
 "#,
     );
     temp.file(
@@ -155,7 +155,7 @@ mod tests {
     let cloc = check("cloc").pwd(temp.path()).json().passes();
     let metrics = cloc.require("metrics");
 
-    // With cfg_test_split = false, all lines should be counted as source
+    // With cfg_test_split = "off", all lines should be counted as source
     let test_lines = metrics
         .get("test_lines")
         .and_then(|v| v.as_u64())
@@ -700,32 +700,5 @@ fn rust_cfg_test_split_off_counts_all_as_source() {
             .unwrap()
             > 0
     );
-    assert_eq!(metrics.get("test_lines").and_then(|v| v.as_u64()), Some(0));
-}
-
-/// Spec: docs/specs/langs/rust.md#cfg-test-split-modes
-///
-/// > cfg_test_split = true (legacy): Same as "count"
-#[test]
-fn rust_cfg_test_split_true_is_count() {
-    let cloc = check("cloc").on("rust/cfg-test-split-true").json().passes();
-    let metrics = cloc.require("metrics");
-
-    // Should split like "count" mode
-    assert!(metrics.get("test_lines").and_then(|v| v.as_u64()).unwrap() > 0);
-}
-
-/// Spec: docs/specs/langs/rust.md#cfg-test-split-modes
-///
-/// > cfg_test_split = false (legacy): Same as "off"
-#[test]
-fn rust_cfg_test_split_false_is_off() {
-    let cloc = check("cloc")
-        .on("rust/cfg-test-split-false")
-        .json()
-        .passes();
-    let metrics = cloc.require("metrics");
-
-    // Should count all as source like "off" mode
     assert_eq!(metrics.get("test_lines").and_then(|v| v.as_u64()), Some(0));
 }

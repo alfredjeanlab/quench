@@ -65,9 +65,21 @@ impl CfgTestInfo {
         let mut pending_attr: Option<MultiLineAttr> = None;
         // Track if we've seen the first opening brace after #[cfg(test)]
         let mut waiting_for_block_start = false;
+        // Track if we're inside a block comment
+        let mut in_block_comment = false;
 
         for (line_idx, line) in content.lines().enumerate() {
             let trimmed = line.trim();
+
+            // Track block comment state and strip commented portions
+            let code_part = strip_comments(trimmed, &mut in_block_comment);
+
+            // If entire line is in comment, skip it
+            if code_part.trim().is_empty() {
+                continue;
+            }
+
+            let trimmed = code_part.trim();
 
             // Handle multi-line attribute accumulation
             if let Some(ref mut attr) = pending_attr {
@@ -175,6 +187,45 @@ enum CfgAttrState {
     Complete(bool),
     /// Incomplete multi-line attribute that needs more lines.
     Incomplete(MultiLineAttr),
+}
+
+/// Strip comments from a line, handling both line comments and block comments.
+/// Updates the `in_block_comment` state for multi-line block comments.
+/// Returns the code portion of the line (empty if entire line is comment).
+fn strip_comments(line: &str, in_block_comment: &mut bool) -> String {
+    let mut result = String::new();
+    let mut chars = line.chars().peekable();
+
+    while let Some(ch) = chars.next() {
+        if *in_block_comment {
+            // Looking for end of block comment */
+            if ch == '*' && chars.peek() == Some(&'/') {
+                chars.next(); // consume '/'
+                *in_block_comment = false;
+            }
+            // Skip everything inside block comment
+        } else if ch == '/' {
+            match chars.peek() {
+                Some('/') => {
+                    // Line comment - rest of line is comment
+                    break;
+                }
+                Some('*') => {
+                    // Start of block comment
+                    chars.next(); // consume '*'
+                    *in_block_comment = true;
+                }
+                _ => {
+                    // Just a regular '/' character
+                    result.push(ch);
+                }
+            }
+        } else {
+            result.push(ch);
+        }
+    }
+
+    result
 }
 
 /// Detect if a line starts a #[cfg(...)] attribute.

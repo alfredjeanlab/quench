@@ -4,21 +4,27 @@
 //! Check-specific configuration structures.
 
 use serde::Deserialize;
+use serde::de::{self, Deserializer};
 
 /// Documentation check configuration.
 #[derive(Debug, Default, Clone, Deserialize)]
-#[serde(default)]
+#[serde(default, deny_unknown_fields)]
 pub struct DocsConfig {
     /// Check level: "error" | "warn" | "off"
     pub check: Option<String>,
 
     /// TOC validation settings.
+    #[serde(default)]
     pub toc: TocConfig,
+
+    /// Link validation settings.
+    #[serde(default)]
+    pub links: LinksConfig,
 }
 
 /// Configuration for TOC validation.
 #[derive(Debug, Clone, Deserialize)]
-#[serde(default)]
+#[serde(default, deny_unknown_fields)]
 pub struct TocConfig {
     /// Check level: "error" | "warn" | "off"
     pub check: Option<String>,
@@ -59,8 +65,17 @@ impl TocConfig {
     }
 }
 
+/// Configuration for link validation.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct LinksConfig {
+    /// Check level: "error" | "warn" | "off"
+    pub check: Option<String>,
+}
+
 /// Escapes check configuration.
 #[derive(Debug, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct EscapesConfig {
     /// Check level: error, warn, or off.
     #[serde(default)]
@@ -73,9 +88,12 @@ pub struct EscapesConfig {
 
 /// A single escape hatch pattern definition.
 #[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct EscapePattern {
     /// Unique name for this pattern (e.g., "unwrap", "unsafe").
-    pub name: String,
+    /// If not provided, uses the pattern itself as the name.
+    #[serde(default)]
+    pub name: Option<String>,
 
     /// Regex pattern to match.
     pub pattern: String,
@@ -95,6 +113,25 @@ pub struct EscapePattern {
     /// Custom advice message for violations.
     #[serde(default)]
     pub advice: Option<String>,
+
+    /// Source file patterns (optional, applies to specific files).
+    #[serde(default)]
+    pub source: Vec<String>,
+
+    /// Test file patterns (optional, applies to specific files).
+    #[serde(default)]
+    pub tests: Vec<String>,
+
+    /// Override action for test code ("allow" | "comment" | "forbid").
+    #[serde(default)]
+    pub in_tests: Option<String>,
+}
+
+impl EscapePattern {
+    /// Get the effective name for this pattern (uses name if present, otherwise pattern).
+    pub fn effective_name(&self) -> &str {
+        self.name.as_deref().unwrap_or(&self.pattern)
+    }
 }
 
 /// Action to take when pattern is matched.
@@ -120,6 +157,7 @@ pub enum LineMetric {
 
 /// Cloc check configuration.
 #[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ClocConfig {
     /// Maximum lines per file (default: 750).
     #[serde(default = "ClocConfig::default_max_lines")]
@@ -148,7 +186,11 @@ pub struct ClocConfig {
     pub exclude: Vec<String>,
 
     /// Maximum tokens per file (default: 20000, None = disabled).
-    #[serde(default = "ClocConfig::default_max_tokens")]
+    /// Accepts either a number or `false` to disable.
+    #[serde(
+        default = "ClocConfig::default_max_tokens",
+        deserialize_with = "deserialize_max_tokens"
+    )]
     pub max_tokens: Option<usize>,
 
     /// Advice message for source file violations.
@@ -227,4 +269,25 @@ pub enum CheckLevel {
     Error,
     Warn,
     Off,
+}
+
+/// Custom deserializer for max_tokens that accepts either a number or `false`.
+fn deserialize_max_tokens<'de, D>(deserializer: D) -> Result<Option<usize>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum MaxTokens {
+        Number(usize),
+        Bool(bool),
+    }
+
+    match MaxTokens::deserialize(deserializer)? {
+        MaxTokens::Number(n) => Ok(Some(n)),
+        MaxTokens::Bool(false) => Ok(None),
+        MaxTokens::Bool(true) => Err(de::Error::custom(
+            "max_tokens must be a number or false, not true",
+        )),
+    }
 }

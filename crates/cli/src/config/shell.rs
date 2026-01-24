@@ -6,6 +6,7 @@ use super::{LintChangesPolicy, SuppressLevel, SuppressScopeConfig};
 
 /// Shell language-specific configuration.
 #[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ShellConfig {
     /// Source file patterns.
     #[serde(default = "ShellConfig::default_source")]
@@ -62,6 +63,7 @@ impl ShellConfig {
 
 /// Shell suppress configuration (defaults to "forbid" unlike Rust's "comment").
 #[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ShellSuppressConfig {
     /// Check level: forbid, comment, or allow (default: "forbid").
     #[serde(default = "ShellSuppressConfig::default_check")]
@@ -118,6 +120,7 @@ impl ShellSuppressConfig {
 
 /// Shell lint policy configuration.
 #[derive(Debug, Clone, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ShellPolicyConfig {
     /// Lint config changes policy: "standalone" requires separate PRs.
     #[serde(default)]

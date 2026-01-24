@@ -77,18 +77,14 @@ pub(super) fn check_shell_suppress_violations(
                     ("shellcheck_forbidden", advice)
                 }
                 SuppressViolationKind::MissingComment {
-                    lint_code: _,
-                    required_patterns,
+                    ref lint_code,
+                    ref required_patterns,
                 } => {
-                    let advice = if let Some(pat) = required_patterns.first() {
-                        format!(
-                            "Shellcheck suppression requires justification. Add a {} comment.",
-                            pat
-                        )
-                    } else {
-                        "Shellcheck suppression requires justification. Add a comment above explaining why."
-                            .to_string()
-                    };
+                    let advice = super::suppress_common::build_suppress_missing_comment_advice(
+                        "shell",
+                        lint_code.as_deref(),
+                        required_patterns,
+                    );
                     ("shellcheck_missing_comment", advice)
                 }
                 SuppressViolationKind::AllForbidden => {

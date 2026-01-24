@@ -727,7 +727,6 @@ fn rust_suppress_detects_module_level_allow() {
 /// > 2. Lint-specific guidance tailored to the suppressed lint
 /// > 3. List of acceptable comment patterns
 #[test]
-#[ignore = "TODO: Phase 620 - Structured suppress messages"]
 fn suppress_missing_comment_message_format() {
     let temp = Project::empty();
     temp.config(
@@ -752,6 +751,8 @@ check = "comment"
       // KEEP UNTIL: ...
       // NOTE(compat): ...
       // NOTE(compatibility): ...
+
+FAIL: escapes
 "#,
     );
 }
@@ -760,7 +761,6 @@ check = "comment"
 ///
 /// > Single pattern should use "If not, add:" format
 #[test]
-#[ignore = "TODO: Phase 620 - Structured suppress messages"]
 fn suppress_missing_comment_single_pattern() {
     let temp = Project::empty();
     temp.config(
@@ -785,6 +785,8 @@ check = "comment"
     Can this function be refactored?
     If not, add:
       // TODO(refactor): ...
+
+FAIL: escapes
 "#,
     );
 }
@@ -793,7 +795,6 @@ check = "comment"
 ///
 /// > Cast truncation should ask "Is this cast safe?"
 #[test]
-#[ignore = "TODO: Phase 620 - Structured suppress messages"]
 fn suppress_missing_comment_cast_truncation() {
     let temp = Project::empty();
     temp.config(
@@ -819,6 +820,8 @@ check = "comment"
     If so, add one of:
       // CORRECTNESS: ...
       // SAFETY: ...
+
+FAIL: escapes
 "#,
     );
 }
@@ -827,7 +830,6 @@ check = "comment"
 ///
 /// > No specific pattern: generic message with example
 #[test]
-#[ignore = "TODO: Phase 620 - Structured suppress messages"]
 fn suppress_missing_comment_no_specific_pattern() {
     let temp = Project::empty();
     temp.config(
@@ -852,6 +854,8 @@ check = "comment"
     Lint suppression requires justification.
     Is this suppression necessary?
     Add a comment above the attribute.
+
+FAIL: escapes
 "#,
     );
 }
@@ -864,7 +868,6 @@ check = "comment"
 ///
 /// > ShellCheck SC2086 should ask "Is unquoted expansion intentional here?"
 #[test]
-#[ignore = "TODO: Phase 620 - Structured suppress messages"]
 fn shell_suppress_sc2086_message() {
     let temp = Project::empty();
     temp.config(
@@ -884,6 +887,8 @@ check = "comment"
     Lint suppression requires justification.
     Is unquoted expansion intentional here?
     Add a comment above the directive.
+
+FAIL: escapes
 "#,
     );
 }
@@ -892,7 +897,6 @@ check = "comment"
 ///
 /// > ShellCheck SC2154 should ask "Is this variable defined externally?"
 #[test]
-#[ignore = "TODO: Phase 620 - Structured suppress messages"]
 fn shell_suppress_sc2154_message() {
     let temp = Project::empty();
     temp.config(
@@ -916,6 +920,8 @@ comment = "# EXTERNAL:"
     Is this variable defined externally?
     If so, add:
       # EXTERNAL: ...
+
+FAIL: escapes
 "##,
     );
 }
@@ -924,7 +930,6 @@ comment = "# EXTERNAL:"
 ///
 /// > ShellCheck SC2034 should ask "Is this unused variable needed?"
 #[test]
-#[ignore = "TODO: Phase 620 - Structured suppress messages"]
 fn shell_suppress_sc2034_message() {
     let temp = Project::empty();
     temp.config(
@@ -944,6 +949,8 @@ check = "comment"
     Lint suppression requires justification.
     Is this unused variable needed?
     Add a comment above the directive.
+
+FAIL: escapes
 "#,
     );
 }
@@ -952,7 +959,6 @@ check = "comment"
 ///
 /// > Unknown ShellCheck code should use generic message
 #[test]
-#[ignore = "TODO: Phase 620 - Structured suppress messages"]
 fn shell_suppress_unknown_code_message() {
     let temp = Project::empty();
     temp.config(
@@ -972,6 +978,8 @@ check = "comment"
     Lint suppression requires justification.
     Is this ShellCheck finding a false positive?
     Add a comment above the directive.
+
+FAIL: escapes
 "#,
     );
 }
@@ -984,7 +992,6 @@ check = "comment"
 ///
 /// > Go nolint without specific pattern should use inline example
 #[test]
-#[ignore = "TODO: Phase 620 - Structured suppress messages"]
 fn go_suppress_no_pattern_message() {
     let temp = Project::empty();
     temp.config(
@@ -993,6 +1000,7 @@ check = "comment"
 "#,
     );
 
+    temp.file("go.mod", "module test\ngo 1.21\n");
     temp.file(
         "main.go",
         "package main\n//nolint:errcheck\nfunc test() { _ = doSomething() }",
@@ -1004,6 +1012,8 @@ check = "comment"
     Lint suppression requires justification.
     Is this error handling necessary to skip?
     Add a comment above the directive or inline (//nolint:code // reason).
+
+FAIL: escapes
 "#,
     );
 }
@@ -1012,7 +1022,6 @@ check = "comment"
 ///
 /// > Go nolint with specific pattern configured
 #[test]
-#[ignore = "TODO: Phase 620 - Structured suppress messages"]
 fn go_suppress_with_pattern_message() {
     let temp = Project::empty();
     temp.config(
@@ -1024,6 +1033,7 @@ comment = "// FALSE_POSITIVE:"
 "#,
     );
 
+    temp.file("go.mod", "module test\ngo 1.21\n");
     temp.file("main.go", "package main\n//nolint:gosec\nfunc test() { }");
 
     check("escapes").pwd(temp.path()).fails().stdout_eq(
@@ -1033,6 +1043,8 @@ comment = "// FALSE_POSITIVE:"
     Is this security finding a false positive?
     If so, add:
       // FALSE_POSITIVE: ...
+
+FAIL: escapes
 "#,
     );
 }

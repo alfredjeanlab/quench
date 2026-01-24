@@ -1,9 +1,9 @@
 //! Behavioral specs for config validation.
 //!
 //! Tests that quench correctly handles:
-//! - Unknown config keys (warnings)
-//! - Unknown nested keys (warnings)
-//! - Valid config (no warnings)
+//! - Unknown config keys (errors)
+//! - Unknown nested keys (errors)
+//! - Valid config (no errors)
 //!
 //! Reference: docs/specs/02-config.md#validation
 
@@ -12,17 +12,18 @@
 use crate::prelude::*;
 
 // =============================================================================
-// CONFIG WARNING SPECS
+// CONFIG VALIDATION SPECS
 // =============================================================================
 
 /// Spec: docs/specs/02-config.md#validation
 ///
-/// > Unknown keys are warnings (forward compatibility)
+/// > Unknown keys are errors
 #[test]
-fn unknown_config_key_warns() {
+fn unknown_config_key_fails() {
     let temp = Project::empty();
     temp.config(
-        r#"unknown_key = true
+        r#"version = 1
+unknown_key = true
 
 [check.agents]
 required = []
@@ -33,15 +34,15 @@ required = []
         .arg("check")
         .current_dir(temp.path())
         .assert()
-        .success() // Should not fail
-        .stderr(predicates::str::contains("unknown").or(predicates::str::contains("unrecognized")));
+        .failure()
+        .stderr(predicates::str::contains("unknown field"));
 }
 
 /// Spec: docs/specs/02-config.md#validation
 ///
-/// > Unknown nested keys are warnings
+/// > Unknown nested keys are errors
 #[test]
-fn unknown_nested_config_key_warns() {
+fn unknown_nested_config_key_fails() {
     let temp = Project::empty();
     temp.config(&format!(
         r#"{MINIMAL_CONFIG}
@@ -54,15 +55,15 @@ field = "value"
         .arg("check")
         .current_dir(temp.path())
         .assert()
-        .success()
-        .stderr(predicates::str::contains("unknown").or(predicates::str::contains("unrecognized")));
+        .failure()
+        .stderr(predicates::str::contains("unknown field"));
 }
 
 /// Spec: docs/specs/02-config.md#validation
 ///
-/// > Valid config produces no warnings
+/// > Valid config produces no errors
 #[test]
-fn valid_config_no_warnings() {
+fn valid_config_no_errors() {
     let temp = Project::empty();
     temp.config(MINIMAL_CONFIG);
 
@@ -71,5 +72,5 @@ fn valid_config_no_warnings() {
         .current_dir(temp.path())
         .assert()
         .success()
-        .stderr(predicates::str::is_empty().or(predicates::str::contains("warning").not()));
+        .stderr(predicates::str::is_empty());
 }

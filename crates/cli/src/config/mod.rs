@@ -7,31 +7,24 @@
 
 mod checks;
 mod go;
-mod parse;
+mod javascript;
 mod shell;
-mod suggest;
 mod suppress;
 
-use std::collections::BTreeSet;
 use std::path::Path;
 
 use serde::Deserialize;
 
 pub use checks::{
     CheckLevel, ClocConfig, DocsConfig, EscapeAction, EscapePattern, EscapesConfig, LineMetric,
-    TocConfig,
+    LinksConfig, TocConfig,
 };
 pub use go::{GoConfig, GoPolicyConfig, GoSuppressConfig};
+pub use javascript::{JavaScriptConfig, JavaScriptPolicyConfig};
 pub use shell::{ShellConfig, ShellPolicyConfig, ShellSuppressConfig};
 pub use suppress::{SuppressConfig, SuppressLevel, SuppressScopeConfig};
 
 use crate::error::{Error, Result};
-use parse::{
-    parse_agents_config, parse_cloc_config, parse_docs_config, parse_escapes_config,
-    parse_go_config, parse_rust_config, parse_shell_config, parse_string_array_or_else,
-    parse_string_array_or_empty, warn_unknown_key,
-};
-use suggest::warn_unknown_check;
 
 pub use crate::checks::agents::config::{AgentsConfig, AgentsScopeConfig};
 
@@ -41,35 +34,9 @@ struct VersionOnly {
     version: Option<i64>,
 }
 
-/// Config with flexible parsing that captures unknown keys.
-#[derive(Deserialize)]
-struct FlexibleConfig {
-    version: i64,
-
-    #[serde(default)]
-    project: Option<toml::Value>,
-
-    #[serde(default)]
-    workspace: Option<toml::Value>,
-
-    #[serde(default)]
-    check: Option<toml::Value>,
-
-    #[serde(default)]
-    rust: Option<toml::Value>,
-
-    #[serde(default)]
-    golang: Option<toml::Value>,
-
-    #[serde(default)]
-    shell: Option<toml::Value>,
-
-    #[serde(flatten)]
-    unknown: std::collections::BTreeMap<String, toml::Value>,
-}
-
 /// Full configuration.
 #[derive(Debug, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Config {
     /// Config file version (must be 1).
     pub version: i64,
@@ -93,6 +60,10 @@ pub struct Config {
     /// Go-specific configuration.
     #[serde(default)]
     pub golang: GoConfig,
+
+    /// JavaScript/TypeScript-specific configuration.
+    #[serde(default)]
+    pub javascript: JavaScriptConfig,
 
     /// Shell-specific configuration.
     #[serde(default)]
@@ -124,7 +95,8 @@ impl Config {
 }
 
 /// Mode for handling #[cfg(test)] blocks in Rust files.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum CfgTestSplitMode {
     /// Split #[cfg(test)] blocks into test LOC (default).
     #[default]
@@ -137,9 +109,10 @@ pub enum CfgTestSplitMode {
 
 /// Rust language-specific configuration.
 #[derive(Debug, Clone, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct RustConfig {
     /// How to handle #[cfg(test)] blocks (default: "count").
-    #[serde(default, skip_deserializing)]
+    #[serde(default)]
     pub cfg_test_split: CfgTestSplitMode,
 
     /// Lint suppression settings.
@@ -168,6 +141,7 @@ impl RustConfig {
 
 /// Rust lint policy configuration.
 #[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct RustPolicyConfig {
     /// Lint config changes policy: "standalone" requires separate PRs.
     #[serde(default)]
@@ -221,6 +195,7 @@ pub enum LintChangesPolicy {
 
 /// Workspace configuration for monorepos.
 #[derive(Debug, Default, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct WorkspaceConfig {
     /// Package directories within the workspace.
     #[serde(default)]
@@ -234,6 +209,7 @@ pub struct WorkspaceConfig {
 
 /// Check-specific configurations.
 #[derive(Debug, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct CheckConfig {
     /// Cloc (count lines of code) check configuration.
     #[serde(default)]
@@ -250,10 +226,53 @@ pub struct CheckConfig {
     /// Docs (documentation validation) check configuration.
     #[serde(default)]
     pub docs: DocsConfig,
+
+    /// Tests check configuration.
+    #[serde(default)]
+    pub tests: TestsConfig,
+
+    /// License check configuration.
+    #[serde(default)]
+    pub license: LicenseConfig,
+}
+
+/// Tests check configuration.
+#[derive(Debug, Default, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct TestsConfig {
+    /// Check level: "error" | "warn" | "off"
+    pub check: Option<String>,
+
+    /// Commit message validation settings.
+    #[serde(default)]
+    pub commit: TestsCommitConfig,
+}
+
+/// Tests commit check configuration.
+#[derive(Debug, Default, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct TestsCommitConfig {
+    /// Check level: "error" | "warn" | "off"
+    pub check: Option<String>,
+}
+
+/// License check configuration.
+#[derive(Debug, Default, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct LicenseConfig {
+    /// Check level: "error" | "warn" | "off"
+    pub check: Option<String>,
+
+    /// License identifier (e.g., "MIT", "Apache-2.0").
+    pub license: Option<String>,
+
+    /// Copyright holder.
+    pub copyright: Option<String>,
 }
 
 /// Project-level configuration.
 #[derive(Debug, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ProjectConfig {
     /// Project name.
     pub name: Option<String>,
@@ -265,6 +284,10 @@ pub struct ProjectConfig {
     /// Test file patterns (default: common test directory/file patterns).
     #[serde(default = "ProjectConfig::default_test_patterns")]
     pub tests: Vec<String>,
+
+    /// Package directories for multi-package projects (e.g., workspace members).
+    #[serde(default)]
+    pub packages: Vec<String>,
 
     /// Custom ignore patterns.
     #[serde(default)]
@@ -289,6 +312,7 @@ impl ProjectConfig {
 
 /// Ignore pattern configuration.
 #[derive(Debug, Default, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct IgnoreConfig {
     /// Glob patterns to ignore (e.g., "*.snapshot", "testdata/", "**/fixtures/**").
     #[serde(default)]
@@ -297,20 +321,6 @@ pub struct IgnoreConfig {
 
 /// Currently supported config version.
 pub const SUPPORTED_VERSION: i64 = 1;
-
-/// Known top-level keys in the config.
-const KNOWN_KEYS: &[&str] = &[
-    "version",
-    "project",
-    "workspace",
-    "check",
-    "rust",
-    "golang",
-    "shell",
-];
-
-/// Known project keys in the config.
-const KNOWN_PROJECT_KEYS: &[&str] = &["name", "source", "tests", "ignore"];
 
 /// Load and validate config from a file path.
 pub fn load(path: &Path) -> Result<Config> {
@@ -323,13 +333,11 @@ pub fn load(path: &Path) -> Result<Config> {
 }
 
 /// Load config with warnings for unknown keys.
+///
+/// NOTE: Unknown keys now cause hard errors (via #[serde(deny_unknown_fields)]).
+/// This function exists for backward compatibility but behaves identically to `load()`.
 pub fn load_with_warnings(path: &Path) -> Result<Config> {
-    let content = std::fs::read_to_string(path).map_err(|e| Error::Io {
-        path: path.to_path_buf(),
-        source: e,
-    })?;
-
-    parse_with_warnings(&content, path)
+    load(path)
 }
 
 /// Parse config from string content (strict mode).
@@ -362,156 +370,12 @@ pub fn parse(content: &str, path: &Path) -> Result<Config> {
     })
 }
 
-/// Parse config, warning on unknown keys.
+/// Parse config with warnings for unknown keys.
+///
+/// NOTE: Unknown keys now cause hard errors (via #[serde(deny_unknown_fields)]).
+/// This function exists for backward compatibility but behaves identically to `parse()`.
 pub fn parse_with_warnings(content: &str, path: &Path) -> Result<Config> {
-    // First validate version
-    let flexible: FlexibleConfig = toml::from_str(content).map_err(|e| Error::Config {
-        message: e.to_string(),
-        path: Some(path.to_path_buf()),
-    })?;
-
-    if flexible.version != SUPPORTED_VERSION {
-        return Err(Error::Config {
-            message: format!(
-                "unsupported config version {} (supported: {})",
-                flexible.version, SUPPORTED_VERSION
-            ),
-            path: Some(path.to_path_buf()),
-        });
-    }
-
-    // Collect unknown keys
-    let mut unknown_keys = BTreeSet::new();
-
-    // Check top-level unknown keys
-    for key in flexible.unknown.keys() {
-        if !KNOWN_KEYS.contains(&key.as_str()) {
-            unknown_keys.insert(key.clone());
-        }
-    }
-
-    // Warn about unknown keys
-    for key in &unknown_keys {
-        warn_unknown_key(path, key);
-    }
-
-    // Return a valid config with known fields
-    let project = match flexible.project {
-        Some(toml::Value::Table(t)) => {
-            let name = t
-                .get("name")
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string());
-
-            // Parse source patterns
-            let source = parse_string_array_or_empty(t.get("source"));
-
-            // Parse test patterns
-            let tests =
-                parse_string_array_or_else(t.get("tests"), ProjectConfig::default_test_patterns);
-
-            // Parse ignore patterns
-            let ignore = match t.get("ignore") {
-                Some(toml::Value::Table(ignore_table)) => {
-                    let patterns = parse_string_array_or_empty(ignore_table.get("patterns"));
-
-                    // Warn about unknown ignore fields
-                    for key in ignore_table.keys() {
-                        if key != "patterns" {
-                            warn_unknown_key(path, &format!("project.ignore.{}", key));
-                        }
-                    }
-
-                    IgnoreConfig { patterns }
-                }
-                _ => IgnoreConfig::default(),
-            };
-
-            // Warn about unknown project fields
-            for key in t.keys() {
-                if !KNOWN_PROJECT_KEYS.contains(&key.as_str()) {
-                    warn_unknown_key(path, &format!("project.{}", key));
-                }
-            }
-
-            ProjectConfig {
-                name,
-                source,
-                tests,
-                ignore,
-            }
-        }
-        _ => ProjectConfig::default(),
-    };
-
-    // Parse workspace config
-    let workspace = match flexible.workspace {
-        Some(toml::Value::Table(t)) => {
-            let packages = parse_string_array_or_empty(t.get("packages"));
-
-            WorkspaceConfig {
-                packages,
-                package_names: std::collections::HashMap::new(),
-            }
-        }
-        _ => WorkspaceConfig::default(),
-    };
-
-    // Parse check config
-    let check = match flexible.check {
-        Some(toml::Value::Table(t)) => {
-            // Known check types
-            const KNOWN_CHECKS: &[&str] = &[
-                "cloc", "escapes", "agents", "docs", "tests", "git", "build", "license",
-            ];
-
-            // Warn about unknown check types with suggestions
-            for key in t.keys() {
-                if !KNOWN_CHECKS.contains(&key.as_str()) {
-                    warn_unknown_check(path, key);
-                }
-            }
-
-            // Parse cloc config
-            let cloc = parse_cloc_config(t.get("cloc"));
-
-            // Parse escapes config
-            let escapes = parse_escapes_config(t.get("escapes"));
-
-            // Parse agents config
-            let agents = parse_agents_config(t.get("agents"));
-
-            // Parse docs config
-            let docs = parse_docs_config(t.get("docs"));
-
-            CheckConfig {
-                cloc,
-                escapes,
-                agents,
-                docs,
-            }
-        }
-        _ => CheckConfig::default(),
-    };
-
-    // Parse rust config
-    let rust = parse_rust_config(flexible.rust.as_ref());
-
-    // Parse go config
-    let golang = parse_go_config(flexible.golang.as_ref());
-
-    // Parse shell config
-    let shell = parse_shell_config(flexible.shell.as_ref());
-
-    Ok(Config {
-        version: flexible.version,
-        project,
-        workspace,
-        check,
-        rust,
-        golang,
-        shell,
-    })
+    parse(content, path)
 }
 
 #[cfg(test)]

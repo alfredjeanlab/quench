@@ -73,22 +73,22 @@ fn load_fails_on_missing_file() {
     assert!(result.is_err());
 }
 
-// Unknown key warning tests
+// Unknown key validation tests
 
 #[test]
-fn parse_with_warnings_accepts_unknown_top_level_key() {
+fn parse_rejects_unknown_top_level_key() {
     let path = PathBuf::from("quench.toml");
     let content = r#"
 version = 1
 unknown_key = true
 "#;
-    // Should succeed, not error
-    let config = parse_with_warnings(content, &path).unwrap();
-    assert_eq!(config.version, 1);
+    let result = parse(content, &path);
+    assert!(result.is_err());
+    assert!(result.unwrap_err().to_string().contains("unknown field"));
 }
 
 #[test]
-fn parse_with_warnings_accepts_unknown_nested_key() {
+fn parse_rejects_unknown_nested_key() {
     let path = PathBuf::from("quench.toml");
     let content = r#"
 version = 1
@@ -96,30 +96,28 @@ version = 1
 [check.unknown]
 field = "value"
 "#;
-    // Should succeed, not error
-    let config = parse_with_warnings(content, &path).unwrap();
-    assert_eq!(config.version, 1);
+    let result = parse(content, &path);
+    assert!(result.is_err());
 }
 
 #[test]
-fn parse_with_warnings_preserves_known_fields() {
+fn parse_preserves_known_fields() {
     let path = PathBuf::from("quench.toml");
     let content = r#"
 version = 1
-unknown_key = true
 
 [project]
 name = "test"
 "#;
-    let config = parse_with_warnings(content, &path).unwrap();
+    let config = parse(content, &path).unwrap();
     assert_eq!(config.version, 1);
     assert_eq!(config.project.name, Some("test".to_string()));
 }
 
 #[test]
-fn parse_with_warnings_rejects_invalid_version() {
+fn parse_rejects_invalid_version() {
     let path = PathBuf::from("quench.toml");
-    let result = parse_with_warnings("version = 99\n", &path);
+    let result = parse("version = 99\n", &path);
     assert!(result.is_err());
 }
 

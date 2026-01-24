@@ -44,6 +44,119 @@ pub enum SuppressViolationKind {
     AllForbidden,
 }
 
+/// Get lint-specific guidance for Rust lints.
+fn get_rust_lint_guidance(lint_code: &str) -> &'static str {
+    match lint_code {
+        "dead_code" => "Is this code still needed?",
+        "clippy::too_many_arguments" => "Can this function be refactored?",
+        "clippy::cast_possible_truncation" => "Is this cast safe?",
+        "deprecated" => "Can this deprecated API be replaced?",
+        _ => "Is this suppression necessary?",
+    }
+}
+
+/// Get lint-specific guidance for Shell lints.
+fn get_shell_lint_guidance(lint_code: &str) -> &'static str {
+    match lint_code {
+        "SC2034" => "Is this unused variable needed?",
+        "SC2086" => "Is unquoted expansion intentional here?",
+        "SC2154" => "Is this variable defined externally?",
+        _ => "Is this ShellCheck finding a false positive?",
+    }
+}
+
+/// Get lint-specific guidance for Go lints.
+fn get_go_lint_guidance(lint_code: &str) -> &'static str {
+    match lint_code {
+        "errcheck" => "Is this error handling necessary to skip?",
+        "gosec" => "Is this security finding a false positive?",
+        _ => "Is this suppression necessary?",
+    }
+}
+
+/// Format pattern instructions based on number of patterns and lint guidance.
+///
+/// The conditional phrase ("If so", "If not", "If it should be kept") is determined
+/// by the lint guidance question type.
+fn format_pattern_instructions(patterns: &[String], guidance: &str) -> String {
+    if patterns.is_empty() {
+        return String::new();
+    }
+
+    // Determine conditional phrase from the guidance question
+    let condition = if guidance.starts_with("Can this function be refactored") {
+        "not"
+    } else if guidance.contains("still needed") || guidance.contains("unused variable needed") {
+        // "Is this code still needed?", "Is this unused variable needed?"
+        "it should be kept"
+    } else if guidance.starts_with("Is this") || guidance.starts_with("Is unquoted") {
+        // Questions like "Is this cast safe?", "Is this variable defined externally?"
+        "so"
+    } else {
+        // Default
+        "it should be kept"
+    };
+
+    if patterns.len() == 1 {
+        // Single pattern
+        format!("If {}, add:\n  {} ...", condition, patterns[0])
+    } else {
+        // Multiple patterns
+        let formatted_patterns = patterns
+            .iter()
+            .map(|p| format!("  {} ...", p))
+            .collect::<Vec<_>>()
+            .join("\n");
+        format!("If {}, add one of:\n{}", condition, formatted_patterns)
+    }
+}
+
+/// Build the three-part suppress missing comment advice message.
+///
+/// Format:
+/// 1. General statement: "Lint suppression requires justification."
+/// 2. Lint-specific guidance: A question tailored to the specific lint
+/// 3. Pattern instructions: How to add the required comment
+pub fn build_suppress_missing_comment_advice(
+    language: &str,
+    lint_code: Option<&str>,
+    required_patterns: &[String],
+) -> String {
+    let mut parts = Vec::new();
+
+    // Part 1: General statement
+    parts.push("Lint suppression requires justification.".to_string());
+
+    // Part 2: Lint-specific guidance
+    let guidance = if let Some(code) = lint_code {
+        match language {
+            "rust" => get_rust_lint_guidance(code),
+            "shell" => get_shell_lint_guidance(code),
+            "go" => get_go_lint_guidance(code),
+            _ => "Is this suppression necessary?",
+        }
+    } else {
+        "Is this suppression necessary?"
+    };
+    parts.push(guidance.to_string());
+
+    // Part 3: Pattern instructions
+    if !required_patterns.is_empty() {
+        parts.push(format_pattern_instructions(required_patterns, guidance));
+    } else {
+        // No specific patterns - generic guidance
+        let msg = match language {
+            "rust" => "Add a comment above the attribute.",
+            "shell" => "Add a comment above the directive.",
+            "go" => "Add a comment above the directive or inline (//nolint:code // reason).",
+            _ => "Add a comment above the directive.",
+        };
+        parts.push(msg.to_string());
+    }
+
+    parts.join("\n")
+}
+
 /// Check a suppress attribute against scope config.
 ///
 /// Returns `None` if no violation, `Some(kind)` if violation detected.

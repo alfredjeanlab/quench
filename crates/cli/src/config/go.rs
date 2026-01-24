@@ -6,6 +6,7 @@ use super::{LintChangesPolicy, SuppressLevel, SuppressScopeConfig};
 
 /// Go language-specific configuration.
 #[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct GoConfig {
     /// Source file patterns.
     #[serde(default = "GoConfig::default_source")]
@@ -61,6 +62,7 @@ impl GoConfig {
 
 /// Go suppress configuration (defaults to "comment" like Rust).
 #[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct GoSuppressConfig {
     /// Check level: forbid, comment, or allow (default: "comment").
     #[serde(default = "GoSuppressConfig::default_check")]
@@ -117,6 +119,7 @@ impl GoSuppressConfig {
 
 /// Go lint policy configuration.
 #[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct GoPolicyConfig {
     /// Lint config changes policy: "standalone" requires separate PRs.
     #[serde(default)]

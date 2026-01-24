@@ -438,9 +438,11 @@ quench: error in quench.toml
     expected one of: count, comment, forbid
 ```
 
-Unknown keys are warnings (forward compatibility):
+Unknown keys are errors (provides immediate feedback on typos):
 
 ```
-quench: warning in quench.toml
-  check.unknown: unrecognized field (ignored)
+quench: error in quench.toml
+  unknown field `check.unknown`, expected one of: ...
 ```
+
+This ensures config correctness and catches typos immediately rather than silently ignoring them.
