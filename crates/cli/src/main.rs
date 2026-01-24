@@ -502,10 +502,9 @@ fn run_report(_cli: &Cli, args: &ReportArgs) -> anyhow::Result<()> {
 
 fn run_init(_cli: &Cli, args: &InitArgs) -> anyhow::Result<ExitCode> {
     use quench::cli::{
-        agents_section, default_template, default_template_base, default_template_suffix,
-        golang_detected_section, golang_profile_defaults, javascript_detected_section,
-        rust_detected_section, rust_profile_defaults, shell_detected_section,
-        shell_profile_defaults,
+        ProfileRegistry, agents_section, default_template_base, default_template_suffix,
+        golang_detected_section, javascript_detected_section, rust_detected_section,
+        shell_detected_section,
     };
 
     let cwd = std::env::current_dir()?;
@@ -519,26 +518,56 @@ fn run_init(_cli: &Cli, args: &InitArgs) -> anyhow::Result<ExitCode> {
     // Determine what to include
     let (config, message) = if !args.with_profiles.is_empty() {
         // --with specified: use full profiles, skip detection
-        let mut cfg = default_template();
+        // Separate agent profiles from language profiles since agents replace agents section
+        let mut agent_required: Vec<&str> = Vec::new();
+        let mut lang_config = String::new();
+
         for profile in &args.with_profiles {
-            match profile.as_str() {
-                "rust" => {
-                    cfg.push('\n');
-                    cfg.push_str(&rust_profile_defaults());
+            if ProfileRegistry::is_agent_profile(profile) {
+                // Agent profile: collect required files
+                match profile.to_lowercase().as_str() {
+                    "claude" => {
+                        if !agent_required.contains(&"CLAUDE.md") {
+                            agent_required.push("CLAUDE.md");
+                        }
+                    }
+                    "cursor" => {
+                        if !agent_required.contains(&".cursorrules") {
+                            agent_required.push(".cursorrules");
+                        }
+                    }
+                    _ => {}
                 }
-                "shell" => {
-                    cfg.push('\n');
-                    cfg.push_str(&shell_profile_defaults());
-                }
-                "golang" | "go" => {
-                    cfg.push('\n');
-                    cfg.push_str(&golang_profile_defaults());
-                }
-                other => {
-                    eprintln!("quench: warning: unknown profile '{}', skipping", other);
+            } else if let Some(content) = ProfileRegistry::get(profile) {
+                // Language profile: append to config
+                lang_config.push('\n');
+                lang_config.push_str(&content);
+            } else {
+                // Unknown profile: warn and suggest
+                if let Some(suggestion) = ProfileRegistry::suggest(profile) {
+                    eprintln!(
+                        "quench: warning: unknown profile '{}', did you mean '{}'?",
+                        profile, suggestion
+                    );
+                } else {
+                    eprintln!("quench: warning: unknown profile '{}', skipping", profile);
                 }
             }
         }
+
+        // Build final config
+        let mut cfg = default_template_base().to_string();
+        if !agent_required.is_empty() {
+            cfg.push_str(&format!(
+                "[check.agents]\ncheck = \"error\"\nrequired = {:?}\n",
+                agent_required
+            ));
+        } else {
+            cfg.push_str(&agents_section(&[]));
+        }
+        cfg.push_str(default_template_suffix());
+        cfg.push_str(&lang_config);
+
         let msg = format!(
             "Created quench.toml with profile(s): {}",
             args.with_profiles.join(", ")
@@ -578,7 +607,7 @@ fn run_init(_cli: &Cli, args: &InitArgs) -> anyhow::Result<ExitCode> {
         for agent in &detected_agents {
             detected_names.push(match agent {
                 DetectedAgent::Claude => "claude",
-                DetectedAgent::Cursor => "cursor",
+                DetectedAgent::Cursor(_) => "cursor",
             });
         }
 

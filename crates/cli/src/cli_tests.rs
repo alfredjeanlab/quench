@@ -124,15 +124,26 @@ fn agents_section_claude_requires_claude_md() {
 
 #[test]
 fn agents_section_cursor_requires_cursorrules() {
-    let section = agents_section(&[DetectedAgent::Cursor]);
+    let section = agents_section(&[DetectedAgent::Cursor(CursorMarker::Cursorrules)]);
     assert!(section.contains("[check.agents]"));
     assert!(section.contains("required"));
     assert!(section.contains(".cursorrules"));
 }
 
 #[test]
+fn agents_section_cursor_rules_dir() {
+    let section = agents_section(&[DetectedAgent::Cursor(CursorMarker::CursorRulesDir)]);
+    assert!(section.contains("[check.agents]"));
+    assert!(section.contains("required"));
+    assert!(section.contains(".cursor/rules/*.mdc"));
+}
+
+#[test]
 fn agents_section_both_merges_required() {
-    let section = agents_section(&[DetectedAgent::Claude, DetectedAgent::Cursor]);
+    let section = agents_section(&[
+        DetectedAgent::Claude,
+        DetectedAgent::Cursor(CursorMarker::Cursorrules),
+    ]);
     assert!(section.contains("required"));
     assert!(section.contains("CLAUDE.md"));
     assert!(section.contains(".cursorrules"));

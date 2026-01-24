@@ -20,8 +20,20 @@ check = "off"  # stub in quench v0.3.0
 [check.license]
 check = "off"  # stub in quench v0.3.0
 
+[git]
+baseline = ".quench/baseline.json"
+
 [git.commit]
 check = "off"  # stub in quench v0.3.0
+
+[ratchet]
+check = "error"       # error | warn | off
+coverage = true       # Coverage can't drop
+escapes = true        # Escape counts can't increase
+# binary_size = false # Opt-in: binaries can't grow
+# build_time_cold = false
+# build_time_hot = false
+# test_time_total = false
 
 # Supported Languages:
 # [rust], [golang], [javascript], [shell]

@@ -15,10 +15,20 @@ pub enum DetectedLanguage {
 }
 
 /// Agents that can be detected in a project.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum DetectedAgent {
     Claude,
-    Cursor,
+    /// Cursor agent with the actual required file/pattern found.
+    Cursor(CursorMarker),
+}
+
+/// Cursor marker type detected in the project.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum CursorMarker {
+    /// .cursorrules file exists
+    Cursorrules,
+    /// .cursor/rules/*.md or *.mdc files exist
+    CursorRulesDir,
 }
 
 /// Detect all languages present in a project.
@@ -86,22 +96,18 @@ pub fn detect_agents(root: &Path) -> Vec<DetectedAgent> {
         agents.push(DetectedAgent::Claude);
     }
 
-    // Cursor: .cursorrules or .cursor/rules/*.md[c] exists
-    if has_cursor_markers(root) {
-        agents.push(DetectedAgent::Cursor);
+    // Cursor: .cursorrules takes precedence over .cursor/rules/*.mdc
+    if root.join(".cursorrules").exists() {
+        agents.push(DetectedAgent::Cursor(CursorMarker::Cursorrules));
+    } else if has_cursor_rules_dir(root) {
+        agents.push(DetectedAgent::Cursor(CursorMarker::CursorRulesDir));
     }
 
     agents
 }
 
-/// Check if project has Cursor markers.
-fn has_cursor_markers(root: &Path) -> bool {
-    // Check for .cursorrules
-    if root.join(".cursorrules").exists() {
-        return true;
-    }
-
-    // Check for .cursor/rules/*.md or .cursor/rules/*.mdc
+/// Check if project has .cursor/rules/*.md[c] files.
+fn has_cursor_rules_dir(root: &Path) -> bool {
     let rules_dir = root.join(".cursor/rules");
     if rules_dir.is_dir()
         && let Ok(entries) = rules_dir.read_dir()
@@ -116,7 +122,6 @@ fn has_cursor_markers(root: &Path) -> bool {
             }
         }
     }
-
     false
 }
 

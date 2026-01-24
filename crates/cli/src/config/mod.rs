@@ -8,6 +8,7 @@
 mod checks;
 mod go;
 mod javascript;
+mod ratchet;
 mod shell;
 mod suppress;
 
@@ -22,6 +23,7 @@ pub use checks::{
 };
 pub use go::{GoConfig, GoPolicyConfig, GoSuppressConfig};
 pub use javascript::{JavaScriptConfig, JavaScriptPolicyConfig};
+pub use ratchet::RatchetConfig;
 pub use shell::{ShellConfig, ShellPolicyConfig, ShellSuppressConfig};
 pub use suppress::{SuppressConfig, SuppressLevel, SuppressScopeConfig};
 
@@ -53,6 +55,14 @@ pub struct Config {
     #[serde(default)]
     pub check: CheckConfig,
 
+    /// Git configuration.
+    #[serde(default)]
+    pub git: GitConfig,
+
+    /// Ratcheting configuration.
+    #[serde(default)]
+    pub ratchet: RatchetConfig,
+
     /// Rust-specific configuration.
     #[serde(default)]
     pub rust: RustConfig,
@@ -68,6 +78,42 @@ pub struct Config {
     /// Shell-specific configuration.
     #[serde(default)]
     pub shell: ShellConfig,
+}
+
+/// Git configuration.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct GitConfig {
+    /// Baseline file path for ratcheting.
+    #[serde(default = "GitConfig::default_baseline")]
+    pub baseline: String,
+
+    /// Commit message validation settings.
+    #[serde(default)]
+    pub commit: GitCommitConfig,
+}
+
+impl Default for GitConfig {
+    fn default() -> Self {
+        Self {
+            baseline: Self::default_baseline(),
+            commit: GitCommitConfig::default(),
+        }
+    }
+}
+
+impl GitConfig {
+    fn default_baseline() -> String {
+        ".quench/baseline.json".to_string()
+    }
+}
+
+/// Git commit message configuration.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct GitCommitConfig {
+    /// Check level: "error" | "warn" | "off"
+    pub check: Option<String>,
 }
 
 impl Config {

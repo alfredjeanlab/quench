@@ -111,7 +111,7 @@ fn detect_cursor_from_cursorrules() {
     fs::write(temp.path().join(".cursorrules"), "# Rules").unwrap();
 
     let detected = detect_agents(temp.path());
-    assert!(detected.contains(&DetectedAgent::Cursor));
+    assert!(detected.contains(&DetectedAgent::Cursor(CursorMarker::Cursorrules)));
 }
 
 #[test]
@@ -121,7 +121,7 @@ fn detect_cursor_from_mdc_rules() {
     fs::write(temp.path().join(".cursor/rules/project.mdc"), "# Rules").unwrap();
 
     let detected = detect_agents(temp.path());
-    assert!(detected.contains(&DetectedAgent::Cursor));
+    assert!(detected.contains(&DetectedAgent::Cursor(CursorMarker::CursorRulesDir)));
 }
 
 #[test]
@@ -131,7 +131,7 @@ fn detect_cursor_from_md_rules() {
     fs::write(temp.path().join(".cursor/rules/project.md"), "# Rules").unwrap();
 
     let detected = detect_agents(temp.path());
-    assert!(detected.contains(&DetectedAgent::Cursor));
+    assert!(detected.contains(&DetectedAgent::Cursor(CursorMarker::CursorRulesDir)));
 }
 
 #[test]
@@ -142,7 +142,7 @@ fn agent_detection_is_additive() {
 
     let detected = detect_agents(temp.path());
     assert!(detected.contains(&DetectedAgent::Claude));
-    assert!(detected.contains(&DetectedAgent::Cursor));
+    assert!(detected.contains(&DetectedAgent::Cursor(CursorMarker::Cursorrules)));
 }
 
 #[test]

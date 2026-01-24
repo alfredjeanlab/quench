@@ -232,6 +232,64 @@ pub enum OutputFormat {
 // PROFILE DEFAULTS
 // =============================================================================
 
+/// Claude agent profile configuration for quench init.
+///
+/// Sets up [check.agents] with CLAUDE.md as required.
+pub fn claude_profile_defaults() -> &'static str {
+    r#"[check.agents]
+check = "error"
+required = ["CLAUDE.md"]
+"#
+}
+
+/// Cursor agent profile configuration for quench init.
+///
+/// Sets up [check.agents] with .cursorrules as required.
+pub fn cursor_profile_defaults() -> &'static str {
+    r#"[check.agents]
+check = "error"
+required = [".cursorrules"]
+"#
+}
+
+/// JavaScript profile configuration for quench init.
+pub fn javascript_profile_defaults() -> String {
+    r#"[javascript]
+source = ["**/*.js", "**/*.jsx", "**/*.ts", "**/*.tsx", "**/*.mjs", "**/*.mts"]
+tests = ["**/*.test.*", "**/*.spec.*", "**/test/**", "**/tests/**", "**/__tests__/**"]
+
+[javascript.suppress]
+check = "comment"
+
+[javascript.suppress.test]
+check = "allow"
+
+[javascript.policy]
+lint_changes = "standalone"
+lint_config = [".eslintrc", ".eslintrc.json", ".eslintrc.js", "eslint.config.js", ".prettierrc", ".prettierrc.json"]
+
+[[check.escapes.patterns]]
+name = "any_type"
+pattern = ": any\\b"
+action = "comment"
+comment = "// ANY:"
+advice = "Add a // ANY: comment explaining why any is needed."
+
+[[check.escapes.patterns]]
+name = "ts_ignore"
+pattern = "@ts-ignore"
+action = "forbid"
+advice = "Use @ts-expect-error with an explanation instead."
+
+[[check.escapes.patterns]]
+name = "eslint_disable"
+pattern = "eslint-disable"
+action = "comment"
+advice = "Add a comment explaining why this rule is disabled."
+"#
+    .to_string()
+}
+
 /// Default Rust profile configuration for quench init.
 ///
 /// Note: The transmute pattern uses concat to avoid self-matching.
@@ -389,10 +447,74 @@ pub fn golang_landing_items() -> &'static [&'static str] {
 }
 
 // =============================================================================
+// PROFILE REGISTRY
+// =============================================================================
+
+/// Profile registry for init command.
+///
+/// Centralizes profile lookup for maintainability and extensibility.
+pub struct ProfileRegistry;
+
+impl ProfileRegistry {
+    /// Get all available profile names.
+    pub fn available() -> &'static [&'static str] {
+        &["rust", "golang", "javascript", "shell", "claude", "cursor"]
+    }
+
+    /// Get profile content by name.
+    ///
+    /// Returns the full profile configuration string for the given profile name,
+    /// or None if the profile is not recognized.
+    pub fn get(name: &str) -> Option<String> {
+        match name.to_lowercase().as_str() {
+            "rust" => Some(rust_profile_defaults()),
+            "shell" => Some(shell_profile_defaults()),
+            "golang" | "go" => Some(golang_profile_defaults()),
+            "javascript" | "js" | "typescript" | "ts" => Some(javascript_profile_defaults()),
+            "claude" => Some(claude_profile_defaults().to_string()),
+            "cursor" => Some(cursor_profile_defaults().to_string()),
+            _ => None,
+        }
+    }
+
+    /// Check if a profile name is valid.
+    pub fn is_valid(name: &str) -> bool {
+        Self::get(name).is_some()
+    }
+
+    /// Check if a profile is an agent profile (vs language profile).
+    pub fn is_agent_profile(name: &str) -> bool {
+        matches!(name.to_lowercase().as_str(), "claude" | "cursor")
+    }
+
+    /// Suggest similar profile names for typos.
+    ///
+    /// Uses simple prefix matching to suggest corrections.
+    pub fn suggest(name: &str) -> Option<&'static str> {
+        let lower = name.to_lowercase();
+
+        // Check for common prefixes
+        for &profile in Self::available() {
+            if profile.starts_with(&lower) || lower.starts_with(profile) {
+                return Some(profile);
+            }
+        }
+
+        // Check for common aliases
+        match lower.as_str() {
+            "js" | "ts" | "typescript" | "node" => Some("javascript"),
+            "go" => Some("golang"),
+            "bash" | "zsh" | "sh" => Some("shell"),
+            _ => None,
+        }
+    }
+}
+
+// =============================================================================
 // DETECTED AGENT SECTIONS
 // =============================================================================
 
-use crate::init::DetectedAgent;
+use crate::init::{CursorMarker, DetectedAgent};
 
 /// Generate [check.agents] section with detected agents.
 ///
@@ -406,7 +528,8 @@ pub fn agents_detected_section(agents: &[DetectedAgent]) -> String {
         .iter()
         .map(|a| match a {
             DetectedAgent::Claude => "CLAUDE.md",
-            DetectedAgent::Cursor => ".cursorrules",
+            DetectedAgent::Cursor(CursorMarker::Cursorrules) => ".cursorrules",
+            DetectedAgent::Cursor(CursorMarker::CursorRulesDir) => ".cursor/rules/*.mdc",
         })
         .collect();
 
@@ -495,8 +618,20 @@ check = "off"  # stub in quench v0.3.0
 [check.license]
 check = "off"  # stub in quench v0.3.0
 
+[git]
+baseline = ".quench/baseline.json"
+
 [git.commit]
 check = "off"  # stub in quench v0.3.0
+
+[ratchet]
+check = "error"       # error | warn | off
+coverage = true       # Coverage can't drop
+escapes = true        # Escape counts can't increase
+# binary_size = false # Opt-in: binaries can't grow
+# build_time_cold = false
+# build_time_hot = false
+# test_time_total = false
 
 # Supported Languages:
 # [rust], [golang], [javascript], [shell]
@@ -513,7 +648,8 @@ pub fn agents_section(agents: &[DetectedAgent]) -> String {
         .iter()
         .map(|a| match a {
             DetectedAgent::Claude => "CLAUDE.md",
-            DetectedAgent::Cursor => ".cursorrules",
+            DetectedAgent::Cursor(CursorMarker::Cursorrules) => ".cursorrules",
+            DetectedAgent::Cursor(CursorMarker::CursorRulesDir) => ".cursor/rules/*.mdc",
         })
         .collect();
 
