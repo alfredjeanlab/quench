@@ -136,6 +136,14 @@ pub struct Violation {
     /// Link target for broken_link violations.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub target: Option<String>,
+
+    /// Type of change for missing_tests violations ("added" | "modified").
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub change_type: Option<String>,
+
+    /// Lines changed (added + deleted) for missing_tests violations.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub lines_changed: Option<i64>,
 }
 
 impl Violation {
@@ -165,6 +173,8 @@ impl Violation {
             area_match: None,
             path: None,
             target: None,
+            change_type: None,
+            lines_changed: None,
         }
     }
 
@@ -193,6 +203,8 @@ impl Violation {
             area_match: None,
             path: None,
             target: None,
+            change_type: None,
+            lines_changed: None,
         }
     }
 
@@ -222,6 +234,8 @@ impl Violation {
             area_match: None,
             path: None,
             target: None,
+            change_type: None,
+            lines_changed: None,
         }
     }
 
@@ -280,6 +294,13 @@ impl Violation {
     /// Add target context for broken_link violations.
     pub fn with_target(mut self, target: impl Into<String>) -> Self {
         self.target = Some(target.into());
+        self
+    }
+
+    /// Add change information for missing_tests violations.
+    pub fn with_change_info(mut self, change_type: impl Into<String>, lines_changed: i64) -> Self {
+        self.change_type = Some(change_type.into());
+        self.lines_changed = Some(lines_changed);
         self
     }
 }

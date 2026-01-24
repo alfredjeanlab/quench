@@ -29,7 +29,8 @@ use crate::check::Violation;
 /// v18: Added target_path for docs cache.
 /// v19: Added per-language cloc check levels (warn vs error).
 /// v20: Added placeholders check for detecting placeholder tests.
-pub const CACHE_VERSION: u32 = 20;
+/// v21: Added change_type and lines_changed fields to missing_tests violations.
+pub const CACHE_VERSION: u32 = 21;
 
 /// Cache file name within .quench directory.
 pub const CACHE_FILE_NAME: &str = "cache.bin";
@@ -165,6 +166,8 @@ impl CachedViolation {
             area_match: None,
             path: None,
             target: self.target_path.clone(),
+            change_type: None,
+            lines_changed: None,
         }
     }
 }

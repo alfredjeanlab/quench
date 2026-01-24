@@ -522,6 +522,8 @@ fn create_threshold_violation(
         area_match: None,
         path: None,
         target: None,
+        change_type: None,
+        lines_changed: None,
     })
 }
 

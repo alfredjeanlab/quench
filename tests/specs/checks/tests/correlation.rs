@@ -428,6 +428,101 @@ check = "error"
     assert!(result.violations().len() >= 2);
 }
 
+/// Spec: JSON output includes change_type for modified files
+#[test]
+fn missing_tests_json_includes_change_type_modified() {
+    let temp = Project::empty();
+    temp.config(
+        r#"[check.tests.commit]
+check = "error"
+"#,
+    );
+
+    init_git_repo(temp.path());
+    temp.file("src/existing.rs", "pub fn existing() {}");
+    git_commit(temp.path(), "initial");
+
+    // Modify the file
+    temp.file("src/existing.rs", "pub fn existing() {}\npub fn more() {}");
+    git_stage(temp.path());
+
+    let result = check("tests")
+        .pwd(temp.path())
+        .args(&["--staged"])
+        .json()
+        .fails();
+
+    let violations = result.violations_of_type("missing_tests");
+    assert!(!violations.is_empty());
+
+    let v = &violations[0];
+    assert_eq!(
+        v.get("change_type").and_then(|v| v.as_str()),
+        Some("modified")
+    );
+    assert!(v.get("lines_changed").and_then(|v| v.as_i64()).is_some());
+}
+
+/// Spec: JSON output includes change_type for added files
+#[test]
+fn missing_tests_json_includes_change_type_added() {
+    let temp = Project::empty();
+    temp.config(
+        r#"[check.tests.commit]
+check = "error"
+"#,
+    );
+
+    init_git_repo(temp.path());
+    temp.file("src/new_file.rs", "pub fn new_fn() {}");
+    git_stage(temp.path());
+
+    let result = check("tests")
+        .pwd(temp.path())
+        .args(&["--staged"])
+        .json()
+        .fails();
+
+    let violations = result.violations_of_type("missing_tests");
+    assert!(!violations.is_empty());
+
+    let v = &violations[0];
+    assert_eq!(v.get("change_type").and_then(|v| v.as_str()), Some("added"));
+}
+
+/// Spec: lines_changed reflects actual diff size
+#[test]
+fn missing_tests_json_includes_lines_changed() {
+    let temp = Project::empty();
+    temp.config(
+        r#"[check.tests.commit]
+check = "error"
+"#,
+    );
+
+    init_git_repo(temp.path());
+
+    // Create a file with known line count
+    let content = (0..10)
+        .map(|i| format!("pub fn f{}() {{}}", i))
+        .collect::<Vec<_>>()
+        .join("\n");
+    temp.file("src/multi.rs", &content);
+    git_stage(temp.path());
+
+    let result = check("tests")
+        .pwd(temp.path())
+        .args(&["--staged"])
+        .json()
+        .fails();
+
+    let violations = result.violations_of_type("missing_tests");
+    let v = &violations[0];
+
+    // Should have 10 lines added
+    assert_eq!(v.get("lines_changed").and_then(|v| v.as_i64()), Some(10));
+}
+
 // =============================================================================
 // COMMIT SCOPE SPECS
 // =============================================================================

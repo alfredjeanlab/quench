@@ -102,3 +102,24 @@ fn check_result_omits_empty_violations() {
     assert!(json.get("skipped").is_none());
     assert!(json.get("error").is_none());
 }
+
+#[test]
+fn violation_with_change_info_serializes_correctly() {
+    let v = Violation::file_only("src/foo.rs", "missing_tests", "Add tests")
+        .with_change_info("modified", 42);
+
+    let json = serde_json::to_value(&v).unwrap();
+
+    assert_eq!(json["change_type"], "modified");
+    assert_eq!(json["lines_changed"], 42);
+}
+
+#[test]
+fn violation_without_change_info_omits_fields() {
+    let v = Violation::file_only("src/foo.rs", "missing_tests", "Add tests");
+
+    let json = serde_json::to_value(&v).unwrap();
+
+    assert!(json.get("change_type").is_none());
+    assert!(json.get("lines_changed").is_none());
+}

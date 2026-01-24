@@ -222,6 +222,8 @@ fn make_policy_violation(
         area_match: None,
         path: None,
         target: None,
+        change_type: None,
+        lines_changed: None,
     }]
 }
 

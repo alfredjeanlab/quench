@@ -23,7 +23,7 @@ use self::correlation::{
     CorrelationConfig, analyze_commit, analyze_correlation, has_inline_test_changes,
     has_placeholder_test,
 };
-use self::diff::{get_base_changes, get_commits_since, get_staged_changes};
+use self::diff::{ChangeType, get_base_changes, get_commits_since, get_staged_changes};
 
 pub struct TestsCheck;
 
@@ -154,7 +154,12 @@ impl TestsCheck {
             let mut v = Violation::file_only(path, "missing_tests", advice);
 
             if let Some(c) = change {
-                v.lines = Some(c.lines_changed() as i64);
+                let change_type = match c.change_type {
+                    ChangeType::Added => "added",
+                    ChangeType::Modified => "modified",
+                    ChangeType::Deleted => "deleted", // Won't occur for violations
+                };
+                v = v.with_change_info(change_type, c.lines_changed() as i64);
             }
 
             violations.push(v);
@@ -257,7 +262,24 @@ impl TestsCheck {
                     path.display()
                 );
 
-                violations.push(Violation::file_only(path, "missing_tests", advice));
+                // Find the change info for this file in this commit
+                let change = commit
+                    .changes
+                    .iter()
+                    .find(|c| c.path.strip_prefix(ctx.root).unwrap_or(&c.path).eq(path));
+
+                let mut v = Violation::file_only(path, "missing_tests", advice);
+
+                if let Some(c) = change {
+                    let change_type = match c.change_type {
+                        ChangeType::Added => "added",
+                        ChangeType::Modified => "modified",
+                        ChangeType::Deleted => "deleted",
+                    };
+                    v = v.with_change_info(change_type, c.lines_changed() as i64);
+                }
+
+                violations.push(v);
 
                 if ctx.limit.is_some_and(|l| violations.len() >= l) {
                     break;
