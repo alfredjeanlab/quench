@@ -10,7 +10,7 @@ use regex::Regex;
 /// A compiled pattern optimized for its structure.
 pub enum CompiledPattern {
     /// Single literal string (fastest).
-    Literal(LiteralMatcher),
+    Literal(Box<LiteralMatcher>),
     /// Multiple literal strings (Aho-Corasick).
     MultiLiteral(MultiLiteralMatcher),
     /// Full regex (most flexible).
@@ -74,7 +74,9 @@ impl CompiledPattern {
     /// - Complex regex -> RegexMatcher
     pub fn compile(pattern: &str) -> Result<Self, PatternError> {
         if is_literal(pattern) {
-            Ok(CompiledPattern::Literal(LiteralMatcher::new(pattern)))
+            Ok(CompiledPattern::Literal(Box::new(LiteralMatcher::new(
+                pattern,
+            ))))
         } else if let Some(literals) = extract_alternation_literals(pattern) {
             Ok(CompiledPattern::MultiLiteral(MultiLiteralMatcher::new(
                 &literals,
