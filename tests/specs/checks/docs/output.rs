@@ -1,10 +1,53 @@
-//! Behavioral specs for docs check JSON output format.
+//! Behavioral specs for docs check output formats.
 //!
+//! Reference: docs/specs/checks/docs.md#text-output
 //! Reference: docs/specs/checks/docs.md#json-output
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
 use crate::prelude::*;
+
+// =============================================================================
+// TEXT OUTPUT FORMAT SPECS
+// =============================================================================
+
+/// Spec: docs/specs/checks/docs.md#text-output
+///
+/// > On pass: "PASS: docs"
+#[test]
+fn docs_text_output_on_pass() {
+    cli()
+        .on("docs/toc-ok")
+        .args(&["--docs"])
+        .passes()
+        .stdout_has("PASS: docs");
+}
+
+/// Spec: docs/specs/checks/docs.md#text-output
+///
+/// > On fail: "docs: FAIL" with violations
+#[test]
+fn docs_text_output_on_broken_toc() {
+    cli()
+        .on("docs/toc-broken")
+        .args(&["--docs"])
+        .fails()
+        .stdout_has("docs: FAIL")
+        .stdout_has("broken_toc");
+}
+
+/// Spec: docs/specs/checks/docs.md#text-output
+///
+/// > broken_link violations show target path and advice
+#[test]
+fn docs_text_output_on_broken_link() {
+    cli()
+        .on("docs/link-broken")
+        .args(&["--docs"])
+        .fails()
+        .stdout_has("docs: FAIL")
+        .stdout_has("broken_link");
+}
 
 // =============================================================================
 // JSON OUTPUT FORMAT SPECS

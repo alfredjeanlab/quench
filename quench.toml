@@ -25,3 +25,18 @@ advice = "Document the project layout"
 [[check.agents.sections.required]]
 name = "Landing the Plane"
 advice = "Checklist for AI agents before committing"
+
+[check.docs]
+check = "error"
+
+[check.docs.specs]
+path = "docs/specs"
+index = "auto"
+
+[check.docs.toc]
+include = ["docs/**/*.md"]
+exclude = ["plans/**"]
+
+[check.docs.links]
+include = ["docs/**/*.md"]
+exclude = ["plans/**"]
