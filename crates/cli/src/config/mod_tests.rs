@@ -945,3 +945,63 @@ fn specs_default_sections_empty() {
     assert!(config.check.docs.specs.sections.required.is_empty());
     assert!(config.check.docs.specs.sections.forbid.is_empty());
 }
+
+// Per-language policy config tests (consolidated)
+
+#[test]
+fn policy_check_level_parsing_and_resolution() {
+    // Test parsing and resolution for all languages
+    let config = parse(
+        r#"
+version = 1
+[rust.policy]
+check = "off"
+[golang.policy]
+check = "warn"
+[javascript.policy]
+check = "error"
+"#,
+        Path::new("test.toml"),
+    )
+    .unwrap();
+
+    // Rust: off
+    assert_eq!(config.rust.policy.check, Some(CheckLevel::Off));
+    assert_eq!(
+        config.policy_check_level_for_language("rust"),
+        CheckLevel::Off
+    );
+
+    // Go: warn (with alias)
+    assert_eq!(config.golang.policy.check, Some(CheckLevel::Warn));
+    assert_eq!(
+        config.policy_check_level_for_language("go"),
+        CheckLevel::Warn
+    );
+    assert_eq!(
+        config.policy_check_level_for_language("golang"),
+        CheckLevel::Warn
+    );
+
+    // JavaScript: error (with alias)
+    assert_eq!(config.javascript.policy.check, Some(CheckLevel::Error));
+    assert_eq!(
+        config.policy_check_level_for_language("javascript"),
+        CheckLevel::Error
+    );
+    assert_eq!(
+        config.policy_check_level_for_language("js"),
+        CheckLevel::Error
+    );
+
+    // Shell: not configured, defaults to error (with alias)
+    assert_eq!(config.shell.policy.check, None);
+    assert_eq!(
+        config.policy_check_level_for_language("shell"),
+        CheckLevel::Error
+    );
+    assert_eq!(
+        config.policy_check_level_for_language("sh"),
+        CheckLevel::Error
+    );
+}

@@ -155,6 +155,24 @@ impl Config {
             _ => &self.check.cloc.advice,
         }
     }
+
+    /// Get effective policy check level for a language.
+    ///
+    /// Resolution order:
+    /// 1. {lang}.policy.check if set
+    /// 2. CheckLevel::Error (default - policy violations fail)
+    ///
+    /// The `language` parameter should be an adapter name (e.g., "rust", "go").
+    pub fn policy_check_level_for_language(&self, language: &str) -> CheckLevel {
+        let lang_level = match language {
+            "rust" => self.rust.policy.check,
+            "go" | "golang" => self.golang.policy.check,
+            "javascript" | "js" => self.javascript.policy.check,
+            "shell" | "sh" => self.shell.policy.check,
+            _ => None,
+        };
+        lang_level.unwrap_or(CheckLevel::Error)
+    }
 }
 
 /// Mode for handling #[cfg(test)] blocks in Rust files.
@@ -211,6 +229,10 @@ impl RustConfig {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct RustPolicyConfig {
+    /// Check level: "error" | "warn" | "off" (default: inherits from global).
+    #[serde(default)]
+    pub check: Option<CheckLevel>,
+
     /// Lint config changes policy: "standalone" requires separate PRs.
     #[serde(default)]
     pub lint_changes: LintChangesPolicy,
@@ -223,6 +245,7 @@ pub struct RustPolicyConfig {
 impl Default for RustPolicyConfig {
     fn default() -> Self {
         Self {
+            check: None,
             lint_changes: LintChangesPolicy::default(),
             lint_config: Self::default_lint_config(),
         }

@@ -13,6 +13,7 @@ use super::*;
 
 fn default_policy() -> RustPolicyConfig {
     RustPolicyConfig {
+        check: None,
         lint_changes: LintChangesPolicy::Standalone,
         lint_config: vec![
             "rustfmt.toml".to_string(),
@@ -84,6 +85,7 @@ fn custom_lint_config_list() {
     use crate::adapter::common::test_utils::check_policy;
 
     let policy = RustPolicyConfig {
+        check: None,
         lint_changes: LintChangesPolicy::Standalone,
         lint_config: vec!["custom-lint.toml".to_string()],
     };

@@ -2,7 +2,7 @@
 
 use serde::Deserialize;
 
-use super::{LangClocConfig, LintChangesPolicy, SuppressLevel, SuppressScopeConfig};
+use super::{CheckLevel, LangClocConfig, LintChangesPolicy, SuppressLevel, SuppressScopeConfig};
 
 /// Shell language-specific configuration.
 #[derive(Debug, Clone, Deserialize)]
@@ -125,9 +125,13 @@ impl ShellSuppressConfig {
 }
 
 /// Shell lint policy configuration.
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ShellPolicyConfig {
+    /// Check level: "error" | "warn" | "off" (default: inherits from global).
+    #[serde(default)]
+    pub check: Option<CheckLevel>,
+
     /// Lint config changes policy: "standalone" requires separate PRs.
     #[serde(default)]
     pub lint_changes: LintChangesPolicy,
@@ -135,6 +139,16 @@ pub struct ShellPolicyConfig {
     /// Files that trigger the standalone requirement.
     #[serde(default = "ShellPolicyConfig::default_lint_config")]
     pub lint_config: Vec<String>,
+}
+
+impl Default for ShellPolicyConfig {
+    fn default() -> Self {
+        Self {
+            check: None,
+            lint_changes: LintChangesPolicy::default(),
+            lint_config: Self::default_lint_config(),
+        }
+    }
 }
 
 impl ShellPolicyConfig {

@@ -13,6 +13,7 @@ use super::check_lint_policy;
 
 fn default_policy() -> GoPolicyConfig {
     GoPolicyConfig {
+        check: None,
         lint_changes: LintChangesPolicy::Standalone,
         lint_config: vec![".golangci.yml".to_string()],
     }

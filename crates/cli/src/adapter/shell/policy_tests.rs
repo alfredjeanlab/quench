@@ -13,6 +13,7 @@ use super::*;
 
 fn default_policy() -> ShellPolicyConfig {
     ShellPolicyConfig {
+        check: None,
         lint_changes: LintChangesPolicy::Standalone,
         lint_config: vec![".shellcheckrc".to_string()],
     }
@@ -84,6 +85,7 @@ fn custom_lint_config_list() {
     use crate::adapter::common::test_utils::check_policy;
 
     let policy = ShellPolicyConfig {
+        check: None,
         lint_changes: LintChangesPolicy::Standalone,
         lint_config: vec!["shellcheck.yaml".to_string()],
     };

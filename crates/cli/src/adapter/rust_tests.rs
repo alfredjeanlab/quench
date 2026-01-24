@@ -176,6 +176,7 @@ mod adapter_check_lint_policy {
 
     fn default_policy() -> RustPolicyConfig {
         RustPolicyConfig {
+            check: None,
             lint_changes: LintChangesPolicy::Standalone,
             lint_config: vec![
                 "rustfmt.toml".to_string(),

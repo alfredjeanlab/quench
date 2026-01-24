@@ -2,7 +2,7 @@
 
 use serde::Deserialize;
 
-use super::{LangClocConfig, LintChangesPolicy, SuppressConfig};
+use super::{CheckLevel, LangClocConfig, LintChangesPolicy, SuppressConfig};
 
 /// JavaScript/TypeScript language-specific configuration.
 #[derive(Debug, Clone, Deserialize)]
@@ -79,6 +79,10 @@ impl JavaScriptConfig {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct JavaScriptPolicyConfig {
+    /// Check level: "error" | "warn" | "off" (default: inherits from global).
+    #[serde(default)]
+    pub check: Option<CheckLevel>,
+
     /// Lint changes policy.
     #[serde(default)]
     pub lint_changes: LintChangesPolicy,
@@ -91,6 +95,7 @@ pub struct JavaScriptPolicyConfig {
 impl Default for JavaScriptPolicyConfig {
     fn default() -> Self {
         Self {
+            check: None,
             lint_changes: LintChangesPolicy::default(),
             lint_config: Self::default_lint_config(),
         }

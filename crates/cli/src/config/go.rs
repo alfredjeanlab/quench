@@ -2,7 +2,7 @@
 
 use serde::Deserialize;
 
-use super::{LangClocConfig, LintChangesPolicy, SuppressLevel, SuppressScopeConfig};
+use super::{CheckLevel, LangClocConfig, LintChangesPolicy, SuppressLevel, SuppressScopeConfig};
 
 /// Go language-specific configuration.
 #[derive(Debug, Clone, Deserialize)]
@@ -127,6 +127,10 @@ impl GoSuppressConfig {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct GoPolicyConfig {
+    /// Check level: "error" | "warn" | "off" (default: inherits from global).
+    #[serde(default)]
+    pub check: Option<CheckLevel>,
+
     /// Lint config changes policy: "standalone" requires separate PRs.
     #[serde(default)]
     pub lint_changes: LintChangesPolicy,
@@ -139,6 +143,7 @@ pub struct GoPolicyConfig {
 impl Default for GoPolicyConfig {
     fn default() -> Self {
         Self {
+            check: None,
             lint_changes: LintChangesPolicy::default(),
             lint_config: Self::default_lint_config(),
         }

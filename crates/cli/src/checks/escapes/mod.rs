@@ -172,7 +172,7 @@ impl Check for EscapesCheck {
         }
 
         // Check lint policy for language-specific projects (only when --base is provided)
-        let policy_violations = lint_policy::check_lint_policy(ctx);
+        let policy_result = lint_policy::check_lint_policy(ctx);
 
         // Get adapter default patterns for the detected language
         let adapter_patterns = get_adapter_escape_patterns(ctx.root);
@@ -424,14 +424,27 @@ impl Check for EscapesCheck {
             }
         }
 
-        // Add policy violations to the main violations list
-        violations.extend(policy_violations);
+        // Handle policy violations based on their check level
+        let has_escape_violations = !violations.is_empty();
+        let policy_is_warning = policy_result.check_level == CheckLevel::Warn;
+        let policy_violations = policy_result.violations;
 
         // Build result with metrics
-        let result = if violations.is_empty() {
-            CheckResult::passed(self.name())
-        } else {
+        let result = if has_escape_violations {
+            // Escape violations always cause failure, include policy violations too
+            violations.extend(policy_violations);
             CheckResult::failed(self.name(), violations)
+        } else if !policy_violations.is_empty() {
+            // Only policy violations
+            if policy_is_warning {
+                // Warn level: report but don't fail
+                CheckResult::passed_with_warnings(self.name(), policy_violations)
+            } else {
+                // Error level: fail
+                CheckResult::failed(self.name(), policy_violations)
+            }
+        } else {
+            CheckResult::passed(self.name())
         };
 
         // Add metrics to result
