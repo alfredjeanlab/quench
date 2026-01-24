@@ -102,6 +102,50 @@ impl<'a> FilteredMetrics<'a> {
         }
         n
     }
+
+    /// Iterate over escape source metrics in sorted order.
+    /// Returns None if escapes check is filtered out.
+    pub fn sorted_escapes(&self) -> Option<Vec<(&str, usize)>> {
+        self.escapes().map(|esc| {
+            let mut items: Vec<_> = esc.source.iter().map(|(k, v)| (k.as_str(), *v)).collect();
+            items.sort_by_key(|(k, _)| *k);
+            items
+        })
+    }
+
+    /// Iterate over test escape metrics in sorted order.
+    /// Returns None if escapes check is filtered out or no test escapes present.
+    pub fn sorted_test_escapes(&self) -> Option<Vec<(&str, usize)>> {
+        self.escapes().and_then(|esc| {
+            esc.test.as_ref().map(|test| {
+                let mut items: Vec<_> = test.iter().map(|(k, v)| (k.as_str(), *v)).collect();
+                items.sort_by_key(|(k, _)| *k);
+                items
+            })
+        })
+    }
+
+    /// Iterate over coverage by package in sorted order.
+    /// Returns None if tests check is filtered out or no package coverage.
+    pub fn sorted_package_coverage(&self) -> Option<Vec<(&str, f64)>> {
+        self.coverage().and_then(|cov| {
+            cov.by_package.as_ref().map(|packages| {
+                let mut items: Vec<_> = packages.iter().map(|(k, v)| (k.as_str(), *v)).collect();
+                items.sort_by_key(|(k, _)| *k);
+                items
+            })
+        })
+    }
+
+    /// Iterate over binary sizes in sorted order.
+    /// Returns None if build check is filtered out or no binary sizes.
+    pub fn sorted_binary_sizes(&self) -> Option<Vec<(&str, u64)>> {
+        self.binary_size().map(|sizes| {
+            let mut items: Vec<_> = sizes.iter().map(|(k, v)| (k.as_str(), *v)).collect();
+            items.sort_by_key(|(k, _)| *k);
+            items
+        })
+    }
 }
 
 /// Trait for formatting baseline metrics into various output formats.
@@ -196,6 +240,9 @@ pub fn human_bytes(bytes: u64) -> String {
         format!("{} B", bytes)
     }
 }
+
+#[cfg(test)]
+pub mod test_support;
 
 #[cfg(test)]
 #[path = "mod_tests.rs"]

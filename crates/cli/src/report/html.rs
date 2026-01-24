@@ -11,10 +11,13 @@ use super::{FilteredMetrics, ReportFormatter, human_bytes};
 /// HTML format report formatter.
 pub struct HtmlFormatter;
 
-impl HtmlFormatter {
-    /// Generate CSS styles for the report.
-    fn css() -> &'static str {
-        r#":root {
+/// Size estimation constants for pre-allocation.
+const HTML_BASE_SIZE: usize = 1500; // Template + CSS
+const HTML_CARD_SIZE: usize = 200;
+const HTML_ROW_SIZE: usize = 80;
+
+/// CSS styles for the report.
+const CSS: &str = r#":root {
       --bg: #1a1a2e;
       --card-bg: #16213e;
       --text: #eef;
@@ -64,225 +67,43 @@ impl HtmlFormatter {
     th, td { padding: 0.75rem 1rem; text-align: left; }
     th { background: rgba(0,0,0,0.2); color: var(--muted); font-size: 0.75rem; text-transform: uppercase; }
     tr:not(:last-child) td { border-bottom: 1px solid var(--bg); }
-    td:last-child { text-align: right; font-family: monospace; }"#
-    }
+    td:last-child { text-align: right; font-family: monospace; }"#;
 
-    /// Render a metric card.
-    fn render_card(title: &str, value: &str, category: &str) -> String {
-        format!(
-            r#"      <div class="card {category}">
-        <div class="card-title">{title}</div>
-        <div class="card-value">{value}</div>
-      </div>"#
-        )
-    }
-
-    /// Render a table row.
-    fn render_table_row(metric: &str, value: &str) -> String {
-        format!(r#"        <tr><td>{metric}</td><td>{value}</td></tr>"#)
-    }
-
-    /// Render the header section.
-    fn render_header(baseline: &Baseline) -> (String, String) {
-        let commit = baseline.commit.as_deref().unwrap_or("unknown");
-        let date = baseline.updated.format("%Y-%m-%d %H:%M UTC");
-        (commit.to_string(), date.to_string())
-    }
-
-    /// Render the complete HTML document.
-    fn render_document(commit: &str, date: &str, cards: &str, rows: &str) -> String {
-        let css = Self::css();
-        format!(
-            r#"<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Quench Report</title>
-  <style>
-    {css}
-  </style>
-</head>
-<body>
-  <div class="container">
-    <header>
-      <h1>Quench Report</h1>
-      <div class="meta">Baseline: {commit} &middot; {date}</div>
-    </header>
-    <section class="cards">
-{cards}
-    </section>
-    <section>
-      <table>
-        <thead><tr><th>Metric</th><th>Value</th></tr></thead>
-        <tbody>
-{rows}
-        </tbody>
-      </table>
-    </section>
-  </div>
-</body>
-</html>"#
-        )
-    }
-
-    /// Collect metrics into cards and table rows based on filter.
-    fn collect_metrics(
-        baseline: &Baseline,
-        filter: &dyn CheckFilter,
-    ) -> (Vec<String>, Vec<String>) {
-        let filtered = FilteredMetrics::new(baseline, filter);
-        let mut cards = Vec::new();
-        let mut rows = Vec::new();
-
-        // Coverage card
-        if let Some(coverage) = filtered.coverage() {
-            cards.push(Self::render_card(
-                "Coverage",
-                &format!("{:.1}%", coverage.total),
-                "tests",
-            ));
-            rows.push(Self::render_table_row(
-                "coverage",
-                &format!("{:.1}%", coverage.total),
-            ));
-
-            if let Some(ref packages) = coverage.by_package {
-                let mut keys: Vec<_> = packages.keys().collect();
-                keys.sort();
-                for name in keys {
-                    rows.push(Self::render_table_row(
-                        &format!("coverage.{}", name),
-                        &format!("{:.1}%", packages[name]),
-                    ));
-                }
-            }
-        }
-
-        // Escapes cards
-        if let Some(escapes) = filtered.escapes() {
-            let mut keys: Vec<_> = escapes.source.keys().collect();
-            keys.sort();
-            for name in keys {
-                let count = escapes.source[name];
-                cards.push(Self::render_card(
-                    &format!("Escapes: {}", name),
-                    &count.to_string(),
-                    "escapes",
-                ));
-                rows.push(Self::render_table_row(
-                    &format!("escapes.{}", name),
-                    &count.to_string(),
-                ));
-            }
-
-            // Test escapes (if present)
-            if let Some(ref test) = escapes.test {
-                let mut keys: Vec<_> = test.keys().collect();
-                keys.sort();
-                for name in keys {
-                    let count = test[name];
-                    rows.push(Self::render_table_row(
-                        &format!("escapes.test.{}", name),
-                        &count.to_string(),
-                    ));
-                }
-            }
-        }
-
-        // Build metrics
-        if let Some(build) = filtered.build_time() {
-            cards.push(Self::render_card(
-                "Build (cold)",
-                &format!("{:.1}s", build.cold),
-                "build",
-            ));
-            cards.push(Self::render_card(
-                "Build (hot)",
-                &format!("{:.1}s", build.hot),
-                "build",
-            ));
-            rows.push(Self::render_table_row(
-                "build_time.cold",
-                &format!("{:.1}s", build.cold),
-            ));
-            rows.push(Self::render_table_row(
-                "build_time.hot",
-                &format!("{:.1}s", build.hot),
-            ));
-        }
-
-        if let Some(sizes) = filtered.binary_size() {
-            let mut keys: Vec<_> = sizes.keys().collect();
-            keys.sort();
-            for name in keys {
-                let human = human_bytes(sizes[name]);
-                cards.push(Self::render_card(
-                    &format!("Binary: {}", name),
-                    &human,
-                    "build",
-                ));
-                rows.push(Self::render_table_row(
-                    &format!("binary_size.{}", name),
-                    &human,
-                ));
-            }
-        }
-
-        // Test time
-        if let Some(tests) = filtered.test_time() {
-            cards.push(Self::render_card(
-                "Test Time",
-                &format!("{:.1}s", tests.total),
-                "tests",
-            ));
-            rows.push(Self::render_table_row(
-                "test_time.total",
-                &format!("{:.1}s", tests.total),
-            ));
-        }
-
-        (cards, rows)
-    }
+/// Write a metric card inline.
+macro_rules! write_card {
+    ($writer:expr, $title:expr, $value:expr, $category:expr) => {
+        writeln!(
+            $writer,
+            r#"      <div class="card {}">
+        <div class="card-title">{}</div>
+        <div class="card-value">{}</div>
+      </div>"#,
+            $category, $title, $value
+        )?;
+    };
 }
 
-/// Size estimation constants for pre-allocation.
-const HTML_BASE_SIZE: usize = 1500; // Template + CSS
-const HTML_CARD_SIZE: usize = 200;
-const HTML_ROW_SIZE: usize = 80;
+/// Write a table row inline.
+macro_rules! write_row {
+    ($writer:expr, $metric:expr, $value:expr) => {
+        writeln!(
+            $writer,
+            r#"        <tr><td>{}</td><td>{}</td></tr>"#,
+            $metric, $value
+        )?;
+    };
+}
 
-impl ReportFormatter for HtmlFormatter {
-    fn format(&self, baseline: &Baseline, filter: &dyn CheckFilter) -> anyhow::Result<String> {
-        let filtered = FilteredMetrics::new(baseline, filter);
-        // Pre-allocate buffer based on estimated size
-        let metric_count = filtered.count();
-        let capacity = HTML_BASE_SIZE + metric_count * (HTML_CARD_SIZE + HTML_ROW_SIZE);
-        let mut output = String::with_capacity(capacity);
+/// Write HTML report content. This macro handles the common formatting logic
+/// for both fmt::Write (String) and io::Write (stdout, files).
+macro_rules! write_html_report {
+    ($writer:expr, $baseline:expr, $filtered:expr) => {{
+        let commit = $baseline.commit.as_deref().unwrap_or("unknown");
+        let date = $baseline.updated.format("%Y-%m-%d %H:%M UTC");
 
-        let (commit, date) = Self::render_header(baseline);
-        let (cards, rows) = Self::collect_metrics(baseline, filter);
-        output.push_str(&Self::render_document(
-            &commit,
-            &date,
-            &cards.join("\n"),
-            &rows.join("\n"),
-        ));
-        Ok(output)
-    }
-
-    fn format_to(
-        &self,
-        writer: &mut dyn std::io::Write,
-        baseline: &Baseline,
-        filter: &dyn CheckFilter,
-    ) -> anyhow::Result<()> {
-        let (commit, date) = Self::render_header(baseline);
-        let (cards, rows) = Self::collect_metrics(baseline, filter);
-        let css = Self::css();
-
-        // Write header
+        // Write document header
         write!(
-            writer,
+            $writer,
             r#"<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -290,7 +111,7 @@ impl ReportFormatter for HtmlFormatter {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Quench Report</title>
   <style>
-    {css}
+    {CSS}
   </style>
 </head>
 <body>
@@ -303,14 +124,60 @@ impl ReportFormatter for HtmlFormatter {
 "#
         )?;
 
-        // Write cards
-        for card in &cards {
-            writeln!(writer, "{}", card)?;
+        // Write cards section
+        if let Some(coverage) = $filtered.coverage() {
+            write_card!(
+                $writer,
+                "Coverage",
+                format!("{:.1}%", coverage.total),
+                "tests"
+            );
         }
 
-        // Write table section
+        if let Some(items) = $filtered.sorted_escapes() {
+            for (name, count) in items {
+                write_card!($writer, format!("Escapes: {}", name), count, "escapes");
+            }
+        }
+
+        if let Some(build) = $filtered.build_time() {
+            write_card!(
+                $writer,
+                "Build (cold)",
+                format!("{:.1}s", build.cold),
+                "build"
+            );
+            write_card!(
+                $writer,
+                "Build (hot)",
+                format!("{:.1}s", build.hot),
+                "build"
+            );
+        }
+
+        if let Some(items) = $filtered.sorted_binary_sizes() {
+            for (name, size) in items {
+                write_card!(
+                    $writer,
+                    format!("Binary: {}", name),
+                    human_bytes(size),
+                    "build"
+                );
+            }
+        }
+
+        if let Some(tests) = $filtered.test_time() {
+            write_card!(
+                $writer,
+                "Test Time",
+                format!("{:.1}s", tests.total),
+                "tests"
+            );
+        }
+
+        // Write table section header
         write!(
-            writer,
+            $writer,
             r#"    </section>
     <section>
       <table>
@@ -320,13 +187,50 @@ impl ReportFormatter for HtmlFormatter {
         )?;
 
         // Write table rows
-        for row in &rows {
-            writeln!(writer, "{}", row)?;
+        if let Some(coverage) = $filtered.coverage() {
+            write_row!($writer, "coverage", format!("{:.1}%", coverage.total));
+
+            if let Some(packages) = $filtered.sorted_package_coverage() {
+                for (name, pct) in packages {
+                    write_row!(
+                        $writer,
+                        format!("coverage.{}", name),
+                        format!("{:.1}%", pct)
+                    );
+                }
+            }
         }
 
-        // Write footer
+        if let Some(items) = $filtered.sorted_escapes() {
+            for (name, count) in items {
+                write_row!($writer, format!("escapes.{}", name), count);
+            }
+        }
+
+        if let Some(items) = $filtered.sorted_test_escapes() {
+            for (name, count) in items {
+                write_row!($writer, format!("escapes.test.{}", name), count);
+            }
+        }
+
+        if let Some(build) = $filtered.build_time() {
+            write_row!($writer, "build_time.cold", format!("{:.1}s", build.cold));
+            write_row!($writer, "build_time.hot", format!("{:.1}s", build.hot));
+        }
+
+        if let Some(items) = $filtered.sorted_binary_sizes() {
+            for (name, size) in items {
+                write_row!($writer, format!("binary_size.{}", name), human_bytes(size));
+            }
+        }
+
+        if let Some(tests) = $filtered.test_time() {
+            write_row!($writer, "test_time.total", format!("{:.1}s", tests.total));
+        }
+
+        // Write document footer
         write!(
-            writer,
+            $writer,
             r#"        </tbody>
       </table>
     </section>
@@ -334,7 +238,28 @@ impl ReportFormatter for HtmlFormatter {
 </body>
 </html>"#
         )?;
+    }};
+}
 
+impl ReportFormatter for HtmlFormatter {
+    fn format(&self, baseline: &Baseline, filter: &dyn CheckFilter) -> anyhow::Result<String> {
+        use std::fmt::Write;
+
+        let filtered = FilteredMetrics::new(baseline, filter);
+        let capacity = HTML_BASE_SIZE + filtered.count() * (HTML_CARD_SIZE + HTML_ROW_SIZE);
+        let mut output = String::with_capacity(capacity);
+        write_html_report!(&mut output, baseline, &filtered);
+        Ok(output)
+    }
+
+    fn format_to(
+        &self,
+        writer: &mut dyn std::io::Write,
+        baseline: &Baseline,
+        filter: &dyn CheckFilter,
+    ) -> anyhow::Result<()> {
+        let filtered = FilteredMetrics::new(baseline, filter);
+        write_html_report!(writer, baseline, &filtered);
         Ok(())
     }
 
