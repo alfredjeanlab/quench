@@ -2,7 +2,7 @@
 
 use serde::Deserialize;
 
-use super::{LintChangesPolicy, SuppressLevel, SuppressScopeConfig};
+use super::{LangClocConfig, LintChangesPolicy, SuppressLevel, SuppressScopeConfig};
 
 /// Shell language-specific configuration.
 #[derive(Debug, Clone, Deserialize)]
@@ -24,7 +24,12 @@ pub struct ShellConfig {
     #[serde(default)]
     pub policy: ShellPolicyConfig,
 
+    /// Per-language cloc settings.
+    #[serde(default)]
+    pub cloc: Option<LangClocConfig>,
+
     /// Custom cloc advice for source files (None = use generic default).
+    /// Note: Deprecated in favor of cloc.advice.
     #[serde(default)]
     pub cloc_advice: Option<String>,
 }
@@ -36,6 +41,7 @@ impl Default for ShellConfig {
             tests: Self::default_tests(),
             suppress: ShellSuppressConfig::default(),
             policy: ShellPolicyConfig::default(),
+            cloc: None,
             cloc_advice: None,
         }
     }

@@ -43,10 +43,9 @@ impl Check for ClocCheck {
         let cloc_config = &ctx.config.check.cloc;
         let packages = &ctx.config.project.packages;
 
-        // Skip if disabled
-        if cloc_config.check == CheckLevel::Off {
-            return CheckResult::passed(self.name());
-        }
+        // NOTE: We don't early-return on global check.cloc.check = "off" because
+        // individual languages can override this setting. The per-file check level
+        // resolution handles "off" correctly by skipping files with that level.
 
         // Build adapter registry for file classification
         // Uses language-specific adapter when detected (e.g., Rust adapter for Cargo.toml projects)
@@ -63,7 +62,8 @@ impl Check for ClocCheck {
         // Build pattern matcher for exclude patterns only
         let exclude_matcher = ExcludeMatcher::new(&cloc_config.exclude);
 
-        let mut violations = Vec::new();
+        // Track violations along with whether they are errors (true) or warnings (false)
+        let mut violation_infos: Vec<(Violation, bool)> = Vec::new();
         let mut source_lines: usize = 0;
         let mut source_files: usize = 0;
         let mut source_tokens: usize = 0;
@@ -110,15 +110,24 @@ impl Check for ClocCheck {
                             match rust_config.cfg_test_split {
                                 CfgTestSplitMode::Require => {
                                     // Check for inline tests and generate violation
-                                    let cfg_info = CfgTestInfo::parse(&content);
-                                    if cfg_info.has_inline_tests()
-                                        && let Some(line) = cfg_info.first_inline_test_line()
-                                    {
-                                        violations.push(create_inline_cfg_test_violation(
-                                            ctx,
-                                            &file.path,
-                                            line as u32 + 1,
-                                        ));
+                                    // Note: This respects rust.cloc.check level
+                                    let rust_check_level =
+                                        ctx.config.cloc_check_level_for_language("rust");
+                                    if rust_check_level != CheckLevel::Off {
+                                        let cfg_info = CfgTestInfo::parse(&content);
+                                        if cfg_info.has_inline_tests()
+                                            && let Some(line) = cfg_info.first_inline_test_line()
+                                        {
+                                            let is_error = rust_check_level == CheckLevel::Error;
+                                            violation_infos.push((
+                                                create_inline_cfg_test_violation(
+                                                    ctx,
+                                                    &file.path,
+                                                    line as u32 + 1,
+                                                ),
+                                                is_error,
+                                            ));
+                                        }
                                     }
                                     // Still count as source (no splitting)
                                     (nonblank_lines, 0, false)
@@ -184,6 +193,28 @@ impl Check for ClocCheck {
                     // Size limit check (skip excluded files)
                     // For files with both source and test lines, check source portion against source limit
                     if !is_excluded {
+                        // Get language-specific check level and advice
+                        // Use file extension for language detection in mixed-language projects
+                        // where only the primary language adapter is registered
+                        let adapter_name = registry.adapter_for(relative_path).name();
+                        let lang_key = if adapter_name == "generic" {
+                            // Fall back to file extension for per-language config lookup
+                            file.path
+                                .extension()
+                                .and_then(|e| e.to_str())
+                                .unwrap_or(adapter_name)
+                        } else {
+                            adapter_name
+                        };
+                        let lang_check_level = ctx.config.cloc_check_level_for_language(lang_key);
+
+                        // Skip violation generation if this language is disabled
+                        if lang_check_level == CheckLevel::Off {
+                            continue;
+                        }
+
+                        let is_error = lang_check_level == CheckLevel::Error;
+
                         let max_lines = if is_test {
                             cloc_config.max_lines_test
                         } else {
@@ -196,9 +227,7 @@ impl Check for ClocCheck {
                             LineMetric::Nonblank => nonblank_lines,
                         };
 
-                        // Get language-specific advice for source files
-                        let adapter_name = registry.adapter_for(relative_path).name();
-                        let source_advice = ctx.config.cloc_advice_for_language(adapter_name);
+                        let source_advice = ctx.config.cloc_advice_for_language(lang_key);
 
                         if line_count > max_lines {
                             let info = LineViolationInfo {
@@ -216,7 +245,7 @@ impl Check for ClocCheck {
                                 &cloc_config.advice_test,
                                 &info,
                             ) {
-                                Some(v) => violations.push(v),
+                                Some(v) => violation_infos.push((v, is_error)),
                                 None => break,
                             }
                         }
@@ -234,7 +263,7 @@ impl Check for ClocCheck {
                                 token_count,
                                 max_tokens,
                             ) {
-                                Some(v) => violations.push(v),
+                                Some(v) => violation_infos.push((v, is_error)),
                                 None => break,
                             }
                         }
@@ -246,10 +275,17 @@ impl Check for ClocCheck {
             }
         }
 
+        // Separate errors and warnings, then build result
+        let violations: Vec<Violation> = violation_infos.iter().map(|(v, _)| v.clone()).collect();
+        let has_errors = violation_infos.iter().any(|(_, is_error)| *is_error);
+
         let result = if violations.is_empty() {
             CheckResult::passed(self.name())
-        } else {
+        } else if has_errors {
             CheckResult::failed(self.name(), violations)
+        } else {
+            // All violations are warnings - pass but include them for reporting
+            CheckResult::passed_with_warnings(self.name(), violations)
         };
 
         // Calculate ratio

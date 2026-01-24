@@ -27,7 +27,8 @@ use crate::check::Violation;
 /// v14: Added source-based area detection for docs commit checking.
 /// v17: Removed WorkspaceConfig, consolidated packages into ProjectConfig.
 /// v18: Added target_path for docs cache.
-pub const CACHE_VERSION: u32 = 18;
+/// v19: Added per-language cloc check levels (warn vs error).
+pub const CACHE_VERSION: u32 = 19;
 
 /// Cache file name within .quench directory.
 pub const CACHE_FILE_NAME: &str = "cache.bin";

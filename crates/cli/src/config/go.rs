@@ -2,7 +2,7 @@
 
 use serde::Deserialize;
 
-use super::{LintChangesPolicy, SuppressLevel, SuppressScopeConfig};
+use super::{LangClocConfig, LintChangesPolicy, SuppressLevel, SuppressScopeConfig};
 
 /// Go language-specific configuration.
 #[derive(Debug, Clone, Deserialize)]
@@ -24,7 +24,12 @@ pub struct GoConfig {
     #[serde(default)]
     pub policy: GoPolicyConfig,
 
+    /// Per-language cloc settings.
+    #[serde(default)]
+    pub cloc: Option<LangClocConfig>,
+
     /// Custom cloc advice for source files (None = use generic default).
+    /// Note: Deprecated in favor of cloc.advice.
     #[serde(default)]
     pub cloc_advice: Option<String>,
 }
@@ -36,6 +41,7 @@ impl Default for GoConfig {
             tests: Self::default_tests(),
             suppress: GoSuppressConfig::default(),
             policy: GoPolicyConfig::default(),
+            cloc: None,
             cloc_advice: None,
         }
     }

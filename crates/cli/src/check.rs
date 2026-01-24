@@ -357,6 +357,25 @@ impl CheckResult {
         }
     }
 
+    /// Create a passing check result that includes warnings (violations that don't cause failure).
+    ///
+    /// Used when violations exist but all are at warn level, so the check passes
+    /// while still reporting issues.
+    pub fn passed_with_warnings(name: impl Into<String>, violations: Vec<Violation>) -> Self {
+        Self {
+            name: name.into(),
+            passed: true,
+            skipped: false,
+            stub: false,
+            fixed: false,
+            error: None,
+            violations,
+            fix_summary: None,
+            metrics: None,
+            by_package: None,
+        }
+    }
+
     /// Create a skipped check result with an error.
     pub fn skipped(name: impl Into<String>, error: impl Into<String>) -> Self {
         Self {

@@ -44,7 +44,10 @@ impl TextFormatter {
         // Reset advice tracking for new check
         self.last_advice = None;
 
-        if result.passed && !result.fixed {
+        // Check if this is a passing result with warnings (violations that don't cause failure)
+        let has_warnings = result.passed && !result.violations.is_empty();
+
+        if result.passed && !result.fixed && !has_warnings {
             return Ok(false); // Silent on pass per spec
         }
 
@@ -85,12 +88,21 @@ impl TextFormatter {
             return Ok(false);
         }
 
-        // ": FAIL" in red
-        write!(self.stdout, ": ")?;
-        self.stdout.set_color(&scheme::fail())?;
-        write!(self.stdout, "FAIL")?;
-        self.stdout.reset()?;
-        writeln!(self.stdout)?;
+        if has_warnings {
+            // ": WARN" in yellow for passing checks with violations (warn level)
+            write!(self.stdout, ": ")?;
+            self.stdout.set_color(&scheme::warn())?;
+            write!(self.stdout, "WARN")?;
+            self.stdout.reset()?;
+            writeln!(self.stdout)?;
+        } else {
+            // ": FAIL" in red
+            write!(self.stdout, ": ")?;
+            self.stdout.set_color(&scheme::fail())?;
+            write!(self.stdout, "FAIL")?;
+            self.stdout.reset()?;
+            writeln!(self.stdout)?;
+        }
 
         // Violations
         for violation in &result.violations {
