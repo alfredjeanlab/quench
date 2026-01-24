@@ -1,5 +1,7 @@
 # Phase 494: JavaScript Adapter - Test Fixtures
 
+**Root Feature:** `quench-6c09`
+
 ## Overview
 
 Create JavaScript/TypeScript test fixtures for the JavaScript adapter. This includes a simple JS/TS project (`js-simple/`), a multi-package monorepo (`js-monorepo/`), JavaScript-specific violations in the violations fixture, and updates to the fixture README.
