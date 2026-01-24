@@ -250,6 +250,10 @@ pub struct ReportArgs {
     #[arg(short, long, default_value = "text")]
     pub output: String,
 
+    /// Output compact JSON (no whitespace, single line)
+    #[arg(long)]
+    pub compact: bool,
+
     // Check enable flags (show only these metrics)
     /// Show only cloc metrics
     #[arg(long)]

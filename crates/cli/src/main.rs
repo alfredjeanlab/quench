@@ -535,6 +535,8 @@ fn run_check(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
 }
 
 fn run_report(cli: &Cli, args: &ReportArgs) -> anyhow::Result<()> {
+    use std::io::Write;
+
     let cwd = std::env::current_dir()?;
 
     // Find and load config
@@ -552,14 +554,33 @@ fn run_report(cli: &Cli, args: &ReportArgs) -> anyhow::Result<()> {
     // Parse output target (format and optional file path)
     let (format, file_path) = args.output_target();
 
-    // Load baseline and format report
-    let baseline = Baseline::load(&baseline_path)?;
-    let output = report::format_report(format, baseline.as_ref(), args)?;
+    // Validate --compact flag (only applies to JSON)
+    if args.compact && !matches!(format, OutputFormat::Json) {
+        eprintln!("warning: --compact only applies to JSON output, ignoring");
+    }
 
-    // Write output
+    // Load baseline
+    let baseline = Baseline::load(&baseline_path)?;
+
+    // Write output using streaming when possible
     match file_path {
-        Some(path) => std::fs::write(&path, &output)?,
-        None => print!("{}", output),
+        Some(path) => {
+            // File output: use buffered writer for efficiency
+            let file = std::fs::File::create(&path)?;
+            let mut writer = std::io::BufWriter::new(file);
+            report::format_report_to(&mut writer, format, baseline.as_ref(), args, args.compact)?;
+            writer.flush()?;
+        }
+        None => {
+            // Stdout: use stdout lock for efficiency
+            let stdout = std::io::stdout();
+            let mut handle = stdout.lock();
+            report::format_report_to(&mut handle, format, baseline.as_ref(), args, args.compact)?;
+            // Add trailing newline for JSON output
+            if matches!(format, OutputFormat::Json) {
+                writeln!(handle)?;
+            }
+        }
     }
     Ok(())
 }

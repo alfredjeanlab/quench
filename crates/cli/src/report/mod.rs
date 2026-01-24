@@ -79,6 +79,27 @@ impl<'a> FilteredMetrics<'a> {
             None
         }
     }
+
+    /// Estimate number of metrics that will be included.
+    pub fn count(&self) -> usize {
+        let mut n = 0;
+        if self.coverage().is_some() {
+            n += 1;
+        }
+        if let Some(esc) = self.escapes() {
+            n += esc.source.len();
+        }
+        if self.build_time().is_some() {
+            n += 2; // cold + hot
+        }
+        if let Some(sizes) = self.binary_size() {
+            n += sizes.len();
+        }
+        if self.test_time().is_some() {
+            n += 1;
+        }
+        n
+    }
 }
 
 /// Trait for formatting baseline metrics into various output formats.
@@ -86,8 +107,23 @@ pub trait ReportFormatter {
     /// Format baseline metrics into the target format.
     fn format(&self, baseline: &Baseline, filter: &dyn CheckFilter) -> anyhow::Result<String>;
 
+    /// Format baseline metrics directly to a writer (streaming).
+    ///
+    /// This method uses dynamic dispatch for the writer to maintain trait object compatibility.
+    fn format_to(
+        &self,
+        writer: &mut dyn std::io::Write,
+        baseline: &Baseline,
+        filter: &dyn CheckFilter,
+    ) -> anyhow::Result<()>;
+
     /// Return output for when no baseline exists.
     fn format_empty(&self) -> String;
+
+    /// Write empty output to a writer.
+    fn format_empty_to(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
+        write!(writer, "{}", self.format_empty())
+    }
 }
 
 /// Format a report based on output format, returning the output string.
@@ -98,15 +134,49 @@ pub fn format_report<F: CheckFilter>(
     baseline: Option<&Baseline>,
     filter: &F,
 ) -> anyhow::Result<String> {
+    format_report_with_options(format, baseline, filter, false)
+}
+
+/// Format a report with additional options.
+///
+/// The `compact` parameter enables compact JSON output (single line, no whitespace).
+pub fn format_report_with_options<F: CheckFilter>(
+    format: OutputFormat,
+    baseline: Option<&Baseline>,
+    filter: &F,
+    compact: bool,
+) -> anyhow::Result<String> {
     let formatter: Box<dyn ReportFormatter> = match format {
         OutputFormat::Text => Box::new(TextFormatter),
-        OutputFormat::Json => Box::new(JsonFormatter),
+        OutputFormat::Json => Box::new(JsonFormatter::new(compact)),
         OutputFormat::Html => Box::new(HtmlFormatter),
     };
 
     match baseline {
         Some(b) => formatter.format(b, filter),
         None => Ok(formatter.format_empty()),
+    }
+}
+
+/// Format a report directly to a writer (streaming).
+///
+/// This avoids intermediate String allocation when writing to stdout or files.
+pub fn format_report_to<F: CheckFilter>(
+    writer: &mut dyn std::io::Write,
+    format: OutputFormat,
+    baseline: Option<&Baseline>,
+    filter: &F,
+    compact: bool,
+) -> anyhow::Result<()> {
+    let formatter: Box<dyn ReportFormatter> = match format {
+        OutputFormat::Text => Box::new(TextFormatter),
+        OutputFormat::Json => Box::new(JsonFormatter::new(compact)),
+        OutputFormat::Html => Box::new(HtmlFormatter),
+    };
+
+    match baseline {
+        Some(b) => formatter.format_to(writer, b, filter),
+        None => Ok(formatter.format_empty_to(writer)?),
     }
 }
 

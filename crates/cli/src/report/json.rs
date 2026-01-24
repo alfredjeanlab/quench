@@ -10,10 +10,20 @@ use serde_json::json;
 use super::{FilteredMetrics, ReportFormatter};
 
 /// JSON format report formatter.
-pub struct JsonFormatter;
+pub struct JsonFormatter {
+    compact: bool,
+}
 
-impl ReportFormatter for JsonFormatter {
-    fn format(&self, baseline: &Baseline, filter: &dyn CheckFilter) -> anyhow::Result<String> {
+impl JsonFormatter {
+    /// Create a new JSON formatter.
+    ///
+    /// If `compact` is true, outputs single-line JSON without whitespace.
+    pub fn new(compact: bool) -> Self {
+        Self { compact }
+    }
+
+    /// Build the JSON value from baseline and filter.
+    fn build_json(&self, baseline: &Baseline, filter: &dyn CheckFilter) -> serde_json::Value {
         let filtered = FilteredMetrics::new(baseline, filter);
 
         let mut output = serde_json::Map::new();
@@ -62,12 +72,46 @@ impl ReportFormatter for JsonFormatter {
 
         output.insert("metrics".to_string(), serde_json::Value::Object(metrics));
 
-        Ok(serde_json::to_string_pretty(&serde_json::Value::Object(
-            output,
-        ))?)
+        serde_json::Value::Object(output)
+    }
+}
+
+impl Default for JsonFormatter {
+    fn default() -> Self {
+        Self::new(false)
+    }
+}
+
+impl ReportFormatter for JsonFormatter {
+    fn format(&self, baseline: &Baseline, filter: &dyn CheckFilter) -> anyhow::Result<String> {
+        let value = self.build_json(baseline, filter);
+        if self.compact {
+            Ok(serde_json::to_string(&value)?)
+        } else {
+            Ok(serde_json::to_string_pretty(&value)?)
+        }
+    }
+
+    fn format_to(
+        &self,
+        writer: &mut dyn std::io::Write,
+        baseline: &Baseline,
+        filter: &dyn CheckFilter,
+    ) -> anyhow::Result<()> {
+        let value = self.build_json(baseline, filter);
+        if self.compact {
+            serde_json::to_writer(writer, &value)?;
+        } else {
+            serde_json::to_writer_pretty(writer, &value)?;
+        }
+        Ok(())
     }
 
     fn format_empty(&self) -> String {
-        r#"{"metrics": {}}"#.to_string()
+        if self.compact {
+            r#"{"metrics":{}}"#.to_string()
+        } else {
+            "{\n  \"metrics\": {}\n}".to_string()
+        }
     }
 }

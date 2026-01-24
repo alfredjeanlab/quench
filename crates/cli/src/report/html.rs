@@ -217,16 +217,96 @@ impl HtmlFormatter {
     }
 }
 
+/// Size estimation constants for pre-allocation.
+const HTML_BASE_SIZE: usize = 1500; // Template + CSS
+const HTML_CARD_SIZE: usize = 200;
+const HTML_ROW_SIZE: usize = 80;
+
 impl ReportFormatter for HtmlFormatter {
     fn format(&self, baseline: &Baseline, filter: &dyn CheckFilter) -> anyhow::Result<String> {
+        let filtered = FilteredMetrics::new(baseline, filter);
+        // Pre-allocate buffer based on estimated size
+        let metric_count = filtered.count();
+        let capacity = HTML_BASE_SIZE + metric_count * (HTML_CARD_SIZE + HTML_ROW_SIZE);
+        let mut output = String::with_capacity(capacity);
+
         let (commit, date) = Self::render_header(baseline);
         let (cards, rows) = Self::collect_metrics(baseline, filter);
-        Ok(Self::render_document(
+        output.push_str(&Self::render_document(
             &commit,
             &date,
             &cards.join("\n"),
             &rows.join("\n"),
-        ))
+        ));
+        Ok(output)
+    }
+
+    fn format_to(
+        &self,
+        writer: &mut dyn std::io::Write,
+        baseline: &Baseline,
+        filter: &dyn CheckFilter,
+    ) -> anyhow::Result<()> {
+        let (commit, date) = Self::render_header(baseline);
+        let (cards, rows) = Self::collect_metrics(baseline, filter);
+        let css = Self::css();
+
+        // Write header
+        write!(
+            writer,
+            r#"<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quench Report</title>
+  <style>
+    {css}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Quench Report</h1>
+      <div class="meta">Baseline: {commit} &middot; {date}</div>
+    </header>
+    <section class="cards">
+"#
+        )?;
+
+        // Write cards
+        for card in &cards {
+            writeln!(writer, "{}", card)?;
+        }
+
+        // Write table section
+        write!(
+            writer,
+            r#"    </section>
+    <section>
+      <table>
+        <thead><tr><th>Metric</th><th>Value</th></tr></thead>
+        <tbody>
+"#
+        )?;
+
+        // Write table rows
+        for row in &rows {
+            writeln!(writer, "{}", row)?;
+        }
+
+        // Write footer
+        write!(
+            writer,
+            r#"        </tbody>
+      </table>
+    </section>
+  </div>
+</body>
+</html>"#
+        )?;
+
+        Ok(())
     }
 
     fn format_empty(&self) -> String {
