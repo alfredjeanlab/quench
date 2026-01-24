@@ -2,7 +2,7 @@
 
 use serde::Deserialize;
 
-use super::{LintChangesPolicy, SuppressConfig};
+use super::{LangClocConfig, LintChangesPolicy, SuppressConfig};
 
 /// JavaScript/TypeScript language-specific configuration.
 #[derive(Debug, Clone, Deserialize)]
@@ -24,7 +24,12 @@ pub struct JavaScriptConfig {
     #[serde(default)]
     pub policy: JavaScriptPolicyConfig,
 
+    /// Per-language cloc settings.
+    #[serde(default)]
+    pub cloc: Option<LangClocConfig>,
+
     /// Custom cloc advice for source files (None = use generic default).
+    /// Note: Deprecated in favor of cloc.advice.
     #[serde(default)]
     pub cloc_advice: Option<String>,
 }
@@ -36,6 +41,7 @@ impl Default for JavaScriptConfig {
             tests: Self::default_tests(),
             suppress: SuppressConfig::default(),
             policy: JavaScriptPolicyConfig::default(),
+            cloc: None,
             cloc_advice: None,
         }
     }

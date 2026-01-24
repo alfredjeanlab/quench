@@ -550,6 +550,79 @@ fn go_suppress_source_has_no_defaults() {
     assert!(config.golang.suppress.source.patterns.is_empty());
 }
 
+// Per-language cloc config tests
+
+#[test]
+fn rust_cloc_check_level_parses_warn() {
+    let path = PathBuf::from("quench.toml");
+    let content = r#"
+version = 1
+
+[rust.cloc]
+check = "warn"
+"#;
+    let config = parse_with_warnings(content, &path).unwrap();
+    assert!(config.rust.cloc.is_some());
+    assert_eq!(
+        config.rust.cloc.as_ref().unwrap().check,
+        Some(CheckLevel::Warn)
+    );
+    assert_eq!(
+        config.cloc_check_level_for_language("rust"),
+        CheckLevel::Warn
+    );
+}
+
+#[test]
+fn rust_cloc_check_level_parses_off() {
+    let path = PathBuf::from("quench.toml");
+    let content = r#"
+version = 1
+
+[rust.cloc]
+check = "off"
+"#;
+    let config = parse_with_warnings(content, &path).unwrap();
+    assert_eq!(
+        config.cloc_check_level_for_language("rust"),
+        CheckLevel::Off
+    );
+}
+
+#[test]
+fn rust_cloc_check_level_inherits_from_global() {
+    let path = PathBuf::from("quench.toml");
+    let content = r#"
+version = 1
+
+[check.cloc]
+check = "warn"
+"#;
+    let config = parse_with_warnings(content, &path).unwrap();
+    // No [rust.cloc] section, so should inherit global
+    assert_eq!(
+        config.cloc_check_level_for_language("rust"),
+        CheckLevel::Warn
+    );
+}
+
+#[test]
+fn rust_cloc_advice_new_style_takes_precedence() {
+    let path = PathBuf::from("quench.toml");
+    let content = r#"
+version = 1
+
+[rust.cloc]
+advice = "New style advice"
+
+[rust]
+cloc_advice = "Old style advice"
+"#;
+    let config = parse_with_warnings(content, &path).unwrap();
+    // New style [rust.cloc].advice should take precedence over old style [rust].cloc_advice
+    assert_eq!(config.cloc_advice_for_language("rust"), "New style advice");
+}
+
 // cloc advice tests
 
 #[test]

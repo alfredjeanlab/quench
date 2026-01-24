@@ -22,7 +22,6 @@ use crate::prelude::*;
 /// > [rust.cloc]
 /// > check = "error" | "warn" | "off"
 #[test]
-#[ignore = "TODO: Phase 1542 - Per-language cloc config"]
 fn rust_cloc_check_off_skips_rust_files() {
     // Fixture has oversized Rust file but rust.cloc.check = "off"
     check("cloc").on("cloc-lang/rust-off").passes();
@@ -33,7 +32,6 @@ fn rust_cloc_check_off_skips_rust_files() {
 /// > [rust.cloc]
 /// > check = "warn" reports but doesn't fail
 #[test]
-#[ignore = "TODO: Phase 1542 - Per-language cloc config"]
 fn rust_cloc_check_warn_reports_without_failing() {
     check("cloc")
         .on("cloc-lang/rust-warn")
@@ -47,7 +45,6 @@ fn rust_cloc_check_warn_reports_without_failing() {
 /// > [rust.cloc]
 /// > advice = "..." - Custom advice for oversized Rust files
 #[test]
-#[ignore = "TODO: Phase 1542 - Per-language cloc config"]
 fn rust_cloc_advice_overrides_default() {
     let cloc = check("cloc").on("cloc-lang/rust-advice").json().fails();
     let violations = cloc.require("violations").as_array().unwrap();
@@ -68,7 +65,6 @@ fn rust_cloc_advice_overrides_default() {
 /// > [golang.cloc]
 /// > check = "off" disables cloc for Go files
 #[test]
-#[ignore = "TODO: Phase 1542 - Per-language cloc config"]
 fn golang_cloc_check_off_skips_go_files() {
     check("cloc").on("cloc-lang/golang-off").passes();
 }
@@ -78,7 +74,6 @@ fn golang_cloc_check_off_skips_go_files() {
 /// > [golang.cloc]
 /// > check = "warn" reports but doesn't fail
 #[test]
-#[ignore = "TODO: Phase 1542 - Per-language cloc config"]
 fn golang_cloc_check_warn_reports_without_failing() {
     check("cloc")
         .on("cloc-lang/golang-warn")
@@ -96,7 +91,6 @@ fn golang_cloc_check_warn_reports_without_failing() {
 /// > [javascript.cloc]
 /// > check = "off" disables cloc for JS/TS files
 #[test]
-#[ignore = "TODO: Phase 1542 - Per-language cloc config"]
 fn javascript_cloc_check_off_skips_js_files() {
     check("cloc").on("cloc-lang/javascript-off").passes();
 }
@@ -110,7 +104,6 @@ fn javascript_cloc_check_off_skips_js_files() {
 /// > [shell.cloc]
 /// > check = "off" disables cloc for shell scripts
 #[test]
-#[ignore = "TODO: Phase 1542 - Per-language cloc config"]
 fn shell_cloc_check_off_skips_shell_files() {
     check("cloc").on("cloc-lang/shell-off").passes();
 }
@@ -123,7 +116,6 @@ fn shell_cloc_check_off_skips_shell_files() {
 ///
 /// > Each language can have independent cloc check level
 #[test]
-#[ignore = "TODO: Phase 1542 - Per-language cloc config"]
 fn each_language_can_have_independent_cloc_check_level() {
     // Fixture has: rust=error (fails), golang=warn (reports), javascript=off (skipped)
     let result = check("cloc").on("cloc-lang/mixed-levels").json().fails();
@@ -151,7 +143,6 @@ fn each_language_can_have_independent_cloc_check_level() {
 ///
 /// > Mixed project: Go file over limit warns, Rust file over limit fails
 #[test]
-#[ignore = "TODO: Phase 1542 - Per-language cloc config"]
 fn mixed_levels_go_warn_rust_error() {
     // When golang.cloc.check = "warn" and rust.cloc.check = "error"
     // Go violations should be reported but not cause failure
@@ -171,7 +162,6 @@ fn mixed_levels_go_warn_rust_error() {
 ///
 /// > Unset {lang}.cloc.check inherits from check.cloc.check
 #[test]
-#[ignore = "TODO: Phase 1542 - Per-language cloc config"]
 fn unset_lang_cloc_inherits_from_global() {
     // Fixture has check.cloc.check = "error" but no [rust.cloc] section
     // Rust files should still be checked with error level
@@ -182,7 +172,6 @@ fn unset_lang_cloc_inherits_from_global() {
 ///
 /// > Global check.cloc.check = "off" disables all languages unless overridden
 #[test]
-#[ignore = "TODO: Phase 1542 - Per-language cloc config"]
 fn global_off_disables_all_unless_overridden() {
     let temp = Project::empty();
     temp.config(

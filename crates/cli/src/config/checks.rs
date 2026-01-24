@@ -500,3 +500,21 @@ where
         )),
     }
 }
+
+/// Per-language cloc configuration.
+///
+/// Allows overriding the global cloc.check level and advice per language.
+/// Unset fields inherit from [check.cloc].
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct LangClocConfig {
+    /// Check level: error, warn, or off.
+    /// If None, inherits from check.cloc.check.
+    #[serde(default)]
+    pub check: Option<CheckLevel>,
+
+    /// Custom advice for violations.
+    /// If None, uses language-specific default or check.cloc.advice.
+    #[serde(default)]
+    pub advice: Option<String>,
+}

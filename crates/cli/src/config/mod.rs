@@ -17,8 +17,8 @@ use serde::Deserialize;
 
 pub use checks::{
     CheckLevel, ClocConfig, DocsAreaConfig, DocsCommitConfig, DocsConfig, EscapeAction,
-    EscapePattern, EscapesConfig, LineMetric, LinksConfig, SpecsConfig, SpecsSectionsConfig,
-    TocConfig,
+    EscapePattern, EscapesConfig, LangClocConfig, LineMetric, LinksConfig, SpecsConfig,
+    SpecsSectionsConfig, TocConfig,
 };
 pub use go::{GoConfig, GoPolicyConfig, GoSuppressConfig};
 pub use javascript::{JavaScriptConfig, JavaScriptPolicyConfig};
@@ -71,24 +71,87 @@ pub struct Config {
 }
 
 impl Config {
+    /// Get effective cloc check level for a language.
+    ///
+    /// Resolution order:
+    /// 1. {lang}.cloc.check if set
+    /// 2. check.cloc.check (global default)
+    ///
+    /// The `language` parameter can be either an adapter name (e.g., "rust")
+    /// or a file extension (e.g., "rs"). This allows per-file language detection
+    /// even in mixed-language projects where only the primary adapter is registered.
+    pub fn cloc_check_level_for_language(&self, language: &str) -> CheckLevel {
+        let lang_level = match language {
+            // Adapter names and file extensions combined
+            // (Go uses "go" for both adapter name and file extension)
+            "rust" | "rs" => self.rust.cloc.as_ref().and_then(|c| c.check),
+            "go" => self.golang.cloc.as_ref().and_then(|c| c.check),
+            "javascript" | "js" | "jsx" | "ts" | "tsx" | "mjs" | "mts" | "cjs" | "cts" => {
+                self.javascript.cloc.as_ref().and_then(|c| c.check)
+            }
+            "shell" | "sh" | "bash" | "zsh" | "fish" | "bats" => {
+                self.shell.cloc.as_ref().and_then(|c| c.check)
+            }
+            _ => None,
+        };
+        lang_level.unwrap_or(self.check.cloc.check)
+    }
+
     /// Get cloc advice for source files, checking user override then language default.
+    ///
+    /// Resolution order:
+    /// 1. {lang}.cloc.advice if set
+    /// 2. {lang}.cloc_advice if set (deprecated)
+    /// 3. check.cloc.advice (global) if different from default
+    /// 4. Language-specific default advice
+    ///
+    /// The `language` parameter can be either an adapter name or a file extension.
     pub fn cloc_advice_for_language(&self, language: &str) -> &str {
-        match language {
-            "rust" => self
+        // Check language-specific advice first
+        let lang_advice = match language {
+            "rust" | "rs" => self
                 .rust
-                .cloc_advice
-                .as_deref()
-                .unwrap_or(RustConfig::default_cloc_advice()),
+                .cloc
+                .as_ref()
+                .and_then(|c| c.advice.as_deref())
+                .or(self.rust.cloc_advice.as_deref()),
             "go" => self
                 .golang
-                .cloc_advice
-                .as_deref()
-                .unwrap_or(GoConfig::default_cloc_advice()),
-            "shell" => self
+                .cloc
+                .as_ref()
+                .and_then(|c| c.advice.as_deref())
+                .or(self.golang.cloc_advice.as_deref()),
+            "javascript" | "js" | "jsx" | "ts" | "tsx" | "mjs" | "mts" | "cjs" | "cts" => self
+                .javascript
+                .cloc
+                .as_ref()
+                .and_then(|c| c.advice.as_deref())
+                .or(self.javascript.cloc_advice.as_deref()),
+            "shell" | "sh" | "bash" | "zsh" | "fish" | "bats" => self
                 .shell
-                .cloc_advice
-                .as_deref()
-                .unwrap_or(ShellConfig::default_cloc_advice()),
+                .cloc
+                .as_ref()
+                .and_then(|c| c.advice.as_deref())
+                .or(self.shell.cloc_advice.as_deref()),
+            _ => None,
+        };
+
+        // If language-specific advice is set, use it
+        if let Some(advice) = lang_advice {
+            return advice;
+        }
+
+        // Check if global advice differs from default (user customized it)
+        let default_advice = ClocConfig::default_advice();
+        if self.check.cloc.advice != default_advice {
+            return &self.check.cloc.advice;
+        }
+
+        // Use language-specific defaults
+        match language {
+            "rust" | "rs" => RustConfig::default_cloc_advice(),
+            "go" => GoConfig::default_cloc_advice(),
+            "shell" | "sh" | "bash" | "zsh" | "fish" | "bats" => ShellConfig::default_cloc_advice(),
             _ => &self.check.cloc.advice,
         }
     }
@@ -123,7 +186,12 @@ pub struct RustConfig {
     #[serde(default)]
     pub policy: RustPolicyConfig,
 
+    /// Per-language cloc settings.
+    #[serde(default)]
+    pub cloc: Option<LangClocConfig>,
+
     /// Custom cloc advice for source files (None = use generic default).
+    /// Note: Deprecated in favor of cloc.advice.
     #[serde(default)]
     pub cloc_advice: Option<String>,
 }
