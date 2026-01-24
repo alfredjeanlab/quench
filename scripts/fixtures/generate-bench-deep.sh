@@ -8,6 +8,30 @@ set -euo pipefail
 FIXTURE_DIR="tests/fixtures/bench-deep"
 DEPTH=120  # Exceeds default limit of 100
 
+# Create fixture directory if needed
+mkdir -p "$FIXTURE_DIR"
+
+# Create config file
+cat > "$FIXTURE_DIR/quench.toml" << 'EOF'
+version = 1
+
+[git.commit]
+agents = false
+EOF
+
+# Create minimal CLAUDE.md
+cat > "$FIXTURE_DIR/CLAUDE.md" << 'EOF'
+# Bench Deep
+
+## Directory Structure
+
+Deep.
+
+## Landing the Plane
+
+- Done
+EOF
+
 # Clean existing nested structure
 rm -rf "$FIXTURE_DIR/deep"
 
