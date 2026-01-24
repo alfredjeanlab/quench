@@ -341,7 +341,6 @@ agents = false
 ///
 /// > When `template = true` (default), `--fix` creates a `.gitmessage` file.
 #[test]
-#[ignore = "TODO: Phase 802 - Git Check Implementation"]
 fn git_fix_creates_gitmessage_template() {
     let temp = Project::empty();
     temp.config(
@@ -379,7 +378,6 @@ template = true
 ///
 /// > `--fix` also runs: git config commit.template .gitmessage
 #[test]
-#[ignore = "TODO: Phase 802 - Git Check Implementation"]
 fn git_fix_configures_commit_template() {
     let temp = Project::empty();
     temp.config(
@@ -419,7 +417,6 @@ template = true
 ///
 /// > `.gitmessage` exists - Leave it alone
 #[test]
-#[ignore = "TODO: Phase 802 - Git Check Implementation"]
 fn git_fix_does_not_overwrite_existing_gitmessage() {
     let temp = Project::empty();
     temp.config(

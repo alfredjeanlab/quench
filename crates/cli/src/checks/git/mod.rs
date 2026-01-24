@@ -15,6 +15,9 @@ use crate::git::{Commit, get_all_branch_commits, get_commits_since};
 
 mod docs;
 pub mod parse;
+mod template;
+
+use template::{TEMPLATE_PATH, generate_template};
 
 use docs::{DocsResult, check_commit_docs, primary_agent_file};
 pub use parse::{DEFAULT_TYPES, ParseResult, ParsedCommit, parse_conventional_commit};
@@ -68,8 +71,19 @@ impl Check for GitCheck {
             validate_commit(commit, config, &mut violations);
         }
 
+        // Handle --fix for template creation
+        let fix_summary = if ctx.fix && config.template {
+            fix_template(ctx.root, config, ctx.dry_run)
+        } else {
+            None
+        };
+
         if violations.is_empty() {
-            CheckResult::passed(self.name())
+            if let Some(summary) = fix_summary {
+                CheckResult::fixed(self.name(), summary)
+            } else {
+                CheckResult::passed(self.name())
+            }
         } else {
             CheckResult::failed(self.name(), violations)
         }
@@ -180,6 +194,68 @@ fn format_type_advice(allowed_types: Option<&[String]>) -> String {
         Some([]) => "Any type allowed (check format only)".to_string(),
         Some(types) => format!("Allowed types: {}", types.join(", ")),
     }
+}
+
+/// Fix template and git config if needed.
+///
+/// Returns fix summary if anything was fixed, None otherwise.
+fn fix_template(root: &Path, config: &GitCommitConfig, dry_run: bool) -> Option<serde_json::Value> {
+    let template_path = root.join(TEMPLATE_PATH);
+    let mut actions = Vec::new();
+
+    // Create .gitmessage if missing
+    if !template_path.exists() {
+        let content = generate_template(config);
+        if !dry_run {
+            if let Err(e) = std::fs::write(&template_path, &content) {
+                // Log error but continue - this is a best-effort fix
+                eprintln!("Warning: Failed to create {}: {}", TEMPLATE_PATH, e);
+            } else {
+                actions.push(format!("Created {} (commit template)", TEMPLATE_PATH));
+            }
+        } else {
+            actions.push(format!("Would create {} (commit template)", TEMPLATE_PATH));
+        }
+    }
+
+    // Configure git commit.template if not set
+    if !is_template_configured(root) {
+        if !dry_run {
+            if configure_git_template(root) {
+                actions.push("Configured git commit.template".to_string());
+            }
+        } else {
+            actions.push("Would configure git commit.template".to_string());
+        }
+    }
+
+    if actions.is_empty() {
+        None
+    } else {
+        Some(serde_json::json!({
+            "actions": actions
+        }))
+    }
+}
+
+/// Check if commit.template is already configured.
+fn is_template_configured(root: &Path) -> bool {
+    Command::new("git")
+        .args(["config", "commit.template"])
+        .current_dir(root)
+        .output()
+        .map(|out| out.status.success() && !out.stdout.is_empty())
+        .unwrap_or(false)
+}
+
+/// Configure git commit.template to use .gitmessage.
+fn configure_git_template(root: &Path) -> bool {
+    Command::new("git")
+        .args(["config", "commit.template", TEMPLATE_PATH])
+        .current_dir(root)
+        .output()
+        .map(|out| out.status.success())
+        .unwrap_or(false)
 }
 
 #[cfg(test)]
