@@ -180,7 +180,6 @@ fn detects_pnpm_workspaces() {
 ///
 /// > `as unknown` requires `// CAST:` comment explaining why.
 #[test]
-#[ignore = "TODO: Phase 495 - JavaScript Adapter Escapes"]
 fn as_unknown_without_cast_comment_fails() {
     check("escapes")
         .on("javascript/as-unknown-fail")
@@ -193,7 +192,6 @@ fn as_unknown_without_cast_comment_fails() {
 ///
 /// > `as unknown` with `// CAST:` comment passes.
 #[test]
-#[ignore = "TODO: Phase 495 - JavaScript Adapter Escapes"]
 fn as_unknown_with_cast_comment_passes() {
     check("escapes").on("javascript/as-unknown-ok").passes();
 }
@@ -206,7 +204,6 @@ fn as_unknown_with_cast_comment_passes() {
 ///
 /// > `@ts-ignore` is forbidden in source code.
 #[test]
-#[ignore = "TODO: Phase 495 - JavaScript Adapter Escapes"]
 fn ts_ignore_forbidden_in_source() {
     check("escapes")
         .on("javascript/ts-ignore-fail")
@@ -220,7 +217,6 @@ fn ts_ignore_forbidden_in_source() {
 ///
 /// > Escape patterns are allowed in test code.
 #[test]
-#[ignore = "TODO: Phase 495 - JavaScript Adapter Escapes"]
 fn ts_ignore_allowed_in_test_code() {
     check("escapes").on("javascript/ts-ignore-test-ok").passes();
 }

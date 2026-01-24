@@ -3,7 +3,7 @@
 use std::path::Path;
 
 use super::*;
-use crate::adapter::{Adapter, FileKind};
+use crate::adapter::{Adapter, EscapeAction, FileKind};
 use yare::parameterized;
 
 // =============================================================================
@@ -85,10 +85,73 @@ fn has_correct_name_and_extensions() {
 }
 
 #[test]
-fn default_escapes_empty_for_phase_493() {
-    // Note: Escapes will be added in Phase 495
+fn default_escapes_has_js_patterns() {
     let adapter = JavaScriptAdapter::new();
-    assert_eq!(adapter.default_escapes().len(), 0);
+    let escapes = adapter.default_escapes();
+
+    assert_eq!(escapes.len(), 2);
+
+    // Verify as_unknown pattern
+    let as_unknown = escapes.iter().find(|p| p.name == "as_unknown").unwrap();
+    assert_eq!(as_unknown.action, EscapeAction::Comment);
+    assert_eq!(as_unknown.comment, Some("// CAST:"));
+
+    // Verify ts_ignore pattern
+    let ts_ignore = escapes.iter().find(|p| p.name == "ts_ignore").unwrap();
+    assert_eq!(ts_ignore.action, EscapeAction::Forbid);
+    assert!(ts_ignore.comment.is_none());
+}
+
+// =============================================================================
+// ESCAPE PATTERN MATCHING TESTS
+// =============================================================================
+
+#[test]
+fn as_unknown_pattern_matches() {
+    use crate::pattern::CompiledPattern;
+
+    let adapter = JavaScriptAdapter::new();
+    let pattern = adapter
+        .default_escapes()
+        .iter()
+        .find(|p| p.name == "as_unknown")
+        .unwrap();
+
+    let compiled = CompiledPattern::compile(pattern.pattern).unwrap();
+
+    // Should match
+    assert!(!compiled.find_all("data as unknown as UserData").is_empty());
+    assert!(!compiled.find_all("value as  unknown").is_empty()); // extra space
+
+    // Should not match
+    assert!(compiled.find_all("as UnknownType").is_empty()); // not the keyword
+    // Note: "// as unknown" still matches the pattern - comment detection is handled separately
+}
+
+#[test]
+fn ts_ignore_pattern_matches() {
+    use crate::pattern::CompiledPattern;
+
+    let adapter = JavaScriptAdapter::new();
+    let pattern = adapter
+        .default_escapes()
+        .iter()
+        .find(|p| p.name == "ts_ignore")
+        .unwrap();
+
+    let compiled = CompiledPattern::compile(pattern.pattern).unwrap();
+
+    // Should match
+    assert!(!compiled.find_all("// @ts-ignore").is_empty());
+    assert!(
+        !compiled
+            .find_all("// @ts-ignore next line is wrong")
+            .is_empty()
+    );
+
+    // Should not match
+    assert!(compiled.find_all("// @ts-expect-error").is_empty()); // allowed alternative
+    assert!(compiled.find_all("// ts-ignore").is_empty()); // missing @
 }
 
 // =============================================================================

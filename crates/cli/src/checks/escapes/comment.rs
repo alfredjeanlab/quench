@@ -108,14 +108,20 @@ pub(super) fn is_comment_line(line: &str) -> bool {
 /// Returns true if the match is entirely within the comment portion of the line.
 /// This helps avoid false positives when patterns appear in comments but not in code.
 ///
-/// Special case: Returns false for Go directive patterns (//go:) at the start of a line,
-/// since these are intentionally comment-like but should be detected as escape patterns.
+/// Special cases that return false (detected, not skipped):
+/// - Go directive patterns (//go:xxx) at the start of a line
+/// - TypeScript directive patterns (@ts-ignore, @ts-expect-error) in comments
 pub(super) fn is_match_in_comment(line_content: &str, match_offset_in_line: usize) -> bool {
     // Find comment start in the line
     if let Some(comment_start) = find_comment_start(line_content) {
         // Special case: Go directive patterns at line start should be detected, not skipped.
         // These look like comments but are actually compiler directives we want to check.
         if match_offset_in_line == comment_start && is_go_directive(line_content) {
+            return false;
+        }
+        // Special case: TypeScript directives should be detected even though they're in comments.
+        // These are intentional suppressions/directives that we want to enforce rules on.
+        if is_typescript_directive(line_content) {
             return false;
         }
         // If match starts at or after the comment marker, it's in a comment
@@ -128,4 +134,11 @@ pub(super) fn is_match_in_comment(line_content: &str, match_offset_in_line: usiz
 fn is_go_directive(line: &str) -> bool {
     let trimmed = line.trim();
     trimmed.starts_with("//go:")
+}
+
+/// Check if a line contains a TypeScript directive that should be detected.
+/// These directives are comments but should not be skipped by comment detection.
+fn is_typescript_directive(line: &str) -> bool {
+    let trimmed = line.trim();
+    trimmed.contains("@ts-ignore") || trimmed.contains("@ts-expect-error")
 }

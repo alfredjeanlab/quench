@@ -21,7 +21,27 @@ mod workspace;
 pub use workspace::JsWorkspace;
 
 use super::glob::build_glob_set;
-use super::{Adapter, FileKind};
+use super::{Adapter, EscapeAction, EscapePattern, FileKind};
+
+/// Default escape patterns for JavaScript/TypeScript.
+///
+/// These patterns detect common type safety escapes that require justification.
+const JS_ESCAPE_PATTERNS: &[EscapePattern] = &[
+    EscapePattern {
+        name: "as_unknown",
+        pattern: r"as\s+unknown",
+        action: EscapeAction::Comment,
+        comment: Some("// CAST:"),
+        advice: "Add a // CAST: comment explaining why the type assertion is necessary.",
+    },
+    EscapePattern {
+        name: "ts_ignore",
+        pattern: r"@ts-ignore",
+        action: EscapeAction::Forbid,
+        comment: None,
+        advice: "@ts-ignore is forbidden. Use @ts-expect-error instead, which fails if the error is resolved.",
+    },
+];
 
 /// JavaScript/TypeScript language adapter.
 pub struct JavaScriptAdapter {
@@ -113,7 +133,9 @@ impl Adapter for JavaScriptAdapter {
         FileKind::Other
     }
 
-    // Note: default_escapes() will be added in Phase 495
+    fn default_escapes(&self) -> &'static [EscapePattern] {
+        JS_ESCAPE_PATTERNS
+    }
 }
 
 #[cfg(test)]

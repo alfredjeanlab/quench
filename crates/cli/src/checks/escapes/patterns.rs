@@ -7,8 +7,8 @@ use std::collections::HashSet;
 use std::path::Path;
 
 use crate::adapter::{
-    EscapePattern as AdapterEscapePattern, GoAdapter, ProjectLanguage, RustAdapter, ShellAdapter,
-    detect_language,
+    EscapePattern as AdapterEscapePattern, GoAdapter, JavaScriptAdapter, ProjectLanguage,
+    RustAdapter, ShellAdapter, detect_language,
 };
 use crate::config::{EscapeAction, EscapePattern as ConfigEscapePattern};
 use crate::pattern::{CompiledPattern, PatternError};
@@ -52,7 +52,8 @@ pub(super) fn get_adapter_escape_patterns(root: &Path) -> Vec<ConfigEscapePatter
             patterns.extend(convert_adapter_patterns(shell_adapter.default_escapes()));
         }
         ProjectLanguage::JavaScript => {
-            // TODO: Phase 495 will add JavaScript escape patterns
+            let js_adapter = JavaScriptAdapter::new();
+            patterns.extend(convert_adapter_patterns(js_adapter.default_escapes()));
         }
         ProjectLanguage::Generic => {
             // No default patterns for generic projects
