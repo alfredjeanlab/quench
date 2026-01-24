@@ -10,6 +10,10 @@ use std::process::Command;
 
 use crate::check::{Check, CheckContext, CheckResult};
 
+pub mod parse;
+
+pub use parse::{ParseResult, ParsedCommit, parse_conventional_commit};
+
 /// The git check validates commit message format.
 pub struct GitCheck;
 
@@ -32,7 +36,8 @@ impl Check for GitCheck {
 
         match output {
             Ok(out) if out.status.success() => {
-                // We're in a git repo - stub for now (not yet implemented)
+                // We're in a git repo
+                // TODO (Phase 806+): Use parse module for validation
                 CheckResult::stub(self.name())
             }
             _ => {
@@ -48,5 +53,5 @@ impl Check for GitCheck {
 }
 
 #[cfg(test)]
-#[path = "git_tests.rs"]
+#[path = "mod_tests.rs"]
 mod tests;

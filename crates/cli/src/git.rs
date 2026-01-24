@@ -6,6 +6,17 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+/// A commit with its hash and message.
+#[derive(Debug, Clone)]
+// KEEP UNTIL: Phase 806 implements commit validation
+#[allow(dead_code)]
+pub struct Commit {
+    /// Short commit hash (7 characters).
+    pub hash: String,
+    /// Full commit message (subject line only).
+    pub message: String,
+}
+
 /// Get list of changed files compared to a git base ref.
 pub fn get_changed_files(root: &Path, base: &str) -> anyhow::Result<Vec<PathBuf>> {
     // Get staged/unstaged changes (diffstat against base)
@@ -94,4 +105,70 @@ pub fn detect_base_branch(root: &Path) -> Option<String> {
     }
 
     None
+}
+
+/// Get commits since a base ref.
+///
+/// Returns commits from newest to oldest.
+// KEEP UNTIL: Phase 806 implements commit validation
+#[allow(dead_code)]
+pub fn get_commits_since(root: &Path, base: &str) -> anyhow::Result<Vec<Commit>> {
+    let output = Command::new("git")
+        .args([
+            "log",
+            "--format=%h%n%s", // Short hash, newline, subject
+            &format!("{}..HEAD", base),
+        ])
+        .current_dir(root)
+        .output()?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        anyhow::bail!("git log failed: {}", stderr.trim());
+    }
+
+    parse_git_log_output(&String::from_utf8_lossy(&output.stdout))
+}
+
+/// Parse git log output with format "%h%n%s".
+// KEEP UNTIL: Phase 806 implements commit validation
+#[allow(dead_code)]
+fn parse_git_log_output(output: &str) -> anyhow::Result<Vec<Commit>> {
+    let lines: Vec<&str> = output.lines().collect();
+    let mut commits = Vec::new();
+
+    // Process pairs of lines (hash, message)
+    for chunk in lines.chunks(2) {
+        if chunk.len() == 2 && !chunk[0].is_empty() {
+            commits.push(Commit {
+                hash: chunk[0].to_string(),
+                message: chunk[1].to_string(),
+            });
+        }
+    }
+
+    Ok(commits)
+}
+
+/// Get all commits on current branch (for CI mode).
+// KEEP UNTIL: Phase 806 implements commit validation
+#[allow(dead_code)]
+pub fn get_all_branch_commits(root: &Path) -> anyhow::Result<Vec<Commit>> {
+    // Detect base and delegate
+    if let Some(base) = detect_base_branch(root) {
+        get_commits_since(root, &base)
+    } else {
+        // No base branch found, get all commits
+        let output = Command::new("git")
+            .args(["log", "--format=%h%n%s"])
+            .current_dir(root)
+            .output()?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            anyhow::bail!("git log failed: {}", stderr.trim());
+        }
+
+        parse_git_log_output(&String::from_utf8_lossy(&output.stdout))
+    }
 }
