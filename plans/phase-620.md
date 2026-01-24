@@ -1,5 +1,7 @@
 # Phase 620: Docs Check - Specs Index Modes
 
+**Root Feature:** `quench-355e`
+
 ## Overview
 
 Implement three index validation modes for the specs directory check: `toc`, `linked`, and `auto`. These modes determine how the system verifies that spec files are discoverable from the index file (e.g., `CLAUDE.md`). Unreachable specs generate violations, ensuring documentation remains navigable.
