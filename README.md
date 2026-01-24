@@ -44,6 +44,10 @@ tables = "forbid"         # default: "allow"
 # Per-scope config: .root (project), .package (crates/), .module (subdirs)
 [check.agents.root]
 max_lines = 750           # longer allowed at project root
+
+[check.agents.package]
+required = ["CLAUDE.md"]  # require agent file in each package
+sections.required = ["API"]  # with an "API" section
 ```
 
 ## Checks
