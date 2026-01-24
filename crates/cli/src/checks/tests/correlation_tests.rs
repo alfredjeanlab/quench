@@ -644,3 +644,173 @@ fn default_patterns_include_test_prefix() {
     assert_eq!(result.with_tests.len(), 1);
     assert_eq!(result.without_tests.len(), 0);
 }
+
+// =============================================================================
+// TEST-ONLY FILTER CONSISTENCY TESTS
+// =============================================================================
+
+#[test]
+fn test_only_filter_single_source_matches_multi_source() {
+    // Verify same test files are identified as test-only
+    // in both single-source and multi-source paths
+    let root = Path::new("/project");
+
+    // Single source case
+    let single_changes = vec![
+        make_change("/project/src/parser.rs", ChangeType::Modified),
+        make_change("/project/tests/other_tests.rs", ChangeType::Modified),
+    ];
+
+    // Multi source case (add another source)
+    let multi_changes = vec![
+        make_change("/project/src/parser.rs", ChangeType::Modified),
+        make_change("/project/src/lexer.rs", ChangeType::Modified),
+        make_change("/project/tests/other_tests.rs", ChangeType::Modified),
+    ];
+
+    let config = CorrelationConfig::default();
+    let single_result = analyze_correlation(&single_changes, &config, root);
+    let multi_result = analyze_correlation(&multi_changes, &config, root);
+
+    // Both should identify other_tests.rs as test-only
+    assert_eq!(
+        single_result.test_only.len(),
+        1,
+        "Single source path should find 1 test-only"
+    );
+    assert_eq!(
+        multi_result.test_only.len(),
+        1,
+        "Multi source path should find 1 test-only"
+    );
+}
+
+#[test]
+fn is_test_only_direct_match() {
+    use std::collections::HashSet;
+    let mut sources = HashSet::new();
+    sources.insert("parser".to_string());
+
+    // Test base matches source directly
+    assert!(!is_test_only("parser", &sources));
+}
+
+#[test]
+fn is_test_only_with_suffix() {
+    use std::collections::HashSet;
+    let mut sources = HashSet::new();
+    sources.insert("parser".to_string());
+
+    // Test base is source + _test/_tests suffix
+    assert!(!is_test_only("parser_test", &sources));
+    assert!(!is_test_only("parser_tests", &sources));
+}
+
+#[test]
+fn is_test_only_with_prefix() {
+    use std::collections::HashSet;
+    let mut sources = HashSet::new();
+    sources.insert("parser".to_string());
+
+    // Test base is test_ + source prefix
+    assert!(!is_test_only("test_parser", &sources));
+}
+
+#[test]
+fn is_test_only_no_match() {
+    use std::collections::HashSet;
+    let mut sources = HashSet::new();
+    sources.insert("parser".to_string());
+
+    // Test base doesn't match any source
+    assert!(is_test_only("lexer", &sources));
+    assert!(is_test_only("lexer_tests", &sources));
+    assert!(is_test_only("test_lexer", &sources));
+}
+
+// =============================================================================
+// BIDIRECTIONAL MATCHING EDGE CASE TESTS
+// =============================================================================
+
+// Note: Files in src/ that match test patterns (like test_utils.rs matching
+// **/test_*.*) are classified as tests, not sources. This is expected behavior.
+// The tests below verify the TestIndex logic works correctly for edge cases.
+
+#[test]
+fn test_index_handles_test_like_source_name() {
+    // If a source file had base name "test_utils", it should match a test
+    // file with base name "test_utils" or "test_utils_test/tests"
+    let test_changes = vec![PathBuf::from("tests/test_utils_tests.rs")];
+    let index = TestIndex::new(&test_changes);
+
+    // Source "test_utils" should find the test "test_utils" (from test_utils_tests.rs)
+    assert!(
+        index.has_test_for(Path::new("src/test_utils.rs")),
+        "test_utils.rs should match test_utils_tests.rs"
+    );
+}
+
+#[test]
+fn test_index_handles_source_with_test_suffix() {
+    // Source file with _test suffix should match test with additional _tests suffix
+    let test_changes = vec![PathBuf::from("tests/parser_test_tests.rs")];
+    let index = TestIndex::new(&test_changes);
+
+    // Source "parser_test" should find the test "parser_test" (from parser_test_tests.rs)
+    assert!(
+        index.has_test_for(Path::new("src/parser_test.rs")),
+        "parser_test.rs should match parser_test_tests.rs"
+    );
+}
+
+#[test]
+fn test_index_handles_confusing_names() {
+    // Test various confusing naming patterns
+    let test_changes = vec![
+        PathBuf::from("tests/helper_tests.rs"), // test for "helper"
+        PathBuf::from("tests/utils_test.rs"),   // test for "utils"
+    ];
+    let index = TestIndex::new(&test_changes);
+
+    // These should match
+    assert!(index.has_test_for(Path::new("src/helper.rs")));
+    assert!(index.has_test_for(Path::new("src/utils.rs")));
+
+    // These should NOT match (no corresponding test)
+    assert!(!index.has_test_for(Path::new("src/parser.rs")));
+    assert!(!index.has_test_for(Path::new("src/lexer.rs")));
+}
+
+#[test]
+fn source_with_normal_name_correlates_correctly() {
+    // Normal source files (no test-like patterns in name) work correctly
+    let root = Path::new("/project");
+    let changes = vec![
+        make_change("/project/src/parser.rs", ChangeType::Modified),
+        make_change("/project/tests/parser_tests.rs", ChangeType::Modified),
+    ];
+
+    let config = CorrelationConfig::default();
+    let result = analyze_correlation(&changes, &config, root);
+
+    assert_eq!(result.with_tests.len(), 1);
+    assert_eq!(result.without_tests.len(), 0);
+}
+
+#[test]
+fn source_file_without_matching_test_detected() {
+    // Source files without matching tests are properly detected
+    let root = Path::new("/project");
+    let changes = vec![
+        make_change("/project/src/parser.rs", ChangeType::Modified),
+        make_change("/project/tests/lexer_tests.rs", ChangeType::Modified),
+    ];
+
+    let config = CorrelationConfig::default();
+    let result = analyze_correlation(&changes, &config, root);
+
+    // parser.rs has no test, lexer_tests.rs is test-only
+    assert_eq!(result.with_tests.len(), 0);
+    assert_eq!(result.without_tests.len(), 1);
+    assert_eq!(result.test_only.len(), 1);
+}

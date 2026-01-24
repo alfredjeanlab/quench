@@ -136,3 +136,69 @@ fn commit_changes_struct_fields() {
     assert_eq!(changes.changes.len(), 1);
     assert_eq!(changes.changes[0].lines_added, 50);
 }
+
+// =============================================================================
+// INITIAL COMMIT HANDLING TESTS
+// =============================================================================
+
+#[test]
+fn get_commit_changes_handles_initial_commit() {
+    use std::fs;
+    use tempfile::TempDir;
+
+    // Create a temp repo with single initial commit
+    let tmp = TempDir::new().unwrap();
+    let root = tmp.path();
+
+    // Initialize repo
+    std::process::Command::new("git")
+        .args(["init"])
+        .current_dir(root)
+        .output()
+        .expect("git init");
+
+    // Configure git for the test
+    std::process::Command::new("git")
+        .args(["config", "user.email", "test@example.com"])
+        .current_dir(root)
+        .output()
+        .expect("git config email");
+
+    std::process::Command::new("git")
+        .args(["config", "user.name", "Test User"])
+        .current_dir(root)
+        .output()
+        .expect("git config name");
+
+    // Create and commit a file
+    fs::write(root.join("test.txt"), "hello").unwrap();
+
+    std::process::Command::new("git")
+        .args(["add", "test.txt"])
+        .current_dir(root)
+        .output()
+        .expect("git add");
+
+    std::process::Command::new("git")
+        .args(["commit", "-m", "initial commit"])
+        .current_dir(root)
+        .output()
+        .expect("git commit");
+
+    // Get the commit hash
+    let output = std::process::Command::new("git")
+        .args(["rev-parse", "HEAD"])
+        .current_dir(root)
+        .output()
+        .expect("git rev-parse");
+    let hash = String::from_utf8_lossy(&output.stdout).trim().to_string();
+
+    // Test that get_commit_changes works for initial commit
+    let result = get_commit_changes(root, &hash);
+    assert!(result.is_ok(), "Should handle initial commit: {:?}", result);
+
+    let changes = result.unwrap();
+    assert_eq!(changes.len(), 1);
+    assert!(changes[0].path.to_string_lossy().contains("test.txt"));
+    assert_eq!(changes[0].change_type, ChangeType::Added);
+}

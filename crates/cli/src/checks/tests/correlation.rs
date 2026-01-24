@@ -92,6 +92,8 @@ pub struct TestIndex {
 
 impl TestIndex {
     /// Build a test index from a list of test file paths.
+    ///
+    /// The index enables O(1) lookups when checking if a source file has a corresponding test.
     pub fn new(test_changes: &[PathBuf]) -> Self {
         let mut base_names = HashSet::new();
 
@@ -108,6 +110,16 @@ impl TestIndex {
     }
 
     /// O(1) check for correlated test by base name.
+    ///
+    /// Matching strategy:
+    /// 1. Direct match: source "parser" matches test "parser"
+    /// 2. Test suffix: source "parser" matches test "parser_test" or "parser_tests"
+    /// 3. Test prefix: source "parser" matches test "test_parser"
+    ///
+    /// Note: Source files with test-like names (e.g., "test_utils.rs") are handled
+    /// correctly because the source base name "test_utils" would need a test with
+    /// base name "test_utils", "test_utils_test", "test_utils_tests", or
+    /// "test_test_utils".
     pub fn has_test_for(&self, source_path: &Path) -> bool {
         let base_name = match source_path.file_stem().and_then(|s| s.to_str()) {
             Some(n) => n,
@@ -283,15 +295,7 @@ pub fn analyze_correlation(
         .into_iter()
         .filter(|t| {
             let test_base = extract_base_name(t).unwrap_or_default();
-            !source_base_names.contains(&test_base)
-                && !source_base_names.contains(&format!("{}_test", test_base))
-                && !source_base_names.contains(&format!("{}_tests", test_base))
-                && !source_base_names.contains(&format!("test_{}", test_base))
-                && !source_base_names.iter().any(|s| {
-                    test_base == format!("{}_test", s)
-                        || test_base == format!("{}_tests", s)
-                        || test_base == format!("test_{}", s)
-                })
+            is_test_only(&test_base, &source_base_names)
         })
         .collect();
 
@@ -416,21 +420,20 @@ fn analyze_single_source(
         (vec![], vec![rel_path.to_path_buf()])
     };
 
-    // Determine test-only changes
-    let source_base = correlation_base_name(rel_path).map(|s| s.to_string());
+    // Determine test-only changes using shared helper
+    let source_base_names: HashSet<String> = correlation_base_name(rel_path)
+        .map(|s| {
+            let mut set = HashSet::new();
+            set.insert(s.to_string());
+            set
+        })
+        .unwrap_or_default();
+
     let test_only: Vec<PathBuf> = test_changes
         .into_iter()
         .filter(|t| {
             let test_base = extract_base_name(t).unwrap_or_default();
-            match &source_base {
-                Some(s) => {
-                    test_base != *s
-                        && test_base != format!("{}_test", s)
-                        && test_base != format!("{}_tests", s)
-                        && test_base != format!("test_{}", s)
-                }
-                None => true,
-            }
+            is_test_only(&test_base, &source_base_names)
         })
         .collect();
 
@@ -444,6 +447,48 @@ fn analyze_single_source(
 /// Extract the base name for correlation (e.g., "parser" from "src/parser.rs").
 fn correlation_base_name(path: &Path) -> Option<&str> {
     path.file_stem()?.to_str()
+}
+
+/// Check if a test file is considered "test-only" (no corresponding source change).
+///
+/// A test is test-only if its base name doesn't match any source file's base name,
+/// even when accounting for common test suffixes/prefixes.
+fn is_test_only(test_base: &str, source_base_names: &HashSet<String>) -> bool {
+    // Direct match: test "parser" matches source "parser"
+    if source_base_names.contains(test_base) {
+        return false;
+    }
+
+    // Test has suffix that matches source
+    // e.g., "parser_test" matches source "parser"
+    for suffix in ["_test", "_tests"] {
+        if let Some(stripped) = test_base.strip_suffix(suffix)
+            && source_base_names.contains(stripped)
+        {
+            return false;
+        }
+    }
+
+    // Test has prefix that matches source
+    // e.g., "test_parser" matches source "parser"
+    if let Some(stripped) = test_base.strip_prefix("test_")
+        && source_base_names.contains(stripped)
+    {
+        return false;
+    }
+
+    // Source has suffix/prefix that matches test
+    // e.g., source "parser" matches test "parser" (via _test, _tests, test_ variations)
+    for source in source_base_names {
+        if test_base == format!("{}_test", source)
+            || test_base == format!("{}_tests", source)
+            || test_base == format!("test_{}", source)
+        {
+            return false;
+        }
+    }
+
+    true
 }
 
 /// Get candidate test file paths for a base name (Rust).

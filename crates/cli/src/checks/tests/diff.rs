@@ -217,10 +217,22 @@ pub fn get_commits_since(root: &Path, base: &str) -> Result<Vec<CommitChanges>, 
 
 /// Get file changes for a specific commit.
 fn get_commit_changes(root: &Path, commit_hash: &str) -> Result<Vec<FileChange>, String> {
-    // Use hash^..hash to get changes in that specific commit
-    // Note: This won't work for the initial commit, but for feature branches
-    // comparing to main, we don't need to handle the initial commit.
-    let range = format!("{}^..{}", commit_hash, commit_hash);
+    // Check if this is the initial commit (no parent)
+    let has_parent = Command::new("git")
+        .args(["rev-parse", "--verify", &format!("{}^", commit_hash)])
+        .current_dir(root)
+        .stderr(std::process::Stdio::null())
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false);
+
+    let range = if has_parent {
+        format!("{}^..{}", commit_hash, commit_hash)
+    } else {
+        // For initial commit, compare against empty tree
+        // 4b825dc642cb6eb9a060e54bf8d69288fbee4904 is git's well-known empty tree SHA
+        format!("4b825dc642cb6eb9a060e54bf8d69288fbee4904..{}", commit_hash)
+    };
 
     let numstat = run_git_diff(root, &["--numstat", &range])?;
     let name_status = run_git_diff(root, &["--name-status", &range])?;
