@@ -1,5 +1,5 @@
 version = 1
 
-[go.suppress]
+[golang.suppress]
 check = "comment"
 comment = "// OK:"

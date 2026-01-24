@@ -41,9 +41,12 @@ tables = "forbid"         # default: "allow"
 # mermaid = "forbid"
 # box_diagrams = "forbid"
 
-# Per-scope config: .root (project), .package (crates/), .module (subdirs)
+# Per-scope config:
+#   .root (project, monorepo or workspace)
+#   .package (crates/, packages/, etc)
+#   .module (package subdirs)
 [check.agents.root]
-max_lines = 750           # longer allowed at project root
+max_lines = 750  # default: 500
 
 [check.agents.package]
 required = ["CLAUDE.md"]  # require agent file in each package

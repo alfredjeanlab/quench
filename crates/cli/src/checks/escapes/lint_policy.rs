@@ -13,7 +13,7 @@ use crate::config::{GoConfig, LintChangesPolicy, RustConfig, ShellConfig};
 pub fn check_lint_policy(ctx: &CheckContext) -> Vec<Violation> {
     match detect_language(ctx.root) {
         ProjectLanguage::Rust => check_rust_lint_policy(ctx, &ctx.config.rust),
-        ProjectLanguage::Go => check_go_lint_policy(ctx, &ctx.config.go),
+        ProjectLanguage::Go => check_go_lint_policy(ctx, &ctx.config.golang),
         ProjectLanguage::Shell => check_shell_lint_policy(ctx, &ctx.config.shell),
         ProjectLanguage::Generic => Vec::new(),
     }

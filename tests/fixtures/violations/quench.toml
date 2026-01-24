@@ -45,7 +45,7 @@ action = "comment"
 comment = "// NOESCAPE:"
 source = ["**/*.go"]
 
-[go.suppress]
+[golang.suppress]
 check = "comment"
 
 [check.agents]

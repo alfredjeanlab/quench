@@ -295,7 +295,7 @@ fn lint_config_changes_with_source_fails_standalone_policy() {
         dir.path().join("quench.toml"),
         r#"
 version = 1
-[go.policy]
+[golang.policy]
 lint_changes = "standalone"
 lint_config = [".golangci.yml"]
 "#,
@@ -386,7 +386,7 @@ fn lint_config_standalone_passes() {
         dir.path().join("quench.toml"),
         r#"
 version = 1
-[go.policy]
+[golang.policy]
 lint_changes = "standalone"
 lint_config = [".golangci.yml"]
 "#,

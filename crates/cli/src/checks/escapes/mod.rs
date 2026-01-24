@@ -279,7 +279,7 @@ impl Check for EscapesCheck {
                     ctx,
                     relative,
                     &content,
-                    &ctx.config.go.suppress,
+                    &ctx.config.golang.suppress,
                     is_test_file,
                     &mut limit_reached,
                 );
