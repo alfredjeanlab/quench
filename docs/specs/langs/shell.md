@@ -93,7 +93,48 @@ allow = ["SC2034"]             # unused variable OK
 
 [shell.suppress.test]
 check = "allow"                # tests can suppress freely
+
+# Per-lint patterns (optional)
+[shell.suppress.source.SC2086]
+comment = "# INTENTIONAL:"     # require specific pattern for word splitting
 ```
+
+### Violation Messages
+
+When a shellcheck suppression is missing a required comment (when `check = "comment"`), the error message provides:
+1. A general statement that justification is required
+2. Lint-specific guidance tailored to common ShellCheck codes
+3. The list of acceptable comment patterns (when configured)
+
+**Example outputs:**
+
+```
+scripts/deploy.sh:23: shellcheck_missing_comment: # shellcheck disable=SC2086
+  Lint suppression requires justification.
+  Is unquoted expansion intentional here?
+  Add a comment above the directive.
+
+scripts/build.sh:45: shellcheck_missing_comment: # shellcheck disable=SC2154
+  Lint suppression requires justification.
+  Is this variable defined externally?
+  If so, add one of:
+    # OK: ...
+    # INTENTIONAL: ...
+```
+
+The first example shows the default behavior (no specific pattern required).
+The second example shows when multiple patterns are configured for a lint code.
+
+**Default per-lint guidance** (for common ShellCheck codes):
+
+| Code | Guidance Question |
+|------|-------------------|
+| SC2086 | Is unquoted expansion intentional here? |
+| SC2154 | Is this variable defined externally? |
+| SC2034 | Is this unused variable needed? |
+| SC2155 | Should declaration and assignment be split? |
+
+Other codes use: "Is this ShellCheck finding a false positive?"
 
 ## Policy
 

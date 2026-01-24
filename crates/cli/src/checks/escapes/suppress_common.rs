@@ -35,8 +35,10 @@ pub enum SuppressViolationKind {
     Forbidden { code: String },
     /// Missing required justification comment.
     MissingComment {
-        /// The required comment pattern (if any).
-        required_pattern: Option<String>,
+        /// The lint code being suppressed (for lint-specific guidance).
+        lint_code: Option<String>,
+        /// The required comment patterns (if any).
+        required_patterns: Vec<String>,
     },
     /// All suppressions are forbidden at this scope level.
     AllForbidden,
@@ -71,11 +73,12 @@ pub fn check_suppress_attr(
 
     // 4. Check comment requirement
     if params.scope_check == SuppressLevel::Comment {
-        let required_patterns = find_required_patterns(params, attr);
+        let (lint_code, required_patterns) = find_required_patterns(params, attr);
         if !has_valid_comment(attr, &required_patterns) {
-            // For error message, show first pattern as the required one
-            let required_pattern = required_patterns.first().cloned();
-            return Some(SuppressViolationKind::MissingComment { required_pattern });
+            return Some(SuppressViolationKind::MissingComment {
+                lint_code,
+                required_patterns,
+            });
         }
     }
 
@@ -84,19 +87,23 @@ pub fn check_suppress_attr(
 
 /// Find the required comment patterns for an attribute.
 /// Checks per-lint patterns first, then falls back to global.
-/// Returns a list of valid patterns (any match is acceptable).
-fn find_required_patterns(params: &SuppressCheckParams, attr: &SuppressAttrInfo) -> Vec<String> {
+/// Returns the lint code (if found) and a list of valid patterns (any match is acceptable).
+fn find_required_patterns(
+    params: &SuppressCheckParams,
+    attr: &SuppressAttrInfo,
+) -> (Option<String>, Vec<String>) {
     // Check per-lint patterns first (first matching code wins)
     for code in attr.codes {
         if let Some(patterns) = params.scope_config.patterns.get(code) {
-            return patterns.clone();
+            return (Some(code.clone()), patterns.clone());
         }
     }
     // Fall back to global pattern
-    params
+    let patterns = params
         .global_comment
         .map(|p| vec![p.to_string()])
-        .unwrap_or_default()
+        .unwrap_or_default();
+    (attr.codes.first().cloned(), patterns)
 }
 
 /// Check if the attribute has a valid justification comment.

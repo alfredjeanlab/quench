@@ -671,14 +671,18 @@ fn check_suppress_violations(
                     );
                     ("suppress_forbidden", advice)
                 }
-                SuppressViolationKind::MissingComment { required_pattern } => {
-                    let advice = match required_pattern {
-                        Some(pat) => format!(
+                SuppressViolationKind::MissingComment {
+                    lint_code: _,
+                    required_patterns,
+                } => {
+                    let advice = if let Some(pat) = required_patterns.first() {
+                        format!(
                             "Lint suppression requires justification. Add a {} comment.",
                             pat
-                        ),
-                        None => "Lint suppression requires justification. Add a comment above the attribute."
-                            .to_string(),
+                        )
+                    } else {
+                        "Lint suppression requires justification. Add a comment above the attribute."
+                            .to_string()
                     };
                     ("suppress_missing_comment", advice)
                 }

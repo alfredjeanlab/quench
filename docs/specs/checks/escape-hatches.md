@@ -113,6 +113,34 @@ unsafe {                    // ✗ No comment (search stopped at `fn other_code`
 }
 ```
 
+## Lint Suppression Messages
+
+When a lint suppression is missing a required comment, the error message includes:
+
+1. **General statement**: "Lint suppression requires justification."
+2. **Lint-specific guidance**: A thoughtful question or statement about the specific lint
+3. **Required patterns**: The list of acceptable comment patterns (if configured)
+
+The lint-specific guidance is tailored to each built-in pattern to help developers think critically about whether the suppression is necessary.
+
+**Message format:**
+```
+<file>:<line>: suppress_missing_comment: <directive>
+  Lint suppression requires justification.
+  <lint-specific guidance>
+  <pattern instructions>
+```
+
+**Pattern instructions format:**
+- Single pattern: `If so, add:\n  <pattern>`
+- Multiple patterns: `If it should be kept, add one of:\n  <pattern1>\n  <pattern2>\n  ...`
+- No specific pattern: `Add a comment above the directive or inline (<example>).`
+
+See language-specific documentation for built-in lint-specific guidance:
+- [Rust suppress guidance](../langs/rust.md#default-per-lint-guidance)
+- [Go suppress guidance](../langs/golang.md#suppress)
+- [Shell suppress guidance](../langs/shell.md#suppress)
+
 ## Configurable Advice
 
 Each pattern can have custom advice:
@@ -134,6 +162,54 @@ escapes: FAIL
   src/parser.rs:47: unsafe block without // SAFETY: comment
     Add a // SAFETY: comment explaining why this unsafe block is sound.
 ```
+
+### Fail (suppress missing comment)
+
+When a lint suppression is missing a required comment, the message provides:
+1. A general statement that justification is required
+2. Lint-specific guidance tailored to the suppressed lint
+3. The list of acceptable comment patterns
+
+**Examples (Rust):**
+
+```
+escapes: FAIL
+  src/git_hooks.rs:109: suppress_missing_comment: #[allow(dead_code)]
+    Lint suppression requires justification.
+    Is this code still needed?
+    If it should be kept, add one of:
+      // KEEP UNTIL: ...
+      // NOTE(compat): ...
+      // NOTE(compatibility): ...
+
+  src/display.rs:106: suppress_missing_comment: #[allow(clippy::too_many_arguments)]
+    Lint suppression requires justification.
+    Can this function be refactored?
+    If not, add:
+      // TODO(refactor): ...
+
+  src/daemon/runner.rs:598: suppress_missing_comment: #[allow(clippy::cast_possible_truncation)]
+    Lint suppression requires justification.
+    Is this cast safe?
+    If so, add one of:
+      // CORRECTNESS: ...
+      // SAFETY: ...
+```
+
+**Examples (Shell):**
+
+```
+escapes: FAIL
+  scripts/deploy.sh:23: shellcheck_missing_comment: # shellcheck disable=SC2086
+    Lint suppression requires justification.
+    Is unquoted expansion intentional here?
+    Add a comment above the directive.
+```
+
+See language-specific documentation for complete per-lint guidance:
+- [Rust suppress guidance](../langs/rust.md#default-per-lint-guidance)
+- [Go suppress](../langs/golang.md#suppress)
+- [Shell suppress guidance](../langs/shell.md#violation-messages)
 
 ### Fail (forbid violation)
 

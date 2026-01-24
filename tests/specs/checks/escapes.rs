@@ -719,3 +719,320 @@ fn rust_suppress_detects_module_level_allow() {
         .stdout_has("dead_code")
         .stdout_has("// KEEP UNTIL:");
 }
+
+/// Spec: docs/specs/checks/escape-hatches.md#lint-suppression-messages
+///
+/// > Suppress missing comment messages provide:
+/// > 1. General statement that justification is required
+/// > 2. Lint-specific guidance tailored to the suppressed lint
+/// > 3. List of acceptable comment patterns
+#[test]
+#[ignore = "TODO: Phase 620 - Structured suppress messages"]
+fn suppress_missing_comment_message_format() {
+    let temp = Project::empty();
+    temp.config(
+        r#"[rust.suppress]
+check = "comment"
+"#,
+    );
+    temp.file(
+        "Cargo.toml",
+        "[package]\nname = \"test\"\nversion = \"0.1.0\"",
+    );
+
+    // Test dead_code with multiple patterns
+    temp.file("src/lib.rs", "#[allow(dead_code)]\nfn unused() {}");
+
+    check("escapes").pwd(temp.path()).fails().stdout_eq(
+        r#"escapes: FAIL
+  src/lib.rs:1: suppress_missing_comment: #[allow(dead_code)]
+    Lint suppression requires justification.
+    Is this code still needed?
+    If it should be kept, add one of:
+      // KEEP UNTIL: ...
+      // NOTE(compat): ...
+      // NOTE(compatibility): ...
+"#,
+    );
+}
+
+/// Spec: docs/specs/checks/escape-hatches.md#lint-suppression-messages
+///
+/// > Single pattern should use "If not, add:" format
+#[test]
+#[ignore = "TODO: Phase 620 - Structured suppress messages"]
+fn suppress_missing_comment_single_pattern() {
+    let temp = Project::empty();
+    temp.config(
+        r#"[rust.suppress]
+check = "comment"
+"#,
+    );
+    temp.file(
+        "Cargo.toml",
+        "[package]\nname = \"test\"\nversion = \"0.1.0\"",
+    );
+
+    temp.file(
+        "src/lib.rs",
+        "#[allow(clippy::too_many_arguments)]\nfn many_args(a: i32, b: i32, c: i32, d: i32, e: i32, f: i32, g: i32, h: i32) {}",
+    );
+
+    check("escapes").pwd(temp.path()).fails().stdout_eq(
+        r#"escapes: FAIL
+  src/lib.rs:1: suppress_missing_comment: #[allow(clippy::too_many_arguments)]
+    Lint suppression requires justification.
+    Can this function be refactored?
+    If not, add:
+      // TODO(refactor): ...
+"#,
+    );
+}
+
+/// Spec: docs/specs/checks/escape-hatches.md#lint-suppression-messages
+///
+/// > Cast truncation should ask "Is this cast safe?"
+#[test]
+#[ignore = "TODO: Phase 620 - Structured suppress messages"]
+fn suppress_missing_comment_cast_truncation() {
+    let temp = Project::empty();
+    temp.config(
+        r#"[rust.suppress]
+check = "comment"
+"#,
+    );
+    temp.file(
+        "Cargo.toml",
+        "[package]\nname = \"test\"\nversion = \"0.1.0\"",
+    );
+
+    temp.file(
+        "src/lib.rs",
+        "#[allow(clippy::cast_possible_truncation)]\nfn cast_fn() { let _x = 1000_u64 as u8; }",
+    );
+
+    check("escapes").pwd(temp.path()).fails().stdout_eq(
+        r#"escapes: FAIL
+  src/lib.rs:1: suppress_missing_comment: #[allow(clippy::cast_possible_truncation)]
+    Lint suppression requires justification.
+    Is this cast safe?
+    If so, add one of:
+      // CORRECTNESS: ...
+      // SAFETY: ...
+"#,
+    );
+}
+
+/// Spec: docs/specs/checks/escape-hatches.md#lint-suppression-messages
+///
+/// > No specific pattern: generic message with example
+#[test]
+#[ignore = "TODO: Phase 620 - Structured suppress messages"]
+fn suppress_missing_comment_no_specific_pattern() {
+    let temp = Project::empty();
+    temp.config(
+        r#"[rust.suppress]
+check = "comment"
+# No global pattern, no per-lint patterns for unused_variables
+"#,
+    );
+    temp.file(
+        "Cargo.toml",
+        "[package]\nname = \"test\"\nversion = \"0.1.0\"",
+    );
+
+    temp.file(
+        "src/lib.rs",
+        "#[allow(unused_variables)]\nfn test() { let x = 1; }",
+    );
+
+    check("escapes").pwd(temp.path()).fails().stdout_eq(
+        r#"escapes: FAIL
+  src/lib.rs:1: suppress_missing_comment: #[allow(unused_variables)]
+    Lint suppression requires justification.
+    Is this suppression necessary?
+    Add a comment above the attribute.
+"#,
+    );
+}
+
+// =============================================================================
+// SHELL SUPPRESS MESSAGE SPECS
+// =============================================================================
+
+/// Spec: docs/specs/langs/shell.md#violation-messages
+///
+/// > ShellCheck SC2086 should ask "Is unquoted expansion intentional here?"
+#[test]
+#[ignore = "TODO: Phase 620 - Structured suppress messages"]
+fn shell_suppress_sc2086_message() {
+    let temp = Project::empty();
+    temp.config(
+        r#"[shell.suppress]
+check = "comment"
+"#,
+    );
+
+    temp.file(
+        "script.sh",
+        "#!/bin/bash\n# shellcheck disable=SC2086\necho $var",
+    );
+
+    check("escapes").pwd(temp.path()).fails().stdout_eq(
+        r#"escapes: FAIL
+  script.sh:2: shellcheck_missing_comment: # shellcheck disable=SC2086
+    Lint suppression requires justification.
+    Is unquoted expansion intentional here?
+    Add a comment above the directive.
+"#,
+    );
+}
+
+/// Spec: docs/specs/langs/shell.md#violation-messages
+///
+/// > ShellCheck SC2154 should ask "Is this variable defined externally?"
+#[test]
+#[ignore = "TODO: Phase 620 - Structured suppress messages"]
+fn shell_suppress_sc2154_message() {
+    let temp = Project::empty();
+    temp.config(
+        r##"[shell.suppress]
+check = "comment"
+
+[shell.suppress.source.SC2154]
+comment = "# EXTERNAL:"
+"##,
+    );
+
+    temp.file(
+        "script.sh",
+        "#!/bin/bash\n# shellcheck disable=SC2154\necho $external_var",
+    );
+
+    check("escapes").pwd(temp.path()).fails().stdout_eq(
+        r##"escapes: FAIL
+  script.sh:2: shellcheck_missing_comment: # shellcheck disable=SC2154
+    Lint suppression requires justification.
+    Is this variable defined externally?
+    If so, add:
+      # EXTERNAL: ...
+"##,
+    );
+}
+
+/// Spec: docs/specs/langs/shell.md#violation-messages
+///
+/// > ShellCheck SC2034 should ask "Is this unused variable needed?"
+#[test]
+#[ignore = "TODO: Phase 620 - Structured suppress messages"]
+fn shell_suppress_sc2034_message() {
+    let temp = Project::empty();
+    temp.config(
+        r#"[shell.suppress]
+check = "comment"
+"#,
+    );
+
+    temp.file(
+        "script.sh",
+        "#!/bin/bash\n# shellcheck disable=SC2034\nunused_var=1",
+    );
+
+    check("escapes").pwd(temp.path()).fails().stdout_eq(
+        r#"escapes: FAIL
+  script.sh:2: shellcheck_missing_comment: # shellcheck disable=SC2034
+    Lint suppression requires justification.
+    Is this unused variable needed?
+    Add a comment above the directive.
+"#,
+    );
+}
+
+/// Spec: docs/specs/langs/shell.md#violation-messages
+///
+/// > Unknown ShellCheck code should use generic message
+#[test]
+#[ignore = "TODO: Phase 620 - Structured suppress messages"]
+fn shell_suppress_unknown_code_message() {
+    let temp = Project::empty();
+    temp.config(
+        r#"[shell.suppress]
+check = "comment"
+"#,
+    );
+
+    temp.file(
+        "script.sh",
+        "#!/bin/bash\n# shellcheck disable=SC9999\necho test",
+    );
+
+    check("escapes").pwd(temp.path()).fails().stdout_eq(
+        r#"escapes: FAIL
+  script.sh:2: shellcheck_missing_comment: # shellcheck disable=SC9999
+    Lint suppression requires justification.
+    Is this ShellCheck finding a false positive?
+    Add a comment above the directive.
+"#,
+    );
+}
+
+// =============================================================================
+// GO SUPPRESS MESSAGE SPECS
+// =============================================================================
+
+/// Spec: docs/specs/langs/golang.md#violation-messages
+///
+/// > Go nolint without specific pattern should use inline example
+#[test]
+#[ignore = "TODO: Phase 620 - Structured suppress messages"]
+fn go_suppress_no_pattern_message() {
+    let temp = Project::empty();
+    temp.config(
+        r#"[golang.suppress]
+check = "comment"
+"#,
+    );
+
+    temp.file(
+        "main.go",
+        "package main\n//nolint:errcheck\nfunc test() { _ = doSomething() }",
+    );
+
+    check("escapes").pwd(temp.path()).fails().stdout_eq(
+        r#"escapes: FAIL
+  main.go:2: suppress_missing_comment: //nolint:errcheck
+    Lint suppression requires justification.
+    Is this error handling necessary to skip?
+    Add a comment above the directive or inline (//nolint:code // reason).
+"#,
+    );
+}
+
+/// Spec: docs/specs/langs/golang.md#violation-messages
+///
+/// > Go nolint with specific pattern configured
+#[test]
+#[ignore = "TODO: Phase 620 - Structured suppress messages"]
+fn go_suppress_with_pattern_message() {
+    let temp = Project::empty();
+    temp.config(
+        r#"[golang.suppress]
+check = "comment"
+
+[golang.suppress.source.gosec]
+comment = "// FALSE_POSITIVE:"
+"#,
+    );
+
+    temp.file("main.go", "package main\n//nolint:gosec\nfunc test() { }");
+
+    check("escapes").pwd(temp.path()).fails().stdout_eq(
+        r#"escapes: FAIL
+  main.go:2: suppress_missing_comment: //nolint:gosec
+    Lint suppression requires justification.
+    Is this security finding a false positive?
+    If so, add:
+      // FALSE_POSITIVE: ...
+"#,
+    );
+}

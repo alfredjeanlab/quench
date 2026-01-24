@@ -76,14 +76,18 @@ pub(super) fn check_shell_suppress_violations(
                     );
                     ("shellcheck_forbidden", advice)
                 }
-                SuppressViolationKind::MissingComment { required_pattern } => {
-                    let advice = match required_pattern {
-                        Some(pat) => format!(
+                SuppressViolationKind::MissingComment {
+                    lint_code: _,
+                    required_patterns,
+                } => {
+                    let advice = if let Some(pat) = required_patterns.first() {
+                        format!(
                             "Shellcheck suppression requires justification. Add a {} comment.",
                             pat
-                        ),
-                        None => "Shellcheck suppression requires justification. Add a comment above explaining why."
-                            .to_string(),
+                        )
+                    } else {
+                        "Shellcheck suppression requires justification. Add a comment above explaining why."
+                            .to_string()
                     };
                     ("shellcheck_missing_comment", advice)
                 }

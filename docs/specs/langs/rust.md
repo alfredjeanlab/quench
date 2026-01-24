@@ -174,6 +174,53 @@ By default, common lint suppressions require specific comment patterns:
 
 These defaults ensure suppressions have meaningful justifications. Override per-project if needed.
 
+### Default Per-Lint Guidance
+
+Each built-in lint code has thoughtful guidance to help developers evaluate the suppression:
+
+| Lint Code | Guidance Question |
+|-----------|-------------------|
+| `dead_code` | Is this code still needed? |
+| `clippy::too_many_arguments` | Can this function be refactored? |
+| `clippy::cast_possible_truncation` | Is this cast safe? |
+| `deprecated` | Can this deprecated API be replaced? |
+
+For custom lint codes without built-in guidance, a generic message is used: "Is this suppression necessary?"
+
+### Violation Messages
+
+When a suppression is missing a required comment, the error message provides:
+1. A general statement that justification is required
+2. A lint-specific question or guidance
+3. The list of acceptable comment patterns (when multiple options exist)
+
+**Example outputs:**
+
+```
+crates/cli/src/git_hooks.rs:109: suppress_missing_comment: #[allow(dead_code)]
+  Lint suppression requires justification.
+  Is this code still needed?
+  If it should be kept, add one of:
+    // KEEP UNTIL: ...
+    // NOTE(compat): ...
+    // NOTE(compatibility): ...
+
+crates/cli/src/display.rs:106: suppress_missing_comment: #[allow(clippy::too_many_arguments)]
+  Lint suppression requires justification.
+  Can this function be refactored?
+  If not, add:
+    // TODO(refactor): ...
+
+crates/cli/src/daemon/runner.rs:598: suppress_missing_comment: #[allow(clippy::cast_possible_truncation)]
+  Lint suppression requires justification.
+  Is this cast safe?
+  If so, add one of:
+    // CORRECTNESS: ...
+    // SAFETY: ...
+```
+
+The guidance matches the [default per-lint guidance](#default-per-lint-guidance) table above.
+
 ### Supported Patterns
 
 ```rust

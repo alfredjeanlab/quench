@@ -146,7 +146,41 @@ forbid = ["govet"]             # never suppress go vet findings
 
 [golang.suppress.test]
 check = "allow"                # tests can suppress freely
+
+# Per-lint patterns (optional)
+[golang.suppress.source.errcheck]
+comment = "// OK:"             # require specific pattern for errcheck
+
+[golang.suppress.source.gosec]
+comment = "// FALSE_POSITIVE:" # require specific pattern for gosec
 ```
+
+### Violation Messages
+
+When a suppression is missing a required comment, the error message provides:
+1. A general statement that justification is required
+2. Lint-specific guidance (future: will be tailored per common nolint codes)
+3. The list of acceptable comment patterns (when configured)
+
+**Example outputs:**
+
+```
+pkg/client/client.go:45: suppress_missing_comment: //nolint:errcheck
+  Lint suppression requires justification.
+  Is this error handling necessary to skip?
+  Add a comment above the directive or inline (//nolint:code // reason).
+
+pkg/client/client.go:67: suppress_missing_comment: //nolint:gosec
+  Lint suppression requires justification.
+  Is this security finding a false positive?
+  If so, add:
+    // FALSE_POSITIVE: ...
+```
+
+The first example shows the default behavior (no specific pattern required).
+The second example shows when a specific pattern is configured.
+
+**Note**: Per-lint guidance for common nolint codes (errcheck, gosec, etc.) will be added in a future update.
 
 ### Supported Patterns
 
