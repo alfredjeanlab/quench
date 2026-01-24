@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "updated": "2026-01-20T12:00:00Z",
+  "commit": "abc1234",
+  "metrics": {
+    "coverage": {
+      "total": 85.5
+    },
+    "escapes": {
+      "source": {
+        "unsafe": 3,
+        "unwrap": 0
+      }
+    }
+  }
+}

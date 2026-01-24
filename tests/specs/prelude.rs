@@ -44,9 +44,15 @@ pub fn cli() -> CheckBuilder<Text, All> {
     CheckBuilder::all()
 }
 
+/// Create a report command builder
+pub fn report() -> ReportBuilder<Text> {
+    ReportBuilder::new()
+}
+
 /// Typestate markers for output mode
 pub struct Text;
 pub struct Json;
+pub struct Html;
 
 /// Typestate markers for check scope
 pub struct Single(String);
@@ -158,6 +164,106 @@ impl CheckBuilder<Json, All> {
     pub fn fails(self) -> ChecksJson {
         let output = run_fails(self.command());
         ChecksJson::new(&output.output.stdout)
+    }
+}
+
+// =============================================================================
+// ReportBuilder
+// =============================================================================
+
+/// Report command builder for fluent test assertions
+pub struct ReportBuilder<Mode = Text> {
+    dir: Option<std::path::PathBuf>,
+    args: Vec<String>,
+    _mode: PhantomData<Mode>,
+}
+
+#[allow(dead_code)]
+impl ReportBuilder<Text> {
+    fn new() -> Self {
+        Self {
+            dir: None,
+            args: Vec::new(),
+            _mode: PhantomData,
+        }
+    }
+
+    pub fn json(self) -> ReportBuilder<Json> {
+        ReportBuilder {
+            dir: self.dir,
+            args: self.args,
+            _mode: PhantomData,
+        }
+    }
+
+    pub fn html(self) -> ReportBuilder<Html> {
+        ReportBuilder {
+            dir: self.dir,
+            args: self.args,
+            _mode: PhantomData,
+        }
+    }
+
+    pub fn runs(self) -> RunAssert {
+        run_passes(self.command())
+    }
+}
+
+#[allow(dead_code)]
+impl ReportBuilder<Json> {
+    pub fn runs(self) -> RunAssert {
+        run_passes(self.command())
+    }
+}
+
+#[allow(dead_code)]
+impl ReportBuilder<Html> {
+    pub fn runs(self) -> RunAssert {
+        run_passes(self.command())
+    }
+}
+
+#[allow(dead_code)]
+impl<Mode: 'static> ReportBuilder<Mode> {
+    /// Set fixture directory by name
+    pub fn on(mut self, fixture_name: &str) -> Self {
+        self.dir = Some(fixture(fixture_name));
+        self
+    }
+
+    /// Set working directory (alternative to fixture)
+    pub fn pwd(mut self, path: impl Into<std::path::PathBuf>) -> Self {
+        self.dir = Some(path.into());
+        self
+    }
+
+    /// Add CLI arguments
+    pub fn args(mut self, args: &[&str]) -> Self {
+        self.args.extend(args.iter().map(|s| s.to_string()));
+        self
+    }
+
+    /// Build the command
+    fn command(self) -> Command {
+        let is_json = std::any::TypeId::of::<Mode>() == std::any::TypeId::of::<Json>();
+        let is_html = std::any::TypeId::of::<Mode>() == std::any::TypeId::of::<Html>();
+
+        let mut cmd = quench_cmd();
+        cmd.arg("report");
+
+        if is_json {
+            cmd.args(["-o", "json"]);
+        } else if is_html {
+            cmd.args(["-o", "html"]);
+        }
+
+        cmd.args(&self.args);
+
+        if let Some(dir) = self.dir {
+            cmd.current_dir(dir);
+        }
+
+        cmd
     }
 }
 

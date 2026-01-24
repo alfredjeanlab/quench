@@ -24,6 +24,9 @@ mod cli_flags;
 #[path = "specs/cli/toggles.rs"]
 mod cli_toggles;
 
+#[path = "specs/cli/report.rs"]
+mod cli_report;
+
 // config/
 #[path = "specs/config/mod.rs"]
 mod config;
