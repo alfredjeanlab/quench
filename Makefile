@@ -35,6 +35,7 @@ bench:
 	cargo bench --bench baseline
 	cargo bench --bench file_walking
 	cargo bench --bench check
+	cargo bench --bench tests
 
 # Run benchmarks with CI tracking
 bench-ci:

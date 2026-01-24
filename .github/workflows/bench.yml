@@ -42,6 +42,9 @@ jobs:
       - name: Generate test fixtures
         run: ./scripts/fixtures/gen-fixtures
 
+      - name: Generate tests correlation fixtures
+        run: ./scripts/fixtures/generate-bench-tests.sh all
+
       - name: Run benchmarks
         run: |
           echo "Running benchmark suite..."
@@ -49,6 +52,7 @@ jobs:
           cargo bench --bench file_walking -- --noplot 2>&1 | tee -a bench-output.txt
           cargo bench --bench check -- --noplot 2>&1 | tee -a bench-output.txt
           cargo bench --bench dogfood -- --noplot 2>&1 | tee -a bench-output.txt
+          cargo bench --bench tests -- --noplot 2>&1 | tee -a bench-output.txt
 
       - name: Check for regressions
         run: |
@@ -97,12 +101,16 @@ jobs:
       - name: Generate test fixtures
         run: ./scripts/fixtures/gen-fixtures
 
+      - name: Generate tests correlation fixtures
+        run: ./scripts/fixtures/generate-bench-tests.sh all
+
       - name: Run and save baseline
         run: |
           cargo bench --bench baseline -- --save-baseline main --noplot
           cargo bench --bench file_walking -- --save-baseline main --noplot
           cargo bench --bench check -- --save-baseline main --noplot
           cargo bench --bench dogfood -- --save-baseline main --noplot
+          cargo bench --bench tests -- --save-baseline main --noplot
 
       - name: Save criterion baseline
         uses: actions/cache/save@v4
