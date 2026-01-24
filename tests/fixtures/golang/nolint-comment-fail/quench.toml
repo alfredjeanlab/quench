@@ -1,4 +1,4 @@
 version = 1
 
-[golang.suppress]
+[go.suppress]
 check = "comment"
