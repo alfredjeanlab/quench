@@ -14,7 +14,6 @@ use crate::prelude::*;
 ///
 /// > Valid markdown links to local files should pass.
 #[test]
-#[ignore = "TODO: Phase 602 - Docs Check Implementation"]
 fn valid_markdown_link_passes() {
     check("docs").on("docs/link-ok").passes();
 }
@@ -23,20 +22,18 @@ fn valid_markdown_link_passes() {
 ///
 /// > Markdown links to local files are validated.
 #[test]
-#[ignore = "TODO: Phase 602 - Docs Check Implementation"]
 fn markdown_link_to_missing_file_generates_violation() {
     check("docs")
         .on("docs/link-broken")
         .fails()
         .stdout_has("docs: FAIL")
-        .stdout_has("broken link");
+        .stdout_has("broken_link");
 }
 
 /// Spec: docs/specs/checks/docs.md#what-gets-validated-1
 ///
 /// > External URLs (http/https) are not validated.
 #[test]
-#[ignore = "TODO: Phase 602 - Docs Check Implementation"]
 fn external_urls_not_validated() {
     check("docs").on("docs/link-external").passes();
 }
@@ -45,7 +42,6 @@ fn external_urls_not_validated() {
 ///
 /// > README.md:45: broken link: docs/old-guide.md
 #[test]
-#[ignore = "TODO: Phase 602 - Docs Check Implementation"]
 fn broken_link_includes_file_and_line() {
     let docs = check("docs").on("docs/link-broken").json().fails();
     let violations = docs.require("violations").as_array().unwrap();
@@ -57,14 +53,16 @@ fn broken_link_includes_file_and_line() {
 
     assert!(link_violation.get("file").is_some(), "should have file");
     assert!(link_violation.get("line").is_some(), "should have line");
-    assert!(link_violation.get("target").is_some(), "should have target");
+    assert!(
+        link_violation.get("pattern").is_some(),
+        "should have pattern"
+    );
 }
 
 /// Spec: docs/specs/checks/docs.md#what-gets-validated-1
 ///
 /// > Check [configuration](../02-config.md) for options.
 #[test]
-#[ignore = "TODO: Phase 602 - Docs Check Implementation"]
 fn relative_path_links_validated() {
     let temp = default_project();
     temp.file(

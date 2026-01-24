@@ -66,11 +66,46 @@ impl TocConfig {
 }
 
 /// Configuration for link validation.
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct LinksConfig {
     /// Check level: "error" | "warn" | "off"
     pub check: Option<String>,
+
+    /// Include patterns for markdown files.
+    #[serde(default = "LinksConfig::default_include")]
+    pub include: Vec<String>,
+
+    /// Exclude patterns (plans, etc.).
+    #[serde(default = "LinksConfig::default_exclude")]
+    pub exclude: Vec<String>,
+}
+
+impl Default for LinksConfig {
+    fn default() -> Self {
+        Self {
+            check: None,
+            include: Self::default_include(),
+            exclude: Self::default_exclude(),
+        }
+    }
+}
+
+impl LinksConfig {
+    pub(super) fn default_include() -> Vec<String> {
+        vec!["**/*.md".to_string(), "**/*.mdc".to_string()]
+    }
+
+    pub(super) fn default_exclude() -> Vec<String> {
+        vec![
+            "plans/**".to_string(),
+            "plan.md".to_string(),
+            "*_plan.md".to_string(),
+            "plan_*".to_string(),
+            "**/fixtures/**".to_string(),
+            "**/testdata/**".to_string(),
+        ]
+    }
 }
 
 /// Escapes check configuration.
