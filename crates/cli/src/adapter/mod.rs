@@ -13,6 +13,7 @@ pub mod common;
 pub mod generic;
 pub mod glob;
 pub mod go;
+pub mod javascript;
 pub mod rust;
 pub mod shell;
 
@@ -25,6 +26,7 @@ pub use generic::GenericAdapter;
 pub use go::{
     GoAdapter, NolintDirective, enumerate_packages, parse_go_mod, parse_nolint_directives,
 };
+pub use javascript::{JavaScriptAdapter, JsWorkspace};
 pub use rust::{CfgTestInfo, RustAdapter, parse_suppress_attrs};
 
 /// File classification result.
@@ -143,6 +145,7 @@ impl Default for AdapterRegistry {
 pub enum ProjectLanguage {
     Rust,
     Go,
+    JavaScript,
     Shell,
     Generic,
 }
@@ -155,6 +158,14 @@ pub fn detect_language(root: &Path) -> ProjectLanguage {
 
     if root.join("go.mod").exists() {
         return ProjectLanguage::Go;
+    }
+
+    // JavaScript detection (before Shell check)
+    if root.join("package.json").exists()
+        || root.join("tsconfig.json").exists()
+        || root.join("jsconfig.json").exists()
+    {
+        return ProjectLanguage::JavaScript;
     }
 
     // Check for Shell project markers: *.sh in root, bin/, or scripts/
@@ -212,6 +223,9 @@ impl AdapterRegistry {
             }
             ProjectLanguage::Go => {
                 registry.register(Arc::new(GoAdapter::new()));
+            }
+            ProjectLanguage::JavaScript => {
+                registry.register(Arc::new(JavaScriptAdapter::new()));
             }
             ProjectLanguage::Shell => {
                 registry.register(Arc::new(ShellAdapter::new()));

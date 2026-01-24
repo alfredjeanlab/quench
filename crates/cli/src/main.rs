@@ -8,7 +8,7 @@ use std::sync::Arc;
 use clap::{CommandFactory, Parser};
 use tracing_subscriber::{EnvFilter, fmt};
 
-use quench::adapter::{ProjectLanguage, detect_language, rust::CargoWorkspace};
+use quench::adapter::{JsWorkspace, ProjectLanguage, detect_language, rust::CargoWorkspace};
 use quench::cache::{self, CACHE_FILE_NAME, FileCache};
 use quench::checks;
 use quench::cli::{CheckArgs, Cli, Command, InitArgs, OutputFormat, ReportArgs};
@@ -200,6 +200,30 @@ fn run_check(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
         }
         ProjectLanguage::Shell => {
             // No special ignore patterns for Shell projects
+        }
+        ProjectLanguage::JavaScript => {
+            // Ignore node_modules, dist, build for JS projects
+            for pattern in ["node_modules", "dist", "build", ".next", "coverage"] {
+                if !ignore_patterns.iter().any(|p| p.contains(pattern)) {
+                    ignore_patterns.push(pattern.to_string());
+                }
+            }
+
+            // Auto-detect workspace packages if not configured
+            if config.workspace.packages.is_empty() {
+                let workspace = JsWorkspace::from_root(&root);
+                if workspace.is_workspace {
+                    for path in &workspace.package_paths {
+                        config.workspace.packages.push(path.clone());
+                    }
+                    config.workspace.package_names = workspace.package_names.clone();
+                    tracing::debug!(
+                        "auto-detected JS workspace packages: {:?}",
+                        config.workspace.packages
+                    );
+                    tracing::debug!("package names: {:?}", config.workspace.package_names);
+                }
+            }
         }
         ProjectLanguage::Generic => {}
     }

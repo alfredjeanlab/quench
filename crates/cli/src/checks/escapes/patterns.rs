@@ -51,6 +51,9 @@ pub(super) fn get_adapter_escape_patterns(root: &Path) -> Vec<ConfigEscapePatter
             let shell_adapter = ShellAdapter::new();
             patterns.extend(convert_adapter_patterns(shell_adapter.default_escapes()));
         }
+        ProjectLanguage::JavaScript => {
+            // TODO: Phase 495 will add JavaScript escape patterns
+        }
         ProjectLanguage::Generic => {
             // No default patterns for generic projects
         }

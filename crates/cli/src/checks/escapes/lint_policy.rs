@@ -15,6 +15,7 @@ pub fn check_lint_policy(ctx: &CheckContext) -> Vec<Violation> {
         ProjectLanguage::Rust => check_rust_lint_policy(ctx, &ctx.config.rust),
         ProjectLanguage::Go => check_go_lint_policy(ctx, &ctx.config.golang),
         ProjectLanguage::Shell => check_shell_lint_policy(ctx, &ctx.config.shell),
+        ProjectLanguage::JavaScript => Vec::new(), // TODO: Phase 496
         ProjectLanguage::Generic => Vec::new(),
     }
 }

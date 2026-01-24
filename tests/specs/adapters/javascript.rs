@@ -21,7 +21,6 @@ use crate::prelude::*;
 /// > Detected when any of these exist in project root:
 /// > - `package.json`
 #[test]
-#[ignore = "TODO: Phase 493 - JavaScript Adapter Detection"]
 fn auto_detected_when_package_json_present() {
     let result = cli().on("javascript/auto-detect").json().passes();
     let checks = result.checks();
@@ -38,7 +37,6 @@ fn auto_detected_when_package_json_present() {
 ///
 /// > - `tsconfig.json`
 #[test]
-#[ignore = "TODO: Phase 493 - JavaScript Adapter Detection"]
 fn auto_detected_when_tsconfig_json_present() {
     let result = cli().on("javascript/tsconfig-detect").json().passes();
     let checks = result.checks();
@@ -54,7 +52,6 @@ fn auto_detected_when_tsconfig_json_present() {
 ///
 /// > - `jsconfig.json`
 #[test]
-#[ignore = "TODO: Phase 493 - JavaScript Adapter Detection"]
 fn auto_detected_when_jsconfig_json_present() {
     let result = cli().on("javascript/jsconfig-detect").json().passes();
     let checks = result.checks();
@@ -74,7 +71,6 @@ fn auto_detected_when_jsconfig_json_present() {
 ///
 /// > source = ["**/*.js", "**/*.jsx", "**/*.ts", "**/*.tsx", "**/*.mjs", "**/*.mts"]
 #[test]
-#[ignore = "TODO: Phase 493 - JavaScript Adapter Detection"]
 fn default_source_pattern_matches_js_ts_files() {
     let cloc = check("cloc")
         .on("javascript/default-patterns")
@@ -98,7 +94,6 @@ fn default_source_pattern_matches_js_ts_files() {
 /// >   "test/**", "tests/**"
 /// > ]
 #[test]
-#[ignore = "TODO: Phase 493 - JavaScript Adapter Detection"]
 fn default_test_pattern_matches_test_files() {
     let cloc = check("cloc")
         .on("javascript/default-patterns")
@@ -120,7 +115,6 @@ fn default_test_pattern_matches_test_files() {
 ///
 /// > ignore = ["node_modules/", "dist/", "build/", ".next/", "coverage/"]
 #[test]
-#[ignore = "TODO: Phase 493 - JavaScript Adapter Detection"]
 fn default_ignores_node_modules_directory() {
     let cloc = check("cloc")
         .on("javascript/node-modules-ignore")
@@ -147,7 +141,6 @@ fn default_ignores_node_modules_directory() {
 ///
 /// > Detects workspaces from package.json or pnpm-workspace.yaml
 #[test]
-#[ignore = "TODO: Phase 493 - JavaScript Adapter Detection"]
 fn detects_npm_workspaces_from_package_json() {
     let cloc = check("cloc").on("javascript/workspace-npm").json().passes();
     let by_package = cloc.get("by_package");
@@ -169,7 +162,6 @@ fn detects_npm_workspaces_from_package_json() {
 ///
 /// > Detects pnpm workspaces from pnpm-workspace.yaml
 #[test]
-#[ignore = "TODO: Phase 493 - JavaScript Adapter Detection"]
 fn detects_pnpm_workspaces() {
     let cloc = check("cloc")
         .on("javascript/workspace-pnpm")
