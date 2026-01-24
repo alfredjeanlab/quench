@@ -118,6 +118,14 @@ pub struct Violation {
     /// Expected docs pattern (for area-specific violations).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub expected_docs: Option<String>,
+
+    /// Area name that was matched (for area-specific violations).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub area: Option<String>,
+
+    /// How the area was matched ("scope" or "source").
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub area_match: Option<String>,
 }
 
 impl Violation {
@@ -143,6 +151,8 @@ impl Violation {
             commit: None,
             message: None,
             expected_docs: None,
+            area: None,
+            area_match: None,
         }
     }
 
@@ -167,6 +177,8 @@ impl Violation {
             commit: None,
             message: None,
             expected_docs: None,
+            area: None,
+            area_match: None,
         }
     }
 
@@ -192,12 +204,21 @@ impl Violation {
             commit: Some(hash.into()),
             message: Some(message.into()),
             expected_docs: None,
+            area: None,
+            area_match: None,
         }
     }
 
     /// Add expected docs pattern for area-specific violations.
     pub fn with_expected_docs(mut self, docs: impl Into<String>) -> Self {
         self.expected_docs = Some(docs.into());
+        self
+    }
+
+    /// Add area information to the violation.
+    pub fn with_area(mut self, name: impl Into<String>, match_type: impl Into<String>) -> Self {
+        self.area = Some(name.into());
+        self.area_match = Some(match_type.into());
         self
     }
 
