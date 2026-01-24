@@ -502,6 +502,9 @@ fn create_threshold_violation(
         nonblank: None,
         other_file: None,
         section: None,
+        commit: None,
+        message: None,
+        expected_docs: None,
     })
 }
 

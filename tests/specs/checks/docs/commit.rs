@@ -16,7 +16,6 @@ use std::process::Command;
 /// > Identify commits with `feat:` or `feat(area):` prefixes.
 /// > Report when feature commits lack corresponding doc changes.
 #[test]
-#[ignore = "TODO: Phase 603 - Docs Check CI Mode"]
 fn feature_commit_without_doc_change_generates_violation_ci_mode() {
     let temp = Project::empty();
     temp.config(
@@ -85,7 +84,6 @@ check = "error"
 ///
 /// > Use area mappings to require specific documentation for scoped commits.
 #[test]
-#[ignore = "TODO: Phase 603 - Docs Check CI Mode"]
 fn area_mapping_restricts_doc_requirement_to_specific_paths() {
     let temp = Project::empty();
     temp.config(
@@ -158,7 +156,6 @@ source = "src/api/**"
 ///
 /// > `off` - Disable commit checking (default).
 #[test]
-#[ignore = "TODO: Phase 603 - Docs Check CI Mode"]
 fn commit_checking_disabled_by_default() {
     let temp = default_project();
     // No [check.docs.commit] section - should be disabled

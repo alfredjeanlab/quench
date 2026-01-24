@@ -47,6 +47,8 @@ fn stub_check_result_marked_as_stub() {
         changed_files: None,
         fix: false,
         dry_run: false,
+        ci_mode: false,
+        base_branch: None,
     };
 
     let result = check.run(&ctx);

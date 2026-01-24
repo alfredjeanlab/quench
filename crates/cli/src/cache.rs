@@ -24,7 +24,7 @@ use crate::check::Violation;
 /// v11: TOC validator skips box diagrams (blocks with top corner characters).
 /// v12: StripParentDirName resolves relative to parent dir, not root.
 /// v13: Added content validation for spec files (sections, tables, size limits).
-pub const CACHE_VERSION: u32 = 13;
+pub const CACHE_VERSION: u32 = 14;
 
 /// Cache file name within .quench directory.
 pub const CACHE_FILE_NAME: &str = "cache.bin";
@@ -150,6 +150,9 @@ impl CachedViolation {
             nonblank: self.nonblank,
             other_file: None,
             section: None,
+            commit: None,
+            message: None,
+            expected_docs: None,
         }
     }
 }

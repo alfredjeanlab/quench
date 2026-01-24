@@ -6,8 +6,10 @@
 //! Validates:
 //! - TOC entries reference existing files
 //! - Markdown links point to existing files
-//! - (Future) Specs have required sections
+//! - Specs have required sections
+//! - Feature commits have documentation (CI mode)
 
+mod commit;
 mod content;
 mod links;
 mod specs;
@@ -43,6 +45,11 @@ impl Check for DocsCheck {
 
         // Run specs validation
         specs::validate_specs(ctx, &mut violations);
+
+        // Run commit validation (CI mode only)
+        if ctx.ci_mode {
+            commit::validate_commit_docs(ctx, &mut violations);
+        }
 
         // Respect violation limit
         if let Some(limit) = ctx.limit {
