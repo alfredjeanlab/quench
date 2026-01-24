@@ -389,6 +389,37 @@ pub fn golang_landing_items() -> &'static [&'static str] {
 }
 
 // =============================================================================
+// DETECTED AGENT SECTIONS
+// =============================================================================
+
+use crate::init::DetectedAgent;
+
+/// Generate [check.agents] section with detected agents.
+///
+/// Returns the TOML section with required files based on detected agents.
+pub fn agents_detected_section(agents: &[DetectedAgent]) -> String {
+    if agents.is_empty() {
+        return String::new();
+    }
+
+    let required: Vec<&str> = agents
+        .iter()
+        .map(|a| match a {
+            DetectedAgent::Claude => "CLAUDE.md",
+            DetectedAgent::Cursor => ".cursorrules",
+        })
+        .collect();
+
+    format!(
+        r#"[check.agents]
+check = "error"
+required = {:?}
+"#,
+        required
+    )
+}
+
+// =============================================================================
 // DETECTED LANGUAGE SECTIONS
 // =============================================================================
 
