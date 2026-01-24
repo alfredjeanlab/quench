@@ -10,7 +10,7 @@ use crate::prelude::*;
 /// > the check should not panic and should skip syncing gracefully.
 #[test]
 fn agents_sync_source_missing_gracefully_handles() {
-    let temp = TempProject::empty();
+    let temp = Project::empty();
     temp.config(
         r#"[check.agents]
 files = ["CLAUDE.md", ".cursorrules"]
@@ -21,7 +21,7 @@ required = [".cursorrules"]
 "#,
     );
     // Only create .cursorrules, not CLAUDE.md (the sync source)
-    temp.write(".cursorrules", "# Target\n\nSome content.\n");
+    temp.file(".cursorrules", "# Target\n\nSome content.\n");
 
     // Should not panic - sync is skipped when source doesn't exist
     // The check passes because .cursorrules exists and no sync source means no sync
@@ -38,7 +38,7 @@ required = [".cursorrules"]
 fn agents_identical_files_reports_in_sync() {
     let content =
         "# Project\n\n## Directory Structure\n\nLayout.\n\n## Landing the Plane\n\n- Done\n";
-    let temp = TempProject::empty();
+    let temp = Project::empty();
     temp.config(
         r#"[check.agents]
 files = ["CLAUDE.md", ".cursorrules"]
@@ -46,8 +46,8 @@ sync = true
 sync_source = "CLAUDE.md"
 "#,
     );
-    temp.write("CLAUDE.md", content);
-    temp.write(".cursorrules", content);
+    temp.file("CLAUDE.md", content);
+    temp.file(".cursorrules", content);
 
     let result = check("agents").pwd(temp.path()).json().passes();
     let metrics = result.require("metrics");
@@ -65,14 +65,14 @@ sync_source = "CLAUDE.md"
 /// > required sections are configured.
 #[test]
 fn agents_empty_file_validates_sections() {
-    let temp = TempProject::empty();
+    let temp = Project::empty();
     temp.config(
         r#"[check.agents]
 required = ["CLAUDE.md"]
 sections.required = ["Directory Structure"]
 "#,
     );
-    temp.write("CLAUDE.md", "");
+    temp.file("CLAUDE.md", "");
 
     let result = check("agents").pwd(temp.path()).json().fails();
     assert!(
@@ -86,14 +86,14 @@ sections.required = ["Directory Structure"]
 /// > A file with only whitespace should be treated similarly to an empty file.
 #[test]
 fn agents_whitespace_only_file_validates_sections() {
-    let temp = TempProject::empty();
+    let temp = Project::empty();
     temp.config(
         r#"[check.agents]
 required = ["CLAUDE.md"]
 sections.required = ["Directory Structure"]
 "#,
     );
-    temp.write("CLAUDE.md", "   \n\n   \n");
+    temp.file("CLAUDE.md", "   \n\n   \n");
 
     let result = check("agents").pwd(temp.path()).json().fails();
     assert!(

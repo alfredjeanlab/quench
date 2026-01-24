@@ -85,15 +85,15 @@ let result = cli().on("output-test").json().fails();
 assert!(result.checks().len() > 0);
 
 // Temp directories (with defaults: quench.toml + CLAUDE.md)
-let temp = default_project();
+let temp =default_project();
 temp.config("[check.cloc]\nmax_lines = 5");
-temp.write("src/lib.rs", "fn main() {}");
+temp.file("src/lib.rs", "fn main() {}");
 check("cloc").pwd(temp.path()).fails();
 
 // Empty temp directory (for init tests)
-let temp = TempProject::empty();
+let temp =Project::empty();
 temp.config("[check.agents]\nrequired = [\"CLAUDE.md\"]");
-temp.write("CLAUDE.md", "# Project\n...");
+temp.file("CLAUDE.md", "# Project\n...");
 check("agents").pwd(temp.path()).passes();
 ```
 

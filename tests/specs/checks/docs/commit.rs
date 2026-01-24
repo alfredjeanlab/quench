@@ -18,16 +18,12 @@ use std::process::Command;
 #[test]
 #[ignore = "TODO: Phase 603 - Docs Check CI Mode"]
 fn feature_commit_without_doc_change_generates_violation_ci_mode() {
-    let temp = default_project();
-    std::fs::write(
-        temp.path().join("quench.toml"),
-        r#"
-version = 1
-[check.docs.commit]
+    let temp = Project::empty();
+    temp.config(
+        r#"[check.docs.commit]
 check = "error"
 "#,
-    )
-    .unwrap();
+    );
 
     // Initialize git repo
     Command::new("git")
@@ -66,8 +62,7 @@ check = "error"
         .unwrap();
 
     // Add feature commit without docs
-    std::fs::create_dir_all(temp.path().join("src")).unwrap();
-    std::fs::write(temp.path().join("src/feature.rs"), "pub fn new_feature() {}").unwrap();
+    temp.file("src/feature.rs", "pub fn new_feature() {}");
     Command::new("git")
         .args(["add", "."])
         .current_dir(temp.path())
@@ -92,20 +87,16 @@ check = "error"
 #[test]
 #[ignore = "TODO: Phase 603 - Docs Check CI Mode"]
 fn area_mapping_restricts_doc_requirement_to_specific_paths() {
-    let temp = default_project();
-    std::fs::write(
-        temp.path().join("quench.toml"),
-        r#"
-version = 1
-[check.docs.commit]
+    let temp = Project::empty();
+    temp.config(
+        r#"[check.docs.commit]
 check = "error"
 
 [check.docs.area.api]
 docs = "docs/api/**"
 source = "src/api/**"
 "#,
-    )
-    .unwrap();
+    );
 
     // Initialize git repo with main branch
     Command::new("git")
@@ -143,12 +134,7 @@ source = "src/api/**"
         .output()
         .unwrap();
 
-    std::fs::create_dir_all(temp.path().join("src/api")).unwrap();
-    std::fs::write(
-        temp.path().join("src/api/endpoint.rs"),
-        "pub fn endpoint() {}",
-    )
-    .unwrap();
+    temp.file("src/api/endpoint.rs", "pub fn endpoint() {}");
     Command::new("git")
         .args(["add", "."])
         .current_dir(temp.path())
@@ -208,7 +194,7 @@ fn commit_checking_disabled_by_default() {
         .current_dir(temp.path())
         .output()
         .unwrap();
-    std::fs::write(temp.path().join("new.rs"), "fn new() {}").unwrap();
+    temp.file("new.rs", "fn new() {}");
     Command::new("git")
         .args(["add", "."])
         .current_dir(temp.path())

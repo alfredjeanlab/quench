@@ -49,8 +49,7 @@ mod adapters;
 use prelude::*;
 
 /// Minimal config that disables agents check (for tests not focused on agents)
-const MINIMAL_CONFIG: &str = r#"version = 1
-[check.agents]
+const MINIMAL_CONFIG: &str = r#"[check.agents]
 required = []
 "#;
 
@@ -106,12 +105,12 @@ fn version_exits_successfully() {
 /// > quench check runs quality checks
 #[test]
 fn check_command_exists() {
-    let dir = tempfile::tempdir().unwrap();
-    std::fs::write(dir.path().join("quench.toml"), MINIMAL_CONFIG).unwrap();
+    let temp = Project::empty();
+    temp.config(MINIMAL_CONFIG);
 
     quench_cmd()
         .arg("check")
-        .current_dir(dir.path())
+        .current_dir(temp.path())
         .assert()
         .success();
 }
@@ -129,10 +128,10 @@ fn report_command_exists() {
 /// > quench init initializes configuration
 #[test]
 fn init_command_exists() {
-    let dir = tempfile::tempdir().unwrap();
+    let temp = Project::empty();
     quench_cmd()
         .arg("init")
-        .current_dir(dir.path())
+        .current_dir(temp.path())
         .assert()
         .success();
 }
@@ -182,13 +181,13 @@ fn short_version_flag_works() {
 /// > -C <FILE> specifies config file (short for --config)
 #[test]
 fn short_config_flag_works() {
-    let dir = tempfile::tempdir().unwrap();
-    let config_path = dir.path().join("custom.toml");
-    std::fs::write(&config_path, MINIMAL_CONFIG).unwrap();
+    let temp = Project::empty();
+    temp.file("custom.toml", &format!("version = 1\n{MINIMAL_CONFIG}"));
 
+    let config_path = temp.path().join("custom.toml");
     quench_cmd()
         .args(["-C", config_path.to_str().unwrap(), "check"])
-        .current_dir(dir.path())
+        .current_dir(temp.path())
         .assert()
         .success();
 }
@@ -226,12 +225,12 @@ fn unknown_long_flag_fails() {
 /// > -o <FMT> sets output format (short for --output)
 #[test]
 fn check_short_output_flag_works() {
-    let dir = tempfile::tempdir().unwrap();
-    std::fs::write(dir.path().join("quench.toml"), MINIMAL_CONFIG).unwrap();
+    let temp = Project::empty();
+    temp.config(MINIMAL_CONFIG);
 
     quench_cmd()
         .args(["check", "-o", "json"])
-        .current_dir(dir.path())
+        .current_dir(temp.path())
         .assert()
         .success()
         .stdout(predicates::str::starts_with("{"));
@@ -242,12 +241,12 @@ fn check_short_output_flag_works() {
 /// > -o json produces JSON output
 #[test]
 fn check_output_json_format() {
-    let dir = tempfile::tempdir().unwrap();
-    std::fs::write(dir.path().join("quench.toml"), MINIMAL_CONFIG).unwrap();
+    let temp = Project::empty();
+    temp.config(MINIMAL_CONFIG);
 
     let output = quench_cmd()
         .args(["check", "-o", "json"])
-        .current_dir(dir.path())
+        .current_dir(temp.path())
         .output()
         .unwrap();
 
@@ -292,21 +291,18 @@ fn check_unknown_long_flag_fails() {
 /// > Unknown keys are warnings (forward compatibility)
 #[test]
 fn unknown_config_key_warns() {
-    let dir = tempfile::tempdir().unwrap();
-    std::fs::write(
-        dir.path().join("quench.toml"),
-        r#"version = 1
-unknown_key = true
+    let temp = Project::empty();
+    temp.config(
+        r#"unknown_key = true
 
 [check.agents]
 required = []
 "#,
-    )
-    .unwrap();
+    );
 
     quench_cmd()
         .arg("check")
-        .current_dir(dir.path())
+        .current_dir(temp.path())
         .assert()
         .success() // Should not fail
         .stderr(predicates::str::contains("unknown").or(predicates::str::contains("unrecognized")));
@@ -317,21 +313,17 @@ required = []
 /// > Unknown nested keys are warnings
 #[test]
 fn unknown_nested_config_key_warns() {
-    let dir = tempfile::tempdir().unwrap();
-    std::fs::write(
-        dir.path().join("quench.toml"),
-        format!(
-            r#"{MINIMAL_CONFIG}
+    let temp = Project::empty();
+    temp.config(&format!(
+        r#"{MINIMAL_CONFIG}
 [check.unknown]
 field = "value"
 "#
-        ),
-    )
-    .unwrap();
+    ));
 
     quench_cmd()
         .arg("check")
-        .current_dir(dir.path())
+        .current_dir(temp.path())
         .assert()
         .success()
         .stderr(predicates::str::contains("unknown").or(predicates::str::contains("unrecognized")));
@@ -342,12 +334,12 @@ field = "value"
 /// > Valid config produces no warnings
 #[test]
 fn valid_config_no_warnings() {
-    let dir = tempfile::tempdir().unwrap();
-    std::fs::write(dir.path().join("quench.toml"), MINIMAL_CONFIG).unwrap();
+    let temp = Project::empty();
+    temp.config(MINIMAL_CONFIG);
 
     quench_cmd()
         .arg("check")
-        .current_dir(dir.path())
+        .current_dir(temp.path())
         .assert()
         .success()
         .stderr(predicates::str::is_empty().or(predicates::str::contains("warning").not()));
@@ -362,15 +354,13 @@ fn valid_config_no_warnings() {
 /// > QUENCH_NO_COLOR=1 disables color output
 #[test]
 fn env_no_color_disables_color() {
-    let dir = tempfile::tempdir().unwrap();
-    std::fs::write(dir.path().join("quench.toml"), MINIMAL_CONFIG).unwrap();
-
-    // Create a file that would trigger a violation with colored output
-    std::fs::write(dir.path().join("test.rs"), "fn main() {}\n").unwrap();
+    let temp = Project::empty();
+    temp.config(MINIMAL_CONFIG);
+    temp.file("test.rs", "fn main() {}\n");
 
     let output = quench_cmd()
         .arg("check")
-        .current_dir(dir.path())
+        .current_dir(temp.path())
         .env("QUENCH_NO_COLOR", "1")
         .output()
         .unwrap();
@@ -388,13 +378,16 @@ fn env_no_color_disables_color() {
 /// > QUENCH_CONFIG sets config file location
 #[test]
 fn env_config_sets_path() {
-    let dir = tempfile::tempdir().unwrap();
-    let config_path = dir.path().join("custom-config.toml");
-    std::fs::write(&config_path, MINIMAL_CONFIG).unwrap();
+    let temp = Project::empty();
+    temp.file(
+        "custom-config.toml",
+        &format!("version = 1\n{MINIMAL_CONFIG}"),
+    );
 
+    let config_path = temp.path().join("custom-config.toml");
     quench_cmd()
         .arg("check")
-        .current_dir(dir.path())
+        .current_dir(temp.path())
         .env("QUENCH_CONFIG", config_path.to_str().unwrap())
         .assert()
         .success();
@@ -405,12 +398,12 @@ fn env_config_sets_path() {
 /// > QUENCH_LOG enables debug logging to stderr
 #[test]
 fn env_log_enables_debug() {
-    let dir = tempfile::tempdir().unwrap();
-    std::fs::write(dir.path().join("quench.toml"), MINIMAL_CONFIG).unwrap();
+    let temp = Project::empty();
+    temp.config(MINIMAL_CONFIG);
 
     quench_cmd()
         .arg("check")
-        .current_dir(dir.path())
+        .current_dir(temp.path())
         .env("QUENCH_LOG", "debug")
         .assert()
         .success()
@@ -422,12 +415,12 @@ fn env_log_enables_debug() {
 /// > QUENCH_LOG=trace enables trace logging
 #[test]
 fn env_log_trace_level() {
-    let dir = tempfile::tempdir().unwrap();
-    std::fs::write(dir.path().join("quench.toml"), MINIMAL_CONFIG).unwrap();
+    let temp = Project::empty();
+    temp.config(MINIMAL_CONFIG);
 
     quench_cmd()
         .arg("check")
-        .current_dir(dir.path())
+        .current_dir(temp.path())
         .env("QUENCH_LOG", "trace")
         .assert()
         .success()

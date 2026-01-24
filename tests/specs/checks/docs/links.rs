@@ -67,12 +67,10 @@ fn broken_link_includes_file_and_line() {
 #[ignore = "TODO: Phase 602 - Docs Check Implementation"]
 fn relative_path_links_validated() {
     let temp = default_project();
-    std::fs::create_dir_all(temp.path().join("docs/specs")).unwrap();
-    std::fs::write(
-        temp.path().join("docs/specs/overview.md"),
+    temp.file(
+        "docs/specs/overview.md",
         "See [config](../config.md) for details.\n",
-    )
-    .unwrap();
+    );
     // ../config.md doesn't exist relative to docs/specs/overview.md
     check("docs")
         .pwd(temp.path())

@@ -526,12 +526,12 @@ pub fn fixture(name: &str) -> std::path::PathBuf {
 }
 
 /// Creates a temp directory with quench.toml and minimal CLAUDE.md
-pub fn default_project() -> TempProject {
-    TempProject::with_defaults()
+pub fn default_project() -> Project {
+    Project::with_defaults()
 }
 
 // =============================================================================
-// TempProject
+// Project
 // =============================================================================
 
 /// Temporary test project directory with helper methods.
@@ -545,20 +545,20 @@ pub fn default_project() -> TempProject {
 ///
 /// ```ignore
 /// // Project with defaults
-/// let temp = default_project();
+/// let temp =default_project();
 /// temp.config("[check.cloc]\nmax_lines = 5");
-/// temp.write("src/lib.rs", "fn main() {}");
+/// temp.file("src/lib.rs", "fn main() {}");
 /// check("cloc").pwd(temp.path()).fails();
 ///
 /// // Empty project (for init tests)
-/// let temp = TempProject::empty();
+/// let temp =Project::empty();
 /// quench_cmd().args(["init"]).current_dir(temp.path());
 /// ```
-pub struct TempProject {
+pub struct Project {
     dir: tempfile::TempDir,
 }
 
-impl TempProject {
+impl Project {
     /// Create an empty project with no files
     pub fn empty() -> Self {
         Self {
@@ -569,8 +569,8 @@ impl TempProject {
     /// Create a project with default quench.toml and CLAUDE.md
     pub fn with_defaults() -> Self {
         let temp = Self::empty();
-        temp.write("quench.toml", "version = 1\n");
-        temp.write(
+        temp.file("quench.toml", "version = 1\n");
+        temp.file(
             "CLAUDE.md",
             "# Project\n\n## Directory Structure\n\nMinimal.\n\n## Landing the Plane\n\n- Done\n",
         );
@@ -593,7 +593,7 @@ impl TempProject {
     }
 
     /// Write a file at the given path (parent directories created automatically)
-    pub fn write(&self, path: impl AsRef<Path>, content: &str) {
+    pub fn file(&self, path: impl AsRef<Path>, content: &str) {
         let full_path = self.dir.path().join(path.as_ref());
         if let Some(parent) = full_path.parent() {
             std::fs::create_dir_all(parent).unwrap();

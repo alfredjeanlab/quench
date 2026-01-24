@@ -45,7 +45,7 @@ fn dry_run_without_fix_is_error() {
 /// > --dry-run shows files that would be modified without modifying them.
 #[test]
 fn dry_run_shows_files_that_would_be_modified() {
-    let temp = TempProject::empty();
+    let temp = Project::empty();
     temp.config(
         r#"[check.agents]
 files = ["CLAUDE.md", ".cursorrules"]
@@ -53,8 +53,8 @@ sync = true
 sync_source = "CLAUDE.md"
 "#,
     );
-    temp.write("CLAUDE.md", SOURCE);
-    temp.write(".cursorrules", TARGET);
+    temp.file("CLAUDE.md", SOURCE);
+    temp.file(".cursorrules", TARGET);
 
     cli()
         .pwd(temp.path())
@@ -68,7 +68,7 @@ sync_source = "CLAUDE.md"
 /// > --dry-run shows diff of proposed changes.
 #[test]
 fn dry_run_shows_diff_of_changes() {
-    let temp = TempProject::empty();
+    let temp = Project::empty();
     temp.config(
         r#"[check.agents]
 files = ["CLAUDE.md", ".cursorrules"]
@@ -77,8 +77,8 @@ sync_source = "CLAUDE.md"
 sections.required = []
 "#,
     );
-    temp.write("CLAUDE.md", SOURCE);
-    temp.write(".cursorrules", TARGET);
+    temp.file("CLAUDE.md", SOURCE);
+    temp.file(".cursorrules", TARGET);
 
     // Diff output should show both old and new content
     cli()
@@ -98,7 +98,7 @@ sections.required = []
 /// > --dry-run exits 0 even when fixes are needed.
 #[test]
 fn dry_run_exits_0_when_fixes_needed() {
-    let temp = TempProject::empty();
+    let temp = Project::empty();
     temp.config(
         r#"[check.agents]
 files = ["CLAUDE.md", ".cursorrules"]
@@ -106,11 +106,14 @@ sync = true
 sync_source = "CLAUDE.md"
 "#,
     );
-    temp.write("CLAUDE.md", SOURCE);
-    temp.write(".cursorrules", TARGET);
+    temp.file("CLAUDE.md", SOURCE);
+    temp.file(".cursorrules", TARGET);
 
     // Files are out of sync, fixes are needed, but --dry-run exits 0
-    cli().pwd(temp.path()).args(&["--fix", "--dry-run"]).passes(); // passes() expects exit code 0
+    cli()
+        .pwd(temp.path())
+        .args(&["--fix", "--dry-run"])
+        .passes(); // passes() expects exit code 0
 }
 
 // =============================================================================
@@ -122,7 +125,7 @@ sync_source = "CLAUDE.md"
 /// > --dry-run does not modify any files.
 #[test]
 fn dry_run_does_not_modify_files() {
-    let temp = TempProject::empty();
+    let temp = Project::empty();
     temp.config(
         r#"[check.agents]
 files = ["CLAUDE.md", ".cursorrules"]
@@ -130,11 +133,14 @@ sync = true
 sync_source = "CLAUDE.md"
 "#,
     );
-    temp.write("CLAUDE.md", SOURCE);
-    temp.write(".cursorrules", TARGET);
+    temp.file("CLAUDE.md", SOURCE);
+    temp.file(".cursorrules", TARGET);
 
     // Run with --dry-run
-    cli().pwd(temp.path()).args(&["--fix", "--dry-run"]).passes();
+    cli()
+        .pwd(temp.path())
+        .args(&["--fix", "--dry-run"])
+        .passes();
 
     // Verify .cursorrules was NOT modified
     let content = std::fs::read_to_string(temp.path().join(".cursorrules")).unwrap();
@@ -150,7 +156,7 @@ sync_source = "CLAUDE.md"
 /// > When files are already in sync, dry-run should show PASS with no preview.
 #[test]
 fn dry_run_no_changes_shows_clean() {
-    let temp = TempProject::empty();
+    let temp = Project::empty();
     temp.config(
         r#"[check.agents]
 files = ["CLAUDE.md", ".cursorrules"]
@@ -159,8 +165,8 @@ sync_source = "CLAUDE.md"
 "#,
     );
     // Both files have the same content
-    temp.write("CLAUDE.md", SOURCE);
-    temp.write(".cursorrules", SOURCE);
+    temp.file("CLAUDE.md", SOURCE);
+    temp.file(".cursorrules", SOURCE);
 
     // Dry-run should pass with no preview needed
     cli()
@@ -175,7 +181,7 @@ sync_source = "CLAUDE.md"
 /// > JSON output in dry-run mode should include previews in fix_summary.
 #[test]
 fn dry_run_json_output_includes_previews() {
-    let temp = TempProject::empty();
+    let temp = Project::empty();
     temp.config(
         r#"[check.agents]
 files = ["CLAUDE.md", ".cursorrules"]
@@ -184,8 +190,8 @@ sync_source = "CLAUDE.md"
 sections.required = []
 "#,
     );
-    temp.write("CLAUDE.md", SOURCE);
-    temp.write(".cursorrules", TARGET);
+    temp.file("CLAUDE.md", SOURCE);
+    temp.file(".cursorrules", TARGET);
 
     let result = cli()
         .pwd(temp.path())

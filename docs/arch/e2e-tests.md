@@ -69,7 +69,7 @@ fn check(name: &str) -> CheckBuilder<Text, Single>;
 fn cli() -> CheckBuilder<Text, All>;
 
 /// Create temp project with quench.toml and CLAUDE.md defaults
-fn default_project() -> TempProject;
+fn default_project() -> Project;
 ```
 
 ### CheckBuilder
@@ -247,7 +247,7 @@ For config parsing or error case specs:
 /// Spec: docs/specs/02-config.md#validation
 #[test]
 fn rejects_invalid_version() {
-    let temp = default_project();
+    let temp =default_project();
     temp.config("version = 999");
 
     check("cloc")
@@ -257,11 +257,11 @@ fn rejects_invalid_version() {
 }
 ```
 
-TempProject methods:
-- `TempProject::empty()` - No default files
-- `TempProject::with_defaults()` - Has quench.toml + CLAUDE.md
+Project methods:
+- `Project::empty()` - No default files
+- `Project::with_defaults()` - Has quench.toml + CLAUDE.md
 - `temp.config(content)` - Write quench.toml (auto-adds `version = 1` if missing)
-- `temp.write(path, content)` - Write file (auto-creates parent dirs)
+- `temp.file(path, content)` - Write file (auto-creates parent dirs)
 - `temp.path()` - Get the temp directory path
 
 ## Spec Documentation

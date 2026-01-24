@@ -63,7 +63,7 @@ fn agents_violation_type_is_valid() {
 fn agents_fix_syncs_files_from_sync_source() {
     let source =
         "# Source\n\n## Directory Structure\n\nLayout.\n\n## Landing the Plane\n\n- Done\n";
-    let temp = TempProject::empty();
+    let temp = Project::empty();
     temp.config(
         r#"[check.agents]
 files = ["CLAUDE.md", ".cursorrules"]
@@ -71,8 +71,8 @@ sync = true
 sync_source = "CLAUDE.md"
 "#,
     );
-    temp.write("CLAUDE.md", source);
-    temp.write(".cursorrules", "# Different content");
+    temp.file("CLAUDE.md", source);
+    temp.file(".cursorrules", "# Different content");
 
     // Run with --fix
     check("agents").pwd(temp.path()).args(&["--fix"]).passes();
@@ -113,13 +113,13 @@ fn agents_out_of_sync_text_output() {
 /// > Out of sync with differing preamble shows "(preamble)" not empty string.
 #[test]
 fn agents_out_of_sync_preamble_text_output() {
-    let temp = TempProject::empty();
+    let temp = Project::empty();
     temp.config("");
-    temp.write(
+    temp.file(
         "CLAUDE.md",
         "# Project A\n\nFirst preamble.\n\n## Directory Structure\n\nLayout.\n\n## Landing the Plane\n\n- Done\n",
     );
-    temp.write(
+    temp.file(
         ".cursorrules",
         "# Project B\n\nDifferent preamble.\n\n## Directory Structure\n\nLayout.\n\n## Landing the Plane\n\n- Done\n",
     );
@@ -180,7 +180,7 @@ fn agents_file_too_large_text_output() {
 fn agents_fix_shows_fixed_status() {
     let source =
         "# Source\n\n## Directory Structure\n\nLayout.\n\n## Landing the Plane\n\n- Done\n";
-    let temp = TempProject::empty();
+    let temp = Project::empty();
     temp.config(
         r#"[check.agents]
 files = ["CLAUDE.md", ".cursorrules"]
@@ -188,8 +188,8 @@ sync = true
 sync_source = "CLAUDE.md"
 "#,
     );
-    temp.write("CLAUDE.md", source);
-    temp.write(".cursorrules", "# Different content");
+    temp.file("CLAUDE.md", source);
+    temp.file(".cursorrules", "# Different content");
 
     check("agents")
         .pwd(temp.path())
@@ -206,7 +206,7 @@ sync_source = "CLAUDE.md"
 fn agents_fix_json_includes_fixed_field() {
     let source =
         "# Source\n\n## Directory Structure\n\nLayout.\n\n## Landing the Plane\n\n- Done\n";
-    let temp = TempProject::empty();
+    let temp = Project::empty();
     temp.config(
         r#"[check.agents]
 files = ["CLAUDE.md", ".cursorrules"]
@@ -214,8 +214,8 @@ sync = true
 sync_source = "CLAUDE.md"
 "#,
     );
-    temp.write("CLAUDE.md", source);
-    temp.write(".cursorrules", "# Different content");
+    temp.file("CLAUDE.md", source);
+    temp.file(".cursorrules", "# Different content");
 
     let result = check("agents")
         .pwd(temp.path())

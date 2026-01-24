@@ -252,31 +252,21 @@ fn eslint_disable_with_comment_passes() {
 #[test]
 #[ignore = "TODO: Phase 496 - JavaScript Adapter Suppress"]
 fn eslint_disable_next_line_with_comment_passes() {
-    let temp = default_project();
-    std::fs::write(
-        temp.path().join("quench.toml"),
-        r#"
-version = 1
-[javascript.suppress]
+    let temp = Project::empty();
+    temp.config(
+        r#"[javascript.suppress]
 check = "comment"
 "#,
-    )
-    .unwrap();
-    std::fs::write(
-        temp.path().join("package.json"),
-        r#"{"name": "test", "version": "1.0.0"}"#,
-    )
-    .unwrap();
-    std::fs::create_dir_all(temp.path().join("src")).unwrap();
-    std::fs::write(
-        temp.path().join("src/index.ts"),
+    );
+    temp.file("package.json", r#"{"name": "test", "version": "1.0.0"}"#);
+    temp.file(
+        "src/index.ts",
         r#"
 // Legacy code requires this pattern
 // eslint-disable-next-line no-console
 console.log('debug');
 "#,
-    )
-    .unwrap();
+    );
 
     check("escapes").pwd(temp.path()).passes();
 }
@@ -325,26 +315,18 @@ fn eslint_disable_in_test_file_passes_without_comment() {
 #[test]
 #[ignore = "TODO: Phase 496 - JavaScript Adapter Suppress"]
 fn lint_config_changes_with_source_fails_standalone_policy() {
-    let temp = default_project();
+    let temp = Project::empty();
 
     // Setup quench.toml with standalone policy
-    std::fs::write(
-        temp.path().join("quench.toml"),
-        r#"
-version = 1
-[javascript.policy]
+    temp.config(
+        r#"[javascript.policy]
 lint_changes = "standalone"
 lint_config = ["eslint.config.js"]
 "#,
-    )
-    .unwrap();
+    );
 
     // Setup package.json
-    std::fs::write(
-        temp.path().join("package.json"),
-        r#"{"name": "test", "version": "1.0.0"}"#,
-    )
-    .unwrap();
+    temp.file("package.json", r#"{"name": "test", "version": "1.0.0"}"#);
 
     // Initialize git repo
     std::process::Command::new("git")
@@ -366,12 +348,7 @@ lint_config = ["eslint.config.js"]
         .unwrap();
 
     // Create initial commit with source
-    std::fs::create_dir_all(temp.path().join("src")).unwrap();
-    std::fs::write(
-        temp.path().join("src/index.ts"),
-        "export function main() {}\n",
-    )
-    .unwrap();
+    temp.file("src/index.ts", "export function main() {}\n");
 
     std::process::Command::new("git")
         .args(["add", "-A"])
@@ -386,12 +363,11 @@ lint_config = ["eslint.config.js"]
         .unwrap();
 
     // Add both lint config and source changes
-    std::fs::write(temp.path().join("eslint.config.js"), "export default [];\n").unwrap();
-    std::fs::write(
-        temp.path().join("src/index.ts"),
+    temp.file("eslint.config.js", "export default [];\n");
+    temp.file(
+        "src/index.ts",
         "export function main() {}\nexport function helper() {}\n",
-    )
-    .unwrap();
+    );
 
     std::process::Command::new("git")
         .args(["add", "-A"])
@@ -414,26 +390,18 @@ lint_config = ["eslint.config.js"]
 #[test]
 #[ignore = "TODO: Phase 496 - JavaScript Adapter Suppress"]
 fn lint_config_standalone_passes() {
-    let temp = default_project();
+    let temp = Project::empty();
 
     // Setup quench.toml with standalone policy
-    std::fs::write(
-        temp.path().join("quench.toml"),
-        r#"
-version = 1
-[javascript.policy]
+    temp.config(
+        r#"[javascript.policy]
 lint_changes = "standalone"
 lint_config = ["eslint.config.js"]
 "#,
-    )
-    .unwrap();
+    );
 
     // Setup package.json
-    std::fs::write(
-        temp.path().join("package.json"),
-        r#"{"name": "test", "version": "1.0.0"}"#,
-    )
-    .unwrap();
+    temp.file("package.json", r#"{"name": "test", "version": "1.0.0"}"#);
 
     // Initialize git repo
     std::process::Command::new("git")
@@ -455,12 +423,7 @@ lint_config = ["eslint.config.js"]
         .unwrap();
 
     // Create initial commit
-    std::fs::create_dir_all(temp.path().join("src")).unwrap();
-    std::fs::write(
-        temp.path().join("src/index.ts"),
-        "export function main() {}\n",
-    )
-    .unwrap();
+    temp.file("src/index.ts", "export function main() {}\n");
 
     std::process::Command::new("git")
         .args(["add", "-A"])
@@ -475,7 +438,7 @@ lint_config = ["eslint.config.js"]
         .unwrap();
 
     // Add ONLY lint config change (no source changes)
-    std::fs::write(temp.path().join("eslint.config.js"), "export default [];\n").unwrap();
+    temp.file("eslint.config.js", "export default [];\n");
 
     std::process::Command::new("git")
         .args(["add", "-A"])

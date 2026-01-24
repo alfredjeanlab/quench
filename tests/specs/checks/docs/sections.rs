@@ -42,24 +42,18 @@ fn forbidden_section_in_spec_generates_violation() {
 #[test]
 #[ignore = "TODO: Phase 602 - Docs Check Implementation"]
 fn section_matching_is_case_insensitive() {
-    let temp = default_project();
-    std::fs::write(
-        temp.path().join("quench.toml"),
-        r#"
-version = 1
-[check.docs]
+    let temp = Project::empty();
+    temp.config(
+        r#"[check.docs]
 path = "docs/specs"
 sections.required = ["purpose"]
 "#,
-    )
-    .unwrap();
-    std::fs::create_dir_all(temp.path().join("docs/specs")).unwrap();
-    std::fs::write(temp.path().join("docs/specs/CLAUDE.md"), "# Specs\n").unwrap();
-    std::fs::write(
-        temp.path().join("docs/specs/feature.md"),
+    );
+    temp.file("docs/specs/CLAUDE.md", "# Specs\n");
+    temp.file(
+        "docs/specs/feature.md",
         "# Feature\n\n## PURPOSE\n\nThis is the purpose.\n",
-    )
-    .unwrap();
+    );
 
     // "PURPOSE" should match required "purpose"
     check("docs").pwd(temp.path()).passes();

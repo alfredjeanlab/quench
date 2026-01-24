@@ -7,7 +7,7 @@ use crate::prelude::*;
 /// > quench init --profile shell - Shell project defaults
 #[test]
 fn init_shell_profile_generates_config() {
-    let temp = TempProject::empty();
+    let temp = Project::empty();
 
     quench_cmd()
         .args(["init", "--profile", "shell"])
@@ -36,7 +36,7 @@ fn init_shell_profile_generates_config() {
 /// > Shell profile includes escape patterns for set +e, eval, rm -rf
 #[test]
 fn init_shell_profile_includes_escape_patterns() {
-    let temp = TempProject::empty();
+    let temp = Project::empty();
 
     quench_cmd()
         .args(["init", "--profile", "shell"])
@@ -64,7 +64,7 @@ fn init_shell_profile_includes_escape_patterns() {
 /// > quench init --profile rust,shell - Multi-language project
 #[test]
 fn init_combined_profiles_generates_both() {
-    let temp = TempProject::empty();
+    let temp = Project::empty();
 
     quench_cmd()
         .args(["init", "--profile", "rust,shell"])
@@ -89,7 +89,7 @@ fn init_combined_profiles_generates_both() {
 /// > Shell profile output message includes profile name
 #[test]
 fn init_shell_profile_message() {
-    let temp = TempProject::empty();
+    let temp = Project::empty();
 
     quench_cmd()
         .args(["init", "--profile", "shell"])

@@ -285,23 +285,17 @@ fn cloc_test_violation_has_default_advice() {
 /// > advice = "..." - custom advice for source file violations
 #[test]
 fn cloc_uses_custom_advice_for_source() {
-    let temp = default_project();
-    std::fs::write(
-        temp.path().join("quench.toml"),
-        r#"
-version = 1
-[check.cloc]
+    let temp = Project::empty();
+    temp.config(
+        r#"[check.cloc]
 max_lines = 5
 advice = "Custom source advice here."
 "#,
-    )
-    .unwrap();
-    std::fs::create_dir_all(temp.path().join("src")).unwrap();
-    std::fs::write(
-        temp.path().join("src/big.rs"),
+    );
+    temp.file(
+        "src/big.rs",
         "fn a() {}\nfn b() {}\nfn c() {}\nfn d() {}\nfn e() {}\nfn f() {}\n",
-    )
-    .unwrap();
+    );
 
     let cloc = check("cloc").pwd(temp.path()).json().fails();
     let violations = cloc.require("violations").as_array().unwrap();
@@ -318,23 +312,17 @@ advice = "Custom source advice here."
 /// > advice_test = "..." - custom advice for test file violations
 #[test]
 fn cloc_uses_custom_advice_for_test() {
-    let temp = default_project();
-    std::fs::write(
-        temp.path().join("quench.toml"),
-        r#"
-version = 1
-[check.cloc]
+    let temp = Project::empty();
+    temp.config(
+        r#"[check.cloc]
 max_lines_test = 5
 advice_test = "Custom test advice here."
 "#,
-    )
-    .unwrap();
-    std::fs::create_dir_all(temp.path().join("tests")).unwrap();
-    std::fs::write(
-        temp.path().join("tests/big_test.rs"),
+    );
+    temp.file(
+        "tests/big_test.rs",
         "fn a() {}\nfn b() {}\nfn c() {}\nfn d() {}\nfn e() {}\nfn f() {}\n",
-    )
-    .unwrap();
+    );
 
     let cloc = check("cloc").pwd(temp.path()).json().fails();
     let violations = cloc.require("violations").as_array().unwrap();
@@ -484,24 +472,18 @@ fn cloc_default_metric_is_total_lines() {
 /// > metric = "nonblank" uses non-blank lines for threshold
 #[test]
 fn cloc_metric_nonblank_uses_nonblank_for_threshold() {
-    let temp = default_project();
-    std::fs::write(
-        temp.path().join("quench.toml"),
-        r#"
-version = 1
-[check.cloc]
+    let temp = Project::empty();
+    temp.config(
+        r#"[check.cloc]
 max_lines = 5
 metric = "nonblank"
 "#,
-    )
-    .unwrap();
+    );
     // Create a file with 10 total lines but only 6 non-blank
-    std::fs::create_dir_all(temp.path().join("src")).unwrap();
-    std::fs::write(
-        temp.path().join("src/lib.rs"),
+    temp.file(
+        "src/lib.rs",
         "fn a() {}\n\nfn b() {}\n\nfn c() {}\n\nfn d() {}\n\nfn e() {}\n\nfn f() {}\n",
-    )
-    .unwrap();
+    );
 
     let cloc = check("cloc").pwd(temp.path()).json().fails();
     let violations = cloc.require("violations").as_array().unwrap();
