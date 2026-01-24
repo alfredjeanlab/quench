@@ -325,6 +325,16 @@ Would verify:
 
 Could be a new check (`docs` or `specs`) or integrated into existing tooling.
 
+## Workspace Mode
+
+Run quench across monorepos with nested `quench.toml` files.
+
+When a root config defines workspace members, `quench check` runs each member with its own config and aggregates results. Members may inherit defaults from the workspace root.
+
+**Open questions:**
+- Explicit members list vs auto-discovery of nested configs
+- Inheritance: opt-in or default?
+
 ## Import Dependency Rules
 
 Enforce layered architecture by validating import/dependency relationships between modules.
