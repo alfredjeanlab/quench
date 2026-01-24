@@ -462,7 +462,13 @@ fn check_output_format_exact() {
     let expected = "\
 cloc: FAIL
   src/oversized.rs: file_too_large (lines: 15 vs 10)
-    Can the code be made more concise? If not, split large source files into sibling modules or submodules in a folder; consider refactoring to be more unit testable.
+    Can the code be made more concise?
+
+If not, split large source files into sibling modules or submodules in a folder;
+consider refactoring to be more unit testable.
+
+Avoid picking and removing individual lines to satisfy the linter,
+prefer properly refactoring out testable code blocks.
 PASS: escapes, agents
 FAIL: cloc
 ";
