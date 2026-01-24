@@ -122,7 +122,7 @@ docs/specs/
 
 ### Output
 
-```
+```text
 docs/specs/checks/docs.md:45: invalid toc format
   Code block marked as `toc` doesn't match box-drawing or indentation format.
   Use box-drawing (├──, └──, │) or consistent indentation.
