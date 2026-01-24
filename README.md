@@ -35,14 +35,19 @@ version = 1
 max_lines = 750       # Source file limit (default: 750)
 max_lines_test = 1100 # Test file limit (default: 1100)
 exclude = ["generated/**", "vendor/**"]
+advice = "Split large files into smaller modules."
+advice_test = "Consider parameterized tests."
 
 [check.escapes]
-# Detects escape hatches like .unwrap(), unsafe, todo!()
+# Detects escape hatches like .unwrap(), unsafe, set +e
 # Language-specific defaults apply automatically
 
 [check.agents]
 required = ["CLAUDE.md"]  # Require agent context files
 tables = "forbid"         # No markdown tables in agent files
+
+[check.agents.sections]
+required = ["Landing the Plane"]  # Required markdown headings
 ```
 
 ## Checks
