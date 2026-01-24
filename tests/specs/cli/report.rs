@@ -131,7 +131,6 @@ fn report_json_no_baseline_empty_metrics() {
 ///
 /// > HTML format produces valid HTML document
 #[test]
-#[ignore = "TODO: Phase 1306 - HTML Report Format"]
 fn report_html_produces_valid_html() {
     report()
         .on("report/with-baseline")
@@ -146,7 +145,6 @@ fn report_html_produces_valid_html() {
 ///
 /// > HTML format includes metrics data
 #[test]
-#[ignore = "TODO: Phase 1306 - HTML Report Format"]
 fn report_html_includes_metrics() {
     report()
         .on("report/with-baseline")
@@ -164,7 +162,6 @@ fn report_html_includes_metrics() {
 ///
 /// > -o report.html writes to file instead of stdout
 #[test]
-#[ignore = "TODO: Phase 1306 - File Output"]
 fn report_writes_to_file() {
     let temp = Project::with_defaults();
 

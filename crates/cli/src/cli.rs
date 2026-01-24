@@ -219,9 +219,9 @@ impl CheckArgs {
 
 #[derive(clap::Args, Default)]
 pub struct ReportArgs {
-    /// Output format
+    /// Output format or file path (e.g., text, json, html, report.html)
     #[arg(short, long, default_value = "text")]
-    pub output: OutputFormat,
+    pub output: String,
 
     // Check enable flags (show only these metrics)
     /// Show only cloc metrics
@@ -299,6 +299,28 @@ pub struct ReportArgs {
 }
 
 impl ReportArgs {
+    /// Parse output argument into format and optional file path.
+    pub fn output_target(&self) -> (OutputFormat, Option<PathBuf>) {
+        let val = self.output.to_lowercase();
+
+        // Check for file extension
+        if val.ends_with(".html") {
+            (OutputFormat::Html, Some(PathBuf::from(&self.output)))
+        } else if val.ends_with(".json") {
+            (OutputFormat::Json, Some(PathBuf::from(&self.output)))
+        } else if val.ends_with(".txt") || val.ends_with(".md") {
+            (OutputFormat::Text, Some(PathBuf::from(&self.output)))
+        } else {
+            // Parse as format name
+            let format = match val.as_str() {
+                "json" => OutputFormat::Json,
+                "html" => OutputFormat::Html,
+                _ => OutputFormat::Text,
+            };
+            (format, None)
+        }
+    }
+
     /// Get list of explicitly enabled checks.
     pub fn enabled_checks(&self) -> Vec<String> {
         collect_checks!(self,
@@ -346,6 +368,7 @@ pub enum OutputFormat {
     #[default]
     Text,
     Json,
+    Html,
 }
 
 // Re-export profile-related items from the profiles module for backward compatibility

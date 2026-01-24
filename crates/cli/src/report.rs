@@ -3,17 +3,24 @@
 
 //! Report command implementation.
 //!
-//! Reads baseline files and outputs metrics in text or JSON format.
+//! Reads baseline files and outputs metrics in text, JSON, or HTML format.
+
+use std::fmt::Write;
 
 use quench::baseline::Baseline;
 use quench::cli::{OutputFormat, ReportArgs};
 use serde_json::json;
 
-/// Format a report based on output format.
-pub fn format_report(args: &ReportArgs, baseline: &Baseline) -> anyhow::Result<()> {
-    match args.output {
+/// Format a report based on output format, returning the output string.
+pub fn format_report_to_string(
+    args: &ReportArgs,
+    baseline: &Baseline,
+    format: OutputFormat,
+) -> anyhow::Result<String> {
+    match format {
         OutputFormat::Text => format_text_report(args, baseline),
         OutputFormat::Json => format_json_report(args, baseline),
+        OutputFormat::Html => format_html_report(args, baseline),
     }
 }
 
@@ -29,21 +36,22 @@ fn should_show(metric: &str, enabled: &[String], disabled: &[String]) -> bool {
 }
 
 /// Format baseline metrics as human-readable text.
-fn format_text_report(args: &ReportArgs, baseline: &Baseline) -> anyhow::Result<()> {
+fn format_text_report(args: &ReportArgs, baseline: &Baseline) -> anyhow::Result<String> {
     let enabled = args.enabled_checks();
     let disabled = args.disabled_checks();
+    let mut output = String::new();
 
     // Header with baseline info
-    println!("Quench Report");
-    println!("=============");
+    writeln!(output, "Quench Report")?;
+    writeln!(output, "=============")?;
     if let Some(ref commit) = baseline.commit {
         let date = baseline.updated.format("%Y-%m-%d");
-        println!("Baseline: {} ({})", commit, date);
+        writeln!(output, "Baseline: {} ({})", commit, date)?;
     } else {
         let date = baseline.updated.format("%Y-%m-%d");
-        println!("Baseline: {}", date);
+        writeln!(output, "Baseline: {}", date)?;
     }
-    println!();
+    writeln!(output)?;
 
     // Filter and display metrics
     let metrics = &baseline.metrics;
@@ -52,7 +60,7 @@ fn format_text_report(args: &ReportArgs, baseline: &Baseline) -> anyhow::Result<
     if should_show("tests", &enabled, &disabled)
         && let Some(ref coverage) = metrics.coverage
     {
-        println!("coverage: {:.1}%", coverage.total);
+        writeln!(output, "coverage: {:.1}%", coverage.total)?;
     }
 
     // Escapes
@@ -60,7 +68,7 @@ fn format_text_report(args: &ReportArgs, baseline: &Baseline) -> anyhow::Result<
         && let Some(ref escapes) = metrics.escapes
     {
         for (name, count) in &escapes.source {
-            println!("escapes.{}: {}", name, count);
+            writeln!(output, "escapes.{}: {}", name, count)?;
         }
     }
 
@@ -68,15 +76,15 @@ fn format_text_report(args: &ReportArgs, baseline: &Baseline) -> anyhow::Result<
     if should_show("build", &enabled, &disabled)
         && let Some(ref build) = metrics.build_time
     {
-        println!("build_time.cold: {:.1}s", build.cold);
-        println!("build_time.hot: {:.1}s", build.hot);
+        writeln!(output, "build_time.cold: {:.1}s", build.cold)?;
+        writeln!(output, "build_time.hot: {:.1}s", build.hot)?;
     }
 
     // Test time
     if should_show("tests", &enabled, &disabled)
         && let Some(ref tests) = metrics.test_time
     {
-        println!("test_time.total: {:.1}s", tests.total);
+        writeln!(output, "test_time.total: {:.1}s", tests.total)?;
     }
 
     // Binary size
@@ -84,15 +92,15 @@ fn format_text_report(args: &ReportArgs, baseline: &Baseline) -> anyhow::Result<
         && let Some(ref sizes) = metrics.binary_size
     {
         for (name, size) in sizes {
-            println!("binary_size.{}: {} bytes", name, size);
+            writeln!(output, "binary_size.{}: {} bytes", name, size)?;
         }
     }
 
-    Ok(())
+    Ok(output)
 }
 
 /// Format baseline metrics as JSON.
-fn format_json_report(args: &ReportArgs, baseline: &Baseline) -> anyhow::Result<()> {
+fn format_json_report(args: &ReportArgs, baseline: &Baseline) -> anyhow::Result<String> {
     let enabled = args.enabled_checks();
     let disabled = args.disabled_checks();
     let metrics = &baseline.metrics;
@@ -155,9 +163,201 @@ fn format_json_report(args: &ReportArgs, baseline: &Baseline) -> anyhow::Result<
         serde_json::Value::Object(filtered_metrics),
     );
 
-    println!(
-        "{}",
-        serde_json::to_string_pretty(&serde_json::Value::Object(output))?
-    );
-    Ok(())
+    Ok(serde_json::to_string_pretty(&serde_json::Value::Object(
+        output,
+    ))?)
+}
+
+/// Format baseline metrics as HTML dashboard.
+fn format_html_report(args: &ReportArgs, baseline: &Baseline) -> anyhow::Result<String> {
+    let enabled = args.enabled_checks();
+    let disabled = args.disabled_checks();
+    let metrics = &baseline.metrics;
+
+    let mut cards = Vec::new();
+    let mut rows = Vec::new();
+
+    // Coverage card
+    if should_show("tests", &enabled, &disabled)
+        && let Some(ref coverage) = metrics.coverage
+    {
+        cards.push(metric_card(
+            "Coverage",
+            &format!("{:.1}%", coverage.total),
+            "tests",
+        ));
+        rows.push(table_row("coverage", &format!("{:.1}%", coverage.total)));
+    }
+
+    // Escapes cards
+    if should_show("escapes", &enabled, &disabled)
+        && let Some(ref escapes) = metrics.escapes
+    {
+        for (name, count) in &escapes.source {
+            cards.push(metric_card(
+                &format!("Escapes: {}", name),
+                &count.to_string(),
+                "escapes",
+            ));
+            rows.push(table_row(&format!("escapes.{}", name), &count.to_string()));
+        }
+    }
+
+    // Build metrics
+    if should_show("build", &enabled, &disabled)
+        && let Some(ref build) = metrics.build_time
+    {
+        cards.push(metric_card(
+            "Build (cold)",
+            &format!("{:.1}s", build.cold),
+            "build",
+        ));
+        cards.push(metric_card(
+            "Build (hot)",
+            &format!("{:.1}s", build.hot),
+            "build",
+        ));
+        rows.push(table_row("build_time.cold", &format!("{:.1}s", build.cold)));
+        rows.push(table_row("build_time.hot", &format!("{:.1}s", build.hot)));
+    }
+    if should_show("build", &enabled, &disabled)
+        && let Some(ref sizes) = metrics.binary_size
+    {
+        for (name, size) in sizes {
+            let human = human_bytes(*size);
+            cards.push(metric_card(&format!("Binary: {}", name), &human, "build"));
+            rows.push(table_row(&format!("binary_size.{}", name), &human));
+        }
+    }
+
+    // Test time
+    if should_show("tests", &enabled, &disabled)
+        && let Some(ref tests) = metrics.test_time
+    {
+        cards.push(metric_card(
+            "Test Time",
+            &format!("{:.1}s", tests.total),
+            "tests",
+        ));
+        rows.push(table_row(
+            "test_time.total",
+            &format!("{:.1}s", tests.total),
+        ));
+    }
+
+    // Generate HTML
+    Ok(html_template(baseline, &cards.join("\n"), &rows.join("\n")))
+}
+
+fn metric_card(title: &str, value: &str, category: &str) -> String {
+    format!(
+        r#"      <div class="card {category}">
+        <div class="card-title">{title}</div>
+        <div class="card-value">{value}</div>
+      </div>"#
+    )
+}
+
+fn table_row(metric: &str, value: &str) -> String {
+    format!(r#"        <tr><td>{metric}</td><td>{value}</td></tr>"#)
+}
+
+fn human_bytes(bytes: u64) -> String {
+    const KB: u64 = 1024;
+    const MB: u64 = KB * 1024;
+    if bytes >= MB {
+        format!("{:.1} MB", bytes as f64 / MB as f64)
+    } else if bytes >= KB {
+        format!("{:.1} KB", bytes as f64 / KB as f64)
+    } else {
+        format!("{} B", bytes)
+    }
+}
+
+fn html_template(baseline: &Baseline, cards: &str, rows: &str) -> String {
+    let commit = baseline.commit.as_deref().unwrap_or("unknown");
+    let date = baseline.updated.format("%Y-%m-%d %H:%M UTC");
+
+    format!(
+        r#"<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quench Report</title>
+  <style>
+    :root {{
+      --bg: #1a1a2e;
+      --card-bg: #16213e;
+      --text: #eef;
+      --muted: #8892b0;
+      --accent: #64ffda;
+    }}
+    * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+    body {{
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 2rem;
+      line-height: 1.6;
+    }}
+    .container {{ max-width: 1200px; margin: 0 auto; }}
+    header {{
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--card-bg);
+    }}
+    h1 {{ color: var(--accent); font-size: 1.5rem; }}
+    .meta {{ color: var(--muted); font-size: 0.875rem; margin-top: 0.5rem; }}
+    .cards {{
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }}
+    .card {{
+      background: var(--card-bg);
+      padding: 1.5rem;
+      border-radius: 8px;
+      border-left: 4px solid var(--accent);
+    }}
+    .card.escapes {{ border-color: #f59e0b; }}
+    .card.build {{ border-color: #8b5cf6; }}
+    .card.tests {{ border-color: #10b981; }}
+    .card-title {{ color: var(--muted); font-size: 0.75rem; text-transform: uppercase; }}
+    .card-value {{ font-size: 2rem; font-weight: 600; margin-top: 0.5rem; }}
+    table {{
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--card-bg);
+      border-radius: 8px;
+      overflow: hidden;
+    }}
+    th, td {{ padding: 0.75rem 1rem; text-align: left; }}
+    th {{ background: rgba(0,0,0,0.2); color: var(--muted); font-size: 0.75rem; text-transform: uppercase; }}
+    tr:not(:last-child) td {{ border-bottom: 1px solid var(--bg); }}
+    td:last-child {{ text-align: right; font-family: monospace; }}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Quench Report</h1>
+      <div class="meta">Baseline: {commit} &middot; {date}</div>
+    </header>
+    <section class="cards">
+{cards}
+    </section>
+    <section>
+      <table>
+        <thead><tr><th>Metric</th><th>Value</th></tr></thead>
+        <tbody>
+{rows}
+        </tbody>
+      </table>
+    </section>
+  </div>
+</body>
+</html>"#
+    )
 }

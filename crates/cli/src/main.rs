@@ -492,7 +492,8 @@ fn run_check(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
 
     // Format output
     match args.output {
-        OutputFormat::Text => {
+        OutputFormat::Text | OutputFormat::Html => {
+            // HTML uses text format for check command (HTML is for report only)
             let mut formatter = TextFormatter::new(color_choice, options);
 
             for result in &output.checks {
@@ -548,15 +549,44 @@ fn run_report(cli: &Cli, args: &ReportArgs) -> anyhow::Result<()> {
     // Determine baseline path
     let baseline_path = cwd.join(&config.git.baseline);
 
+    // Parse output target (format and optional file path)
+    let (format, file_path) = args.output_target();
+
     // Load baseline
     let baseline = Baseline::load(&baseline_path)?;
 
     match baseline {
-        Some(baseline) => report::format_report(args, &baseline),
+        Some(baseline) => {
+            let output = report::format_report_to_string(args, &baseline, format)?;
+
+            if let Some(path) = file_path {
+                std::fs::write(&path, &output)?;
+            } else {
+                print!("{}", output);
+            }
+            Ok(())
+        }
         None => {
-            match args.output {
-                OutputFormat::Text => println!("No baseline found."),
-                OutputFormat::Json => println!(r#"{{"metrics": {{}}}}"#),
+            let output = match format {
+                OutputFormat::Text => "No baseline found.\n".to_string(),
+                OutputFormat::Json => r#"{"metrics": {}}"#.to_string(),
+                OutputFormat::Html => r#"<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Quench Report</title>
+</head>
+<body>
+  <h1>No baseline found.</h1>
+</body>
+</html>"#
+                    .to_string(),
+            };
+
+            if let Some(path) = file_path {
+                std::fs::write(&path, &output)?;
+            } else {
+                print!("{}", output);
             }
             Ok(())
         }
