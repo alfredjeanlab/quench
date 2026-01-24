@@ -31,7 +31,7 @@ use detect::looks_like_error_output;
 use parse::FencedBlock;
 // Required: tests verify resolution strategies and glob patterns
 #[allow(unused_imports)]
-use resolve::{is_glob_pattern, ResolutionStrategy};
+use resolve::{ResolutionStrategy, is_glob_pattern};
 
 /// Validate TOC entries in all markdown files.
 pub fn validate_toc(ctx: &CheckContext, violations: &mut Vec<Violation>) {
