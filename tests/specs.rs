@@ -58,6 +58,9 @@ mod modes_cache;
 #[path = "specs/modes/file_walking.rs"]
 mod modes_file_walking;
 
+#[path = "specs/modes/ratchet.rs"]
+mod modes_ratchet;
+
 // adapters/
 #[path = "specs/adapters/mod.rs"]
 mod adapters;

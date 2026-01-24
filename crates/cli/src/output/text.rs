@@ -16,6 +16,7 @@ use termcolor::{ColorChoice, StandardStream, WriteColor};
 use super::FormatOptions;
 use crate::check::{CheckOutput, CheckResult, Violation};
 use crate::color::scheme;
+use crate::ratchet::RatchetResult;
 
 /// Text output formatter with color support.
 pub struct TextFormatter {
@@ -323,6 +324,56 @@ impl TextFormatter {
         } else {
             base
         }
+    }
+
+    /// Write ratchet comparison results.
+    pub fn write_ratchet(&mut self, result: &RatchetResult) -> std::io::Result<()> {
+        if result.passed {
+            // Only show ratchet section if there were comparisons with improvements
+            if !result.comparisons.is_empty() && !result.improvements.is_empty() {
+                self.stdout.set_color(&scheme::check_name())?;
+                write!(self.stdout, "ratchet")?;
+                self.stdout.reset()?;
+                write!(self.stdout, ": ")?;
+                self.stdout.set_color(&scheme::pass())?;
+                writeln!(self.stdout, "PASS")?;
+                self.stdout.reset()?;
+
+                for comp in &result.comparisons {
+                    if comp.improved {
+                        writeln!(
+                            self.stdout,
+                            "  {}: {} (baseline: {}) improved",
+                            comp.name, comp.current as i64, comp.baseline as i64
+                        )?;
+                    }
+                }
+            }
+        } else {
+            // Show failures
+            self.stdout.set_color(&scheme::check_name())?;
+            write!(self.stdout, "ratchet")?;
+            self.stdout.reset()?;
+            write!(self.stdout, ": ")?;
+            self.stdout.set_color(&scheme::fail())?;
+            writeln!(self.stdout, "FAIL")?;
+            self.stdout.reset()?;
+
+            for comp in &result.comparisons {
+                if !comp.passed {
+                    writeln!(
+                        self.stdout,
+                        "  {}: {} (max: {} from baseline)",
+                        comp.name, comp.current as i64, comp.baseline as i64
+                    )?;
+                    writeln!(
+                        self.stdout,
+                        "    Escape hatch count increased. Clean up or update baseline."
+                    )?;
+                }
+            }
+        }
+        Ok(())
     }
 
     /// Write the summary listing each check by status.

@@ -25,7 +25,7 @@ globset = "0.4"
 memmap2 = "0.9"
 crossbeam-channel = "0.5"
 termcolor = "1.4"
-chrono = "0.4"
+chrono = { version = "0.4", features = ["serde"] }
 rayon = "1.11"
 postcard = { version = "1", default-features = false, features = ["alloc"] }
 dashmap = "6"

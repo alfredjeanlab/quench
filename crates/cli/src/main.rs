@@ -9,17 +9,19 @@ use clap::{CommandFactory, Parser};
 use tracing_subscriber::{EnvFilter, fmt};
 
 use quench::adapter::{JsWorkspace, ProjectLanguage, detect_language, rust::CargoWorkspace};
+use quench::baseline::Baseline;
 use quench::cache::{self, CACHE_FILE_NAME, FileCache};
 use quench::checks;
 use quench::cli::{CheckArgs, Cli, Command, InitArgs, OutputFormat, ReportArgs};
 use quench::color::{is_no_color_env, resolve_color};
-use quench::config;
+use quench::config::{self, CheckLevel};
 use quench::discovery;
 use quench::error::ExitCode;
 use quench::init::{DetectedAgent, DetectedLanguage, detect_agents, detect_languages};
 use quench::output::FormatOptions;
 use quench::output::json::{self, JsonFormatter};
 use quench::output::text::TextFormatter;
+use quench::ratchet::{self, CurrentMetrics};
 use quench::runner::{CheckRunner, RunnerConfig};
 use quench::walker::{FileWalker, WalkerConfig};
 
@@ -373,6 +375,85 @@ fn run_check(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
     let output = json::create_output(check_results);
     let total_violations = output.total_violations();
 
+    // Ratchet checking
+    let baseline_path = root.join(&config.git.baseline);
+    let ratchet_result = if config.ratchet.check != CheckLevel::Off {
+        match Baseline::load(&baseline_path) {
+            Ok(Some(baseline)) => {
+                let current = CurrentMetrics::from_output(&output);
+                Some(ratchet::compare(
+                    &current,
+                    &baseline.metrics,
+                    &config.ratchet,
+                ))
+            }
+            Ok(None) => {
+                // No baseline yet - pass but suggest creating one
+                if args.verbose {
+                    eprintln!(
+                        "No baseline found at {}. Run with --fix to create.",
+                        baseline_path.display()
+                    );
+                }
+                None
+            }
+            Err(e) => {
+                eprintln!("quench: warning: failed to load baseline: {}", e);
+                None
+            }
+        }
+    } else {
+        None
+    };
+
+    // Handle --fix: update baseline when metrics improve or create initial baseline
+    if args.fix {
+        if let Some(ref result) = ratchet_result {
+            if !result.improvements.is_empty() || !baseline_path.exists() {
+                let mut baseline = match Baseline::load(&baseline_path) {
+                    Ok(Some(b)) => b.with_commit(&root),
+                    Ok(None) | Err(_) => Baseline::new().with_commit(&root),
+                };
+
+                let current = CurrentMetrics::from_output(&output);
+                ratchet::update_baseline(&mut baseline, &current, &result.improvements);
+
+                if let Err(e) = baseline.save(&baseline_path) {
+                    eprintln!("quench: warning: failed to save baseline: {}", e);
+                } else {
+                    // Report what was updated (to stderr to not interfere with JSON output)
+                    if baseline_path.exists() && result.improvements.is_empty() {
+                        eprintln!("ratchet: updated baseline");
+                    } else {
+                        eprintln!("ratchet: updated baseline");
+                        for improvement in &result.improvements {
+                            eprintln!(
+                                "  {}: {} -> {} (new ceiling)",
+                                improvement.name,
+                                improvement.old_value as i64,
+                                improvement.new_value as i64
+                            );
+                        }
+                    }
+                }
+            }
+        } else if config.ratchet.check != CheckLevel::Off && !baseline_path.exists() {
+            // Create initial baseline
+            let current = CurrentMetrics::from_output(&output);
+            let mut baseline = Baseline::new().with_commit(&root);
+            ratchet::update_baseline(&mut baseline, &current, &[]);
+
+            if let Err(e) = baseline.save(&baseline_path) {
+                eprintln!("quench: warning: failed to create baseline: {}", e);
+            } else {
+                eprintln!(
+                    "ratchet: created initial baseline at {}",
+                    baseline_path.display()
+                );
+            }
+        }
+    }
+
     // Resolve color mode
     let color_choice = resolve_color(args.color, args.no_color || is_no_color_env());
 
@@ -393,6 +474,11 @@ fn run_check(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
                 formatter.write_check(result)?;
             }
 
+            // Write ratchet results if applicable
+            if let Some(ref result) = ratchet_result {
+                formatter.write_ratchet(result)?;
+            }
+
             formatter.write_summary(&output)?;
 
             if formatter.was_truncated() {
@@ -405,11 +491,12 @@ fn run_check(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
         }
     }
 
-    // Determine exit code
+    // Determine exit code considering ratchet result
+    let ratchet_failed = ratchet_result.as_ref().is_some_and(|r| !r.passed);
     // Dry-run always exits 0: preview is complete
     let exit_code = if args.dry_run {
         ExitCode::Success
-    } else if !output.passed {
+    } else if !output.passed || ratchet_failed {
         ExitCode::CheckFailed
     } else {
         ExitCode::Success
