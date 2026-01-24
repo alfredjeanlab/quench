@@ -18,8 +18,8 @@ use serde::Deserialize;
 
 pub use checks::{
     CheckLevel, ClocConfig, DocsAreaConfig, DocsCommitConfig, DocsConfig, EscapeAction,
-    EscapePattern, EscapesConfig, LangClocConfig, LineMetric, LinksConfig, SpecsConfig,
-    SpecsSectionsConfig, TocConfig,
+    EscapePattern, EscapesConfig, LangClocConfig, LineMetric, LinksConfig, PlaceholderPatterns,
+    PlaceholdersConfig, SpecsConfig, SpecsSectionsConfig, TocConfig,
 };
 pub use go::{GoConfig, GoPolicyConfig, GoSuppressConfig};
 pub use javascript::{JavaScriptConfig, JavaScriptPolicyConfig};
@@ -357,6 +357,10 @@ pub struct CheckConfig {
     /// License check configuration.
     #[serde(default)]
     pub license: LicenseConfig,
+
+    /// Placeholders check configuration.
+    #[serde(default)]
+    pub placeholders: PlaceholdersConfig,
 }
 
 /// Tests check configuration.

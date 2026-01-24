@@ -72,12 +72,12 @@ fn text_output_summary_lists_checks_by_status() {
 #[test]
 fn text_output_passing_summary_only() {
     let temp = default_project();
-    // Only non-stub checks appear; currently cloc, escapes, agents, docs, and tests are implemented
+    // Only non-stub checks appear; currently cloc, escapes, agents, docs, tests, placeholders are implemented
     cli()
         .pwd(temp.path())
         .args(&["--no-git"])
         .passes()
-        .stdout_has("PASS: cloc, escapes, agents, docs, tests\n");
+        .stdout_has("PASS: cloc, escapes, agents, docs, tests, placeholders\n");
 }
 
 // =============================================================================
@@ -390,7 +390,7 @@ cloc: FAIL
     Avoid picking and removing individual lines to satisfy the linter,
     prefer properly refactoring out testable code blocks.
 
-PASS: escapes, agents, docs, tests
+PASS: escapes, agents, docs, tests, placeholders
 FAIL: cloc
 ";
 
@@ -425,7 +425,7 @@ fn text_output_deduplicates_consecutive_identical_advice() {
 
   src/file_b.rs: file_too_large (lines: 7 vs 5)
   src/file_a.rs: file_too_large (lines: 7 vs 5)
-PASS: escapes, agents, docs, tests
+PASS: escapes, agents, docs, tests, placeholders
 FAIL: cloc
 ",
     );

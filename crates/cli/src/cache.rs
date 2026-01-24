@@ -28,7 +28,8 @@ use crate::check::Violation;
 /// v17: Removed WorkspaceConfig, consolidated packages into ProjectConfig.
 /// v18: Added target_path for docs cache.
 /// v19: Added per-language cloc check levels (warn vs error).
-pub const CACHE_VERSION: u32 = 19;
+/// v20: Added placeholders check for detecting placeholder tests.
+pub const CACHE_VERSION: u32 = 20;
 
 /// Cache file name within .quench directory.
 pub const CACHE_FILE_NAME: &str = "cache.bin";
