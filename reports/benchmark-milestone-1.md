@@ -1,6 +1,6 @@
 # Benchmark Milestone 1 Report
 
-Date: 2026-01-23
+Date: 2026-01-23 (updated with memory and stress metrics)
 
 ## Summary
 
@@ -49,6 +49,25 @@ All performance targets have been exceeded.
 | cli_startup (--help) | 3.39ms |
 | version_check (--version) | 6.72ms |
 
+### Memory Usage
+
+| Mode | Target | Measured | Status |
+|------|--------|----------|--------|
+| fast | <100MB | 11.4 MB | PASS |
+| ci | <500MB | 6.8 MB | PASS |
+
+Memory measured using `/usr/bin/time -l` (maximum resident set size).
+
+### Stress Test Results
+
+| Fixture | Files | Target | Measured | Status |
+|---------|-------|--------|----------|--------|
+| stress-huge-files | 50K | <30s | 2.05s | PASS |
+| stress-monorepo | 5K | <10s | 0.21s | PASS |
+| stress-large-file | 5×5MB | <5s | 0.30s | PASS |
+
+Stress fixtures generated with `./scripts/generate-stress-fixtures`.
+
 ## Observations
 
 1. **Exceptional Performance**: All benchmarks complete well under their targets.
@@ -66,6 +85,12 @@ All performance targets have been exceeded.
 4. **No Bottlenecks Identified**: At these performance levels, there are no
    obvious optimization targets for this milestone.
 
+5. **Memory Efficiency**: Both fast and CI modes use minimal memory (~7-11MB),
+   well under the 100MB and 500MB targets respectively.
+
+6. **Stress Test Performance**: Edge-case workloads (50K files, 5K workspace,
+   5MB files) all complete in under 3 seconds, demonstrating robust scaling.
+
 ## Baseline Established
 
 Criterion baselines saved as `milestone-1` for regression tracking.
@@ -77,9 +102,17 @@ cargo bench --bench check -- --baseline milestone-1
 cargo bench --bench baseline -- --baseline milestone-1
 ```
 
+## Infrastructure Added (Checkpoint 6E)
+
+1. **Memory profiling**: External measurement via `/usr/bin/time -l`
+2. **Stress fixtures**: `./scripts/generate-stress-fixtures` creates 50K/5K/5MB test fixtures
+3. **E2E stress benchmarks**: Added to `benches/stress.rs` benchmark group
+4. **CI benchmark workflow**: `.github/workflows/bench.yml` for regression detection
+5. **Profiling guide**: `docs/profiling.md` with instructions for time/memory profiling
+
 ## Next Steps
 
 1. Monitor for performance regressions as features are added
-2. Consider adding memory profiling in future milestones
-3. Add benchmarks for edge cases (very large files, many small files)
-4. Consider CI integration for automated regression detection
+2. Consider heap profiling with jemalloc if memory usage grows
+3. Tune CI regression threshold (currently 10% via Criterion defaults)
+4. Add more language-specific stress fixtures as adapters are added

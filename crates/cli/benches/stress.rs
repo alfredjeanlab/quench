@@ -13,6 +13,7 @@
 
 use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
 use std::path::{Path, PathBuf};
+use std::process::Command;
 
 use quench::adapter::Adapter;
 use quench::adapter::rust::{CargoWorkspace, CfgTestInfo, RustAdapter};
@@ -152,6 +153,56 @@ fn bench_deep_nesting(c: &mut Criterion) {
     group.finish();
 }
 
+/// End-to-end stress benchmarks using disk fixtures.
+///
+/// These benchmarks run quench against generated stress fixtures.
+/// Generate fixtures first with: ./scripts/generate-stress-fixtures
+fn bench_stress_e2e(c: &mut Criterion) {
+    let mut group = c.benchmark_group("stress_e2e");
+    group.sample_size(10); // Fewer samples for slow benchmarks
+
+    let quench_bin = env!("CARGO_BIN_EXE_quench");
+
+    // Define fixtures with their expected performance characteristics
+    let fixtures = [
+        ("stress-huge-files", "50K files traversal"),
+        ("stress-monorepo", "5K files workspace"),
+        ("stress-large-file", "1-5MB files"),
+    ];
+
+    for (fixture, description) in fixtures {
+        let path = e2e_fixture_path(fixture);
+        if !path.exists() {
+            eprintln!("Skipping {fixture} ({description}): run ./scripts/generate-stress-fixtures");
+            continue;
+        }
+
+        group.bench_function(fixture, |b| {
+            b.iter(|| {
+                let output = Command::new(quench_bin)
+                    .arg("check")
+                    .current_dir(&path)
+                    .output()
+                    .expect("quench should run");
+                black_box(output)
+            })
+        });
+    }
+
+    group.finish();
+}
+
+/// Path to E2E stress fixtures (tests/fixtures/stress-*)
+fn e2e_fixture_path(name: &str) -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .join("tests/fixtures")
+        .join(name)
+}
+
 criterion_group!(
     benches,
     bench_large_files,
@@ -159,5 +210,6 @@ criterion_group!(
     bench_large_workspace,
     bench_large_workspace_classify,
     bench_deep_nesting,
+    bench_stress_e2e,
 );
 criterion_main!(benches);

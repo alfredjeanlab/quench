@@ -1,0 +1,111 @@
+name: Benchmarks
+
+on:
+  pull_request:
+    paths:
+      - 'crates/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+  workflow_dispatch:
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-action@stable
+        with:
+          components: clippy
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-bench-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Restore baseline
+        uses: actions/cache@v4
+        with:
+          path: target/criterion
+          key: criterion-baseline-${{ github.base_ref }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            criterion-baseline-${{ github.base_ref }}-
+            criterion-baseline-main-
+
+      - name: Generate test fixtures
+        run: ./scripts/gen-fixtures
+
+      - name: Run benchmarks
+        run: |
+          echo "Running benchmark suite..."
+          cargo bench --bench baseline -- --noplot 2>&1 | tee bench-output.txt
+          cargo bench --bench file_walking -- --noplot 2>&1 | tee -a bench-output.txt
+          cargo bench --bench check -- --noplot 2>&1 | tee -a bench-output.txt
+          cargo bench --bench dogfood -- --noplot 2>&1 | tee -a bench-output.txt
+
+      - name: Check for regressions
+        run: |
+          # Criterion outputs "Performance has regressed" for >10% slower
+          if grep -q "Performance has regressed" bench-output.txt; then
+            echo "::error::Performance regression detected!"
+            grep -B2 -A5 "Performance has regressed" bench-output.txt
+            exit 1
+          fi
+          echo "No significant regressions detected"
+
+      - name: Measure memory usage
+        run: |
+          cargo build --release
+          echo "Memory usage (fast mode):"
+          /usr/bin/time -v ./target/release/quench check 2>&1 | grep -i "maximum resident" || true
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: |
+            bench-output.txt
+            target/criterion/
+
+  save-baseline:
+    # Only save baseline on main branch pushes
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-action@stable
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-bench-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Generate test fixtures
+        run: ./scripts/gen-fixtures
+
+      - name: Run and save baseline
+        run: |
+          cargo bench --bench baseline -- --save-baseline main --noplot
+          cargo bench --bench file_walking -- --save-baseline main --noplot
+          cargo bench --bench check -- --save-baseline main --noplot
+          cargo bench --bench dogfood -- --save-baseline main --noplot
+
+      - name: Save criterion baseline
+        uses: actions/cache/save@v4
+        with:
+          path: target/criterion
+          key: criterion-baseline-main-${{ github.sha }}
