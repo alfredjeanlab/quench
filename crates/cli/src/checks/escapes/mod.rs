@@ -505,6 +505,8 @@ fn create_threshold_violation(
         commit: None,
         message: None,
         expected_docs: None,
+        area: None,
+        area_match: None,
     })
 }
 
