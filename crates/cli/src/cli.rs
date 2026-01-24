@@ -130,6 +130,10 @@ pub struct CheckArgs {
     #[arg(long)]
     pub license: bool,
 
+    /// Run only the placeholders check
+    #[arg(long)]
+    pub placeholders: bool,
+
     // Check disable flags (skip these checks)
     /// Skip the cloc check
     #[arg(long)]
@@ -162,6 +166,10 @@ pub struct CheckArgs {
     /// Skip the license check
     #[arg(long)]
     pub no_license: bool,
+
+    /// Skip the placeholders check
+    #[arg(long)]
+    pub no_placeholders: bool,
 }
 
 /// Collect check names from boolean flags.
@@ -189,6 +197,7 @@ impl CheckArgs {
             git => "git",
             build => "build",
             license => "license",
+            placeholders => "placeholders",
         )
     }
 
@@ -203,6 +212,7 @@ impl CheckArgs {
             no_git => "git",
             no_build => "build",
             no_license => "license",
+            no_placeholders => "placeholders",
         )
     }
 }

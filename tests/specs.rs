@@ -41,6 +41,9 @@ mod checks_escapes;
 #[path = "specs/checks/policy_lang.rs"]
 mod checks_policy_lang;
 
+#[path = "specs/checks/placeholders.rs"]
+mod checks_placeholders;
+
 #[path = "specs/checks/agents/mod.rs"]
 mod checks_agents;
 

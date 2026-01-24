@@ -33,7 +33,7 @@
       "properties": {
         "name": {
           "type": "string",
-          "enum": ["cloc", "escapes", "agents", "docs", "tests", "git", "build", "license"],
+          "enum": ["cloc", "escapes", "agents", "docs", "tests", "git", "build", "license", "placeholders"],
           "description": "Check identifier"
         },
         "passed": {

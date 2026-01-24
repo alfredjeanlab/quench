@@ -518,3 +518,60 @@ pub struct LangClocConfig {
     #[serde(default)]
     pub advice: Option<String>,
 }
+
+/// Placeholders check configuration.
+///
+/// Detects placeholder tests (e.g., `#[ignore]`, `todo!()`, `test.todo()`)
+/// and reports them as items needing implementation.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct PlaceholdersConfig {
+    /// Check level: error, warn, or off.
+    #[serde(default)]
+    pub check: CheckLevel,
+
+    /// Patterns to detect (default: Rust #[ignore], todo!(); JS test.todo(), test.fixme()).
+    #[serde(default)]
+    pub patterns: PlaceholderPatterns,
+}
+
+impl Default for PlaceholdersConfig {
+    fn default() -> Self {
+        Self {
+            check: CheckLevel::Off, // Disabled by default
+            patterns: PlaceholderPatterns::default(),
+        }
+    }
+}
+
+/// Configurable placeholder patterns per language.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct PlaceholderPatterns {
+    /// Rust patterns to detect: "ignore" for #[ignore], "todo" for todo!().
+    #[serde(default = "PlaceholderPatterns::default_rust")]
+    pub rust: Vec<String>,
+
+    /// JavaScript/TypeScript patterns to detect: "todo", "fixme", "skip".
+    #[serde(default = "PlaceholderPatterns::default_javascript")]
+    pub javascript: Vec<String>,
+}
+
+impl Default for PlaceholderPatterns {
+    fn default() -> Self {
+        Self {
+            rust: Self::default_rust(),
+            javascript: Self::default_javascript(),
+        }
+    }
+}
+
+impl PlaceholderPatterns {
+    fn default_rust() -> Vec<String> {
+        vec!["ignore".to_string(), "todo".to_string()]
+    }
+
+    fn default_javascript() -> Vec<String> {
+        vec!["todo".to_string(), "fixme".to_string()]
+    }
+}

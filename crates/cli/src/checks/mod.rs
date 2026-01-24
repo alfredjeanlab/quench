@@ -19,6 +19,7 @@ pub mod cloc;
 pub mod docs;
 pub mod escapes;
 pub mod git;
+pub mod placeholders;
 pub mod stub;
 pub mod testing;
 pub mod tests;
@@ -29,7 +30,15 @@ use crate::check::Check;
 
 /// All registered check names in canonical order.
 pub const CHECK_NAMES: &[&str] = &[
-    "cloc", "escapes", "agents", "docs", "tests", "git", "build", "license",
+    "cloc",
+    "escapes",
+    "agents",
+    "docs",
+    "tests",
+    "git",
+    "build",
+    "license",
+    "placeholders",
 ];
 
 /// Checks enabled by default in fast mode.
@@ -46,6 +55,7 @@ pub fn all_checks() -> Vec<Arc<dyn Check>> {
         Arc::new(git::GitCheck),
         Arc::new(build::BuildCheck),
         Arc::new(stub::StubCheck::new("license", "License headers", false)),
+        Arc::new(placeholders::PlaceholdersCheck),
     ]
 }
 

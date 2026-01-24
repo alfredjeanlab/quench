@@ -20,9 +20,9 @@ use yare::parameterized;
 
 /// Spec: docs/specs/00-overview.md#built-in-checks
 ///
-/// > Built-in checks: cloc, escapes, agents, docs, tests, git, build, license
+/// > Built-in checks: cloc, escapes, agents, docs, tests, git, build, license, placeholders
 #[test]
-fn check_names_are_exactly_8_known_checks() {
+fn check_names_are_exactly_9_known_checks() {
     let temp = default_project();
     let result = cli().pwd(temp.path()).json().passes();
     let checks = result.checks();
@@ -32,7 +32,7 @@ fn check_names_are_exactly_8_known_checks() {
         .filter_map(|c| c.get("name").and_then(|n| n.as_str()))
         .collect();
 
-    // All 8 checks should be present
+    // All 9 checks should be present
     assert!(names.contains(&"cloc"), "should have cloc check");
     assert!(names.contains(&"escapes"), "should have escapes check");
     assert!(names.contains(&"agents"), "should have agents check");
@@ -41,9 +41,13 @@ fn check_names_are_exactly_8_known_checks() {
     assert!(names.contains(&"git"), "should have git check");
     assert!(names.contains(&"build"), "should have build check");
     assert!(names.contains(&"license"), "should have license check");
+    assert!(
+        names.contains(&"placeholders"),
+        "should have placeholders check"
+    );
 
     // No other checks should be present
-    assert_eq!(names.len(), 8, "should have exactly 8 checks");
+    assert_eq!(names.len(), 9, "should have exactly 9 checks");
 }
 
 /// Spec: docs/specs/01-cli.md#check-toggles
@@ -112,6 +116,7 @@ fn enable_flag_runs_only_that_check(check_name: &str) {
     git = { "git" },
     build = { "build" },
     license = { "license" },
+    placeholders = { "placeholders" },
 )]
 fn disable_flag_skips_that_check(check_name: &str) {
     let temp = default_project();
@@ -129,8 +134,8 @@ fn disable_flag_skips_that_check(check_name: &str) {
     );
     assert_eq!(
         names.len(),
-        7,
-        "7 checks should run (all except {})",
+        8,
+        "8 checks should run (all except {})",
         check_name
     );
 }
@@ -172,7 +177,7 @@ fn multiple_disable_flags_skip_multiple_checks() {
 
     assert!(!names.contains(&"docs"), "docs should not be present");
     assert!(!names.contains(&"tests"), "tests should not be present");
-    assert_eq!(names.len(), 6, "6 checks should run");
+    assert_eq!(names.len(), 7, "7 checks should run");
 }
 
 /// Spec: docs/specs/01-cli.md#examples
@@ -208,6 +213,7 @@ fn all_checks_disabled_except_one() {
             "--no-tests",
             "--no-git",
             "--no-build",
+            "--no-placeholders",
             // license is the only one NOT disabled
         ])
         .json()
@@ -234,8 +240,8 @@ fn check_failure_doesnt_block_other_checks() {
     let result = cli().on("check-framework").json().fails();
     let checks = result.checks();
 
-    // All 8 checks should have run, even though cloc failed
-    assert_eq!(checks.len(), 8, "all checks should have run");
+    // All 9 checks should have run, even though cloc failed
+    assert_eq!(checks.len(), 9, "all checks should have run");
 
     // Find cloc check - it should have failed
     let cloc = checks
