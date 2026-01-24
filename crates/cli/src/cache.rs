@@ -7,8 +7,7 @@
 //! Provides 10x speedup on iterative runs where few files change.
 
 use std::collections::HashMap;
-use std::fs::{File, Metadata};
-use std::io::{BufReader, BufWriter, Write};
+use std::fs::Metadata;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::SystemTime;
@@ -20,7 +19,8 @@ use crate::check::Violation;
 
 /// Cache version for invalidation on format changes.
 /// Incremented when check logic changes (e.g., counting nonblank vs all lines).
-pub const CACHE_VERSION: u32 = 6;
+/// v7: Migrated from bincode to postcard serialization.
+pub const CACHE_VERSION: u32 = 7;
 
 /// Cache file name within .quench directory.
 pub const CACHE_FILE_NAME: &str = "cache.bin";
@@ -34,7 +34,7 @@ pub enum CacheError {
 
     /// Serialization error.
     #[error("serialization error: {0}")]
-    Bincode(#[from] bincode::Error),
+    Postcard(#[from] postcard::Error),
 
     /// Cache version mismatch.
     #[error("cache version mismatch")]
@@ -202,9 +202,8 @@ impl FileCache {
 
     /// Load cache from disk.
     pub fn from_persistent(path: &Path, config_hash: u64) -> Result<Self, CacheError> {
-        let file = File::open(path)?;
-        let reader = BufReader::new(file);
-        let cache: PersistentCache = bincode::deserialize_from(reader)?;
+        let bytes = std::fs::read(path)?;
+        let cache: PersistentCache = postcard::from_bytes(&bytes)?;
 
         // Validate version
         if cache.version != CACHE_VERSION {
@@ -262,10 +261,8 @@ impl FileCache {
 
         // Write atomically via temp file
         let temp_path = path.with_extension("tmp");
-        let file = File::create(&temp_path)?;
-        let mut writer = BufWriter::new(file);
-        bincode::serialize_into(&mut writer, &cache)?;
-        writer.flush()?;
+        let bytes = postcard::to_allocvec(&cache)?;
+        std::fs::write(&temp_path, &bytes)?;
         std::fs::rename(&temp_path, path)?;
         Ok(())
     }

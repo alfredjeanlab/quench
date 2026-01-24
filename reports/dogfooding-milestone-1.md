@@ -23,28 +23,39 @@ All checks passed on the first run after adding the agents configuration.
 
 ```json
 {
-  "timestamp": "2026-01-24T00:05:06Z",
+  "timestamp": "2026-01-24T02:16:25Z",
   "passed": true,
   "checks": [
     {
       "name": "cloc",
       "passed": true,
       "metrics": {
-        "ratio": 0.0,
-        "source_files": 0,
-        "source_lines": 0,
-        "source_tokens": 0,
-        "test_files": 0,
-        "test_lines": 0,
-        "test_tokens": 0
+        "ratio": 1.49,
+        "source_files": 66,
+        "source_lines": 10339,
+        "source_tokens": 92170,
+        "test_files": 187,
+        "test_lines": 15440,
+        "test_tokens": 131646
+      },
+      "by_package": {
+        "quench": {
+          "ratio": 0.57,
+          "source_files": 61,
+          "source_lines": 10130,
+          "source_tokens": 90469,
+          "test_files": 46,
+          "test_lines": 5819,
+          "test_tokens": 49409
+        }
       }
     },
     {
       "name": "escapes",
       "passed": true,
       "metrics": {
-        "source": { "transmute": 0, "unsafe": 0 },
-        "test": { "transmute": 0, "unsafe": 0 }
+        "source": { "transmute": 1, "unsafe": 0 },
+        "test": { "transmute": 1, "unsafe": 14 }
       }
     },
     {
@@ -142,7 +153,7 @@ None encountered. The dogfooding process was smooth:
 
 ## Recommendations
 
-1. **cloc metrics show 0 files** - The cloc check reports 0 source files and 0 test files. This may be expected if the project root doesn't contain source files directly, or there might be a configuration issue with detecting the Rust workspace.
+1. ~~**cloc metrics show 0 files**~~ - **RESOLVED**: The cloc check now correctly reports workspace member files (66 source files, 187 test files). The fix was automatic workspace detection from `Cargo.toml` which reads the `[workspace]` members configuration.
 
 2. **Consider adding timestamp redaction** - For Exact output tests with JSON output, timestamps need to be manually redacted for determinism. Consider adding a built-in option or helper for this.
 

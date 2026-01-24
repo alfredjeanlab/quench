@@ -1,0 +1,7 @@
+version = 1
+
+[rust.suppress]
+check = "allow"
+
+[rust.suppress.source]
+check = "comment"

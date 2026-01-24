@@ -149,6 +149,7 @@ fn file_walking_scans_normal_files_despite_symlink_loops() {
 ///
 /// > Limit directory depth (default: 100 levels)
 #[test]
+#[ignore = "TODO: Create bench-deep fixture (150+ nested dirs)"]
 fn file_walking_respects_default_depth_limit() {
     // Files beyond depth 100 should not be scanned
     // bench-deep has files at level 50 (within limit) and 120 (beyond)
@@ -164,6 +165,7 @@ fn file_walking_respects_default_depth_limit() {
 ///
 /// > Depth limit should be configurable
 #[test]
+#[ignore = "TODO: Create bench-deep fixture (150+ nested dirs)"]
 fn file_walking_respects_custom_depth_limit() {
     // With a lower depth limit, fewer files should be scanned
     cli()
@@ -177,6 +179,7 @@ fn file_walking_respects_custom_depth_limit() {
 ///
 /// > Depth limit warnings in verbose mode
 #[test]
+#[ignore = "TODO: Create bench-deep fixture (150+ nested dirs)"]
 fn file_walking_warns_on_depth_limit_in_verbose() {
     // When files are skipped due to depth, verbose mode should mention it
     cli()
@@ -203,6 +206,7 @@ fn file_walking_handles_empty_directory() {
 ///
 /// > Use iterative traversal, not recursive
 #[test]
+#[ignore = "TODO: Create bench-deep fixture (150+ nested dirs)"]
 fn file_walking_uses_iterative_traversal() {
     // This is tested implicitly by bench-deep - recursive traversal
     // would cause stack overflow at 120 levels on most systems
