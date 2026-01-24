@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "updated": "2026-01-24T00:00:00Z",
+  "commit": "abc123",
+  "metrics": {
+    "coverage": {
+      "total": 80.5
+    }
+  }
+}

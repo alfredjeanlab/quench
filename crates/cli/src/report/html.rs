@@ -3,8 +3,8 @@
 
 //! HTML format report output.
 
-use quench::baseline::Baseline;
-use quench::cli::CheckFilter;
+use crate::baseline::Baseline;
+use crate::cli::CheckFilter;
 
 use super::{FilteredMetrics, ReportFormatter, human_bytes};
 

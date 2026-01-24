@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "updated": "2026-01-24T00:00:00Z",
+  "commit": "789abc",
+  "metrics": {
+    "coverage": {
+      "total": 92.3,
+      "by_package": {
+        "core": 95.1,
+        "cli": 88.7,
+        "api": 93.2,
+        "utils": 91.5,
+        "config": 90.0
+      }
+    },
+    "escapes": {
+      "source": {
+        "unsafe": 5,
+        "unwrap": 15,
+        "expect": 12,
+        "todo": 3,
+        "panic": 2,
+        "unreachable": 1,
+        "allow_clippy": 8,
+        "allow_dead_code": 4,
+        "allow_unused": 6,
+        "transmute": 0,
+        "set_e": 1,
+        "shellcheck_disable": 2
+      },
+      "test": {
+        "unwrap": 45,
+        "expect": 23,
+        "panic": 12
+      }
+    },
+    "binary_size": {
+      "quench": 5242880,
+      "quench-debug": 15728640,
+      "libquench.so": 3145728
+    },
+    "build_time": {
+      "cold": 60.5,
+      "hot": 2.3
+    },
+    "test_time": {
+      "total": 15.2,
+      "avg": 0.097,
+      "max": 2.5
+    }
+  }
+}
