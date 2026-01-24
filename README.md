@@ -32,22 +32,20 @@ quench check   # Run quality checks
 version = 1
 
 [check.cloc]
-max_lines = 750       # Source file limit (default: 750)
-max_lines_test = 1100 # Test file limit (default: 1100)
+# max_lines = 750           # default
+# max_lines_test = 1100     # default
 exclude = ["generated/**", "vendor/**"]
-advice = "Split large files into sibling modules or submodules."
-advice_test = "Use table-driven tests with t.Run()."  # Go-specific
+advice_test = "Use table-driven tests with t.Run()."
 
 [check.escapes]
-# Detects escape hatches like .unwrap(), unsafe, set +e
-# Language-specific defaults apply automatically
+# Language-specific defaults apply (unsafe, .unwrap(), set +e, etc.)
 
 [check.agents]
-required = ["CLAUDE.md"]  # Require agent context files
-tables = "forbid"         # No markdown tables in agent files
+# required = ["*"]          # default: at least one agent file
+tables = "forbid"           # no markdown tables
 
 [check.agents.sections]
-required = ["Landing the Plane"]  # Required markdown headings
+required = ["Landing the Plane"]
 ```
 
 ## Checks
