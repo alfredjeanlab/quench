@@ -220,18 +220,3 @@ fn compare_multiple_differences() {
             .any(|d| d.section == "c" && d.diff_type == DiffType::ExtraInTarget)
     );
 }
-
-#[test]
-fn compare_tracks_target_line() {
-    let source = "## A\n\nContent.\n";
-    let target = "# Preamble\n\n## A\n\nDifferent.\n";
-    let comparison = compare_files(source, target);
-
-    assert!(!comparison.in_sync);
-    let diff = comparison
-        .differences
-        .iter()
-        .find(|d| d.section == "a")
-        .unwrap();
-    assert_eq!(diff.target_line, Some(3));
-}

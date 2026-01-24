@@ -88,7 +88,6 @@ pub struct SyncComparison {
 
 /// A difference between sections in two files.
 #[derive(Debug)]
-#[allow(dead_code)] // KEEP UNTIL: Phase 520 - Agents Content Rules uses target_line for violations
 pub struct SectionDiff {
     /// Section name (normalized).
     pub section: String,
@@ -98,8 +97,6 @@ pub struct SectionDiff {
     pub target_heading: Option<String>,
     /// Type of difference.
     pub diff_type: DiffType,
-    /// Line in target file where section starts (for violation).
-    pub target_line: Option<u32>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -135,7 +132,6 @@ pub fn compare_files(source_content: &str, target_content: &str) -> SyncComparis
                     source_heading: Some(source.heading.clone()),
                     target_heading: None,
                     diff_type: DiffType::MissingInTarget,
-                    target_line: None,
                 });
             }
             Some(target) => {
@@ -146,7 +142,6 @@ pub fn compare_files(source_content: &str, target_content: &str) -> SyncComparis
                         source_heading: Some(source.heading.clone()),
                         target_heading: Some(target.heading.clone()),
                         diff_type: DiffType::ContentDiffers,
-                        target_line: Some(target.line),
                     });
                 }
             }
@@ -162,7 +157,6 @@ pub fn compare_files(source_content: &str, target_content: &str) -> SyncComparis
                 source_heading: None,
                 target_heading: Some(target.heading.clone()),
                 diff_type: DiffType::ExtraInTarget,
-                target_line: Some(target.line),
             });
         }
     }

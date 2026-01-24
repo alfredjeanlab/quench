@@ -154,3 +154,85 @@ sync_source = "CLAUDE.md"
     let content = std::fs::read_to_string(dir.path().join(".cursorrules")).unwrap();
     assert_eq!(content, TARGET, "file should not be modified");
 }
+
+// =============================================================================
+// EDGE CASE SPECS (Phase 6C)
+// =============================================================================
+
+/// Edge case: dry-run with no changes needed
+///
+/// > When files are already in sync, dry-run should show PASS with no preview.
+#[test]
+fn dry_run_no_changes_shows_clean() {
+    let dir = temp_project();
+    std::fs::write(
+        dir.path().join("quench.toml"),
+        r#"version = 1
+[check.agents]
+files = ["CLAUDE.md", ".cursorrules"]
+sync = true
+sync_source = "CLAUDE.md"
+"#,
+    )
+    .unwrap();
+    // Both files have the same content
+    std::fs::write(dir.path().join("CLAUDE.md"), SOURCE).unwrap();
+    std::fs::write(dir.path().join(".cursorrules"), SOURCE).unwrap();
+
+    // Dry-run should pass with no preview needed
+    cli()
+        .pwd(dir.path())
+        .args(&["--fix", "--dry-run"])
+        .passes()
+        .stdout_lacks("Would sync"); // No preview shown
+}
+
+/// Edge case: dry-run with JSON output includes previews
+///
+/// > JSON output in dry-run mode should include previews in fix_summary.
+#[test]
+fn dry_run_json_output_includes_previews() {
+    let dir = temp_project();
+    std::fs::write(
+        dir.path().join("quench.toml"),
+        r#"version = 1
+[check.agents]
+files = ["CLAUDE.md", ".cursorrules"]
+sync = true
+sync_source = "CLAUDE.md"
+sections.required = []
+"#,
+    )
+    .unwrap();
+    std::fs::write(dir.path().join("CLAUDE.md"), SOURCE).unwrap();
+    std::fs::write(dir.path().join(".cursorrules"), TARGET).unwrap();
+
+    let result = cli()
+        .pwd(dir.path())
+        .args(&["--fix", "--dry-run"])
+        .json()
+        .passes();
+
+    // Find the agents check result
+    let agents = result
+        .checks()
+        .iter()
+        .find(|c| c.get("name").and_then(|n| n.as_str()) == Some("agents"))
+        .expect("should have agents check");
+
+    let fix_summary = agents.get("fix_summary").expect("should have fix_summary");
+    let previews = fix_summary
+        .get("previews")
+        .and_then(|p| p.as_array())
+        .expect("should have previews array");
+
+    assert!(!previews.is_empty(), "previews should not be empty");
+    assert!(
+        previews[0].get("file").is_some(),
+        "preview should have file"
+    );
+    assert!(
+        previews[0].get("source").is_some(),
+        "preview should have source"
+    );
+}

@@ -22,8 +22,6 @@ enum MockBehavior {
     Pass,
     Fail(usize), // Number of violations
     Panic,
-    #[allow(dead_code)] // KEEP UNTIL: Phase 050 tests skip behavior
-    Skip(String),
 }
 
 impl MockCheck {
@@ -63,7 +61,6 @@ impl Check for MockCheck {
                 CheckResult::failed(self.name, violations)
             }
             MockBehavior::Panic => panic!("Mock check panicked"),
-            MockBehavior::Skip(msg) => CheckResult::skipped(self.name, msg.clone()),
         }
     }
 
