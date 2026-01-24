@@ -1,5 +1,7 @@
 # Pre-checkpoint: Fix Formatting, Lint, and Failing Tests
 
+**Root Feature:** `quench-32e5`
+
 ## Overview
 
 Verification checkpoint to ensure the codebase is clean before proceeding. This plan validates that all formatting, linting, and tests pass, fixing any issues found.
