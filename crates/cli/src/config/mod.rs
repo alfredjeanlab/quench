@@ -16,8 +16,9 @@ use std::path::Path;
 use serde::Deserialize;
 
 pub use checks::{
-    CheckLevel, ClocConfig, DocsConfig, EscapeAction, EscapePattern, EscapesConfig, LineMetric,
-    LinksConfig, SpecsConfig, SpecsSectionsConfig, TocConfig,
+    CheckLevel, ClocConfig, DocsAreaConfig, DocsCommitConfig, DocsConfig, EscapeAction,
+    EscapePattern, EscapesConfig, LineMetric, LinksConfig, SpecsConfig, SpecsSectionsConfig,
+    TocConfig,
 };
 pub use go::{GoConfig, GoPolicyConfig, GoSuppressConfig};
 pub use javascript::{JavaScriptConfig, JavaScriptPolicyConfig};

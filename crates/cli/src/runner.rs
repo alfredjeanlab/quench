@@ -29,6 +29,10 @@ pub struct RunnerConfig {
     pub fix: bool,
     /// Show what --fix would change without modifying files.
     pub dry_run: bool,
+    /// Whether running in CI mode (enables slow checks like commit validation).
+    pub ci_mode: bool,
+    /// Base branch for commit comparison in CI mode.
+    pub base_branch: Option<String>,
 }
 
 /// The check runner executes multiple checks in parallel.
@@ -128,6 +132,8 @@ impl CheckRunner {
                     changed_files: self.config.changed_files.as_deref(),
                     fix: self.config.fix,
                     dry_run: self.config.dry_run,
+                    ci_mode: self.config.ci_mode,
+                    base_branch: self.config.base_branch.as_deref(),
                 };
 
                 // Run check on uncached files
@@ -241,6 +247,8 @@ impl CheckRunner {
                     changed_files: self.config.changed_files.as_deref(),
                     fix: self.config.fix,
                     dry_run: self.config.dry_run,
+                    ci_mode: self.config.ci_mode,
+                    base_branch: self.config.base_branch.as_deref(),
                 };
 
                 // Catch panics to ensure error isolation

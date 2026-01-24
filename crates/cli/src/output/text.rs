@@ -274,6 +274,13 @@ impl TextFormatter {
                     _ => self.format_default_desc(v),
                 }
             }
+            // Docs commit check - show commit hash and message
+            "missing_docs" => match (&v.commit, &v.message) {
+                (Some(hash), Some(msg)) => {
+                    format!("feature commits without documentation: {}: {}", hash, msg)
+                }
+                _ => "feature commits without documentation".to_string(),
+            },
             // Other checks - existing behavior
             _ => self.format_default_desc(v),
         }

@@ -274,8 +274,18 @@ fn run_check(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
     // Filter checks based on CLI flags
     let checks = checks::filter_checks(&args.enabled_checks(), &args.disabled_checks());
 
-    // Get changed files if --base is provided
-    let changed_files = if let Some(ref base) = args.base {
+    // Determine base branch for CI mode
+    let base_branch = if let Some(ref base) = args.base {
+        Some(base.clone())
+    } else if args.ci {
+        // Auto-detect base branch in CI mode
+        detect_base_branch(&root)
+    } else {
+        None
+    };
+
+    // Get changed files if --base is provided or CI mode with detected base
+    let changed_files = if let Some(ref base) = base_branch {
         match get_changed_files(&root, base) {
             Ok(files) => {
                 if args.verbose {
@@ -285,7 +295,10 @@ fn run_check(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
                 Some(files)
             }
             Err(e) => {
-                eprintln!("quench: warning: could not get changed files: {}", e);
+                if args.base.is_some() {
+                    // Only warn if --base was explicitly provided
+                    eprintln!("quench: warning: could not get changed files: {}", e);
+                }
                 None
             }
         }
@@ -304,6 +317,8 @@ fn run_check(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
         changed_files,
         fix: args.fix,
         dry_run: args.dry_run,
+        ci_mode: args.ci,
+        base_branch,
     });
 
     // Set up caching (unless --no-cache)
@@ -443,6 +458,37 @@ fn get_changed_files(
     }
 
     Ok(files.into_iter().collect())
+}
+
+/// Detect base branch for CI mode (main or master).
+fn detect_base_branch(root: &std::path::Path) -> Option<String> {
+    use std::process::Command;
+
+    // Check if main branch exists
+    let main_check = Command::new("git")
+        .args(["rev-parse", "--verify", "main"])
+        .current_dir(root)
+        .output();
+
+    if let Ok(output) = main_check
+        && output.status.success()
+    {
+        return Some("main".to_string());
+    }
+
+    // Fall back to master
+    let master_check = Command::new("git")
+        .args(["rev-parse", "--verify", "master"])
+        .current_dir(root)
+        .output();
+
+    if let Ok(output) = master_check
+        && output.status.success()
+    {
+        return Some("master".to_string());
+    }
+
+    None
 }
 
 fn run_report(_cli: &Cli, args: &ReportArgs) -> anyhow::Result<()> {

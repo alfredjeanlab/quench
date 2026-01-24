@@ -3,6 +3,8 @@
 
 //! Check-specific configuration structures.
 
+use std::collections::HashMap;
+
 use serde::Deserialize;
 use serde::de::{self, Deserializer};
 
@@ -26,6 +28,64 @@ pub struct DocsConfig {
     /// Specs directory validation settings.
     #[serde(default)]
     pub specs: SpecsConfig,
+
+    /// Commit checking configuration (CI mode).
+    #[serde(default)]
+    pub commit: DocsCommitConfig,
+
+    /// Area mappings for scoped commit requirements.
+    #[serde(default)]
+    pub area: HashMap<String, DocsAreaConfig>,
+}
+
+/// Configuration for commit checking in CI mode.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct DocsCommitConfig {
+    /// Check level: "error" | "warn" | "off" (default: "off")
+    #[serde(default = "DocsCommitConfig::default_check")]
+    pub check: String,
+
+    /// Commit types that require documentation.
+    /// Default: ["feat", "feature", "story", "breaking"]
+    #[serde(default = "DocsCommitConfig::default_types")]
+    pub types: Vec<String>,
+}
+
+impl Default for DocsCommitConfig {
+    fn default() -> Self {
+        Self {
+            check: Self::default_check(),
+            types: Self::default_types(),
+        }
+    }
+}
+
+impl DocsCommitConfig {
+    fn default_check() -> String {
+        "off".to_string()
+    }
+
+    fn default_types() -> Vec<String> {
+        vec![
+            "feat".to_string(),
+            "feature".to_string(),
+            "story".to_string(),
+            "breaking".to_string(),
+        ]
+    }
+}
+
+/// Area mapping for scoped commits.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DocsAreaConfig {
+    /// Required docs pattern (glob).
+    pub docs: String,
+
+    /// Source files that trigger this area (optional glob).
+    #[serde(default)]
+    pub source: Option<String>,
 }
 
 /// Configuration for TOC validation.

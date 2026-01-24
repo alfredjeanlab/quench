@@ -31,6 +31,10 @@ pub struct CheckContext<'a> {
     pub fix: bool,
     /// Show what --fix would change without modifying files.
     pub dry_run: bool,
+    /// Whether running in CI mode (enables slow checks like commit validation).
+    pub ci_mode: bool,
+    /// Base branch for commit comparison in CI mode.
+    pub base_branch: Option<&'a str>,
 }
 
 /// The Check trait defines a single quality check.
@@ -102,6 +106,18 @@ pub struct Violation {
     /// Section name for section-level violations.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub section: Option<String>,
+
+    /// Commit hash for commit-level violations.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub commit: Option<String>,
+
+    /// Full commit message.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub message: Option<String>,
+
+    /// Expected docs pattern (for area-specific violations).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expected_docs: Option<String>,
 }
 
 impl Violation {
@@ -124,6 +140,9 @@ impl Violation {
             nonblank: None,
             other_file: None,
             section: None,
+            commit: None,
+            message: None,
+            expected_docs: None,
         }
     }
 
@@ -145,7 +164,41 @@ impl Violation {
             nonblank: None,
             other_file: None,
             section: None,
+            commit: None,
+            message: None,
+            expected_docs: None,
         }
+    }
+
+    /// Create a commit-level violation (no file).
+    pub fn commit_violation(
+        hash: impl Into<String>,
+        message: impl Into<String>,
+        violation_type: impl Into<String>,
+        advice: impl Into<String>,
+    ) -> Self {
+        Self {
+            file: None,
+            line: None,
+            violation_type: violation_type.into(),
+            advice: advice.into(),
+            value: None,
+            threshold: None,
+            pattern: None,
+            lines: None,
+            nonblank: None,
+            other_file: None,
+            section: None,
+            commit: Some(hash.into()),
+            message: Some(message.into()),
+            expected_docs: None,
+        }
+    }
+
+    /// Add expected docs pattern for area-specific violations.
+    pub fn with_expected_docs(mut self, docs: impl Into<String>) -> Self {
+        self.expected_docs = Some(docs.into());
+        self
     }
 
     /// Add value/threshold context to the violation.

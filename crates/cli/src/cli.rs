@@ -89,6 +89,10 @@ pub struct CheckArgs {
     #[arg(long)]
     pub dry_run: bool,
 
+    /// CI mode: run slow checks, auto-detect base branch
+    #[arg(long)]
+    pub ci: bool,
+
     // Check enable flags (run only these checks)
     /// Run only the cloc check
     #[arg(long)]
