@@ -1,5 +1,7 @@
 # Phase 495: JavaScript Adapter - Escape Patterns
 
+**Root Feature:** `quench-8006`
+
 ## Overview
 
 Implement JavaScript/TypeScript escape pattern detection for the quench escapes check. This adds two default escape patterns:
