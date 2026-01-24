@@ -209,6 +209,63 @@ Checks may add context-specific fields alongside these (e.g., `pattern`, `thresh
 
 JSON is pipe-friendly: `quench check -o json | jq '.checks[] | select(.passed == false)'`
 
+### Ratchet Output
+
+When ratcheting is enabled and a baseline exists, the JSON output includes a `ratchet` object:
+
+```json
+{
+  "timestamp": "2026-01-21T10:30:00Z",
+  "passed": false,
+  "checks": [...],
+  "ratchet": {
+    "passed": false,
+    "comparisons": [
+      {
+        "name": "escapes.unsafe",
+        "current": 5,
+        "baseline": 3,
+        "tolerance": 0,
+        "max_allowed": 3,
+        "passed": false,
+        "improved": false
+      }
+    ],
+    "improvements": []
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `passed` | boolean | Whether all ratcheted metrics pass |
+| `comparisons` | array | Individual metric comparison results |
+| `improvements` | array | Metrics that improved (for baseline update) |
+
+#### Comparison Object Schema
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | string | Metric name (e.g., `"escapes.unsafe"`, `"binary_size.quench"`) |
+| `current` | number | Current measured value |
+| `baseline` | number | Baseline value from stored baseline |
+| `tolerance` | number | Allowed tolerance above baseline |
+| `max_allowed` | number | Maximum allowed value (baseline + tolerance) |
+| `passed` | boolean | Whether metric passes the ratchet check |
+| `improved` | boolean | Whether metric improved from baseline |
+
+#### Improvement Object Schema
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | string | Metric name |
+| `old_value` | number | Previous baseline value |
+| `new_value` | number | New improved value |
+
+The `ratchet` key is omitted when:
+- Ratcheting is disabled (`check = "off"`)
+- No baseline file exists
+
 ## Colorization
 
 ### Detection Logic

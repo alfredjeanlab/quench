@@ -64,6 +64,14 @@ pub struct RatchetConfig {
     /// Test time tolerance (e.g., "2s"). Defaults to build_time_tolerance.
     #[serde(default)]
     pub test_time_tolerance: Option<String>,
+
+    /// Days before baseline is considered stale (0 to disable, default: 30).
+    #[serde(default = "default_stale_days")]
+    pub stale_days: u32,
+}
+
+fn default_stale_days() -> u32 {
+    30
 }
 
 impl RatchetConfig {

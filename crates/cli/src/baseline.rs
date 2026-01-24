@@ -157,6 +157,17 @@ impl Baseline {
     pub fn touch(&mut self) {
         self.updated = Utc::now();
     }
+
+    /// Get the age of this baseline in days.
+    pub fn age_days(&self) -> i64 {
+        let now = Utc::now();
+        (now - self.updated).num_days()
+    }
+
+    /// Check if baseline is stale (older than threshold).
+    pub fn is_stale(&self, threshold_days: u32) -> bool {
+        threshold_days > 0 && self.age_days() > threshold_days as i64
+    }
 }
 
 /// Errors that can occur during baseline operations.

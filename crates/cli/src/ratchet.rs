@@ -162,6 +162,32 @@ pub struct MetricComparison {
     pub improved: bool,
 }
 
+impl MetricComparison {
+    /// Get contextual advice for this metric failure.
+    pub fn advice(&self) -> &'static str {
+        if self.name.starts_with("escapes.") {
+            match self.name.as_str() {
+                n if n.contains("unsafe") => "Reduce unsafe blocks or add // SAFETY: comments.",
+                n if n.contains("unwrap") => "Replace .unwrap() with proper error handling.",
+                n if n.contains("todo") || n.contains("fixme") => {
+                    "Resolve TODO/FIXME comments before merging."
+                }
+                _ => "Reduce escape hatch usage or update baseline with --fix.",
+            }
+        } else if self.name.starts_with("binary_size.") {
+            "Reduce binary size: strip symbols, remove unused deps, enable LTO."
+        } else if self.name.starts_with("build_time.") {
+            "Reduce build time: check for new heavy deps or complex generics."
+        } else if self.name.starts_with("test_time.") {
+            "Reduce test time: parallelize tests or optimize slow tests."
+        } else if self.name.starts_with("coverage.") {
+            "Increase test coverage for changed code."
+        } else {
+            "Metric regressed. Clean up or update baseline with --fix."
+        }
+    }
+}
+
 /// A metric that improved from baseline.
 #[derive(Debug, Clone)]
 pub struct MetricImprovement {

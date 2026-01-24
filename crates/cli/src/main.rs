@@ -405,6 +405,14 @@ fn run_check(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
     let ratchet_result = if config.ratchet.check != CheckLevel::Off {
         match Baseline::load(&baseline_path) {
             Ok(Some(baseline)) => {
+                // Warn if baseline is stale
+                if baseline.is_stale(config.ratchet.stale_days) {
+                    eprintln!(
+                        "warning: baseline is {} days old. Consider refreshing with --fix.",
+                        baseline.age_days()
+                    );
+                }
+
                 let current = CurrentMetrics::from_output(&output);
                 Some(ratchet::compare(
                     &current,
@@ -501,7 +509,7 @@ fn run_check(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
 
             // Write ratchet results if applicable
             if let Some(ref result) = ratchet_result {
-                formatter.write_ratchet(result)?;
+                formatter.write_ratchet(result, config.ratchet.check)?;
             }
 
             formatter.write_summary(&output)?;
@@ -512,12 +520,15 @@ fn run_check(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
         }
         OutputFormat::Json => {
             let mut formatter = JsonFormatter::new(std::io::stdout());
-            formatter.write(&output)?;
+            formatter.write_with_ratchet(&output, ratchet_result.as_ref())?;
         }
     }
 
     // Determine exit code considering ratchet result
-    let ratchet_failed = ratchet_result.as_ref().is_some_and(|r| !r.passed);
+    // Only fail if check level is Error; Warn level reports but exits 0
+    let ratchet_failed = ratchet_result
+        .as_ref()
+        .is_some_and(|r| !r.passed && config.ratchet.check == CheckLevel::Error);
     // Dry-run always exits 0: preview is complete
     let exit_code = if args.dry_run {
         ExitCode::Success

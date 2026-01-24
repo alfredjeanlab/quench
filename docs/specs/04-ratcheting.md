@@ -67,6 +67,46 @@ binary_size_tolerance = "100KB" # Allow 100KB size increase
 build_time_tolerance = "5s"     # Allow 5s build time increase
 ```
 
+### Stale Baseline Warning
+
+Configure when to warn about old baselines:
+
+```toml
+[ratchet]
+stale_days = 30    # Warn if baseline > 30 days old (default)
+stale_days = 0     # Disable stale warning
+```
+
+When the baseline is older than `stale_days`, a warning is printed to stderr:
+
+```
+warning: baseline is 45 days old. Consider refreshing with --fix.
+```
+
+This helps teams maintain accurate baselines that reflect current project norms.
+
+### Warn Level
+
+Use warn level to see regressions without failing:
+
+```toml
+[ratchet]
+check = "warn"     # Report regressions, exit 0
+```
+
+This is useful for:
+- Gradual adoption of ratcheting
+- Informational CI runs on feature branches
+- Understanding impact before enforcement
+
+When check level is `warn`, regressions show `WARN` instead of `FAIL` and the exit code remains 0:
+
+```
+ratchet: WARN
+  escapes.unsafe: 5 (max: 3 from baseline)
+    Reduce unsafe blocks or add // SAFETY: comments.
+```
+
 ### Per-Package
 
 Ratcheting respects per-package breakdown:
