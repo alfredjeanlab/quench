@@ -77,6 +77,57 @@ The `typescript` adapter will include build/bundle metrics:
 
 See [checks/build.md](checks/build.md) for the build check specification.
 
+## Explicit TOC Code Block Syntax
+
+Support an explicit `toc` code block language tag to force validation of directory trees as TOC in one of the supported formats (box-drawing or indentation), regardless of heuristic detection.
+
+### Motivation
+
+The TOC validator uses heuristics to detect directory trees in code blocks, but edge cases exist where:
+- A code block looks like a directory tree but isn't meant to be validated
+- A code block is a valid directory tree but the detector misses it
+- A user wants to be explicit about intent
+
+### Syntax
+
+**Box-drawing format:**
+~~~markdown
+```toc
+docs/specs/
+├── 00-overview.md
+├── 01-cli.md
+└── checks/
+    └── docs.md
+```
+~~~
+
+**Indentation format:**
+~~~markdown
+```toc
+docs/specs/
+  00-overview.md
+  01-cli.md
+  checks/
+    docs.md
+```
+~~~
+
+### Behavior
+
+- Code blocks tagged `toc` are always validated as directory trees
+- Both formats (box-drawing and indentation) are supported
+- Files listed must exist (same path resolution as regular TOC validation)
+- Comments after `#` are ignored (same as regular TOC)
+- Fails with "invalid toc format" if neither format is detected
+
+### Output
+
+```
+docs/specs/checks/docs.md:45: invalid toc format
+  Code block marked as `toc` doesn't match box-drawing or indentation format.
+  Use box-drawing (├──, └──, │) or consistent indentation.
+```
+
 ## Doc Code Style
 
 Controls what kind of code appears in documentation. Prevents real implementation code in docs (favoring pseudocode or signatures), and provides language-specific rules.
