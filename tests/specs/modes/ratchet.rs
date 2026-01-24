@@ -250,6 +250,81 @@ fn fix_updates_baseline_on_improvement() {
     );
 }
 
+/// Spec: docs/specs/04-ratcheting.md#fix-message-variants
+///
+/// > --fix reports "baseline synced" when no improvements detected.
+#[test]
+fn fix_baseline_synced_message() {
+    let temp = Project::empty();
+    temp.config(RATCHET_CONFIG);
+    temp.file("CLAUDE.md", CLAUDE_MD);
+    temp.file("Cargo.toml", CARGO_TOML);
+
+    // Create baseline with 2 unsafe
+    fs::create_dir_all(temp.path().join(".quench")).unwrap();
+    fs::write(
+        temp.path().join(".quench/baseline.json"),
+        r#"{
+  "version": 1,
+  "updated": "2026-01-20T00:00:00Z",
+  "metrics": {
+    "escapes": {
+      "source": { "unsafe": 2 }
+    }
+  }
+}"#,
+    )
+    .unwrap();
+
+    // Source has 2 unsafe -> no improvement, just sync
+    temp.file("src/lib.rs", "fn f() {\n    unsafe {}\n    unsafe {}\n}");
+
+    quench_cmd()
+        .args(["check", "--fix"])
+        .current_dir(temp.path())
+        .assert()
+        .success()
+        .stderr(predicates::str::contains("baseline synced"));
+}
+
+/// Spec: docs/specs/04-ratcheting.md#fix-message-variants
+///
+/// > --fix reports "updated baseline" with improvement details when metrics improve.
+#[test]
+fn fix_baseline_updated_with_improvements() {
+    let temp = Project::empty();
+    temp.config(RATCHET_CONFIG);
+    temp.file("CLAUDE.md", CLAUDE_MD);
+    temp.file("Cargo.toml", CARGO_TOML);
+
+    // Create baseline with 5 unsafe
+    fs::create_dir_all(temp.path().join(".quench")).unwrap();
+    fs::write(
+        temp.path().join(".quench/baseline.json"),
+        r#"{
+  "version": 1,
+  "updated": "2026-01-20T00:00:00Z",
+  "metrics": {
+    "escapes": {
+      "source": { "unsafe": 5 }
+    }
+  }
+}"#,
+    )
+    .unwrap();
+
+    // Source has 2 unsafe -> improvement
+    temp.file("src/lib.rs", "fn f() {\n    unsafe {}\n    unsafe {}\n}");
+
+    quench_cmd()
+        .args(["check", "--fix"])
+        .current_dir(temp.path())
+        .assert()
+        .success()
+        .stderr(predicates::str::contains("updated baseline"))
+        .stderr(predicates::str::contains("5 -> 2"));
+}
+
 /// Spec: docs/specs/04-ratcheting.md#ratchet-disabled
 ///
 /// > check = "off" disables ratchet checking entirely.

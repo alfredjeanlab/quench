@@ -439,42 +439,48 @@ fn run_check(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
         None
     };
 
-    // Handle --fix: update baseline when metrics improve or create initial baseline
+    // Handle --fix: update/sync baseline
     if args.fix {
         if let Some(ref result) = ratchet_result {
-            if !result.improvements.is_empty() || !baseline_path.exists() {
-                let mut baseline = match Baseline::load(&baseline_path) {
-                    Ok(Some(b)) => b.with_commit(&root),
-                    Ok(None) | Err(_) => Baseline::new().with_commit(&root),
-                };
+            // Track if baseline existed before we modify it
+            let baseline_existed = baseline_path.exists();
 
-                let current = CurrentMetrics::from_output(&output);
-                ratchet::update_baseline(&mut baseline, &current, &result.improvements);
+            let mut baseline = match Baseline::load(&baseline_path) {
+                Ok(Some(b)) => b.with_commit(&root),
+                Ok(None) | Err(_) => Baseline::new().with_commit(&root),
+            };
 
-                if let Err(e) = baseline.save(&baseline_path) {
-                    eprintln!("quench: warning: failed to save baseline: {}", e);
+            let current = CurrentMetrics::from_output(&output);
+            ratchet::update_baseline(&mut baseline, &current);
+
+            if let Err(e) = baseline.save(&baseline_path) {
+                eprintln!("quench: warning: failed to save baseline: {}", e);
+            } else {
+                // Report what happened (to stderr to not interfere with JSON output)
+                if !baseline_existed {
+                    eprintln!(
+                        "ratchet: created initial baseline at {}",
+                        baseline_path.display()
+                    );
+                } else if result.improvements.is_empty() {
+                    eprintln!("ratchet: baseline synced");
                 } else {
-                    // Report what was updated (to stderr to not interfere with JSON output)
-                    if baseline_path.exists() && result.improvements.is_empty() {
-                        eprintln!("ratchet: updated baseline");
-                    } else {
-                        eprintln!("ratchet: updated baseline");
-                        for improvement in &result.improvements {
-                            eprintln!(
-                                "  {}: {} -> {} (new ceiling)",
-                                improvement.name,
-                                improvement.old_value as i64,
-                                improvement.new_value as i64
-                            );
-                        }
+                    eprintln!("ratchet: updated baseline");
+                    for improvement in &result.improvements {
+                        eprintln!(
+                            "  {}: {} -> {} (new ceiling)",
+                            improvement.name,
+                            improvement.format_value(improvement.old_value),
+                            improvement.format_value(improvement.new_value),
+                        );
                     }
                 }
             }
         } else if config.ratchet.check != CheckLevel::Off && !baseline_path.exists() {
-            // Create initial baseline
+            // Create initial baseline (ratchet enabled but no comparison was done)
             let current = CurrentMetrics::from_output(&output);
             let mut baseline = Baseline::new().with_commit(&root);
-            ratchet::update_baseline(&mut baseline, &current, &[]);
+            ratchet::update_baseline(&mut baseline, &current);
 
             if let Err(e) = baseline.save(&baseline_path) {
                 eprintln!("quench: warning: failed to create baseline: {}", e);
