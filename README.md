@@ -42,8 +42,8 @@ tables = "forbid"         # default: "allow"
 # box_diagrams = "forbid"
 
 # Per-scope config: .root (project), .package (crates/), .module (subdirs)
-[check.agents.package]
-required = []             # no agent file required in packages
+[check.agents.root]
+max_lines = 750           # longer allowed at project root
 ```
 
 ## Checks
