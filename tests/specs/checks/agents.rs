@@ -856,3 +856,57 @@ sync_source = "CLAUDE.md"
         "should have fixed: true"
     );
 }
+
+// =============================================================================
+// SNAPSHOT TESTS
+// =============================================================================
+// These tests use insta to capture exact output format for regression testing.
+
+use insta::assert_snapshot;
+
+/// Snapshot: Text output for missing file violation
+#[test]
+fn snapshot_missing_file_text() {
+    let result = check("agents").on("agents/missing-file").fails();
+    assert_snapshot!(result.stdout());
+}
+
+/// Snapshot: Text output for out-of-sync files
+#[test]
+fn snapshot_out_of_sync_text() {
+    let result = check("agents").on("agents/out-of-sync").fails();
+    assert_snapshot!(result.stdout());
+}
+
+/// Snapshot: Text output for forbidden table
+#[test]
+fn snapshot_forbidden_table_text() {
+    let result = check("agents").on("agents/with-table").fails();
+    assert_snapshot!(result.stdout());
+}
+
+/// Snapshot: Text output for missing section
+#[test]
+fn snapshot_missing_section_text() {
+    let result = check("agents").on("agents/missing-section").fails();
+    assert_snapshot!(result.stdout());
+}
+
+/// Snapshot: Text output for oversized file (lines)
+#[test]
+fn snapshot_oversized_lines_text() {
+    let result = check("agents").on("agents/oversized-lines").fails();
+    assert_snapshot!(result.stdout());
+}
+
+/// Snapshot: JSON output for multi-scope project (with timestamp redacted)
+#[test]
+fn snapshot_agents_project_json() {
+    let result = check("agents").on("agents-project").json().passes();
+    // Redact the timestamp for deterministic snapshots
+    let json = result.raw_json();
+    let redacted = regex::Regex::new(r#""timestamp": "[^"]+""#)
+        .expect("valid regex")
+        .replace(&json, r#""timestamp": "[REDACTED]""#);
+    assert_snapshot!(redacted);
+}

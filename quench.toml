@@ -19,3 +19,20 @@ exclude = [
     # NEVER for tests or source files
     "tests/fixtures/cloc/**",
 ]
+
+[check.agents]
+check = "error"
+files = ["CLAUDE.md"]
+required = ["CLAUDE.md"]
+sync = false                    # Only one agent file in quench
+tables = "forbid"
+max_lines = 500
+max_tokens = 20000
+
+[[check.agents.sections.required]]
+name = "Directory Structure"
+advice = "Document the project layout"
+
+[[check.agents.sections.required]]
+name = "Landing the Plane"
+advice = "Checklist for AI agents before committing"

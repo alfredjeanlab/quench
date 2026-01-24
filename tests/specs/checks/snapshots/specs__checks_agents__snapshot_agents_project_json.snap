@@ -1,0 +1,23 @@
+---
+source: crates/cli/../../tests/specs/checks/agents.rs
+expression: redacted
+---
+{
+  "checks": [
+    {
+      "metrics": {
+        "files_found": [
+          "CLAUDE.md",
+          ".cursorrules",
+          "crates/api/CLAUDE.md"
+        ],
+        "files_missing": [],
+        "in_sync": true
+      },
+      "name": "agents",
+      "passed": true
+    }
+  ],
+  "passed": true,
+  "timestamp": "[REDACTED]"
+}
