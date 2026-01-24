@@ -685,8 +685,9 @@ fn validate_file_toc(
                 failed_all.into_iter().copied().collect(),
                 format!(
                     "File does not exist.\n\
-                     Update the table of contents to match actual files.\n\
-                     If this is not a TOC, add a language tag like ```text.\n\n\
+                     This check ensures directory trees in documentation stay up-to-date.\n\
+                     Update the table of contents or directory tree to match actual files.\n\
+                     If this is illustrative, add a ```text language tag.\n\n\
                      Tried: {}",
                     tried.join(", ")
                 ),
@@ -713,8 +714,9 @@ fn validate_file_toc(
                     failed,
                     format!(
                         "File does not exist (when resolving {}).\n\
+                         This check ensures directory trees in documentation stay up-to-date.\n\
                          TOC entries should use a consistent path style.\n\
-                         If this is not a TOC, add a language tag like ```text.",
+                         If this is illustrative, add a ```text language tag.",
                         strategy.description()
                     ),
                 ),

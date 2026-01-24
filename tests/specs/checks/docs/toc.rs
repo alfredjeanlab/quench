@@ -53,8 +53,9 @@ src/
         "docs: FAIL
   CLAUDE.md:5: broken_toc: src/missing.rs
     File does not exist.
-    Update the table of contents to match actual files.
-    If this is not a TOC, add a language tag like ```text.
+    This check ensures directory trees in documentation stay up-to-date.
+    Update the table of contents or directory tree to match actual files.
+    If this is illustrative, add a ```text language tag.
 
     Tried: relative to markdown file, relative to project root, stripping parent directory prefix
 
