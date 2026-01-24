@@ -1,0 +1,4 @@
+version = 1
+
+[javascript.policy]
+lint_changes = "standalone"
