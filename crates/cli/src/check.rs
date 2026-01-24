@@ -35,6 +35,8 @@ pub struct CheckContext<'a> {
     pub ci_mode: bool,
     /// Base branch for commit comparison in CI mode.
     pub base_branch: Option<&'a str>,
+    /// Whether checking only staged changes (--staged flag).
+    pub staged: bool,
 }
 
 /// The Check trait defines a single quality check.

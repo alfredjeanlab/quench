@@ -69,6 +69,10 @@ pub struct CheckArgs {
     #[arg(long, value_name = "REF")]
     pub base: Option<String>,
 
+    /// Check only staged changes (pre-commit hook)
+    #[arg(long)]
+    pub staged: bool,
+
     /// List scanned files (for debugging)
     #[arg(long, hide = true)]
     pub debug_files: bool,

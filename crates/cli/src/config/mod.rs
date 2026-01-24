@@ -372,11 +372,82 @@ pub struct TestsConfig {
 }
 
 /// Tests commit check configuration.
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct TestsCommitConfig {
     /// Check level: "error" | "warn" | "off"
-    pub check: Option<String>,
+    #[serde(default = "TestsCommitConfig::default_check")]
+    pub check: String,
+
+    /// Scope: "branch" | "commit"
+    #[serde(default = "TestsCommitConfig::default_scope")]
+    pub scope: String,
+
+    /// Placeholder handling: "allow" | "forbid"
+    #[serde(default = "TestsCommitConfig::default_placeholders")]
+    pub placeholders: String,
+
+    /// Test file patterns (extends defaults).
+    #[serde(default = "TestsCommitConfig::default_test_patterns")]
+    pub test_patterns: Vec<String>,
+
+    /// Source file patterns.
+    #[serde(default = "TestsCommitConfig::default_source_patterns")]
+    pub source_patterns: Vec<String>,
+
+    /// Excluded patterns (never require tests).
+    #[serde(default = "TestsCommitConfig::default_exclude")]
+    pub exclude: Vec<String>,
+}
+
+impl Default for TestsCommitConfig {
+    fn default() -> Self {
+        Self {
+            check: Self::default_check(),
+            scope: Self::default_scope(),
+            placeholders: Self::default_placeholders(),
+            test_patterns: Self::default_test_patterns(),
+            source_patterns: Self::default_source_patterns(),
+            exclude: Self::default_exclude(),
+        }
+    }
+}
+
+impl TestsCommitConfig {
+    fn default_check() -> String {
+        "off".to_string()
+    }
+
+    fn default_scope() -> String {
+        "branch".to_string()
+    }
+
+    fn default_placeholders() -> String {
+        "allow".to_string()
+    }
+
+    fn default_test_patterns() -> Vec<String> {
+        vec![
+            "tests/**/*".to_string(),
+            "test/**/*".to_string(),
+            "**/*_test.*".to_string(),
+            "**/*_tests.*".to_string(),
+            "**/*.spec.*".to_string(),
+        ]
+    }
+
+    fn default_source_patterns() -> Vec<String> {
+        vec!["src/**/*".to_string()]
+    }
+
+    fn default_exclude() -> Vec<String> {
+        vec![
+            "**/mod.rs".to_string(),
+            "**/lib.rs".to_string(),
+            "**/main.rs".to_string(),
+            "**/generated/**".to_string(),
+        ]
+    }
 }
 
 /// License check configuration.

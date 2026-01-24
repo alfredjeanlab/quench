@@ -78,7 +78,6 @@ fn git_branch(path: &std::path::Path, name: &str) {
 ///
 /// Only staged files are checked, unstaged changes are ignored.
 #[test]
-#[ignore = "TODO: Phase 701 - tests check correlation"]
 fn staged_flag_checks_only_staged_files() {
     let temp = Project::empty();
     temp.config(
@@ -117,7 +116,6 @@ check = "error"
 /// > `quench check --base main` - Compare to branch (PR/CI)
 /// > `quench check --base HEAD~5` - Compare to commits
 #[test]
-#[ignore = "TODO: Phase 701 - tests check correlation"]
 fn base_flag_compares_against_git_ref() {
     let temp = Project::empty();
     temp.config(
@@ -153,7 +151,6 @@ check = "error"
 /// > - New source files → require new test file (or test additions)
 /// > - Modified source files → require test changes
 #[test]
-#[ignore = "TODO: Phase 701 - tests check correlation"]
 fn source_change_without_test_change_generates_violation() {
     let temp = Project::empty();
     temp.config(
@@ -183,7 +180,6 @@ check = "error"
 ///
 /// Writing tests before implementation is a valid workflow.
 #[test]
-#[ignore = "TODO: Phase 701 - tests check correlation"]
 fn test_change_without_source_change_passes_tdd() {
     let temp = Project::empty();
     temp.config(
@@ -223,7 +219,6 @@ fn test_parse() {
 /// > For Rust, changes to `#[cfg(test)]` blocks in the same file
 /// > **satisfy the test requirement**
 #[test]
-#[ignore = "TODO: Phase 701 - tests check correlation"]
 fn inline_cfg_test_change_satisfies_test_requirement() {
     let temp = Project::empty();
     temp.config(
@@ -275,7 +270,6 @@ mod tests {
 /// > fn test_parser() { todo!() }
 /// > ```
 #[test]
-#[ignore = "TODO: Phase 701 - tests check correlation"]
 fn placeholder_test_satisfies_test_requirement() {
     let temp = Project::empty();
     temp.config(
@@ -322,7 +316,6 @@ fn test_parse() {
 /// >   "**/main.rs",          # Binary entry points
 /// > ]
 #[test]
-#[ignore = "TODO: Phase 701 - tests check correlation"]
 fn excluded_files_dont_require_tests() {
     let temp = Project::empty();
     temp.config(
@@ -359,7 +352,6 @@ check = "error"
 /// >   ...
 /// > }
 #[test]
-#[ignore = "TODO: Phase 701 - tests check correlation"]
 fn json_includes_source_files_changed_metrics() {
     let temp = Project::empty();
     temp.config(
@@ -400,7 +392,6 @@ check = "error"
 ///
 /// > **Violation types**: `missing_tests`
 #[test]
-#[ignore = "TODO: Phase 701 - tests check correlation"]
 fn tests_violation_type_is_always_missing_tests() {
     let temp = Project::empty();
     temp.config(

@@ -78,6 +78,11 @@ fn run_check(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
         return Ok(ExitCode::ConfigError);
     }
 
+    if args.staged && args.base.is_some() {
+        eprintln!("--staged and --base cannot be used together");
+        return Ok(ExitCode::ConfigError);
+    }
+
     let cwd = std::env::current_dir()?;
 
     // Determine root directory
@@ -287,8 +292,23 @@ fn run_check(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
         None
     };
 
-    // Get changed files if --base is provided or CI mode with detected base
-    let changed_files = if let Some(ref base) = base_branch {
+    // Get changed files if --staged, --base is provided, or CI mode with detected base
+    let changed_files = if args.staged {
+        // Get staged files only
+        match get_staged_files(&root) {
+            Ok(files) => {
+                if args.verbose {
+                    eprintln!("Checking staged files");
+                    eprintln!("{} files staged", files.len());
+                }
+                Some(files)
+            }
+            Err(e) => {
+                eprintln!("quench: warning: could not get staged files: {}", e);
+                None
+            }
+        }
+    } else if let Some(ref base) = base_branch {
         match get_changed_files(&root, base) {
             Ok(files) => {
                 if args.verbose {
@@ -322,6 +342,7 @@ fn run_check(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
         dry_run: args.dry_run,
         ci_mode: args.ci,
         base_branch,
+        staged: args.staged,
     });
 
     // Set up caching (unless --no-cache)
@@ -546,6 +567,31 @@ fn get_changed_files(
     }
 
     Ok(files.into_iter().collect())
+}
+
+/// Get list of staged files (for --staged flag).
+fn get_staged_files(root: &std::path::Path) -> anyhow::Result<Vec<std::path::PathBuf>> {
+    use std::process::Command;
+
+    // Get staged changes
+    let output = Command::new("git")
+        .args(["diff", "--name-only", "--cached"])
+        .current_dir(root)
+        .output()?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        anyhow::bail!("git diff --cached failed: {}", stderr.trim());
+    }
+
+    let mut files: Vec<std::path::PathBuf> = Vec::new();
+    for line in String::from_utf8_lossy(&output.stdout).lines() {
+        if !line.is_empty() {
+            files.push(root.join(line));
+        }
+    }
+
+    Ok(files)
 }
 
 /// Detect base branch for CI mode (main or master).
