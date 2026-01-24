@@ -1,0 +1,8 @@
+---
+source: crates/cli/../../tests/specs/checks/agents.rs
+expression: result.stdout()
+---
+agents: FAIL
+  CLAUDE.md: missing required section
+    Add a "## Landing the Plane" section: Checklist for AI agents before finishing work
+FAIL: agents

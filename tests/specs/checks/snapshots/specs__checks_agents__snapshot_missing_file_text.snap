@@ -1,0 +1,8 @@
+---
+source: crates/cli/../../tests/specs/checks/agents.rs
+expression: result.stdout()
+---
+agents: FAIL
+  CLAUDE.md: missing required file
+    Required agent file 'CLAUDE.md' not found at project root
+FAIL: agents
