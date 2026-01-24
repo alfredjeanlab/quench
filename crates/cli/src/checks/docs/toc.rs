@@ -112,10 +112,10 @@ fn parse_tree_line(
         return None;
     }
 
-    // Ignore ellipsis and directory reference entries
+    // Ignore ellipsis, continuation markers, and directory reference entries
     // These are placeholders, not actual files to validate
     let name_without_slash = name.trim_end_matches('/');
-    if matches!(name_without_slash, "." | ".." | "...") {
+    if matches!(name_without_slash, "." | ".." | "..." | "etc..." | "etc.") {
         return None;
     }
 

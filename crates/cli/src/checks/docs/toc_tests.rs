@@ -371,6 +371,24 @@ fn four_dots_not_ignored() {
     assert!(entries.iter().any(|e| e.path == "src/...."));
 }
 
+#[test]
+fn etc_continuation_marker_ignored() {
+    let block = FencedBlock {
+        start_line: 1,
+        lines: vec![
+            "src/".to_string(),
+            "├── lib.rs".to_string(),
+            "├── etc...".to_string(),
+            "└── etc.".to_string(),
+        ],
+        language: None,
+    };
+    let entries = parse_tree_block(&block);
+    // Should have src/ and lib.rs, but NOT etc... or etc.
+    assert_eq!(entries.len(), 2);
+    assert!(!entries.iter().any(|e| e.path.contains("etc")));
+}
+
 // === StripParentDirName resolution ===
 
 #[test]
