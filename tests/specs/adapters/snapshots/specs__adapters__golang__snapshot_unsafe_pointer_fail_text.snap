@@ -1,0 +1,8 @@
+---
+source: crates/cli/../../tests/specs/adapters/golang.rs
+expression: result.stdout()
+---
+escapes: FAIL
+  main.go:7: missing_comment: unsafe_pointer
+    Add a // SAFETY: comment explaining pointer validity.
+FAIL: escapes

@@ -1,0 +1,23 @@
+---
+source: crates/cli/../../tests/specs/adapters/golang.rs
+expression: redacted
+---
+{
+  "checks": [
+    {
+      "metrics": {
+        "ratio": 0.32,
+        "source_files": 3,
+        "source_lines": 22,
+        "source_tokens": 100,
+        "test_files": 1,
+        "test_lines": 7,
+        "test_tokens": 27
+      },
+      "name": "cloc",
+      "passed": true
+    }
+  ],
+  "passed": true,
+  "timestamp": "[REDACTED]"
+}

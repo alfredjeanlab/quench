@@ -457,3 +457,29 @@ lint_config = [".golangci.yml"]
         .args(&["--base", "HEAD"])
         .passes();
 }
+
+// =============================================================================
+// SNAPSHOT TESTS
+// =============================================================================
+// These tests use insta to capture exact output format for regression testing.
+
+use insta::assert_snapshot;
+
+/// Snapshot: Go adapter cloc output on simple project
+#[test]
+fn snapshot_go_simple_cloc_json() {
+    let result = check("cloc").on("go-simple").json().passes();
+    // Redact the timestamp for deterministic snapshots
+    let json = result.raw_json();
+    let redacted = regex::Regex::new(r#""timestamp": "[^"]+""#)
+        .expect("valid regex")
+        .replace(&json, r#""timestamp": "[REDACTED]""#);
+    assert_snapshot!(redacted);
+}
+
+/// Snapshot: Go escape violation text output
+#[test]
+fn snapshot_unsafe_pointer_fail_text() {
+    let result = check("escapes").on("golang/unsafe-pointer-fail").fails();
+    assert_snapshot!(result.stdout());
+}
