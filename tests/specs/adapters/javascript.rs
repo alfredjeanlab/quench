@@ -69,7 +69,7 @@ fn auto_detected_when_jsconfig_json_present() {
 
 /// Spec: docs/specs/langs/javascript.md#default-patterns
 ///
-/// > source = ["**/*.js", "**/*.jsx", "**/*.ts", "**/*.tsx", "**/*.mjs", "**/*.mts"]
+/// > source = ["**/*.js", "**/*.jsx", "**/*.ts", "**/*.tsx", "**/*.mjs", "**/*.mts", "**/*.cjs", "**/*.cts"]
 #[test]
 fn default_source_pattern_matches_js_ts_files() {
     let cloc = check("cloc")
@@ -88,10 +88,10 @@ fn default_source_pattern_matches_js_ts_files() {
 /// Spec: docs/specs/langs/javascript.md#default-patterns
 ///
 /// > tests = [
-/// >   "**/*.test.js", "**/*.test.ts", "**/*.test.jsx", "**/*.test.tsx",
-/// >   "**/*.spec.js", "**/*.spec.ts", "**/*.spec.jsx", "**/*.spec.tsx",
+/// >   "**/*.test.*", "**/*.spec.*",
+/// >   "**/*_test.*", "**/*_tests.*", "**/test_*.*",
 /// >   "**/__tests__/**",
-/// >   "test/**", "tests/**"
+/// >   "**/test/**", "**/tests/**"
 /// > ]
 #[test]
 fn default_test_pattern_matches_test_files() {

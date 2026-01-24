@@ -21,13 +21,22 @@ fn default_policy() -> JavaScriptPolicyConfig {
 
 fn js_classifier(path: &Path) -> FileKind {
     let path_str = path.to_string_lossy();
-    if path_str.contains(".test.") || path_str.contains(".spec.") || path_str.contains("__tests__")
+    if path_str.contains(".test.")
+        || path_str.contains(".spec.")
+        || path_str.contains("__tests__")
+        || path_str.contains("_test.")
+        || path_str.contains("_tests.")
+        || path_str.starts_with("test_")
     {
         FileKind::Test
     } else if path_str.ends_with(".ts")
         || path_str.ends_with(".js")
         || path_str.ends_with(".tsx")
         || path_str.ends_with(".jsx")
+        || path_str.ends_with(".mjs")
+        || path_str.ends_with(".mts")
+        || path_str.ends_with(".cjs")
+        || path_str.ends_with(".cts")
     {
         FileKind::Source
     } else {
@@ -124,4 +133,19 @@ fn recognizes_biome_config_variants() {
             config
         );
     }
+}
+
+#[test]
+fn recognizes_commonjs_extensions() {
+    let policy = default_policy();
+    let files = [
+        Path::new("src/config.cjs"),
+        Path::new("src/types.cts"),
+        Path::new(".eslintrc"),
+    ];
+    let file_refs: Vec<&Path> = files.to_vec();
+
+    let result = check_lint_policy(&file_refs, &policy, js_classifier);
+    assert!(result.standalone_violated);
+    assert_eq!(result.changed_source.len(), 2);
 }

@@ -51,12 +51,12 @@ advice = "Use @ts-expect-error instead, which fails if the error is resolved."
 
 ```toml
 [javascript]
-source = ["**/*.js", "**/*.jsx", "**/*.ts", "**/*.tsx", "**/*.mjs", "**/*.mts"]
+source = ["**/*.js", "**/*.jsx", "**/*.ts", "**/*.tsx", "**/*.mjs", "**/*.mts", "**/*.cjs", "**/*.cts"]
 tests = [
-  "**/*.test.js", "**/*.test.ts", "**/*.test.jsx", "**/*.test.tsx",
-  "**/*.spec.js", "**/*.spec.ts", "**/*.spec.jsx", "**/*.spec.tsx",
+  "**/*.test.*", "**/*.spec.*",
+  "**/*_test.*", "**/*_tests.*", "**/test_*.*",
   "**/__tests__/**",
-  "test/**", "tests/**"
+  "**/test/**", "**/tests/**"
 ]
 ignore = ["node_modules/", "dist/", "build/", ".next/", "coverage/"]
 ```
@@ -64,8 +64,8 @@ ignore = ["node_modules/", "dist/", "build/", ".next/", "coverage/"]
 ## Test Code Detection
 
 **Test files** (entire file is test code):
-- `*.test.js`, `*.test.ts`, `*.test.jsx`, `*.test.tsx`
-- `*.spec.js`, `*.spec.ts`, `*.spec.jsx`, `*.spec.tsx`
+- `*.test.*`, `*.spec.*` (any extension)
+- `*_test.*`, `*_tests.*`, `test_*.*` (underscore variants)
 - Files in `__tests__/` directories
 - Files in `test/` or `tests/` directories
 
@@ -325,8 +325,8 @@ These satisfy test correlation requirements, indicating planned test implementat
 ```toml
 [javascript]
 # Source/test patterns (defaults shown)
-# source = ["**/*.js", "**/*.jsx", "**/*.ts", "**/*.tsx", "**/*.mjs", "**/*.mts"]
-# tests = ["**/*.test.*", "**/*.spec.*", "**/__tests__/**", "test/**", "tests/**"]
+# source = ["**/*.js", "**/*.jsx", "**/*.ts", "**/*.tsx", "**/*.mjs", "**/*.mts", "**/*.cjs", "**/*.cts"]
+# tests = ["**/*.test.*", "**/*.spec.*", "**/*_test.*", "**/*_tests.*", "**/test_*.*", "**/__tests__/**", "**/test/**", "**/tests/**"]
 # ignore = ["node_modules/", "dist/", "build/", ".next/", "coverage/"]
 
 # Bundler (default: auto-detect)
