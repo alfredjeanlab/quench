@@ -171,3 +171,75 @@ fn inner_attribute_with_multiple_codes() {
         vec!["dead_code", "unused_variables", "clippy::unwrap_used"]
     );
 }
+
+// =============================================================================
+// MULTI-LINE ATTRIBUTE TESTS
+// =============================================================================
+
+#[test]
+fn multiline_allow_attribute() {
+    let content = "#[allow(\n    dead_code,\n    unused_variables\n)]\nfn unused() {}";
+    let attrs = parse_suppress_attrs(content, None);
+
+    assert_eq!(attrs.len(), 1, "should detect multi-line allow attribute");
+    assert_eq!(attrs[0].kind, "allow");
+    assert_eq!(attrs[0].codes, vec!["dead_code", "unused_variables"]);
+    assert_eq!(attrs[0].line, 0, "line should be start of attribute");
+}
+
+#[test]
+fn multiline_expect_attribute() {
+    let content = "#[expect(\n    unused\n)]\nfn f() {}";
+    let attrs = parse_suppress_attrs(content, None);
+
+    assert_eq!(attrs.len(), 1);
+    assert_eq!(attrs[0].kind, "expect");
+    assert_eq!(attrs[0].codes, vec!["unused"]);
+}
+
+#[test]
+fn multiline_allow_with_comment() {
+    let content = "// This is a justification comment\n#[allow(\n    dead_code\n)]\nfn f() {}";
+    let attrs = parse_suppress_attrs(content, None);
+
+    assert_eq!(attrs.len(), 1);
+    assert!(attrs[0].has_comment);
+    assert_eq!(
+        attrs[0].comment_text,
+        Some("This is a justification comment".to_string())
+    );
+}
+
+#[test]
+fn multiline_inner_allow_attribute() {
+    let content = "#![allow(\n    dead_code,\n    unused\n)]\nfn f() {}";
+    let attrs = parse_suppress_attrs(content, None);
+
+    assert_eq!(attrs.len(), 1);
+    assert_eq!(attrs[0].kind, "allow");
+    assert_eq!(attrs[0].codes, vec!["dead_code", "unused"]);
+}
+
+#[test]
+fn multiline_allow_with_clippy_lints() {
+    let content = "#[allow(\n    clippy::unwrap_used,\n    clippy::expect_used\n)]\nfn f() {}";
+    let attrs = parse_suppress_attrs(content, None);
+
+    assert_eq!(attrs.len(), 1);
+    assert_eq!(
+        attrs[0].codes,
+        vec!["clippy::unwrap_used", "clippy::expect_used"]
+    );
+}
+
+#[test]
+fn mixed_single_and_multiline_attributes() {
+    let content = "#[allow(dead_code)]\nfn a() {}\n\n#[allow(\n    unused\n)]\nfn b() {}";
+    let attrs = parse_suppress_attrs(content, None);
+
+    assert_eq!(attrs.len(), 2);
+    assert_eq!(attrs[0].codes, vec!["dead_code"]);
+    assert_eq!(attrs[0].line, 0);
+    assert_eq!(attrs[1].codes, vec!["unused"]);
+    assert_eq!(attrs[1].line, 3);
+}

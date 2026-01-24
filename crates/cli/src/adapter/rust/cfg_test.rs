@@ -28,32 +28,69 @@ pub struct CfgTestInfo {
     pub test_ranges: Vec<Range<usize>>,
 }
 
+/// State for tracking multi-line attribute parsing.
+struct MultiLineAttr {
+    /// Accumulated content of the attribute.
+    content: String,
+    /// Line where the attribute started.
+    start_line: usize,
+}
+
 impl CfgTestInfo {
     /// Parse a Rust source file to find #[cfg(test)] block ranges.
     ///
     /// Uses a brace-counting approach with proper lexer state tracking:
-    /// 1. Scan for #[cfg(test)] attribute
+    /// 1. Scan for #[cfg(test)] attribute (handles multi-line)
     /// 2. Count { and } to track block depth (skipping string/char literals)
     /// 3. Block ends when brace depth returns to 0
     ///
     /// Limitations:
-    /// - Multi-line attributes not fully supported
     /// - `mod tests;` (external module) declarations need file-level classification
     pub fn parse(content: &str) -> Self {
         let mut info = Self::default();
         let mut in_cfg_test = false;
         let mut brace_depth: i32 = 0;
         let mut block_start = 0;
+        let mut pending_attr: Option<MultiLineAttr> = None;
 
         for (line_idx, line) in content.lines().enumerate() {
             let trimmed = line.trim();
 
-            // Check for #[cfg(test)] attribute
-            if !in_cfg_test && is_cfg_test_attr(trimmed) {
-                in_cfg_test = true;
-                block_start = line_idx;
-                brace_depth = 0;
+            // Handle multi-line attribute accumulation
+            if let Some(ref mut attr) = pending_attr {
+                attr.content.push_str(trimmed);
+
+                // Check if the attribute is complete (has closing bracket)
+                if trimmed.contains(")]") || (trimmed.contains(')') && attr.content.contains(")]"))
+                {
+                    // Attribute complete, check if it's cfg(test)
+                    if is_cfg_test_content(&attr.content) {
+                        in_cfg_test = true;
+                        block_start = attr.start_line;
+                        brace_depth = 0;
+                    }
+                    pending_attr = None;
+                }
                 continue;
+            }
+
+            // Check for #[cfg(test)] attribute (single-line or start of multi-line)
+            if !in_cfg_test && let Some(attr_state) = detect_cfg_attr_start(trimmed, line_idx) {
+                match attr_state {
+                    CfgAttrState::Complete(is_test) => {
+                        if is_test {
+                            in_cfg_test = true;
+                            block_start = line_idx;
+                            brace_depth = 0;
+                        }
+                    }
+                    CfgAttrState::Incomplete(attr) => {
+                        pending_attr = Some(attr);
+                    }
+                }
+                if pending_attr.is_some() || in_cfg_test {
+                    continue;
+                }
             }
 
             if in_cfg_test {
@@ -77,12 +114,58 @@ impl CfgTestInfo {
     }
 }
 
-/// Check if a line is a #[cfg(test)] attribute.
-pub(crate) fn is_cfg_test_attr(line: &str) -> bool {
-    // Match #[cfg(test)] with optional whitespace
-    line.starts_with("#[cfg(test)]")
-        || line.starts_with("#[cfg( test )]")
-        || line.contains("#[cfg(test)]")
+/// Result of detecting a cfg attribute start.
+enum CfgAttrState {
+    /// Complete single-line attribute, bool indicates if it's cfg(test).
+    Complete(bool),
+    /// Incomplete multi-line attribute that needs more lines.
+    Incomplete(MultiLineAttr),
+}
+
+/// Detect if a line starts a #[cfg(...)] attribute.
+/// Returns the state of the attribute parsing.
+fn detect_cfg_attr_start(line: &str, line_idx: usize) -> Option<CfgAttrState> {
+    // Check for #[cfg( pattern
+    let has_cfg = line.starts_with("#[cfg(") || line.contains("#[cfg(");
+
+    if !has_cfg {
+        return None;
+    }
+
+    Some({
+        // Check if the attribute is complete on this line
+        if line.contains(")]") {
+            // Single-line case
+            CfgAttrState::Complete(is_cfg_test_content(line))
+        } else {
+            // Multi-line case - attribute continues on next line(s)
+            CfgAttrState::Incomplete(MultiLineAttr {
+                content: line.to_string(),
+                start_line: line_idx,
+            })
+        }
+    })
+}
+
+/// Check if accumulated cfg attribute content contains "test".
+fn is_cfg_test_content(content: &str) -> bool {
+    // Look for cfg(test) pattern with optional whitespace
+    // The content may be the full attribute like "#[cfg(test)]"
+    // or accumulated multi-line content like "#[cfg(\n    test\n)]"
+
+    // Extract the part between #[cfg( and )]
+    if let Some(start) = content.find("#[cfg(") {
+        let after_cfg = &content[start + 6..];
+        if let Some(end) = after_cfg.find(")]") {
+            let inner = &after_cfg[..end];
+            // Check if inner contains "test" as a standalone word
+            // Handle cases like "test", " test ", "all(test, ...)", etc.
+            return inner
+                .split(|c: char| !c.is_alphanumeric() && c != '_')
+                .any(|word| word == "test");
+        }
+    }
+    false
 }
 
 /// Count brace depth changes in a line, accounting for string/char literals.

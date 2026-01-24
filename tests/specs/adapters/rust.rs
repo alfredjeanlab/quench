@@ -196,7 +196,6 @@ fn rust_adapter_external_test_modules_detected_via_file_patterns() {
 ///
 /// > Multi-line #[cfg(test)] attributes should be detected
 #[test]
-#[ignore = "FIXME: multi-line #[cfg(test)] not yet supported"]
 fn rust_adapter_multiline_cfg_test_detected() {
     let cloc = check("cloc").on("rust/multiline-cfg-test").json().passes();
     let metrics = cloc.require("metrics");
@@ -465,7 +464,6 @@ check = "comment"
 ///
 /// > Multi-line #[allow(...)] attributes should be detected
 #[test]
-#[ignore = "FIXME: multi-line #[allow(...)] not yet supported"]
 fn rust_adapter_multiline_allow_detected() {
     // multiline-allow fixture has multi-line #[allow(dead_code, unused_variables)]
     // with check = "forbid", so it should fail if detected

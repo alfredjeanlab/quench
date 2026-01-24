@@ -332,3 +332,104 @@ mod tests {
 
     assert_eq!(info.test_ranges.len(), 1);
 }
+
+// =============================================================================
+// MULTI-LINE ATTRIBUTE TESTS
+// =============================================================================
+
+#[test]
+fn multiline_cfg_test_attribute() {
+    // Multi-line #[cfg(test)] should be detected
+    let content = r#"
+pub fn source_code() -> i32 {
+    42
+}
+
+#[cfg(
+    test
+)]
+mod tests {
+    #[test]
+    fn it_works() {
+        assert_eq!(super::source_code(), 42);
+    }
+}
+"#;
+    let info = CfgTestInfo::parse(content);
+
+    assert_eq!(
+        info.test_ranges.len(),
+        1,
+        "should detect multi-line cfg(test)"
+    );
+    assert!(!info.is_test_line(1)); // pub fn source_code
+    assert!(info.is_test_line(5)); // #[cfg(
+    assert!(info.is_test_line(8)); // mod tests
+    assert!(info.is_test_line(13)); // closing brace
+}
+
+#[test]
+fn multiline_cfg_test_with_extra_whitespace() {
+    // Multi-line with lots of whitespace
+    let content = r#"
+fn main() {}
+
+#[cfg(
+        test
+    )]
+mod tests {
+    fn test() {}
+}
+"#;
+    let info = CfgTestInfo::parse(content);
+
+    assert_eq!(info.test_ranges.len(), 1);
+    assert!(!info.is_test_line(1)); // fn main
+    assert!(info.is_test_line(3)); // #[cfg(
+}
+
+#[test]
+fn multiline_cfg_not_test() {
+    // Multi-line #[cfg(...)] that is NOT test
+    let content = r#"
+fn always() {}
+
+#[cfg(
+    feature = "foo"
+)]
+fn feature_foo() {}
+
+#[cfg(test)]
+mod tests {
+    fn test() {}
+}
+"#;
+    let info = CfgTestInfo::parse(content);
+
+    // Should only have 1 range (the actual cfg(test) block)
+    assert_eq!(info.test_ranges.len(), 1);
+    assert!(!info.is_test_line(1)); // fn always
+    assert!(!info.is_test_line(6)); // fn feature_foo
+    assert!(info.is_test_line(8)); // #[cfg(test)]
+}
+
+#[test]
+fn multiline_cfg_all_test() {
+    // Multi-line #[cfg(all(test, ...))] should be detected
+    let content = r#"
+fn source() {}
+
+#[cfg(all(
+    test,
+    feature = "integration"
+))]
+mod integration_tests {
+    fn test() {}
+}
+"#;
+    let info = CfgTestInfo::parse(content);
+
+    assert_eq!(info.test_ranges.len(), 1);
+    assert!(!info.is_test_line(1)); // fn source
+    assert!(info.is_test_line(3)); // #[cfg(all(
+}
