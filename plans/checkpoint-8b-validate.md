@@ -1,5 +1,7 @@
 # Checkpoint 8B: Tests Correlation Complete - Validation
 
+**Root Feature:** `quench-91c5`
+
 ## Overview
 
 Validate the tests correlation feature (commit/branch checking) by running the existing implementation through structured tests and documenting results. The feature is already implemented; this checkpoint verifies it meets all criteria and adds snapshot tests for output stability.
