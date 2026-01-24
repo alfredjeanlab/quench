@@ -1,6 +1,6 @@
 # Checkpoint Go-1E: Performance - Go Adapter
 
-**Root Feature:** Go Adapter (Dogfooding Milestone 1)
+**Root Feature:** `quench-0d07`
 
 ## Overview
 

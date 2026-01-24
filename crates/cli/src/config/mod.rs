@@ -397,7 +397,7 @@ impl ClocConfig {
     }
 
     fn default_advice_test() -> String {
-        "Can tests be parameterized or use shared fixtures to be more concise?\n\n\
+        "Can tests be parameterized or use shared fixtures to be more concise?\n\
          If not, split large test files into a folder."
             .to_string()
     }

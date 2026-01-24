@@ -136,7 +136,7 @@ Typical healthy ranges: `0.5x` to `2.0x` (project-dependent).
       "type": "file_too_large",
       "value": 923,
       "threshold": 750,
-      "advice": "Can the code be made more concise?\n\nIf not, split large source files into sibling modules or submodules in a folder;\nconsider refactoring to be more unit testable.\n\nAvoid picking and removing individual lines to satisfy the linter,\nprefer properly refactoring out testable code blocks."
+      "advice": "Can the code be made more concise?\nIf not, split large source files into sibling modules or submodules in a folder;\nconsider refactoring to be more unit testable.\n\nAvoid picking and removing individual lines to satisfy the linter,\nprefer properly refactoring out testable code blocks."
     }
   ],
   "metrics": {
