@@ -234,7 +234,7 @@ impl Check for EscapesCheck {
             let package = find_package(&file.path, ctx.root, packages);
 
             // Parse cfg(test) info for Rust files (reuse for suppress + escape checking)
-            let cfg_info = if is_rust_file(&file.path) {
+            let cfg_info = if has_extension(&file.path, &["rs"]) {
                 Some(CfgTestInfo::parse(&content))
             } else {
                 None
@@ -259,7 +259,7 @@ impl Check for EscapesCheck {
             }
 
             // Check for Shell shellcheck suppress directive violations
-            if is_shell_file(&file.path) {
+            if has_extension(&file.path, &["sh", "bash", "bats"]) {
                 let shell_violations = check_shell_suppress_violations(
                     ctx,
                     relative,
@@ -276,7 +276,7 @@ impl Check for EscapesCheck {
             }
 
             // Check for Go nolint directive violations
-            if is_go_file(&file.path) {
+            if has_extension(&file.path, &["go"]) {
                 let go_violations = check_go_suppress_violations(
                     ctx,
                     relative,
@@ -293,7 +293,7 @@ impl Check for EscapesCheck {
             }
 
             // Check for JavaScript/TypeScript suppress directive violations
-            if is_javascript_file(&file.path) {
+            if has_extension(&file.path, &["js", "jsx", "ts", "tsx", "mjs", "mts"]) {
                 let js_violations = check_javascript_suppress_violations(
                     ctx,
                     relative,
@@ -593,40 +593,11 @@ fn is_source_file(path: &Path) -> bool {
     )
 }
 
-/// Check if a file is a Rust source file.
-fn is_rust_file(path: &Path) -> bool {
+/// Check if a file has one of the given extensions (case-insensitive).
+fn has_extension(path: &Path, extensions: &[&str]) -> bool {
     path.extension()
         .and_then(|e| e.to_str())
-        .map(|e| e.eq_ignore_ascii_case("rs"))
-        .unwrap_or(false)
-}
-
-/// Check if a file is a Shell source file.
-fn is_shell_file(path: &Path) -> bool {
-    path.extension()
-        .and_then(|e| e.to_str())
-        .map(|e| matches!(e.to_lowercase().as_str(), "sh" | "bash" | "bats"))
-        .unwrap_or(false)
-}
-
-/// Check if a file is a Go source file.
-fn is_go_file(path: &Path) -> bool {
-    path.extension()
-        .and_then(|e| e.to_str())
-        .map(|e| e.eq_ignore_ascii_case("go"))
-        .unwrap_or(false)
-}
-
-/// Check if a file is a JavaScript/TypeScript source file.
-fn is_javascript_file(path: &Path) -> bool {
-    path.extension()
-        .and_then(|e| e.to_str())
-        .map(|e| {
-            matches!(
-                e.to_lowercase().as_str(),
-                "js" | "jsx" | "ts" | "tsx" | "mjs" | "mts"
-            )
-        })
+        .map(|e| extensions.iter().any(|ext| e.eq_ignore_ascii_case(ext)))
         .unwrap_or(false)
 }
 
