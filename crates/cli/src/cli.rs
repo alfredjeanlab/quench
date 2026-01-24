@@ -172,6 +172,35 @@ pub struct CheckArgs {
     pub no_placeholders: bool,
 }
 
+/// Trait for filtering checks/metrics by name.
+///
+/// Both `CheckArgs` and `ReportArgs` implement this trait to provide
+/// consistent filtering behavior for check enable/disable flags.
+pub trait CheckFilter {
+    /// Get list of explicitly enabled checks.
+    fn enabled_checks(&self) -> Vec<String>;
+
+    /// Get list of explicitly disabled checks.
+    fn disabled_checks(&self) -> Vec<String>;
+
+    /// Check if a metric/check should be included based on filters.
+    ///
+    /// If any checks are explicitly enabled, only those are included.
+    /// Otherwise, all checks are included except those explicitly disabled.
+    fn should_include(&self, check_name: &str) -> bool {
+        let enabled = self.enabled_checks();
+        let disabled = self.disabled_checks();
+
+        if !enabled.is_empty() {
+            // Explicit enable mode: only show specified checks
+            enabled.iter().any(|e| e == check_name)
+        } else {
+            // Default mode: show all except disabled
+            !disabled.iter().any(|d| d == check_name)
+        }
+    }
+}
+
 /// Collect check names from boolean flags.
 macro_rules! collect_checks {
     ($self:expr, $($flag:ident => $name:expr),+ $(,)?) => {{
@@ -185,9 +214,8 @@ macro_rules! collect_checks {
     }};
 }
 
-impl CheckArgs {
-    /// Get list of explicitly enabled checks.
-    pub fn enabled_checks(&self) -> Vec<String> {
+impl CheckFilter for CheckArgs {
+    fn enabled_checks(&self) -> Vec<String> {
         collect_checks!(self,
             cloc => "cloc",
             escapes => "escapes",
@@ -201,8 +229,7 @@ impl CheckArgs {
         )
     }
 
-    /// Get list of explicitly disabled checks.
-    pub fn disabled_checks(&self) -> Vec<String> {
+    fn disabled_checks(&self) -> Vec<String> {
         collect_checks!(self,
             no_cloc => "cloc",
             no_escapes => "escapes",
@@ -320,9 +347,10 @@ impl ReportArgs {
             (format, None)
         }
     }
+}
 
-    /// Get list of explicitly enabled checks.
-    pub fn enabled_checks(&self) -> Vec<String> {
+impl CheckFilter for ReportArgs {
+    fn enabled_checks(&self) -> Vec<String> {
         collect_checks!(self,
             cloc => "cloc",
             escapes => "escapes",
@@ -336,8 +364,7 @@ impl ReportArgs {
         )
     }
 
-    /// Get list of explicitly disabled checks.
-    pub fn disabled_checks(&self) -> Vec<String> {
+    fn disabled_checks(&self) -> Vec<String> {
         collect_checks!(self,
             no_cloc => "cloc",
             no_escapes => "escapes",

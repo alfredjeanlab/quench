@@ -23,7 +23,7 @@ pub mod walker;
 pub use baseline::{Baseline, BaselineError, BaselineMetrics};
 pub use cache::{CacheStats, FileCache};
 pub use check::{Check, CheckContext, CheckOutput, CheckResult, Violation};
-pub use cli::{CheckArgs, Cli, Command, InitArgs, OutputFormat, ReportArgs};
+pub use cli::{CheckArgs, CheckFilter, Cli, Command, InitArgs, OutputFormat, ReportArgs};
 pub use color::{is_no_color_env, resolve_color};
 pub use config::IgnoreConfig;
 pub use error::{Error, ExitCode, Result};
