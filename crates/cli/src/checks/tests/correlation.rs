@@ -184,6 +184,21 @@ fn correlation_base_name(path: &Path) -> Option<&str> {
     path.file_stem()?.to_str()
 }
 
+/// Get candidate test file paths for a base name.
+///
+/// Returns patterns like: tests/{base}_tests.rs, tests/{base}_test.rs, etc.
+/// Used for placeholder test checking.
+pub fn candidate_test_paths(base_name: &str) -> Vec<String> {
+    vec![
+        format!("tests/{}_tests.rs", base_name),
+        format!("tests/{}_test.rs", base_name),
+        format!("tests/{}.rs", base_name),
+        format!("test/{}_tests.rs", base_name),
+        format!("test/{}_test.rs", base_name),
+        format!("test/{}.rs", base_name),
+    ]
+}
+
 /// Get candidate test file locations for a source file.
 ///
 /// Returns a list of paths where a test file might exist for the given source file.
@@ -355,11 +370,22 @@ fn find_placeholder_tests(content: &str) -> Vec<String> {
     result
 }
 
+/// Specifies the git diff range for inline test detection.
+#[derive(Debug, Clone, Copy)]
+pub enum DiffRange<'a> {
+    /// Staged changes (--cached)
+    Staged,
+    /// Branch changes (base..HEAD)
+    Branch(&'a str),
+    /// Single commit (hash^..hash)
+    Commit(&'a str),
+}
+
 /// Check if a Rust source file has inline test changes (#[cfg(test)] blocks).
 ///
 /// Returns true if the file's diff contains changes within a #[cfg(test)] module.
-pub fn has_inline_test_changes(file_path: &Path, root: &Path, base: Option<&str>) -> bool {
-    let diff_content = match get_file_diff(file_path, root, base) {
+pub fn has_inline_test_changes(file_path: &Path, root: &Path, range: DiffRange<'_>) -> bool {
+    let diff_content = match get_file_diff(file_path, root, range) {
         Ok(content) => content,
         Err(_) => return false,
     };
@@ -368,7 +394,7 @@ pub fn has_inline_test_changes(file_path: &Path, root: &Path, base: Option<&str>
 }
 
 /// Get the diff for a specific file.
-fn get_file_diff(file_path: &Path, root: &Path, base: Option<&str>) -> Result<String, String> {
+fn get_file_diff(file_path: &Path, root: &Path, range: DiffRange<'_>) -> Result<String, String> {
     use std::process::Command;
 
     let rel_path = file_path.strip_prefix(root).unwrap_or(file_path);
@@ -376,10 +402,16 @@ fn get_file_diff(file_path: &Path, root: &Path, base: Option<&str>) -> Result<St
         .to_str()
         .ok_or_else(|| "invalid path".to_string())?;
 
-    let range = base.map(|b| format!("{}..HEAD", b));
-    let args: Vec<&str> = match &range {
-        Some(r) => vec!["diff", r.as_str(), "--", rel_path_str],
-        None => vec!["diff", "--cached", "--", rel_path_str],
+    let range_str = match range {
+        DiffRange::Staged => String::new(),
+        DiffRange::Branch(base) => format!("{}..HEAD", base),
+        DiffRange::Commit(hash) => format!("{}^..{}", hash, hash),
+    };
+
+    let args: Vec<&str> = if range_str.is_empty() {
+        vec!["diff", "--cached", "--", rel_path_str]
+    } else {
+        vec!["diff", &range_str, "--", rel_path_str]
     };
 
     let output = Command::new("git")
