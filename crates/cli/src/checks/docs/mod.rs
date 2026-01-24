@@ -9,6 +9,7 @@
 //! - (Future) Specs have required sections
 
 mod links;
+mod specs;
 mod toc;
 
 use crate::check::{Check, CheckContext, CheckResult};
@@ -38,6 +39,9 @@ impl Check for DocsCheck {
 
         // Run link validation
         links::validate_links(ctx, &mut violations);
+
+        // Run specs validation
+        specs::validate_specs(ctx, &mut violations);
 
         // Respect violation limit
         if let Some(limit) = ctx.limit {

@@ -42,11 +42,10 @@ fn unreachable_spec_file_generates_violation_linked_mode() {
 ///
 /// > `exists` mode: Index file must exist, no reachability check.
 #[test]
-#[ignore = "TODO: Phase 602 - Docs Check Implementation"]
 fn exists_mode_only_checks_index_exists() {
     let temp = Project::empty();
     temp.config(
-        r#"[check.docs]
+        r#"[check.docs.specs]
 path = "docs/specs"
 index = "exists"
 "#,

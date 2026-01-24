@@ -20,6 +20,10 @@ pub struct DocsConfig {
     /// Link validation settings.
     #[serde(default)]
     pub links: LinksConfig,
+
+    /// Specs directory validation settings.
+    #[serde(default)]
+    pub specs: SpecsConfig,
 }
 
 /// Configuration for TOC validation.
@@ -105,6 +109,55 @@ impl LinksConfig {
             "**/fixtures/**".to_string(),
             "**/testdata/**".to_string(),
         ]
+    }
+}
+
+/// Configuration for specs directory validation.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct SpecsConfig {
+    /// Check level: "error" | "warn" | "off"
+    pub check: Option<String>,
+
+    /// Specs directory path (default: "docs/specs").
+    #[serde(default = "SpecsConfig::default_path")]
+    pub path: String,
+
+    /// File extension for spec files (default: ".md").
+    #[serde(default = "SpecsConfig::default_extension")]
+    pub extension: String,
+
+    /// Index mode: "auto" | "toc" | "linked" | "exists" (default: "exists" for this phase).
+    #[serde(default = "SpecsConfig::default_index")]
+    pub index: String,
+
+    /// Override index file path (auto-detect if not specified).
+    pub index_file: Option<String>,
+}
+
+impl Default for SpecsConfig {
+    fn default() -> Self {
+        Self {
+            check: None,
+            path: Self::default_path(),
+            extension: Self::default_extension(),
+            index: Self::default_index(),
+            index_file: None,
+        }
+    }
+}
+
+impl SpecsConfig {
+    pub(super) fn default_path() -> String {
+        "docs/specs".to_string()
+    }
+
+    pub(super) fn default_extension() -> String {
+        ".md".to_string()
+    }
+
+    pub(super) fn default_index() -> String {
+        "exists".to_string()
     }
 }
 
