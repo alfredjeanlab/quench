@@ -246,6 +246,10 @@ impl CheckFilter for CheckArgs {
 
 #[derive(clap::Args, Default)]
 pub struct ReportArgs {
+    /// Path to baseline file (default: .quench/baseline.json)
+    #[arg(long, short = 'b')]
+    pub baseline: Option<PathBuf>,
+
     /// Output format or file path (e.g., text, json, html, report.html)
     #[arg(short, long, default_value = "text")]
     pub output: String,
@@ -339,13 +343,16 @@ impl ReportArgs {
             (OutputFormat::Html, Some(PathBuf::from(&self.output)))
         } else if val.ends_with(".json") {
             (OutputFormat::Json, Some(PathBuf::from(&self.output)))
-        } else if val.ends_with(".txt") || val.ends_with(".md") {
+        } else if val.ends_with(".md") {
+            (OutputFormat::Markdown, Some(PathBuf::from(&self.output)))
+        } else if val.ends_with(".txt") {
             (OutputFormat::Text, Some(PathBuf::from(&self.output)))
         } else {
             // Parse as format name
             let format = match val.as_str() {
                 "json" => OutputFormat::Json,
                 "html" => OutputFormat::Html,
+                "md" | "markdown" => OutputFormat::Markdown,
                 _ => OutputFormat::Text,
             };
             (format, None)
@@ -400,6 +407,7 @@ pub enum OutputFormat {
     Text,
     Json,
     Html,
+    Markdown,
 }
 
 // Re-export profile-related items from the profiles module for backward compatibility

@@ -492,8 +492,8 @@ fn run_check(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
 
     // Format output
     match args.output {
-        OutputFormat::Text | OutputFormat::Html => {
-            // HTML uses text format for check command (HTML is for report only)
+        OutputFormat::Text | OutputFormat::Html | OutputFormat::Markdown => {
+            // HTML/Markdown use text format for check command (specialized formats are for report only)
             let mut formatter = TextFormatter::new(color_choice, options);
 
             for result in &output.checks {
@@ -548,8 +548,11 @@ fn run_report(cli: &Cli, args: &ReportArgs) -> anyhow::Result<()> {
         config::Config::default()
     };
 
-    // Determine baseline path
-    let baseline_path = cwd.join(&config.git.baseline);
+    // Determine baseline path (CLI flag overrides config)
+    let baseline_path = args
+        .baseline
+        .clone()
+        .unwrap_or_else(|| cwd.join(&config.git.baseline));
 
     // Parse output target (format and optional file path)
     let (format, file_path) = args.output_target();
