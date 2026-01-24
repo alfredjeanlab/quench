@@ -74,5 +74,9 @@ harness = false
 name = "dogfood"
 harness = false
 
+[[bench]]
+name = "javascript"
+harness = false
+
 [lints]
 workspace = true

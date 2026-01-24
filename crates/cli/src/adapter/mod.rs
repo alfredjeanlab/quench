@@ -26,7 +26,7 @@ pub use generic::GenericAdapter;
 pub use go::{
     GoAdapter, NolintDirective, enumerate_packages, parse_go_mod, parse_nolint_directives,
 };
-pub use javascript::{JavaScriptAdapter, JsWorkspace};
+pub use javascript::{JavaScriptAdapter, JsWorkspace, parse_javascript_suppresses};
 pub use rust::{CfgTestInfo, RustAdapter, parse_suppress_attrs};
 
 /// File classification result.
