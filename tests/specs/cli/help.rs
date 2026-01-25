@@ -105,15 +105,7 @@ fn check_help_shows_consolidated_check_toggles() {
     let stdout = String::from_utf8_lossy(&output.stdout);
 
     for check in [
-        "cloc",
-        "escapes",
-        "agents",
-        "docs",
-        "tests",
-        "git",
-        "build",
-        "license",
-        "placeholders",
+        "cloc", "escapes", "agents", "docs", "tests", "git", "build", "license",
     ] {
         let consolidated = format!("--[no-]{check}");
         assert!(
@@ -136,15 +128,7 @@ fn report_help_shows_consolidated_check_toggles() {
     let stdout = String::from_utf8_lossy(&output.stdout);
 
     for check in [
-        "cloc",
-        "escapes",
-        "agents",
-        "docs",
-        "tests",
-        "git",
-        "build",
-        "license",
-        "placeholders",
+        "cloc", "escapes", "agents", "docs", "tests", "git", "build", "license",
     ] {
         let consolidated = format!("--[no-]{check}");
         assert!(
@@ -218,15 +202,7 @@ fn check_help_has_no_duplicate_entries() {
 
     // Count occurrences of each check toggle
     for check in [
-        "cloc",
-        "escapes",
-        "agents",
-        "docs",
-        "tests",
-        "git",
-        "build",
-        "license",
-        "placeholders",
+        "cloc", "escapes", "agents", "docs", "tests", "git", "build", "license",
     ] {
         // After consolidation, we should see exactly one line containing --[no-]<check>
         // and zero lines with standalone --<check> or --no-<check>

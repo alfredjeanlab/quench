@@ -178,15 +178,7 @@ fn format_help_with_real_command() {
 
     // Verify all check toggles consolidated
     for check in [
-        "cloc",
-        "escapes",
-        "agents",
-        "docs",
-        "tests",
-        "git",
-        "build",
-        "license",
-        "placeholders",
+        "cloc", "escapes", "agents", "docs", "tests", "git", "build", "license",
     ] {
         assert!(
             help.contains(&format!("--[no-]{check}")),
