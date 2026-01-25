@@ -29,6 +29,32 @@ fn is_loop_error(err: &ignore::Error) -> bool {
     }
 }
 
+/// Build a WalkedFile from a directory entry and metadata.
+fn build_walked_file(
+    entry: ignore::DirEntry,
+    size: u64,
+    meta: &Result<std::fs::Metadata, ignore::Error>,
+) -> WalkedFile {
+    let (mtime_secs, mtime_nanos) = meta
+        .as_ref()
+        .ok()
+        .and_then(|m| m.modified().ok())
+        .map(|t| {
+            let dur = t.duration_since(SystemTime::UNIX_EPOCH).unwrap_or_default();
+            (dur.as_secs() as i64, dur.subsec_nanos())
+        })
+        .unwrap_or((0, 0));
+
+    WalkedFile {
+        depth: entry.depth(),
+        path: entry.into_path(),
+        size,
+        mtime_secs,
+        mtime_nanos,
+        size_class: FileSizeClass::from_size(size),
+    }
+}
+
 /// Default maximum directory depth.
 pub const DEFAULT_MAX_DEPTH: usize = 100;
 
@@ -298,32 +324,13 @@ impl FileWalker {
                             tracing::warn!(
                                 "skipping {} ({} > 10MB limit)",
                                 entry.path().display(),
-                                file_size::human_size(size)
+                                file_size::human_size(size, false)
                             );
                             files_skipped_size.fetch_add(1, Ordering::Relaxed);
                             return WalkState::Continue;
                         }
 
-                        let (mtime_secs, mtime_nanos) = meta
-                            .as_ref()
-                            .ok()
-                            .and_then(|m| m.modified().ok())
-                            .map(|t| {
-                                let dur =
-                                    t.duration_since(SystemTime::UNIX_EPOCH).unwrap_or_default();
-                                (dur.as_secs() as i64, dur.subsec_nanos())
-                            })
-                            .unwrap_or((0, 0));
-                        let depth = entry.depth();
-                        let size_class = FileSizeClass::from_size(size);
-                        let walked = WalkedFile {
-                            path: entry.into_path(),
-                            size,
-                            mtime_secs,
-                            mtime_nanos,
-                            depth,
-                            size_class,
-                        };
+                        let walked = build_walked_file(entry, size, &meta);
 
                         files_found.fetch_add(1, Ordering::Relaxed);
 
@@ -389,32 +396,13 @@ impl FileWalker {
                             tracing::warn!(
                                 "skipping {} ({} > 10MB limit)",
                                 entry.path().display(),
-                                file_size::human_size(size)
+                                file_size::human_size(size, false)
                             );
                             files_skipped_size += 1;
                             continue;
                         }
 
-                        let (mtime_secs, mtime_nanos) = meta
-                            .as_ref()
-                            .ok()
-                            .and_then(|m| m.modified().ok())
-                            .map(|t| {
-                                let dur =
-                                    t.duration_since(SystemTime::UNIX_EPOCH).unwrap_or_default();
-                                (dur.as_secs() as i64, dur.subsec_nanos())
-                            })
-                            .unwrap_or((0, 0));
-                        let depth = entry.depth();
-                        let size_class = FileSizeClass::from_size(size);
-                        let walked = WalkedFile {
-                            path: entry.into_path(),
-                            size,
-                            mtime_secs,
-                            mtime_nanos,
-                            depth,
-                            size_class,
-                        };
+                        let walked = build_walked_file(entry, size, &meta);
 
                         files_found += 1;
 

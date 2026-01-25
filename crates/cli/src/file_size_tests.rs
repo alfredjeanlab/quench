@@ -71,23 +71,30 @@ fn classify_too_large_file() {
 
 #[test]
 fn human_size_bytes() {
-    assert_eq!(human_size(0), "0B");
-    assert_eq!(human_size(512), "512B");
-    assert_eq!(human_size(1023), "1023B");
+    assert_eq!(human_size(0, false), "0B");
+    assert_eq!(human_size(512, false), "512B");
+    assert_eq!(human_size(1023, false), "1023B");
 }
 
 #[test]
 fn human_size_kilobytes() {
-    assert_eq!(human_size(1024), "1.0KB");
-    assert_eq!(human_size(1536), "1.5KB");
-    assert_eq!(human_size(500 * 1024), "500.0KB");
+    assert_eq!(human_size(1024, false), "1.0KB");
+    assert_eq!(human_size(1536, false), "1.5KB");
+    assert_eq!(human_size(500 * 1024, false), "500.0KB");
 }
 
 #[test]
 fn human_size_megabytes() {
-    assert_eq!(human_size(1024 * 1024), "1.0MB");
-    assert_eq!(human_size(15 * 1024 * 1024), "15.0MB");
-    assert_eq!(human_size(10 * 1024 * 1024 + 512 * 1024), "10.5MB");
+    assert_eq!(human_size(1024 * 1024, false), "1.0MB");
+    assert_eq!(human_size(15 * 1024 * 1024, false), "15.0MB");
+    assert_eq!(human_size(10 * 1024 * 1024 + 512 * 1024, false), "10.5MB");
+}
+
+#[test]
+fn human_size_spaced() {
+    assert_eq!(human_size(0, true), "0 B");
+    assert_eq!(human_size(1024, true), "1.0 KB");
+    assert_eq!(human_size(1024 * 1024, true), "1.0 MB");
 }
 
 #[test]

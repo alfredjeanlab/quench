@@ -36,6 +36,20 @@ pub struct Commit {
     pub message: String,
 }
 
+/// Collect commits from a revwalk iterator into a Vec.
+fn collect_commits(repo: &Repository, revwalk: git2::Revwalk) -> anyhow::Result<Vec<Commit>> {
+    let mut commits = Vec::new();
+    for oid in revwalk {
+        let oid = oid?;
+        let commit = repo.find_commit(oid)?;
+        commits.push(Commit {
+            hash: oid.to_string()[..7].to_string(),
+            message: commit.summary().unwrap_or("").to_string(),
+        });
+    }
+    Ok(commits)
+}
+
 /// Check if a path is in a git repository.
 pub fn is_git_repo(root: &Path) -> bool {
     Repository::discover(root).is_ok()
@@ -87,21 +101,7 @@ pub fn get_commits_since(root: &Path, base: &str) -> anyhow::Result<Vec<Commit>>
     revwalk.push(head_oid)?;
     revwalk.hide(base_oid)?;
 
-    let mut commits = Vec::new();
-    for oid in revwalk {
-        let oid = oid?;
-        let commit = repo.find_commit(oid)?;
-
-        // Short hash (7 chars)
-        let hash = oid.to_string()[..7].to_string();
-
-        // Subject line only (first line of message)
-        let message = commit.summary().unwrap_or("").to_string();
-
-        commits.push(Commit { hash, message });
-    }
-
-    Ok(commits)
+    collect_commits(&repo, revwalk)
 }
 
 /// Get all commits on current branch (for CI mode).
@@ -120,17 +120,7 @@ pub fn get_all_branch_commits(root: &Path) -> anyhow::Result<Vec<Commit>> {
         let mut revwalk = repo.revwalk()?;
         revwalk.push(head_oid)?;
 
-        let mut commits = Vec::new();
-        for oid in revwalk {
-            let oid = oid?;
-            let commit = repo.find_commit(oid)?;
-
-            let hash = oid.to_string()[..7].to_string();
-            let message = commit.summary().unwrap_or("").to_string();
-            commits.push(Commit { hash, message });
-        }
-
-        Ok(commits)
+        collect_commits(&repo, revwalk)
     }
 }
 

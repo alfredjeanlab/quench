@@ -172,6 +172,16 @@ pub trait ReportFormatter {
     }
 }
 
+/// Create formatter based on output format.
+fn create_formatter(format: OutputFormat, compact: bool) -> Box<dyn ReportFormatter> {
+    match format {
+        OutputFormat::Text => Box::new(TextFormatter),
+        OutputFormat::Json => Box::new(JsonFormatter::new(compact)),
+        OutputFormat::Html => Box::new(HtmlFormatter),
+        OutputFormat::Markdown => Box::new(MarkdownFormatter),
+    }
+}
+
 /// Format a report based on output format, returning the output string.
 ///
 /// If baseline is None, returns the format-specific empty output.
@@ -192,12 +202,7 @@ pub fn format_report_with_options<F: CheckFilter>(
     filter: &F,
     compact: bool,
 ) -> anyhow::Result<String> {
-    let formatter: Box<dyn ReportFormatter> = match format {
-        OutputFormat::Text => Box::new(TextFormatter),
-        OutputFormat::Json => Box::new(JsonFormatter::new(compact)),
-        OutputFormat::Html => Box::new(HtmlFormatter),
-        OutputFormat::Markdown => Box::new(MarkdownFormatter),
-    };
+    let formatter = create_formatter(format, compact);
 
     match baseline {
         Some(b) => formatter.format(b, filter),
@@ -215,12 +220,7 @@ pub fn format_report_to<F: CheckFilter>(
     filter: &F,
     compact: bool,
 ) -> anyhow::Result<()> {
-    let formatter: Box<dyn ReportFormatter> = match format {
-        OutputFormat::Text => Box::new(TextFormatter),
-        OutputFormat::Json => Box::new(JsonFormatter::new(compact)),
-        OutputFormat::Html => Box::new(HtmlFormatter),
-        OutputFormat::Markdown => Box::new(MarkdownFormatter),
-    };
+    let formatter = create_formatter(format, compact);
 
     match baseline {
         Some(b) => formatter.format_to(writer, b, filter),
@@ -228,17 +228,9 @@ pub fn format_report_to<F: CheckFilter>(
     }
 }
 
-/// Helper to convert bytes to human-readable format.
+/// Helper to convert bytes to human-readable format (with space).
 pub fn human_bytes(bytes: u64) -> String {
-    const KB: u64 = 1024;
-    const MB: u64 = KB * 1024;
-    if bytes >= MB {
-        format!("{:.1} MB", bytes as f64 / MB as f64)
-    } else if bytes >= KB {
-        format!("{:.1} KB", bytes as f64 / KB as f64)
-    } else {
-        format!("{} B", bytes)
-    }
+    crate::file_size::human_size(bytes, true)
 }
 
 #[cfg(test)]

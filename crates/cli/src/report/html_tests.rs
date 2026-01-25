@@ -4,7 +4,9 @@
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
 use super::*;
-use crate::report::test_support::{AllChecks, create_test_baseline};
+use crate::report::test_support::{
+    AllChecks, assert_buffered_matches_streamed, create_test_baseline,
+};
 
 #[test]
 fn html_format_empty_baseline() {
@@ -107,16 +109,7 @@ fn html_format_includes_binary_size() {
 fn html_format_to_matches_format() {
     let baseline = create_test_baseline();
     let formatter = HtmlFormatter;
-
-    let buffered = formatter.format(&baseline, &AllChecks).unwrap();
-
-    let mut streamed = Vec::new();
-    formatter
-        .format_to(&mut streamed, &baseline, &AllChecks)
-        .unwrap();
-    let streamed_str = String::from_utf8(streamed).unwrap();
-
-    assert_eq!(buffered, streamed_str);
+    assert_buffered_matches_streamed(&formatter, &baseline, &AllChecks);
 }
 
 #[test]

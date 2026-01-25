@@ -14,6 +14,14 @@ use super::*;
 use crate::config::GitCommitConfig;
 use crate::git::Commit;
 
+/// Create a test commit with the given hash and message.
+fn test_commit(hash: &str, message: &str) -> Commit {
+    Commit {
+        hash: hash.to_string(),
+        message: message.to_string(),
+    }
+}
+
 // =============================================================================
 // BASIC CHECK TESTS
 // =============================================================================
@@ -42,10 +50,7 @@ fn git_check_default_disabled() {
 
 #[test]
 fn validates_conventional_format() {
-    let commit = Commit {
-        hash: "abc1234".to_string(),
-        message: "feat: add feature".to_string(),
-    };
+    let commit = test_commit("abc1234", "feat: add feature");
     let config = GitCommitConfig::default();
     let mut violations = Vec::new();
 
@@ -56,10 +61,7 @@ fn validates_conventional_format() {
 
 #[test]
 fn validates_conventional_format_with_scope() {
-    let commit = Commit {
-        hash: "abc1234".to_string(),
-        message: "feat(api): add endpoint".to_string(),
-    };
+    let commit = test_commit("abc1234", "feat(api): add endpoint");
     let config = GitCommitConfig::default();
     let mut violations = Vec::new();
 
@@ -70,10 +72,7 @@ fn validates_conventional_format_with_scope() {
 
 #[test]
 fn rejects_non_conventional_format() {
-    let commit = Commit {
-        hash: "abc1234".to_string(),
-        message: "update stuff".to_string(),
-    };
+    let commit = test_commit("abc1234", "update stuff");
     let config = GitCommitConfig::default();
     let mut violations = Vec::new();
 
@@ -87,10 +86,7 @@ fn rejects_non_conventional_format() {
 
 #[test]
 fn rejects_missing_colon() {
-    let commit = Commit {
-        hash: "abc1234".to_string(),
-        message: "feat add feature".to_string(),
-    };
+    let commit = test_commit("abc1234", "feat add feature");
     let config = GitCommitConfig::default();
     let mut violations = Vec::new();
 
@@ -106,10 +102,7 @@ fn rejects_missing_colon() {
 
 #[test]
 fn accepts_default_type() {
-    let commit = Commit {
-        hash: "abc1234".to_string(),
-        message: "feat: add feature".to_string(),
-    };
+    let commit = test_commit("abc1234", "feat: add feature");
     let config = GitCommitConfig::default();
     let mut violations = Vec::new();
 
@@ -126,10 +119,7 @@ fn accepts_all_default_types() {
     ];
 
     for commit_type in default_types {
-        let commit = Commit {
-            hash: "abc1234".to_string(),
-            message: format!("{}: do something", commit_type),
-        };
+        let commit = test_commit("abc1234", &format!("{}: do something", commit_type));
         let mut violations = Vec::new();
         validate_commit(&commit, &config, &mut violations);
         assert!(
@@ -142,10 +132,7 @@ fn accepts_all_default_types() {
 
 #[test]
 fn rejects_invalid_type_with_defaults() {
-    let commit = Commit {
-        hash: "abc1234".to_string(),
-        message: "custom: do something".to_string(),
-    };
+    let commit = test_commit("abc1234", "custom: do something");
     let config = GitCommitConfig::default();
     let mut violations = Vec::new();
 
@@ -158,10 +145,7 @@ fn rejects_invalid_type_with_defaults() {
 
 #[test]
 fn accepts_custom_type_when_configured() {
-    let commit = Commit {
-        hash: "abc1234".to_string(),
-        message: "custom: do something".to_string(),
-    };
+    let commit = test_commit("abc1234", "custom: do something");
     let mut config = GitCommitConfig::default();
     config.types = Some(vec!["custom".to_string()]);
     let mut violations = Vec::new();
@@ -173,10 +157,7 @@ fn accepts_custom_type_when_configured() {
 
 #[test]
 fn any_type_allowed_with_empty_list() {
-    let commit = Commit {
-        hash: "abc1234".to_string(),
-        message: "anything: do something".to_string(),
-    };
+    let commit = test_commit("abc1234", "anything: do something");
     let mut config = GitCommitConfig::default();
     config.types = Some(vec![]);
     let mut violations = Vec::new();
@@ -188,10 +169,7 @@ fn any_type_allowed_with_empty_list() {
 
 #[test]
 fn rejects_type_not_in_custom_list() {
-    let commit = Commit {
-        hash: "abc1234".to_string(),
-        message: "chore: do something".to_string(),
-    };
+    let commit = test_commit("abc1234", "chore: do something");
     let mut config = GitCommitConfig::default();
     config.types = Some(vec!["feat".to_string(), "fix".to_string()]);
     let mut violations = Vec::new();
@@ -210,10 +188,7 @@ fn rejects_type_not_in_custom_list() {
 
 #[test]
 fn any_scope_allowed_when_not_configured() {
-    let commit = Commit {
-        hash: "abc1234".to_string(),
-        message: "feat(random): add feature".to_string(),
-    };
+    let commit = test_commit("abc1234", "feat(random): add feature");
     let config = GitCommitConfig::default();
     let mut violations = Vec::new();
 
@@ -224,10 +199,7 @@ fn any_scope_allowed_when_not_configured() {
 
 #[test]
 fn accepts_configured_scope() {
-    let commit = Commit {
-        hash: "abc1234".to_string(),
-        message: "feat(api): add endpoint".to_string(),
-    };
+    let commit = test_commit("abc1234", "feat(api): add endpoint");
     let mut config = GitCommitConfig::default();
     config.scopes = Some(vec!["api".to_string(), "cli".to_string()]);
     let mut violations = Vec::new();
@@ -239,10 +211,7 @@ fn accepts_configured_scope() {
 
 #[test]
 fn rejects_invalid_scope() {
-    let commit = Commit {
-        hash: "abc1234".to_string(),
-        message: "feat(unknown): add feature".to_string(),
-    };
+    let commit = test_commit("abc1234", "feat(unknown): add feature");
     let mut config = GitCommitConfig::default();
     config.scopes = Some(vec!["api".to_string(), "cli".to_string()]);
     let mut violations = Vec::new();
@@ -258,10 +227,7 @@ fn rejects_invalid_scope() {
 #[test]
 fn no_scope_allowed_when_scopes_configured() {
     // Commits without scope are allowed even when scopes are configured
-    let commit = Commit {
-        hash: "abc1234".to_string(),
-        message: "feat: add feature".to_string(),
-    };
+    let commit = test_commit("abc1234", "feat: add feature");
     let mut config = GitCommitConfig::default();
     config.scopes = Some(vec!["api".to_string()]);
     let mut violations = Vec::new();
@@ -336,10 +302,7 @@ fn format_type_advice_with_custom_list() {
 
 #[test]
 fn skips_merge_commit_by_default() {
-    let commit = Commit {
-        hash: "abc1234".to_string(),
-        message: "Merge branch 'feature' into main".to_string(),
-    };
+    let commit = test_commit("abc1234", "Merge branch 'feature' into main");
     let config = GitCommitConfig::default();
     let mut violations = Vec::new();
 
@@ -351,10 +314,7 @@ fn skips_merge_commit_by_default() {
 
 #[test]
 fn validates_merge_commit_when_skip_disabled() {
-    let commit = Commit {
-        hash: "abc1234".to_string(),
-        message: "Merge branch 'feature' into main".to_string(),
-    };
+    let commit = test_commit("abc1234", "Merge branch 'feature' into main");
     let mut config = GitCommitConfig::default();
     config.skip_merge = false;
     let mut violations = Vec::new();
@@ -369,10 +329,7 @@ fn validates_merge_commit_when_skip_disabled() {
 #[test]
 fn validates_breaking_change_marker() {
     // Breaking change marker `!` should be valid
-    let commit = Commit {
-        hash: "abc1234".to_string(),
-        message: "feat!: breaking change".to_string(),
-    };
+    let commit = test_commit("abc1234", "feat!: breaking change");
     let config = GitCommitConfig::default();
     let mut violations = Vec::new();
 
@@ -387,10 +344,7 @@ fn validates_breaking_change_marker() {
 #[test]
 fn validates_breaking_change_with_scope() {
     // Breaking change marker with scope should be valid
-    let commit = Commit {
-        hash: "abc1234".to_string(),
-        message: "feat(api)!: breaking API change".to_string(),
-    };
+    let commit = test_commit("abc1234", "feat(api)!: breaking API change");
     let config = GitCommitConfig::default();
     let mut violations = Vec::new();
 
@@ -405,10 +359,7 @@ fn validates_breaking_change_with_scope() {
 #[test]
 fn validates_revert_commit() {
     // Revert commits using conventional format
-    let commit = Commit {
-        hash: "abc1234".to_string(),
-        message: "revert: undo previous change".to_string(),
-    };
+    let commit = test_commit("abc1234", "revert: undo previous change");
     let mut config = GitCommitConfig::default();
     // Add "revert" to allowed types
     config.types = Some(vec![
@@ -427,18 +378,9 @@ fn validates_revert_commit() {
 fn validates_multiple_commits_with_different_violations() {
     // Test that violations are counted per commit
     let commits = vec![
-        Commit {
-            hash: "abc1234".to_string(),
-            message: "feat: valid commit".to_string(),
-        },
-        Commit {
-            hash: "def5678".to_string(),
-            message: "invalid commit".to_string(),
-        },
-        Commit {
-            hash: "ghi9012".to_string(),
-            message: "unknown: wrong type".to_string(),
-        },
+        test_commit("abc1234", "feat: valid commit"),
+        test_commit("def5678", "invalid commit"),
+        test_commit("ghi9012", "unknown: wrong type"),
     ];
     let config = GitCommitConfig::default();
     let mut violations = Vec::new();

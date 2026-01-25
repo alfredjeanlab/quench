@@ -3,10 +3,15 @@
 
 //! Shared test utilities for report formatter tests.
 
+// Test helpers that use unwrap for clarity (tests should panic on unexpected failures).
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+
 use crate::baseline::{
     Baseline, BaselineMetrics, BuildTimeMetrics, CoverageMetrics, EscapesMetrics, TestTimeMetrics,
 };
 use crate::cli::CheckFilter;
+
+use super::ReportFormatter;
 
 /// Test filter that includes all checks.
 pub struct AllChecks;
@@ -32,6 +37,24 @@ impl CheckFilter for ExcludeChecks {
     fn disabled_checks(&self) -> Vec<String> {
         self.0.iter().map(|s| s.to_string()).collect()
     }
+}
+
+/// Assert that buffered and streamed output match for a formatter.
+pub fn assert_buffered_matches_streamed<F: ReportFormatter>(
+    formatter: &F,
+    baseline: &Baseline,
+    filter: &dyn CheckFilter,
+) {
+    let buffered = formatter.format(baseline, filter).unwrap();
+    let mut streamed = Vec::new();
+    formatter
+        .format_to(&mut streamed, baseline, filter)
+        .unwrap();
+    let streamed_str = String::from_utf8(streamed).unwrap();
+    assert_eq!(
+        buffered, streamed_str,
+        "Buffered and streamed output should match"
+    );
 }
 
 /// Create a standard test baseline with all metric types populated.

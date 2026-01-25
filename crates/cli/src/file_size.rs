@@ -51,16 +51,20 @@ impl FileSizeClass {
 }
 
 /// Format file size for human-readable output.
-pub fn human_size(bytes: u64) -> String {
+///
+/// If `spaced` is true, adds a space between number and unit (e.g., "1.0 MB").
+/// Otherwise, no space (e.g., "1.0MB").
+pub fn human_size(bytes: u64, spaced: bool) -> String {
     const KB: u64 = 1024;
     const MB: u64 = KB * 1024;
+    let space = if spaced { " " } else { "" };
 
     if bytes >= MB {
-        format!("{:.1}MB", bytes as f64 / MB as f64)
+        format!("{:.1}{space}MB", bytes as f64 / MB as f64)
     } else if bytes >= KB {
-        format!("{:.1}KB", bytes as f64 / KB as f64)
+        format!("{:.1}{space}KB", bytes as f64 / KB as f64)
     } else {
-        format!("{}B", bytes)
+        format!("{}{space}B", bytes)
     }
 }
 

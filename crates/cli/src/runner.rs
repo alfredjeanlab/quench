@@ -41,6 +41,31 @@ pub struct RunnerConfig {
     pub staged: bool,
 }
 
+impl RunnerConfig {
+    /// Build a CheckContext from this configuration.
+    fn build_context<'a>(
+        &'a self,
+        root: &'a Path,
+        files: &'a [WalkedFile],
+        config: &'a Config,
+        violation_count: &'a AtomicUsize,
+    ) -> CheckContext<'a> {
+        CheckContext {
+            root,
+            files,
+            config,
+            limit: self.limit,
+            violation_count,
+            changed_files: self.changed_files.as_deref(),
+            fix: self.fix,
+            dry_run: self.dry_run,
+            ci_mode: self.ci_mode,
+            base_branch: self.base_branch.as_deref(),
+            staged: self.staged,
+        }
+    }
+}
+
 /// The check runner executes multiple checks in parallel.
 pub struct CheckRunner {
     config: RunnerConfig,
@@ -137,19 +162,9 @@ impl CheckRunner {
                     })
                     .collect();
 
-                let ctx = CheckContext {
-                    root,
-                    files: &uncached_owned,
-                    config,
-                    limit: self.config.limit,
-                    violation_count: &violation_count,
-                    changed_files: self.config.changed_files.as_deref(),
-                    fix: self.config.fix,
-                    dry_run: self.config.dry_run,
-                    ci_mode: self.config.ci_mode,
-                    base_branch: self.config.base_branch.as_deref(),
-                    staged: self.config.staged,
-                };
+                let ctx =
+                    self.config
+                        .build_context(root, &uncached_owned, config, &violation_count);
 
                 // Run check on uncached files with timing
                 let check_start = Instant::now();
@@ -261,19 +276,9 @@ impl CheckRunner {
         let results: Vec<CheckResult> = checks
             .into_par_iter()
             .map(|check| {
-                let ctx = CheckContext {
-                    root,
-                    files,
-                    config,
-                    limit: self.config.limit,
-                    violation_count: &violation_count,
-                    changed_files: self.config.changed_files.as_deref(),
-                    fix: self.config.fix,
-                    dry_run: self.config.dry_run,
-                    ci_mode: self.config.ci_mode,
-                    base_branch: self.config.base_branch.as_deref(),
-                    staged: self.config.staged,
-                };
+                let ctx = self
+                    .config
+                    .build_context(root, files, config, &violation_count);
 
                 // Catch panics to ensure error isolation, with timing
                 let check_start = Instant::now();

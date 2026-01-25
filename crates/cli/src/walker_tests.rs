@@ -9,6 +9,15 @@ use std::fs;
 use tempfile::TempDir;
 use yare::parameterized;
 
+/// Create a test WalkerConfig with git/hidden disabled for predictable tests.
+fn test_config() -> WalkerConfig {
+    WalkerConfig {
+        git_ignore: false,
+        hidden: false,
+        ..Default::default()
+    }
+}
+
 #[test]
 fn walks_simple_directory() {
     let tmp = TempDir::new().unwrap();
@@ -70,9 +79,7 @@ fn respects_depth_limit() {
 
     let walker = FileWalker::new(WalkerConfig {
         max_depth: Some(2),
-        git_ignore: false,
-        hidden: false,
-        ..Default::default()
+        ..test_config()
     });
     let (files, _) = walker.walk_collect(tmp.path());
 
@@ -94,9 +101,7 @@ fn custom_ignore_patterns() {
 
     let walker = FileWalker::new(WalkerConfig {
         ignore_patterns: vec!["*.snapshot".to_string()],
-        git_ignore: false,
-        hidden: false,
-        ..Default::default()
+        ..test_config()
     });
     let (files, _) = walker.walk_collect(tmp.path());
 
@@ -116,11 +121,7 @@ fn collects_file_size() {
     let content = "hello world";
     fs::write(tmp.path().join("file.txt"), content).unwrap();
 
-    let walker = FileWalker::new(WalkerConfig {
-        git_ignore: false,
-        hidden: false,
-        ..Default::default()
-    });
+    let walker = FileWalker::new(test_config());
     let (files, _) = walker.walk_collect(tmp.path());
 
     assert_eq!(files.len(), 1);
@@ -139,11 +140,7 @@ fn tracks_file_depth() {
         ],
     );
 
-    let walker = FileWalker::new(WalkerConfig {
-        git_ignore: false,
-        hidden: false,
-        ..Default::default()
-    });
+    let walker = FileWalker::new(test_config());
     let (files, _) = walker.walk_collect(tmp.path());
 
     assert_eq!(files.len(), 3);
@@ -255,18 +252,14 @@ fn parallel_and_sequential_produce_same_files() {
     // Walk with force_parallel
     let walker_parallel = FileWalker::new(WalkerConfig {
         force_parallel: true,
-        git_ignore: false,
-        hidden: false,
-        ..Default::default()
+        ..test_config()
     });
     let (parallel_files, parallel_stats) = walker_parallel.walk_collect(tmp.path());
 
     // Walk with force_sequential
     let walker_sequential = FileWalker::new(WalkerConfig {
         force_sequential: true,
-        git_ignore: false,
-        hidden: false,
-        ..Default::default()
+        ..test_config()
     });
     let (sequential_files, sequential_stats) = walker_sequential.walk_collect(tmp.path());
 
@@ -336,10 +329,8 @@ fn skips_files_over_10mb() {
     large_file.set_len(15 * 1024 * 1024).unwrap();
 
     let walker = FileWalker::new(WalkerConfig {
-        git_ignore: false,
-        hidden: false,
         force_sequential: true, // Test sequential path
-        ..Default::default()
+        ..test_config()
     });
     let (files, stats) = walker.walk_collect(tmp.path());
 
@@ -369,10 +360,8 @@ fn skips_files_over_10mb_parallel() {
     large_file.set_len(15 * 1024 * 1024).unwrap();
 
     let walker = FileWalker::new(WalkerConfig {
-        git_ignore: false,
-        hidden: false,
         force_parallel: true, // Test parallel path
-        ..Default::default()
+        ..test_config()
     });
     let (files, stats) = walker.walk_collect(tmp.path());
 
@@ -399,11 +388,7 @@ fn processes_files_just_under_10mb() {
     let borderline_file = File::create(tmp.path().join("borderline.txt")).unwrap();
     borderline_file.set_len(MAX_FILE_SIZE - 1).unwrap();
 
-    let walker = FileWalker::new(WalkerConfig {
-        git_ignore: false,
-        hidden: false,
-        ..Default::default()
-    });
+    let walker = FileWalker::new(test_config());
     let (files, stats) = walker.walk_collect(tmp.path());
 
     // Should find the borderline file
@@ -431,11 +416,7 @@ fn assigns_correct_size_class() {
     let oversized_file = File::create(tmp.path().join("oversized.txt")).unwrap();
     oversized_file.set_len(5 * 1024 * 1024).unwrap();
 
-    let walker = FileWalker::new(WalkerConfig {
-        git_ignore: false,
-        hidden: false,
-        ..Default::default()
-    });
+    let walker = FileWalker::new(test_config());
     let (files, _) = walker.walk_collect(tmp.path());
 
     // Find files by name and check their size_class
