@@ -1,5 +1,7 @@
 # Test Pattern Consolidation
 
+**Root Feature:** `quench-7781`
+
 Consolidate test file classification to a single source of truth per language.
 
 ## Problem
