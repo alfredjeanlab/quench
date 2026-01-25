@@ -256,15 +256,29 @@ fn color_disabled_when_not_tty() {
 
 /// Spec: docs/specs/03-output.md#colorization
 ///
-/// > --no-color flag disables color output
+/// > Color disabled when NO_COLOR env var is set
 #[test]
-fn no_color_flag_disables_color() {
+fn no_color_env_disables_color() {
     // No ANSI escape codes in output
     cli()
         .on("output-test")
-        .args(&["--no-color"])
+        .env("NO_COLOR", "1")
         .exits(1)
         .stdout_lacks("\x1b[");
+}
+
+/// Spec: docs/specs/03-output.md#colorization
+///
+/// > Color enabled when COLOR env var is set (even without TTY)
+#[test]
+fn color_env_forces_color() {
+    // Note: This test runs in a non-TTY environment (piped stdout)
+    // COLOR should force color output regardless
+    cli()
+        .on("output-test")
+        .env("COLOR", "1")
+        .exits(1)
+        .stdout_has("\x1b[");
 }
 
 // =============================================================================

@@ -13,41 +13,6 @@ use crate::prelude::*;
 // CONSOLIDATED HELP FORMAT SPECS
 // =============================================================================
 
-/// Spec: Help shows consolidated --[no-]flag format
-///
-/// > Negatable flags should be displayed as --[no-]flag
-#[test]
-fn check_help_shows_consolidated_color_flag() {
-    let output = quench_cmd()
-        .args(["check", "--help"])
-        .output()
-        .expect("command should run");
-
-    let stdout = String::from_utf8_lossy(&output.stdout);
-
-    // Should show consolidated format
-    assert!(
-        stdout.contains("--[no-]color"),
-        "Expected --[no-]color in help, got:\n{stdout}"
-    );
-
-    // Should NOT show separate --no-color line
-    // (The combined --[no-]color is okay, but standalone --no-color is not)
-    let lines: Vec<&str> = stdout.lines().collect();
-    let no_color_lines: Vec<_> = lines
-        .iter()
-        .filter(|l| {
-            let trimmed = l.trim_start();
-            trimmed.starts_with("--no-color")
-        })
-        .collect();
-    assert!(
-        no_color_lines.is_empty(),
-        "Found separate --no-color line(s): {:?}",
-        no_color_lines
-    );
-}
-
 /// Spec: Help shows consolidated --[no-]limit format with optional value
 ///
 /// > --limit <N> and --no-limit should become --[no-]limit [N]

@@ -41,14 +41,6 @@ pub struct CheckArgs {
     #[arg(short, long, default_value = "text")]
     pub output: OutputFormat,
 
-    /// Force color output
-    #[arg(long)]
-    pub color: bool,
-
-    /// Disable color output
-    #[arg(long)]
-    pub no_color: bool,
-
     /// Maximum violations to display (default: 15)
     #[arg(long, default_value_t = 15, value_name = "N")]
     pub limit: usize,

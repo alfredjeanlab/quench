@@ -4,8 +4,8 @@
 //! Color detection and terminal styling.
 //!
 //! Detection logic per docs/specs/03-output.md#colorization:
-//! 1. --no-color → no color
-//! 2. --color → use color
+//! 1. NO_COLOR env var → no color
+//! 2. COLOR env var → use color
 //! 3. default:
 //!    - If not stdout.is_tty() → no color
 //!    - If CLAUDE_CODE, CODEX, CI, or CURSOR env var set → no color
@@ -14,14 +14,20 @@
 use std::io::IsTerminal;
 use termcolor::ColorChoice;
 
-/// Resolve color choice from CLI flags.
+/// Resolve color choice from environment variables.
 ///
-/// Priority: no_color > force_color > auto-detect
-pub fn resolve_color(force_color: bool, no_color: bool) -> ColorChoice {
-    if no_color {
+/// Priority: NO_COLOR > COLOR > auto-detect
+///
+/// Per [no-color.org](https://no-color.org/), `NO_COLOR` when set to any value
+/// (including empty string) disables color. The `COLOR` env var follows a
+/// similar convention for forcing color output.
+pub fn resolve_color() -> ColorChoice {
+    // NO_COLOR spec: any value (including empty) disables color
+    if std::env::var_os("NO_COLOR").is_some() {
         return ColorChoice::Never;
     }
-    if force_color {
+    // COLOR=1 forces color (non-standard but common)
+    if std::env::var_os("COLOR").is_some() {
         return ColorChoice::Always;
     }
     // Auto-detect
@@ -40,11 +46,6 @@ fn is_agent_environment() -> bool {
         || std::env::var_os("CODEX").is_some()
         || std::env::var_os("CURSOR").is_some()
         || std::env::var_os("CI").is_some()
-}
-
-/// Check if QUENCH_NO_COLOR environment variable is set.
-pub fn is_no_color_env() -> bool {
-    std::env::var_os("QUENCH_NO_COLOR").is_some()
 }
 
 /// Color scheme for output per spec.

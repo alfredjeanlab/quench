@@ -156,11 +156,7 @@ fn format_help_with_real_command() {
     let check_cmd = cmd.find_subcommand_mut("check").unwrap();
     let help = format_help(check_cmd);
 
-    // Verify consolidation happened
-    assert!(
-        help.contains("--[no-]color"),
-        "check --help should have --[no-]color: {help}"
-    );
+    // Verify consolidation happened for limit
     assert!(
         help.contains("--[no-]limit"),
         "check --help should have --[no-]limit: {help}"

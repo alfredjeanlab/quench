@@ -271,18 +271,23 @@ The `ratchet` key is omitted when:
 ### Detection Logic
 
 ```
-if --no-color:
+if env.NO_COLOR:
     no color
-elif --color:
+elif env.COLOR:
     use color
 else (default):
     if not stdout.is_tty():
         no color
-    elif env.CLAUDE_CODE or env.CODEX or env.CI:
+    elif env.CLAUDE_CODE or env.CODEX or env.CI or env.CURSOR:
         no color
     else:
         use color
 ```
+
+The `NO_COLOR` and `COLOR` environment variables follow the [no-color.org](https://no-color.org/) convention.
+
+- `NO_COLOR`: Any value (including empty string) disables color
+- `COLOR`: Any value forces color output (overrides TTY/agent detection)
 
 ### Color Scheme
 

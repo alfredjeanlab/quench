@@ -1,12 +1,14 @@
 //! Behavioral specs for environment variables.
 //!
 //! Tests that quench correctly handles:
-//! - QUENCH_NO_COLOR (disables color output)
+//! - NO_COLOR (disables color output per no-color.org)
+//! - COLOR (forces color output)
 //! - QUENCH_CONFIG (sets config file location)
 //! - QUENCH_LOG (enables debug/trace logging)
 //! - Unknown QUENCH_* vars (silently ignored)
 //!
 //! Reference: docs/specs/02-config.md#environment-variables
+//! Reference: docs/specs/03-output.md#colorization
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
@@ -16,9 +18,9 @@ use crate::prelude::*;
 // ENVIRONMENT VARIABLE SPECS
 // =============================================================================
 
-/// Spec: docs/specs/02-config.md#environment-variables
+/// Spec: docs/specs/03-output.md#colorization
 ///
-/// > QUENCH_NO_COLOR=1 disables color output
+/// > NO_COLOR=1 disables color output
 #[test]
 fn env_no_color_disables_color() {
     let temp = Project::empty();
@@ -28,7 +30,7 @@ fn env_no_color_disables_color() {
     let output = quench_cmd()
         .arg("check")
         .current_dir(temp.path())
-        .env("QUENCH_NO_COLOR", "1")
+        .env("NO_COLOR", "1")
         .output()
         .unwrap();
 

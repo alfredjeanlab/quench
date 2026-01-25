@@ -6,21 +6,14 @@
 use super::*;
 use termcolor::Color;
 
-#[test]
-fn resolve_color_force_returns_always() {
-    assert_eq!(resolve_color(true, false), ColorChoice::Always);
-}
-
-#[test]
-fn resolve_color_no_color_returns_never() {
-    assert_eq!(resolve_color(false, true), ColorChoice::Never);
-}
-
-#[test]
-fn resolve_color_no_color_takes_priority_over_force() {
-    // no_color wins even when force_color is also set
-    assert_eq!(resolve_color(true, true), ColorChoice::Never);
-}
+// NOTE: Environment variable tests for NO_COLOR and COLOR are in
+// tests/specs/output/format.rs and tests/specs/config/env.rs
+// because env var manipulation is not safe in parallel unit tests.
+//
+// The resolve_color() function behavior is:
+// - NO_COLOR set -> ColorChoice::Never
+// - COLOR set -> ColorChoice::Always
+// - Neither -> auto-detect based on TTY and agent environment
 
 #[test]
 fn scheme_check_name_is_bold() {

@@ -11,7 +11,7 @@ use quench::baseline::Baseline;
 use quench::cache::{self, CACHE_FILE_NAME, FileCache};
 use quench::checks;
 use quench::cli::{CheckArgs, CheckFilter, Cli, OutputFormat};
-use quench::color::{is_no_color_env, resolve_color};
+use quench::color::resolve_color;
 use quench::config::{self, CheckLevel};
 use quench::discovery;
 use quench::error::ExitCode;
@@ -457,7 +457,7 @@ pub fn run(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
     }
 
     // Resolve color mode
-    let color_choice = resolve_color(args.color, args.no_color || is_no_color_env());
+    let color_choice = resolve_color();
 
     // Set up formatter options
     // CI mode implicitly disables the violation limit
