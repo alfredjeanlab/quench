@@ -2,9 +2,15 @@
 // Copyright (c) 2026 Alfred Jean LLC
 
 //! Git utilities for change detection.
+//!
+//! Uses git2 (libgit2) for performance-critical operations to avoid subprocess overhead.
+//! Subprocess calls are retained for diff operations which are less frequently called.
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
+
+use anyhow::Context;
+use git2::Repository;
 
 /// A commit with its hash and message.
 #[derive(Debug, Clone)]
@@ -14,6 +20,108 @@ pub struct Commit {
     /// Full commit message (subject line only).
     pub message: String,
 }
+
+/// Check if a path is in a git repository.
+pub fn is_git_repo(root: &Path) -> bool {
+    Repository::discover(root).is_ok()
+}
+
+/// Detect base branch for CI mode (main or master).
+pub fn detect_base_branch(root: &Path) -> Option<String> {
+    let repo = Repository::discover(root).ok()?;
+
+    // Check if main branch exists locally
+    if repo.find_branch("main", git2::BranchType::Local).is_ok() {
+        return Some("main".to_string());
+    }
+
+    // Fall back to master locally
+    if repo.find_branch("master", git2::BranchType::Local).is_ok() {
+        return Some("master".to_string());
+    }
+
+    // Check for remote branches if local don't exist
+    for name in ["origin/main", "origin/master"] {
+        if repo.revparse_single(name).is_ok() {
+            return Some(name.to_string());
+        }
+    }
+
+    None
+}
+
+/// Get commits since a base ref.
+///
+/// Returns commits from newest to oldest.
+pub fn get_commits_since(root: &Path, base: &str) -> anyhow::Result<Vec<Commit>> {
+    let repo = Repository::discover(root).context("Failed to open repository")?;
+
+    // Resolve base and HEAD
+    let base_oid = repo
+        .revparse_single(base)
+        .with_context(|| format!("Failed to resolve base ref: {}", base))?
+        .id();
+    let head_oid = repo
+        .head()
+        .context("Failed to get HEAD")?
+        .target()
+        .ok_or_else(|| anyhow::anyhow!("HEAD has no target"))?;
+
+    // Walk commits from HEAD, stopping at base
+    let mut revwalk = repo.revwalk()?;
+    revwalk.push(head_oid)?;
+    revwalk.hide(base_oid)?;
+
+    let mut commits = Vec::new();
+    for oid in revwalk {
+        let oid = oid?;
+        let commit = repo.find_commit(oid)?;
+
+        // Short hash (7 chars)
+        let hash = oid.to_string()[..7].to_string();
+
+        // Subject line only (first line of message)
+        let message = commit.summary().unwrap_or("").to_string();
+
+        commits.push(Commit { hash, message });
+    }
+
+    Ok(commits)
+}
+
+/// Get all commits on current branch (for CI mode).
+pub fn get_all_branch_commits(root: &Path) -> anyhow::Result<Vec<Commit>> {
+    if let Some(base) = detect_base_branch(root) {
+        get_commits_since(root, &base)
+    } else {
+        // No base branch found, get all commits
+        let repo = Repository::discover(root).context("Failed to open repository")?;
+        let head_oid = repo
+            .head()
+            .context("Failed to get HEAD")?
+            .target()
+            .ok_or_else(|| anyhow::anyhow!("HEAD has no target"))?;
+
+        let mut revwalk = repo.revwalk()?;
+        revwalk.push(head_oid)?;
+
+        let mut commits = Vec::new();
+        for oid in revwalk {
+            let oid = oid?;
+            let commit = repo.find_commit(oid)?;
+
+            let hash = oid.to_string()[..7].to_string();
+            let message = commit.summary().unwrap_or("").to_string();
+            commits.push(Commit { hash, message });
+        }
+
+        Ok(commits)
+    }
+}
+
+// =============================================================================
+// Subprocess-based functions (retained for diff operations)
+// =============================================================================
 
 /// Get list of changed files compared to a git base ref.
 pub fn get_changed_files(root: &Path, base: &str) -> anyhow::Result<Vec<PathBuf>> {
@@ -76,39 +184,14 @@ pub fn get_staged_files(root: &Path) -> anyhow::Result<Vec<PathBuf>> {
     Ok(files)
 }
 
-/// Detect base branch for CI mode (main or master).
-pub fn detect_base_branch(root: &Path) -> Option<String> {
-    // Check if main branch exists
-    let main_check = Command::new("git")
-        .args(["rev-parse", "--verify", "main"])
-        .current_dir(root)
-        .output();
+// =============================================================================
+// Subprocess fallback functions (kept for debugging/comparison)
+// =============================================================================
 
-    if let Ok(output) = main_check
-        && output.status.success()
-    {
-        return Some("main".to_string());
-    }
-
-    // Fall back to master
-    let master_check = Command::new("git")
-        .args(["rev-parse", "--verify", "master"])
-        .current_dir(root)
-        .output();
-
-    if let Ok(output) = master_check
-        && output.status.success()
-    {
-        return Some("master".to_string());
-    }
-
-    None
-}
-
-/// Get commits since a base ref.
-///
-/// Returns commits from newest to oldest.
-pub fn get_commits_since(root: &Path, base: &str) -> anyhow::Result<Vec<Commit>> {
+/// Get commits since base (subprocess fallback).
+// KEEP UNTIL: git2 integration is proven stable; useful for debugging/comparison
+#[allow(dead_code)]
+fn get_commits_since_subprocess(root: &Path, base: &str) -> anyhow::Result<Vec<Commit>> {
     let output = Command::new("git")
         .args([
             "log",
@@ -127,6 +210,8 @@ pub fn get_commits_since(root: &Path, base: &str) -> anyhow::Result<Vec<Commit>>
 }
 
 /// Parse git log output with format "%h%n%s".
+// KEEP UNTIL: git2 integration is proven stable; used by subprocess fallback
+#[allow(dead_code)]
 fn parse_git_log_output(output: &str) -> anyhow::Result<Vec<Commit>> {
     let lines: Vec<&str> = output.lines().collect();
     let mut commits = Vec::new();
@@ -142,25 +227,4 @@ fn parse_git_log_output(output: &str) -> anyhow::Result<Vec<Commit>> {
     }
 
     Ok(commits)
-}
-
-/// Get all commits on current branch (for CI mode).
-pub fn get_all_branch_commits(root: &Path) -> anyhow::Result<Vec<Commit>> {
-    // Detect base and delegate
-    if let Some(base) = detect_base_branch(root) {
-        get_commits_since(root, &base)
-    } else {
-        // No base branch found, get all commits
-        let output = Command::new("git")
-            .args(["log", "--format=%h%n%s"])
-            .current_dir(root)
-            .output()?;
-
-        if !output.status.success() {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            anyhow::bail!("git log failed: {}", stderr.trim());
-        }
-
-        parse_git_log_output(&String::from_utf8_lossy(&output.stdout))
-    }
 }
