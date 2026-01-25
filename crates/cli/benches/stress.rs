@@ -33,8 +33,7 @@ fn bench_large_files(c: &mut Criterion) {
     let mut group = c.benchmark_group("stress_large_files");
     group.sample_size(20); // Fewer samples for slow benchmarks
 
-    // Avoid literal cfg_test to bypass bootstrap check
-    let cfg_test_attr = concat!("#[cfg", "(test)]");
+    let cfg_test_attr = "#[cfg(test)]";
 
     // Generate content inline for predictable sizing
     for lines in [10_000, 50_000] {
@@ -65,8 +64,7 @@ fn bench_large_files(c: &mut Criterion) {
 fn bench_many_cfg_test_blocks(c: &mut Criterion) {
     let mut group = c.benchmark_group("stress_many_cfg_test");
 
-    // Avoid literal cfg_test to bypass bootstrap check
-    let cfg_test_attr = concat!("#[cfg", "(test)]");
+    let cfg_test_attr = "#[cfg(test)]";
 
     // 50 separate #[cfg(test)] blocks
     let content: String = (0..50)

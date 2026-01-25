@@ -30,6 +30,9 @@ mod cli_report;
 #[path = "specs/cli/timing.rs"]
 mod cli_timing;
 
+#[path = "specs/cli/ci_mode.rs"]
+mod cli_ci_mode;
+
 // config/
 #[path = "specs/config/mod.rs"]
 mod config;

@@ -1,0 +1,19 @@
+// CI mode fixture - triggers violations for limit testing
+pub mod file1;
+pub mod file2;
+pub mod file3;
+pub mod file4;
+pub mod file5;
+pub mod file6;
+pub mod file7;
+pub mod file8;
+pub mod file9;
+pub mod file10;
+pub mod file11;
+pub mod file12;
+pub mod file13;
+pub mod file14;
+pub mod file15;
+pub mod file16;
+pub mod file17;
+pub mod file18;
