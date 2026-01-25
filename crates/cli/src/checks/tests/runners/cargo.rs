@@ -3,9 +3,11 @@
 
 //! Cargo test runner.
 
+use std::collections::HashMap;
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
 
+use super::coverage::collect_rust_coverage;
 use super::{RunnerContext, TestResult, TestRunResult, TestRunner};
 use crate::config::TestSuiteConfig;
 
@@ -60,12 +62,22 @@ impl TestRunner for CargoRunner {
         let stderr = String::from_utf8_lossy(&output.stderr);
 
         // Parse human-readable output
-        let result = parse_cargo_output(&stdout, total_time);
+        let mut result = parse_cargo_output(&stdout, total_time);
 
         // Check if cargo command itself failed (compilation error) with no tests parsed
         if !output.status.success() && result.tests.is_empty() && result.passed {
             let msg = stderr.lines().take(10).collect::<Vec<_>>().join("\n");
             return TestRunResult::failed(total_time, format!("cargo test failed:\n{msg}"));
+        }
+
+        // Collect coverage if requested
+        if ctx.collect_coverage {
+            let coverage = collect_rust_coverage(ctx.root, config.path.as_deref());
+            if let Some(line_coverage) = coverage.line_coverage {
+                let mut cov_map = HashMap::new();
+                cov_map.insert("rust".to_string(), line_coverage);
+                result = result.with_coverage(cov_map);
+            }
         }
 
         result

@@ -121,8 +121,21 @@ impl TestsCheck {
             None => return CheckResult::passed(self.name()),
         };
 
+        // Aggregate coverage from all suites
+        let mut aggregated_coverage: std::collections::HashMap<String, f64> =
+            std::collections::HashMap::new();
+        for suite in &suite_results.suites {
+            if let Some(ref cov) = suite.coverage {
+                for (lang, pct) in cov {
+                    // For now, take the last value for each language
+                    // (future: merge coverage data properly)
+                    aggregated_coverage.insert(lang.clone(), *pct);
+                }
+            }
+        }
+
         // Build metrics JSON
-        let metrics = json!({
+        let mut metrics = json!({
             "test_count": suite_results.suites.iter().map(|s| s.test_count).sum::<usize>(),
             "total_ms": suite_results.suites.iter().map(|s| s.total_ms).sum::<u64>(),
             "suites": suite_results.suites.iter().map(|s| {
@@ -138,6 +151,11 @@ impl TestsCheck {
                 obj
             }).collect::<Vec<_>>(),
         });
+
+        // Add coverage to metrics if available
+        if !aggregated_coverage.is_empty() {
+            metrics["coverage"] = json!(aggregated_coverage);
+        }
 
         if suite_results.passed {
             CheckResult::passed(self.name()).with_metrics(metrics)
@@ -551,6 +569,7 @@ impl TestsCheck {
                 .slowest_test()
                 .map(|t| t.duration.as_millis() as u64);
             let max_test = run_result.slowest_test().map(|t| t.name.clone());
+            let coverage = run_result.coverage.clone();
 
             results.push(SuiteResult {
                 name: suite.name.clone().unwrap_or_else(|| suite.runner.clone()),
@@ -563,6 +582,7 @@ impl TestsCheck {
                 avg_ms,
                 max_ms,
                 max_test,
+                coverage,
             });
         }
 
@@ -650,4 +670,6 @@ struct SuiteResult {
     max_ms: Option<u64>,
     /// Name of the slowest test.
     max_test: Option<String>,
+    /// Coverage data (language -> percentage).
+    coverage: Option<std::collections::HashMap<String, f64>>,
 }

@@ -6,10 +6,12 @@
 //! Provides abstractions for executing test suites and collecting metrics.
 
 mod cargo;
+mod coverage;
 mod result;
 mod stub;
 
 pub use cargo::CargoRunner;
+pub use coverage::CoverageResult;
 pub use result::{TestResult, TestRunResult};
 pub use stub::StubRunner;
 

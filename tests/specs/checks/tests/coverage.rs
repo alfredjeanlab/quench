@@ -14,7 +14,6 @@ use crate::prelude::*;
 ///
 /// > `cargo` runner provides implicit Rust coverage via llvm-cov.
 #[test]
-#[ignore = "TODO: Phase 9XX - Test runners implementation"]
 fn cargo_runner_collects_rust_coverage() {
     let temp = Project::empty();
     temp.config(
