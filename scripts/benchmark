@@ -1,0 +1,114 @@
+#!/bin/bash
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Alfred Jean LLC
+#
+# Run dogfood benchmarks and check for regressions against baseline.
+#
+# Usage:
+#   ./scripts/benchmark          # Run benchmarks and compare to baseline
+#   ./scripts/benchmark --quiet  # Suppress cargo output
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_DIR="$(dirname "$SCRIPT_DIR")"
+BASELINE="$REPO_DIR/reports/benchmark-baseline.json"
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+cd "$REPO_DIR"
+
+# Parse args
+QUIET=""
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --quiet|-q)
+            QUIET="1"
+            shift
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Usage: $0 [--quiet]"
+            exit 1
+            ;;
+    esac
+done
+
+# Build release binary first
+echo -e "${BLUE}Building release binary...${NC}"
+if [[ -n "$QUIET" ]]; then
+    cargo build --release -p quench 2>&1 | tail -1
+else
+    cargo build --release -p quench
+fi
+
+# Run criterion benchmarks (dogfood group only)
+echo -e "${BLUE}Running dogfood benchmarks...${NC}"
+BENCH_OUTPUT=$(mktemp)
+if [[ -n "$QUIET" ]]; then
+    cargo bench --bench dogfood -- --noplot 2>&1 | tee "$BENCH_OUTPUT" | grep -E "(time:|Benchmarking)" || true
+else
+    cargo bench --bench dogfood -- --noplot 2>&1 | tee "$BENCH_OUTPUT"
+fi
+
+echo ""
+echo -e "${BLUE}=== Baseline Comparison ===${NC}"
+echo ""
+
+# Check if baseline exists
+if [[ ! -f "$BASELINE" ]]; then
+    echo -e "${YELLOW}No baseline found at $BASELINE${NC}"
+    echo "Run ./scripts/update-baseline to create one."
+    exit 0
+fi
+
+THRESHOLD=$(jq -r '.thresholds.regression_threshold_pct' "$BASELINE")
+HAD_REGRESSION=0
+
+# Parse results and compare
+for bench in "dogfood/fast" "dogfood/fast_json" "dogfood_checks/cloc_only" "dogfood_checks/escapes_only" "dogfood_checks/agents_only"; do
+    baseline_ms=$(jq -r ".benchmarks[\"$bench\"].mean_ms // empty" "$BASELINE")
+    if [[ -z "$baseline_ms" ]]; then
+        continue
+    fi
+
+    # Try to get current result from criterion estimates
+    criterion_file="$REPO_DIR/target/criterion/$bench/new/estimates.json"
+    if [[ -f "$criterion_file" ]]; then
+        current_ns=$(jq -r '.mean.point_estimate // empty' "$criterion_file")
+        if [[ -n "$current_ns" ]]; then
+            current_ms=$(echo "scale=2; $current_ns / 1000000" | bc)
+            change_pct=$(echo "scale=1; (($current_ms - $baseline_ms) / $baseline_ms) * 100" | bc)
+
+            # Determine status
+            if (( $(echo "$change_pct > $THRESHOLD" | bc -l) )); then
+                STATUS="${RED}REGRESSION${NC}"
+                HAD_REGRESSION=1
+            elif (( $(echo "$change_pct < -$THRESHOLD" | bc -l) )); then
+                STATUS="${GREEN}IMPROVED${NC}"
+            else
+                STATUS="${GREEN}OK${NC}"
+            fi
+
+            printf "  %-30s baseline: %6.1fms  current: %6.1fms  (%+.1f%%) %b\n" \
+                "$bench" "$baseline_ms" "$current_ms" "$change_pct" "$STATUS"
+        fi
+    else
+        printf "  %-30s baseline: %6.1fms  current: (no data)\n" "$bench" "$baseline_ms"
+    fi
+done
+
+echo ""
+echo -e "See ${BLUE}target/criterion/${NC} for detailed reports"
+
+rm -f "$BENCH_OUTPUT"
+
+if [[ $HAD_REGRESSION -eq 1 ]]; then
+    echo ""
+    echo -e "${RED}Performance regression detected (>${THRESHOLD}%)${NC}"
+    exit 1
+fi

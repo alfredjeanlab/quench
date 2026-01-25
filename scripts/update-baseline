@@ -1,0 +1,133 @@
+#!/bin/bash
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Alfred Jean LLC
+#
+# Update benchmark baseline after confirmed performance improvements.
+#
+# Usage:
+#   ./scripts/update-baseline         # Interactive (prompts for confirmation)
+#   ./scripts/update-baseline --force # Non-interactive
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_DIR="$(dirname "$SCRIPT_DIR")"
+BASELINE="$REPO_DIR/reports/benchmark-baseline.json"
+CRITERION_DIR="$REPO_DIR/target/criterion"
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+cd "$REPO_DIR"
+
+# Parse args
+FORCE=""
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --force|-f)
+            FORCE="1"
+            shift
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Usage: $0 [--force]"
+            exit 1
+            ;;
+    esac
+done
+
+# Require confirmation unless forced
+if [[ -z "$FORCE" ]]; then
+    echo -e "${YELLOW}This will update the performance baseline.${NC}"
+    echo "Only run this after verifying performance improvements."
+    echo ""
+    read -p "Continue? [y/N] " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo "Aborted."
+        exit 1
+    fi
+fi
+
+# Build and run benchmarks
+echo -e "${BLUE}Building release binary...${NC}"
+cargo build --release -p quench
+
+echo -e "${BLUE}Running dogfood benchmarks...${NC}"
+cargo bench --bench dogfood -- --noplot
+
+# Verify criterion results exist
+if [[ ! -d "$CRITERION_DIR/dogfood" ]]; then
+    echo -e "${RED}No criterion results found. Benchmark may have failed.${NC}"
+    exit 1
+fi
+
+# Helper to extract timing from criterion
+get_timing() {
+    local bench_path="$1"
+    local estimates="$CRITERION_DIR/$bench_path/new/estimates.json"
+    if [[ -f "$estimates" ]]; then
+        jq -r '.mean.point_estimate / 1e6' "$estimates"
+    else
+        echo "0"
+    fi
+}
+
+get_stddev() {
+    local bench_path="$1"
+    local estimates="$CRITERION_DIR/$bench_path/new/estimates.json"
+    if [[ -f "$estimates" ]]; then
+        jq -r '.std_dev.point_estimate / 1e6' "$estimates"
+    else
+        echo "0"
+    fi
+}
+
+# Build new baseline JSON
+echo -e "${BLUE}Generating baseline...${NC}"
+
+cat > "$BASELINE" << EOF
+{
+  "version": 1,
+  "generated": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+  "commit": "$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')",
+  "benchmarks": {
+    "dogfood/fast": {
+      "mean_ms": $(get_timing "dogfood/fast"),
+      "stddev_ms": $(get_stddev "dogfood/fast")
+    },
+    "dogfood/fast_json": {
+      "mean_ms": $(get_timing "dogfood/fast_json"),
+      "stddev_ms": $(get_stddev "dogfood/fast_json")
+    },
+    "dogfood_checks/cloc_only": {
+      "mean_ms": $(get_timing "dogfood_checks/cloc_only"),
+      "stddev_ms": $(get_stddev "dogfood_checks/cloc_only")
+    },
+    "dogfood_checks/escapes_only": {
+      "mean_ms": $(get_timing "dogfood_checks/escapes_only"),
+      "stddev_ms": $(get_stddev "dogfood_checks/escapes_only")
+    },
+    "dogfood_checks/agents_only": {
+      "mean_ms": $(get_timing "dogfood_checks/agents_only"),
+      "stddev_ms": $(get_stddev "dogfood_checks/agents_only")
+    }
+  },
+  "thresholds": {
+    "warm_target_ms": 100,
+    "warm_acceptable_ms": 200,
+    "warm_unacceptable_ms": 500,
+    "regression_threshold_pct": 20
+  }
+}
+EOF
+
+echo -e "${GREEN}Baseline updated: $BASELINE${NC}"
+echo ""
+echo "New values:"
+jq '.benchmarks | to_entries[] | "\(.key): \(.value.mean_ms)ms"' -r "$BASELINE"
+echo ""
+echo "Run 'git diff $BASELINE' to review changes."

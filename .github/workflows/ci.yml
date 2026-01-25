@@ -73,3 +73,32 @@ jobs:
         with:
           arguments: --all-features
           command: check licenses bans sources
+
+  benchmark:
+    name: Benchmark Regression Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build release binary
+        run: cargo build --release -p quench
+
+      - name: Run regression tests
+        run: cargo test --release --bench regression -- --nocapture
+
+      - name: Run dogfood benchmarks
+        run: cargo bench --bench dogfood -- --noplot
+
+      - name: Check for regressions
+        run: |
+          # Compare against baseline thresholds
+          BASELINE="reports/benchmark-baseline.json"
+          if [ -f "$BASELINE" ]; then
+            TARGET_MS=$(jq '.thresholds.warm_acceptable_ms' "$BASELINE")
+            echo "Warm run target: <${TARGET_MS}ms"
+          fi

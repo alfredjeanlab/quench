@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "generated": "2026-01-25T04:54:40Z",
+  "commit": "beb6e0a",
+  "benchmarks": {
+    "dogfood/fast": {
+      "mean_ms": 35.01617645,
+      "stddev_ms": 3.3302486195426453
+    },
+    "dogfood/fast_json": {
+      "mean_ms": 34.59633084,
+      "stddev_ms": 2.3889861500495067
+    },
+    "dogfood_checks/cloc_only": {
+      "mean_ms": 29.482296855,
+      "stddev_ms": 2.1116206872404275
+    },
+    "dogfood_checks/escapes_only": {
+      "mean_ms": 29.107981875,
+      "stddev_ms": 2.092536072765282
+    },
+    "dogfood_checks/agents_only": {
+      "mean_ms": 29.788097075,
+      "stddev_ms": 3.401153760830203
+    }
+  },
+  "thresholds": {
+    "warm_target_ms": 100,
+    "warm_acceptable_ms": 200,
+    "warm_unacceptable_ms": 500,
+    "regression_threshold_pct": 20
+  }
+}
