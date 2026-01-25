@@ -1,5 +1,7 @@
 # Checkpoint 9D: Benchmark - Git Check
 
+**Root Feature:** `quench-2744`
+
 ## Overview
 
 Create performance benchmarks for the git check to establish baselines, validate against performance targets, and enable regression tracking. This follows the established benchmark checkpoint pattern (7D docs, 8D tests) with Criterion-based benchmarks and stress test fixtures.
