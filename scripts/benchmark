@@ -70,7 +70,7 @@ THRESHOLD=$(jq -r '.thresholds.regression_threshold_pct' "$BASELINE")
 HAD_REGRESSION=0
 
 # Parse results and compare
-for bench in "dogfood/fast" "dogfood/fast_json" "dogfood_checks/cloc_only" "dogfood_checks/escapes_only" "dogfood_checks/agents_only"; do
+for bench in "dogfood/fast" "dogfood/fast_json" "dogfood/fast_timing" "dogfood_checks/cloc_only" "dogfood_checks/escapes_only" "dogfood_checks/agents_only"; do
     baseline_ms=$(jq -r ".benchmarks[\"$bench\"].mean_ms // empty" "$BASELINE")
     if [[ -z "$baseline_ms" ]]; then
         continue

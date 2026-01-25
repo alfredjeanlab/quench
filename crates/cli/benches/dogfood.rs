@@ -48,6 +48,18 @@ fn bench_dogfood_fast(c: &mut Criterion) {
         })
     });
 
+    // With timing enabled - measures overhead of --timing flag
+    // Target: timing overhead should be <5% of fast mode
+    group.bench_function("fast_timing", |b| {
+        b.iter(|| {
+            Command::new(quench_bin)
+                .args(["check", "--timing"])
+                .current_dir(root)
+                .output()
+                .expect("quench should run")
+        })
+    });
+
     group.finish();
 }
 
