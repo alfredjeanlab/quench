@@ -600,3 +600,48 @@ template = true
         "should have fixed: true"
     );
 }
+
+// =============================================================================
+// DELETED FILE HANDLING SPECS
+// =============================================================================
+
+/// Spec: docs/specs/checks/git.md#scope
+///
+/// > `--base <ref>`: Validates all commits on branch since base
+///
+/// Verifies the git check correctly handles branches with deleted files.
+#[test]
+fn git_check_validates_branch_with_deleted_files() {
+    let temp = Project::empty();
+    temp.config(
+        r#"[git.commit]
+check = "error"
+agents = false
+"#,
+    );
+    temp.file(
+        "CLAUDE.md",
+        "# Project\n\n## Directory Structure\n\nMinimal.\n\n## Landing the Plane\n\n- Done\n",
+    );
+    temp.file("to_delete.txt", "content");
+
+    git_init(&temp);
+    git_initial_commit(&temp);
+
+    // Create branch, delete file, commit
+    git_branch(&temp, "feature");
+    std::fs::remove_file(temp.path().join("to_delete.txt")).unwrap();
+    std::process::Command::new("git")
+        .args(["add", "-A"])
+        .current_dir(temp.path())
+        .output()
+        .unwrap();
+    std::process::Command::new("git")
+        .args(["commit", "-m", "chore: delete unused file"])
+        .current_dir(temp.path())
+        .output()
+        .unwrap();
+
+    // Should pass - commit has valid conventional format
+    check("git").pwd(temp.path()).args(&["--ci"]).passes();
+}
