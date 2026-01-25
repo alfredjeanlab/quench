@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Alfred Jean LLC
+set -euo pipefail
+
+# Install git hooks for quench development
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="$(dirname "${SCRIPT_DIR}")"
+
+# Find the git hooks directory (handles both regular repos and worktrees)
+if [ -f "${REPO_DIR}/.git" ]; then
+    # Worktree: .git is a file containing "gitdir: /path/to/hooks"
+    GIT_DIR="$(sed 's/^gitdir: //' "${REPO_DIR}/.git")"
+    # Use the main repo's hooks directory (shared across worktrees)
+    HOOKS_DIR="${GIT_DIR}/../../hooks"
+else
+    HOOKS_DIR="${REPO_DIR}/.git/hooks"
+fi
+
+# Normalize path
+HOOKS_DIR="$(cd "${HOOKS_DIR}" && pwd)"
+
+echo "Installing hooks to ${HOOKS_DIR}"
+
+# Create pre-commit hook
+cat > "${HOOKS_DIR}/pre-commit" << 'EOF'
+#!/bin/sh
+# Pre-commit hook for quench quality checks
+
+set -e
+
+# Use local build if available, otherwise fallback to installed quench
+if [ -x "./target/release/quench" ]; then
+    QUENCH="./target/release/quench"
+elif [ -x "./target/debug/quench" ]; then
+    QUENCH="./target/debug/quench"
+elif command -v quench >/dev/null 2>&1; then
+    QUENCH="quench"
+else
+    echo "quench: not found (run 'cargo build --release')" >&2
+    exit 1
+fi
+
+exec $QUENCH check --staged
+EOF
+
+chmod +x "${HOOKS_DIR}/pre-commit"
+
+echo "Installed: pre-commit"
+echo "Done"
