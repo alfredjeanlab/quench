@@ -101,6 +101,14 @@ pub struct CheckArgs {
     #[arg(long)]
     pub timing: bool,
 
+    /// Save metrics to file (CI mode)
+    #[arg(long, value_name = "FILE")]
+    pub save: Option<std::path::PathBuf>,
+
+    /// Save metrics to git notes (refs/notes/quench)
+    #[arg(long)]
+    pub save_notes: bool,
+
     // Check enable flags (run only these checks)
     /// Run only the cloc check
     #[arg(long)]

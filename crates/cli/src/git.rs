@@ -202,6 +202,57 @@ pub fn get_staged_files(root: &Path) -> anyhow::Result<Vec<PathBuf>> {
     Ok(files)
 }
 
+/// Save content to git notes for HEAD commit.
+///
+/// Uses `refs/notes/quench` namespace to avoid conflicts with other tools.
+pub fn save_to_git_notes(root: &Path, content: &str) -> anyhow::Result<()> {
+    let repo = Repository::discover(root).context("Failed to open repository")?;
+
+    let head_commit = repo
+        .head()
+        .context("Failed to get HEAD")?
+        .peel_to_commit()
+        .context("HEAD is not a commit")?;
+
+    let sig = repo
+        .signature()
+        .or_else(|_| git2::Signature::now("quench", "quench@local"))?;
+
+    // Get or create notes ref
+    let notes_ref = "refs/notes/quench";
+
+    // Add note (this handles creating the ref if needed)
+    repo.note(
+        &sig,            // author
+        &sig,            // committer
+        Some(notes_ref), // ref name
+        head_commit.id(),
+        content,
+        true, // overwrite existing notes
+    )?;
+
+    Ok(())
+}
+
+/// Read git note for a specific commit.
+pub fn read_git_note(root: &Path, commit_ref: &str) -> anyhow::Result<Option<String>> {
+    let repo = Repository::discover(root).context("Failed to open repository")?;
+
+    let commit = repo
+        .revparse_single(commit_ref)
+        .context("Failed to resolve commit ref")?
+        .peel_to_commit()
+        .context("Ref is not a commit")?;
+
+    let notes_ref = "refs/notes/quench";
+
+    match repo.find_note(Some(notes_ref), commit.id()) {
+        Ok(note) => Ok(note.message().map(|s| s.to_string())),
+        Err(e) if e.code() == git2::ErrorCode::NotFound => Ok(None),
+        Err(e) => Err(e).context("Failed to read git note"),
+    }
+}
+
 #[cfg(test)]
 #[path = "git_tests.rs"]
 mod tests;
