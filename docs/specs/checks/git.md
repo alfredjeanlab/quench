@@ -15,6 +15,7 @@ Ensure commit messages follow a consistent format:
 [git.commit]
 check = "error"                    # error | warn | off
 # format = "conventional"          # conventional | none (default: conventional)
+# skip_merge = true                # Skip merge commits (default: true)
 
 # Optional: restrict to specific types (default: common conventional types)
 # types = ["feat", "fix", "chore", "docs", "test", "refactor", "perf", "ci", "build", "style"]
@@ -67,6 +68,20 @@ Built-in default types:
 |---------|----------|
 | omitted | Any scope allowed (or none) |
 | `["api", "cli"]` | Only these scopes allowed |
+
+### Merge Commits
+
+By default, merge commits are skipped:
+- `Merge branch 'feature' into main`
+- `Merge pull request #123 from user/branch`
+- `Merge remote-tracking branch 'origin/main'`
+
+| Setting | Behavior |
+|---------|----------|
+| `skip_merge = true` (default) | Skip merge commits silently |
+| `skip_merge = false` | Validate merge commits against format |
+
+This avoids false positives from git-generated commit messages.
 
 ## Agent Documentation Check
 
@@ -207,13 +222,23 @@ git: FIXED
       "type": "missing_docs",
       "advice": "Add a Commits section describing the format."
     }
-  ]
+  ],
+  "metrics": {
+    "commits_checked": 5,
+    "commits_valid": 3,
+    "commits_skipped": 1
+  }
 }
 ```
 
 **Violation types**: `invalid_format`, `invalid_type`, `invalid_scope`, `missing_docs`
 
 **Note**: Commit-related violations have `file: null` with `commit` field instead.
+
+**Metrics** (when commits are checked):
+- `commits_checked`: Number of commits validated
+- `commits_valid`: Commits that passed validation
+- `commits_skipped`: Merge commits that were skipped (when `skip_merge = true`)
 
 ## Scope
 

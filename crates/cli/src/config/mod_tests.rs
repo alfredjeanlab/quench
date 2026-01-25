@@ -1005,3 +1005,22 @@ check = "error"
         CheckLevel::Error
     );
 }
+
+// Git skip_merge config tests
+
+#[test]
+fn git_skip_merge_defaults_to_true() {
+    let config = GitCommitConfig::default();
+    assert!(config.skip_merge);
+}
+
+#[test]
+fn git_skip_merge_can_be_disabled() {
+    let toml = r#"
+version = 1
+[git.commit]
+skip_merge = false
+"#;
+    let config: Config = parse(toml, Path::new("test.toml")).unwrap();
+    assert!(!config.git.commit.skip_merge);
+}

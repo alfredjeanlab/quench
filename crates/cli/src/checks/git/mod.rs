@@ -21,7 +21,9 @@ mod template;
 use template::{TEMPLATE_PATH, generate_template};
 
 use docs::{DocsResult, check_commit_docs, primary_agent_file};
-pub use parse::{DEFAULT_TYPES, ParseResult, ParsedCommit, parse_conventional_commit};
+pub use parse::{
+    DEFAULT_TYPES, ParseResult, ParsedCommit, is_merge_commit, parse_conventional_commit,
+};
 
 /// The git check validates commit message format.
 pub struct GitCheck;
@@ -68,8 +70,11 @@ impl Check for GitCheck {
         };
 
         // Validate each commit (if any)
+        let mut validated_count = 0;
         for commit in &commits {
-            validate_commit(commit, config, &mut violations);
+            if validate_commit(commit, config, &mut violations) {
+                validated_count += 1;
+            }
         }
 
         // Handle --fix for template creation
@@ -79,8 +84,8 @@ impl Check for GitCheck {
             None
         };
 
-        // Build metrics (only if commits were checked)
-        let metrics = if !commits.is_empty() {
+        // Build metrics (only if commits were validated)
+        let metrics = if validated_count > 0 {
             // Count commits with violations
             let commits_with_violations = violations
                 .iter()
@@ -89,8 +94,9 @@ impl Check for GitCheck {
                 .len();
 
             Some(serde_json::json!({
-                "commits_checked": commits.len(),
-                "commits_valid": commits.len() - commits_with_violations,
+                "commits_checked": validated_count,
+                "commits_valid": validated_count - commits_with_violations,
+                "commits_skipped": commits.len() - validated_count,
             }))
         } else {
             None
@@ -162,7 +168,18 @@ fn get_commits_to_check(ctx: &CheckContext) -> anyhow::Result<Vec<Commit>> {
 }
 
 /// Validate a single commit and add violations if invalid.
-pub fn validate_commit(commit: &Commit, config: &GitCommitConfig, violations: &mut Vec<Violation>) {
+///
+/// Returns `true` if the commit was validated, `false` if skipped.
+pub fn validate_commit(
+    commit: &Commit,
+    config: &GitCommitConfig,
+    violations: &mut Vec<Violation>,
+) -> bool {
+    // Skip merge commits if configured
+    if config.skip_merge && is_merge_commit(&commit.message) {
+        return false; // Skipped
+    }
+
     match parse_conventional_commit(&commit.message) {
         ParseResult::NonConventional => {
             violations.push(Violation::commit_violation(
@@ -199,6 +216,8 @@ pub fn validate_commit(commit: &Commit, config: &GitCommitConfig, violations: &m
             }
         }
     }
+
+    true // Validated
 }
 
 /// Format advice for invalid type violations.

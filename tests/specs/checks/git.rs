@@ -605,6 +605,160 @@ template = true
 // DELETED FILE HANDLING SPECS
 // =============================================================================
 
+// =============================================================================
+// MERGE COMMIT HANDLING SPECS
+// =============================================================================
+
+/// Spec: docs/specs/checks/git.md#merge-commits
+///
+/// > By default, merge commits are skipped
+#[test]
+fn git_check_skips_merge_commits() {
+    let temp = Project::empty();
+    temp.config(
+        r#"[git.commit]
+check = "error"
+agents = false
+"#,
+    );
+    temp.file(
+        "CLAUDE.md",
+        "# Project\n\n## Directory Structure\n\nMinimal.\n\n## Landing the Plane\n\n- Done\n",
+    );
+
+    git_init(&temp);
+    git_initial_commit(&temp);
+
+    // Create feature branch with valid commit
+    git_branch(&temp, "feature");
+    temp.file("feature.txt", "content");
+    git_add_all(&temp);
+    git_commit(&temp, "feat: add feature file");
+
+    // Merge back to main (creates merge commit)
+    git_checkout(&temp, "main");
+    // Use --no-ff to force merge commit
+    std::process::Command::new("git")
+        .args([
+            "merge",
+            "--no-ff",
+            "feature",
+            "-m",
+            "Merge branch 'feature'",
+        ])
+        .current_dir(temp.path())
+        .output()
+        .unwrap();
+
+    // Should pass - merge commit is skipped, feat commit is valid
+    check("git")
+        .pwd(temp.path())
+        .args(&["--base", "HEAD~2"])
+        .passes();
+}
+
+/// Spec: docs/specs/checks/git.md#merge-commits
+///
+/// > `skip_merge = false` - Validate merge commits against format
+#[test]
+fn git_check_validates_merge_commits_when_configured() {
+    let temp = Project::empty();
+    temp.config(
+        r#"[git.commit]
+check = "error"
+agents = false
+skip_merge = false
+"#,
+    );
+    temp.file(
+        "CLAUDE.md",
+        "# Project\n\n## Directory Structure\n\nMinimal.\n\n## Landing the Plane\n\n- Done\n",
+    );
+
+    git_init(&temp);
+    git_initial_commit(&temp);
+
+    // Create feature branch with valid commit
+    git_branch(&temp, "feature");
+    temp.file("feature.txt", "content");
+    git_add_all(&temp);
+    git_commit(&temp, "feat: add feature");
+
+    // Merge back to main (creates merge commit)
+    git_checkout(&temp, "main");
+    std::process::Command::new("git")
+        .args([
+            "merge",
+            "--no-ff",
+            "feature",
+            "-m",
+            "Merge branch 'feature'",
+        ])
+        .current_dir(temp.path())
+        .output()
+        .unwrap();
+
+    // Should fail - merge commit violates conventional format when skip_merge=false
+    // Check commits since initial commit (HEAD~1 is the merge, initial is HEAD~2)
+    // Actually check HEAD^1 which is the first parent before merge
+    check("git")
+        .pwd(temp.path())
+        .args(&["--base", "HEAD^"])
+        .fails()
+        .stdout_has("invalid_format");
+}
+
+/// Spec: docs/specs/checks/git.md#json-output
+///
+/// > Metrics should include commits_skipped count
+#[test]
+fn git_check_reports_skipped_in_metrics() {
+    let temp = Project::empty();
+    temp.config(
+        r#"[git.commit]
+check = "error"
+agents = false
+"#,
+    );
+    temp.file(
+        "CLAUDE.md",
+        "# Project\n\n## Directory Structure\n\nMinimal.\n\n## Landing the Plane\n\n- Done\n",
+    );
+
+    git_init(&temp);
+    git_initial_commit(&temp);
+
+    git_branch(&temp, "feature");
+    temp.file("a.txt", "a");
+    git_add_all(&temp);
+    git_commit(&temp, "feat: first");
+
+    temp.file("b.txt", "b");
+    git_add_all(&temp);
+    git_commit(&temp, "Merge branch 'other'"); // Will be skipped
+
+    temp.file("c.txt", "c");
+    git_add_all(&temp);
+    git_commit(&temp, "fix: third");
+
+    // JSON output should show skipped count
+    let result = check("git")
+        .pwd(temp.path())
+        .args(&["--base", "main"])
+        .json()
+        .passes();
+
+    let metrics = result.require("metrics");
+    assert!(
+        metrics.get("commits_skipped").is_some(),
+        "metrics should include commits_skipped"
+    );
+}
+
+// =============================================================================
+// DELETED FILE HANDLING SPECS
+// =============================================================================
+
 /// Spec: docs/specs/checks/git.md#scope
 ///
 /// > `--base <ref>`: Validates all commits on branch since base

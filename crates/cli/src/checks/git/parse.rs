@@ -85,6 +85,16 @@ pub enum ParseResult {
     NonConventional,
 }
 
+/// Check if a commit message is a merge commit.
+///
+/// Detects patterns like:
+/// - "Merge branch 'feature' into main"
+/// - "Merge pull request #123 from user/branch"
+/// - "Merge remote-tracking branch 'origin/main'"
+pub fn is_merge_commit(message: &str) -> bool {
+    message.starts_with("Merge ")
+}
+
 /// Parse a commit message as a conventional commit.
 ///
 /// Returns `ParseResult::Conventional` if the message matches the format,

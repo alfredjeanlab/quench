@@ -794,3 +794,21 @@ pub fn git_commit(project: &Project, message: &str) {
         .output()
         .expect("git commit should succeed");
 }
+
+/// Checkout an existing branch
+pub fn git_checkout(project: &Project, branch: &str) {
+    std::process::Command::new("git")
+        .args(["checkout", branch])
+        .current_dir(project.path())
+        .output()
+        .expect("git checkout should succeed");
+}
+
+/// Stage all changes
+pub fn git_add_all(project: &Project) {
+    std::process::Command::new("git")
+        .args(["add", "-A"])
+        .current_dir(project.path())
+        .output()
+        .expect("git add should succeed");
+}

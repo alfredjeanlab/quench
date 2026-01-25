@@ -330,10 +330,12 @@ fn format_type_advice_with_custom_list() {
 // EDGE CASE TESTS
 // =============================================================================
 
+// =============================================================================
+// MERGE COMMIT HANDLING TESTS
+// =============================================================================
+
 #[test]
-fn validates_merge_commit_subject() {
-    // Merge commits often have format "Merge branch 'x' into y"
-    // Default: merge commits violate conventional format
+fn skips_merge_commit_by_default() {
     let commit = Commit {
         hash: "abc1234".to_string(),
         message: "Merge branch 'feature' into main".to_string(),
@@ -341,8 +343,25 @@ fn validates_merge_commit_subject() {
     let config = GitCommitConfig::default();
     let mut violations = Vec::new();
 
-    validate_commit(&commit, &config, &mut violations);
+    let validated = validate_commit(&commit, &config, &mut violations);
 
+    assert!(!validated, "merge commit should be skipped");
+    assert!(violations.is_empty());
+}
+
+#[test]
+fn validates_merge_commit_when_skip_disabled() {
+    let commit = Commit {
+        hash: "abc1234".to_string(),
+        message: "Merge branch 'feature' into main".to_string(),
+    };
+    let mut config = GitCommitConfig::default();
+    config.skip_merge = false;
+    let mut violations = Vec::new();
+
+    let validated = validate_commit(&commit, &config, &mut violations);
+
+    assert!(validated, "merge commit should be validated");
     assert_eq!(violations.len(), 1);
     assert_eq!(violations[0].violation_type, "invalid_format");
 }

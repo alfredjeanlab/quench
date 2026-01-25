@@ -10,22 +10,19 @@ use std::sync::LazyLock;
 
 use regex::Regex;
 
+use super::parse::DEFAULT_TYPES;
+
 /// Compiled regex for commit type prefixes.
 /// Matches: `feat:`, `fix(`, `chore:`, etc.
 #[allow(clippy::expect_used)]
 static TYPE_PREFIX_REGEX: LazyLock<Regex> = LazyLock::new(|| {
-    let types_pattern = COMMIT_TYPES.join("|");
+    let types_pattern = DEFAULT_TYPES.join("|");
     let pattern = format!(r"(?i)\b({})[:(\(]", types_pattern);
     Regex::new(&pattern).expect("valid regex")
 });
 
 /// Agent files to check for commit documentation.
 const AGENT_FILES: &[&str] = &["CLAUDE.md", "AGENTS.md", ".cursorrules"];
-
-/// Default commit types to search for.
-const COMMIT_TYPES: &[&str] = &[
-    "feat", "fix", "chore", "docs", "test", "refactor", "perf", "ci", "build", "style",
-];
 
 /// Result of searching for commit format documentation.
 #[derive(Debug)]

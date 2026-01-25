@@ -129,6 +129,9 @@ pub struct GitCommitConfig {
 
     /// Create .gitmessage template with --fix (default: true)
     pub template: bool,
+
+    /// Skip merge commits (e.g., "Merge branch 'x'") (default: true)
+    pub skip_merge: bool,
 }
 
 impl Default for GitCommitConfig {
@@ -140,6 +143,7 @@ impl Default for GitCommitConfig {
             scopes: None,
             agents: true,
             template: true,
+            skip_merge: true,
         }
     }
 }

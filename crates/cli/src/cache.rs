@@ -33,7 +33,8 @@ use crate::check::Violation;
 /// v20: Added placeholders check for detecting placeholder tests.
 /// v21: Added change_type and lines_changed fields to missing_tests violations.
 /// v22: Added agent documentation check to git check.
-pub const CACHE_VERSION: u32 = 22;
+/// v23: Added skip_merge option to git check (merge commits now skipped by default).
+pub const CACHE_VERSION: u32 = 23;
 
 /// Cache file name within .quench directory.
 pub const CACHE_FILE_NAME: &str = "cache.bin";

@@ -219,3 +219,34 @@ fn scope_str_returns_none_when_absent() {
     };
     assert_eq!(parsed.scope_str(), None);
 }
+
+// =============================================================================
+// MERGE COMMIT DETECTION TESTS
+// =============================================================================
+
+#[test]
+fn detects_merge_branch() {
+    assert!(is_merge_commit("Merge branch 'feature' into main"));
+}
+
+#[test]
+fn detects_merge_pull_request() {
+    assert!(is_merge_commit("Merge pull request #123 from user/branch"));
+}
+
+#[test]
+fn detects_merge_remote_tracking() {
+    assert!(is_merge_commit(
+        "Merge remote-tracking branch 'origin/main'"
+    ));
+}
+
+#[test]
+fn does_not_detect_conventional_commit() {
+    assert!(!is_merge_commit("feat: add merge functionality"));
+}
+
+#[test]
+fn does_not_detect_message_containing_merge() {
+    assert!(!is_merge_commit("fix: merge conflict in parser"));
+}
