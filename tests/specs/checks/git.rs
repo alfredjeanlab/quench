@@ -554,3 +554,126 @@ fn git_missing_docs_violation_references_file() {
         "missing_docs violation should reference file"
     );
 }
+
+// =============================================================================
+// EXACT OUTPUT FORMAT SPECS
+// =============================================================================
+
+/// Spec: docs/specs/checks/git.md#output
+///
+/// > Missing docs shows human-readable violation with file reference.
+#[test]
+fn exact_missing_docs_text() {
+    check("git").on("git/missing-docs").fails().stdout_eq(
+        r###"git: FAIL
+  CLAUDE.md: feature commits without documentation
+    Add a Commits section describing the format, e.g.:
+
+    ## Commits
+
+    Use conventional commit format: `type(scope): description`
+    Types: feat, fix, chore, docs, test, refactor
+
+FAIL: git
+"###,
+    );
+}
+
+/// Spec: docs/specs/checks/git.md#output
+///
+/// > PASS status when no violations.
+#[test]
+fn exact_git_pass_text() {
+    let temp = Project::empty();
+    temp.config(
+        r#"[git.commit]
+check = "error"
+agents = false
+"#,
+    );
+    temp.file(
+        "CLAUDE.md",
+        "# Project\n\n## Directory Structure\n\nMinimal.\n\n## Landing the Plane\n\n- Done\n",
+    );
+
+    // Initialize git repo so check doesn't skip
+    init_git_repo(&temp);
+    create_main_branch(&temp);
+
+    check("git")
+        .pwd(temp.path())
+        .passes()
+        .stdout_eq("PASS: git\n");
+}
+
+/// Spec: docs/specs/checks/git.md#fix-output
+///
+/// > FIXED status shows actions taken.
+#[test]
+fn exact_fix_creates_template_text() {
+    let temp = Project::empty();
+    temp.config(
+        r#"[git.commit]
+check = "error"
+template = true
+"#,
+    );
+    temp.file(
+        "CLAUDE.md",
+        "# Project\n\n## Commits\n\nfeat: format\n\n## Directory Structure\n\nMinimal.\n\n## Landing the Plane\n\n- Done\n",
+    );
+
+    std::process::Command::new("git")
+        .args(["init"])
+        .current_dir(temp.path())
+        .output()
+        .unwrap();
+
+    check("git")
+        .pwd(temp.path())
+        .args(&["--fix"])
+        .passes()
+        .stdout_has("FIXED");
+
+    // Verify .gitmessage was actually created
+    assert!(
+        temp.path().join(".gitmessage").exists(),
+        ".gitmessage should be created by fix"
+    );
+}
+
+/// Spec: docs/specs/checks/git.md#fix-output
+///
+/// > JSON output includes fixed:true and actions array.
+#[test]
+fn exact_fix_json_structure() {
+    let temp = Project::empty();
+    temp.config(
+        r#"[git.commit]
+check = "error"
+template = true
+"#,
+    );
+    temp.file(
+        "CLAUDE.md",
+        "# Project\n\n## Commits\n\nfeat: format\n\n## Directory Structure\n\nMinimal.\n\n## Landing the Plane\n\n- Done\n",
+    );
+
+    std::process::Command::new("git")
+        .args(["init"])
+        .current_dir(temp.path())
+        .output()
+        .unwrap();
+
+    let result = check("git")
+        .pwd(temp.path())
+        .args(&["--fix"])
+        .json()
+        .passes();
+
+    assert_eq!(
+        result.require("fixed").as_bool(),
+        Some(true),
+        "should have fixed: true"
+    );
+}
