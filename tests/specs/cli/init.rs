@@ -2,6 +2,228 @@
 
 use crate::prelude::*;
 
+// =============================================================================
+// Phase 1: Basic Creation Specs
+// =============================================================================
+
+/// Spec: docs/specs/01-cli.md#quench-init
+///
+/// > quench init creates quench.toml in current directory
+#[test]
+fn init_creates_quench_toml_in_current_directory() {
+    let temp = Project::empty();
+
+    quench_cmd()
+        .args(["init"])
+        .current_dir(temp.path())
+        .assert()
+        .success();
+
+    assert!(temp.path().join("quench.toml").exists());
+}
+
+// =============================================================================
+// Force Flag Specs
+// =============================================================================
+
+/// Spec: docs/specs/01-cli.md#quench-init
+///
+/// > Refuses to overwrite existing quench.toml without --force
+#[test]
+fn init_refuses_to_overwrite_without_force() {
+    let temp = Project::empty();
+    temp.file("quench.toml", "version = 1\n# existing\n");
+
+    quench_cmd()
+        .args(["init"])
+        .current_dir(temp.path())
+        .assert()
+        .code(2)
+        .stderr(predicates::str::contains("already exists"))
+        .stderr(predicates::str::contains("--force"));
+}
+
+/// Spec: docs/specs/01-cli.md#quench-init
+///
+/// > --force overwrites existing quench.toml
+#[test]
+fn init_force_overwrites_existing_config() {
+    let temp = Project::empty();
+    temp.file("quench.toml", "version = 1\n# existing content\n");
+
+    quench_cmd()
+        .args(["init", "--force"])
+        .current_dir(temp.path())
+        .assert()
+        .success();
+
+    let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
+    assert!(!config.contains("# existing content"), "should overwrite");
+    assert!(config.contains("version = 1"));
+}
+
+// =============================================================================
+// Explicit Profile Specs
+// =============================================================================
+
+/// Spec: docs/specs/01-cli.md#explicit-profiles
+///
+/// > --with rust configures Rust defaults
+#[test]
+fn init_with_rust_configures_rust_defaults() {
+    let temp = Project::empty();
+
+    quench_cmd()
+        .args(["init", "--with", "rust"])
+        .current_dir(temp.path())
+        .assert()
+        .success()
+        .stdout(predicates::str::contains("rust"));
+
+    let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
+    assert!(config.contains("[rust]"));
+    assert!(config.contains("[rust.suppress]"));
+    assert!(config.contains("[rust.policy]"));
+    assert!(
+        config.contains("unsafe"),
+        "should have unsafe escape pattern"
+    );
+}
+
+/// Spec: docs/specs/01-cli.md#explicit-profiles
+///
+/// > --with claude configures CLAUDE.md defaults
+#[test]
+fn init_with_claude_configures_claude_defaults() {
+    let temp = Project::empty();
+
+    quench_cmd()
+        .args(["init", "--with", "claude"])
+        .current_dir(temp.path())
+        .assert()
+        .success();
+
+    let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
+    assert!(config.contains("[check.agents]"));
+    assert!(config.contains("CLAUDE.md"));
+}
+
+/// Spec: docs/specs/01-cli.md#explicit-profiles
+///
+/// > --with cursor configures .cursorrules defaults
+#[test]
+fn init_with_cursor_configures_cursor_defaults() {
+    let temp = Project::empty();
+
+    quench_cmd()
+        .args(["init", "--with", "cursor"])
+        .current_dir(temp.path())
+        .assert()
+        .success();
+
+    let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
+    assert!(config.contains("[check.agents]"));
+    assert!(config.contains(".cursorrules"));
+}
+
+// =============================================================================
+// Shell Detection Specs (additional locations)
+// =============================================================================
+
+/// Spec: docs/specs/01-cli.md#auto-detection
+///
+/// > Auto-detects Shell when *.sh in root
+#[test]
+fn init_auto_detects_shell_from_root_sh() {
+    let temp = Project::empty();
+    temp.file("build.sh", "#!/bin/bash\necho hello\n");
+
+    quench_cmd()
+        .args(["init"])
+        .current_dir(temp.path())
+        .assert()
+        .success();
+
+    let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
+    assert!(config.contains("[shell]"));
+}
+
+/// Spec: docs/specs/01-cli.md#auto-detection
+///
+/// > Auto-detects Shell when *.sh in bin/
+#[test]
+fn init_auto_detects_shell_from_bin_dir() {
+    let temp = Project::empty();
+    temp.file("bin/run.sh", "#!/bin/bash\n");
+
+    quench_cmd()
+        .args(["init"])
+        .current_dir(temp.path())
+        .assert()
+        .success();
+
+    let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
+    assert!(config.contains("[shell]"));
+}
+
+// =============================================================================
+// Profile Name Validation Specs
+// =============================================================================
+
+/// Spec: docs/specs/01-cli.md#explicit-profiles
+///
+/// > Valid profile names: rust, shell, claude, cursor (plus golang, javascript)
+#[test]
+fn init_accepts_valid_profile_names() {
+    for profile in ["rust", "shell", "claude", "cursor"] {
+        let temp = Project::empty();
+
+        quench_cmd()
+            .args(["init", "--with", profile])
+            .current_dir(temp.path())
+            .assert()
+            .success();
+
+        assert!(temp.path().join("quench.toml").exists());
+    }
+}
+
+/// Spec: docs/specs/01-cli.md#explicit-profiles
+///
+/// > Unknown profile names produce warning
+#[test]
+fn init_warns_on_unknown_profile() {
+    let temp = Project::empty();
+
+    quench_cmd()
+        .args(["init", "--with", "python"])
+        .current_dir(temp.path())
+        .assert()
+        .success()
+        .stderr(predicates::str::contains("unknown profile"));
+}
+
+/// Spec: docs/specs/01-cli.md#explicit-profiles
+///
+/// > Profile names are case-insensitive
+#[test]
+fn init_profile_names_case_insensitive() {
+    let temp = Project::empty();
+
+    quench_cmd()
+        .args(["init", "--with", "RUST"])
+        .current_dir(temp.path())
+        .assert()
+        .success();
+
+    let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
+    assert!(config.contains("[rust]"));
+}
+
+// =============================================================================
+// Existing Shell Profile Specs
+// =============================================================================
+
 /// Spec: docs/specs/01-cli.md#profile-selection-recommended
 ///
 /// > quench init --profile shell - Shell project defaults
