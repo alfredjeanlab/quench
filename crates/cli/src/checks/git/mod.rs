@@ -7,11 +7,12 @@
 //! Skips if not in a git repository.
 
 use std::path::Path;
-use std::process::Command;
+
+use git2::Repository;
 
 use crate::check::{Check, CheckContext, CheckResult, Violation};
 use crate::config::GitCommitConfig;
-use crate::git::{Commit, get_all_branch_commits, get_commits_since};
+use crate::git::{Commit, get_all_branch_commits, get_commits_since, is_git_repo};
 
 pub mod docs;
 pub mod parse;
@@ -117,16 +118,6 @@ fn check_agent_docs(root: &Path, violations: &mut Vec<Violation>) {
             // or the user may not want agent files at all
         }
     }
-}
-
-/// Check if a path is in a git repository.
-fn is_git_repo(root: &Path) -> bool {
-    Command::new("git")
-        .arg("rev-parse")
-        .arg("--git-dir")
-        .current_dir(root)
-        .output()
-        .is_ok_and(|out| out.status.success())
 }
 
 /// Get commits to validate based on context.
@@ -240,22 +231,22 @@ fn fix_template(root: &Path, config: &GitCommitConfig, dry_run: bool) -> Option<
 
 /// Check if commit.template is already configured.
 fn is_template_configured(root: &Path) -> bool {
-    Command::new("git")
-        .args(["config", "commit.template"])
-        .current_dir(root)
-        .output()
-        .map(|out| out.status.success() && !out.stdout.is_empty())
-        .unwrap_or(false)
+    Repository::discover(root)
+        .and_then(|repo| repo.config())
+        .and_then(|config| config.get_string("commit.template"))
+        .is_ok()
 }
 
 /// Configure git commit.template to use .gitmessage.
 fn configure_git_template(root: &Path) -> bool {
-    Command::new("git")
-        .args(["config", "commit.template", TEMPLATE_PATH])
-        .current_dir(root)
-        .output()
-        .map(|out| out.status.success())
-        .unwrap_or(false)
+    let Ok(repo) = Repository::discover(root) else {
+        return false;
+    };
+    let Ok(mut config) = repo.config() else {
+        return false;
+    };
+
+    config.set_str("commit.template", TEMPLATE_PATH).is_ok()
 }
 
 #[cfg(test)]
