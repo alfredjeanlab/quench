@@ -455,6 +455,81 @@ pub struct TestsConfig {
     /// Commit message validation settings.
     #[serde(default)]
     pub commit: TestsCommitConfig,
+
+    /// Test suites to run.
+    #[serde(default)]
+    pub suite: Vec<TestSuiteConfig>,
+
+    /// Time limit checking.
+    #[serde(default)]
+    pub time: TestsTimeConfig,
+}
+
+/// Configuration for a single test suite.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TestSuiteConfig {
+    /// Runner name: "cargo", "bats", "pytest", etc.
+    pub runner: String,
+
+    /// Name for custom runners (optional, defaults to runner).
+    #[serde(default)]
+    pub name: Option<String>,
+
+    /// Test directory or file pattern.
+    #[serde(default)]
+    pub path: Option<String>,
+
+    /// Command to run before tests.
+    #[serde(default)]
+    pub setup: Option<String>,
+
+    /// Custom command for unsupported runners.
+    #[serde(default)]
+    pub command: Option<String>,
+
+    /// Coverage targets (binary names or glob patterns).
+    #[serde(default)]
+    pub targets: Vec<String>,
+
+    /// Only run in CI mode.
+    #[serde(default)]
+    pub ci: bool,
+
+    /// Maximum total time for this suite.
+    #[serde(default, deserialize_with = "duration::deserialize_option")]
+    pub max_total: Option<std::time::Duration>,
+
+    /// Maximum average time per test.
+    #[serde(default, deserialize_with = "duration::deserialize_option")]
+    pub max_avg: Option<std::time::Duration>,
+
+    /// Maximum time for slowest individual test.
+    #[serde(default, deserialize_with = "duration::deserialize_option")]
+    pub max_test: Option<std::time::Duration>,
+}
+
+/// Time limit configuration for test suites.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct TestsTimeConfig {
+    /// Check level: "error" | "warn" | "off"
+    #[serde(default = "TestsTimeConfig::default_check")]
+    pub check: String,
+}
+
+impl Default for TestsTimeConfig {
+    fn default() -> Self {
+        Self {
+            check: Self::default_check(),
+        }
+    }
+}
+
+impl TestsTimeConfig {
+    fn default_check() -> String {
+        "warn".to_string()
+    }
 }
 
 /// Tests commit check configuration.

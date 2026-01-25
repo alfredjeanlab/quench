@@ -820,3 +820,144 @@ skip_merge = false
     let config: Config = parse(toml, Path::new("test.toml")).unwrap();
     assert!(!config.git.commit.skip_merge);
 }
+
+// Test suite configuration tests
+
+#[test]
+fn test_suite_config_parses_basic() {
+    let path = PathBuf::from("quench.toml");
+    let content = r#"
+version = 1
+
+[[check.tests.suite]]
+runner = "cargo"
+"#;
+    let config = parse(content, &path).unwrap();
+    assert_eq!(config.check.tests.suite.len(), 1);
+    assert_eq!(config.check.tests.suite[0].runner, "cargo");
+    assert!(!config.check.tests.suite[0].ci);
+}
+
+#[test]
+fn test_suite_config_parses_all_fields() {
+    let path = PathBuf::from("quench.toml");
+    let content = r#"
+version = 1
+
+[[check.tests.suite]]
+runner = "bats"
+name = "cli-tests"
+path = "tests/cli/"
+setup = "cargo build"
+targets = ["myapp"]
+ci = true
+max_total = "30s"
+max_avg = "100ms"
+max_test = "500ms"
+"#;
+    let config = parse(content, &path).unwrap();
+    let suite = &config.check.tests.suite[0];
+    assert_eq!(suite.runner, "bats");
+    assert_eq!(suite.name, Some("cli-tests".to_string()));
+    assert_eq!(suite.path, Some("tests/cli/".to_string()));
+    assert_eq!(suite.setup, Some("cargo build".to_string()));
+    assert_eq!(suite.targets, vec!["myapp"]);
+    assert!(suite.ci);
+    assert_eq!(suite.max_total, Some(std::time::Duration::from_secs(30)));
+    assert_eq!(suite.max_avg, Some(std::time::Duration::from_millis(100)));
+    assert_eq!(suite.max_test, Some(std::time::Duration::from_millis(500)));
+}
+
+#[test]
+fn test_suite_config_parses_multiple_suites() {
+    let path = PathBuf::from("quench.toml");
+    let content = r#"
+version = 1
+
+[[check.tests.suite]]
+runner = "cargo"
+
+[[check.tests.suite]]
+runner = "bats"
+path = "tests/cli/"
+
+[[check.tests.suite]]
+runner = "pytest"
+ci = true
+"#;
+    let config = parse(content, &path).unwrap();
+    assert_eq!(config.check.tests.suite.len(), 3);
+    assert_eq!(config.check.tests.suite[0].runner, "cargo");
+    assert_eq!(config.check.tests.suite[1].runner, "bats");
+    assert_eq!(config.check.tests.suite[2].runner, "pytest");
+    assert!(config.check.tests.suite[2].ci);
+}
+
+#[test]
+fn test_suite_config_parses_custom_command() {
+    let path = PathBuf::from("quench.toml");
+    let content = r#"
+version = 1
+
+[[check.tests.suite]]
+runner = "custom"
+name = "integration"
+command = "./scripts/run-tests.sh"
+"#;
+    let config = parse(content, &path).unwrap();
+    let suite = &config.check.tests.suite[0];
+    assert_eq!(suite.runner, "custom");
+    assert_eq!(suite.name, Some("integration".to_string()));
+    assert_eq!(suite.command, Some("./scripts/run-tests.sh".to_string()));
+}
+
+#[test]
+fn test_suite_config_parses_duration_minutes() {
+    let path = PathBuf::from("quench.toml");
+    let content = r#"
+version = 1
+
+[[check.tests.suite]]
+runner = "pytest"
+max_total = "2m"
+"#;
+    let config = parse(content, &path).unwrap();
+    assert_eq!(
+        config.check.tests.suite[0].max_total,
+        Some(std::time::Duration::from_secs(120))
+    );
+}
+
+#[test]
+fn tests_time_config_defaults_to_warn() {
+    let path = PathBuf::from("quench.toml");
+    let content = "version = 1\n";
+    let config = parse(content, &path).unwrap();
+    assert_eq!(config.check.tests.time.check, "warn");
+}
+
+#[test]
+fn tests_time_config_can_be_error() {
+    let path = PathBuf::from("quench.toml");
+    let content = r#"
+version = 1
+
+[check.tests.time]
+check = "error"
+"#;
+    let config = parse(content, &path).unwrap();
+    assert_eq!(config.check.tests.time.check, "error");
+}
+
+#[test]
+fn tests_time_config_can_be_off() {
+    let path = PathBuf::from("quench.toml");
+    let content = r#"
+version = 1
+
+[check.tests.time]
+check = "off"
+"#;
+    let config = parse(content, &path).unwrap();
+    assert_eq!(config.check.tests.time.check, "off");
+}

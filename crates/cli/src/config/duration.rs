@@ -70,7 +70,9 @@ where
     let opt: Option<String> = Option::deserialize(deserializer)?;
     match opt {
         None => Ok(None),
-        Some(s) => parse_duration(&s).map(Some).map_err(serde::de::Error::custom),
+        Some(s) => parse_duration(&s)
+            .map(Some)
+            .map_err(serde::de::Error::custom),
     }
 }
 

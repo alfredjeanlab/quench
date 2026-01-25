@@ -9,6 +9,7 @@ pub mod correlation;
 pub mod diff;
 pub mod patterns;
 pub mod placeholder;
+pub mod runners;
 
 #[cfg(test)]
 #[path = "mod_tests.rs"]
@@ -31,6 +32,7 @@ use self::correlation::{
 use self::diff::{ChangeType, get_base_changes, get_commits_since, get_staged_changes};
 use self::patterns::{Language, candidate_test_paths_for, detect_language};
 use self::placeholder::{has_js_placeholder_test, has_placeholder_test};
+use self::runners::{RunnerContext, filter_suites_for_mode, get_runner, run_setup_command};
 use std::path::{Path, PathBuf};
 
 /// File extension for Rust source files.
@@ -411,4 +413,190 @@ fn has_placeholder_for_source(source_path: &Path, root: &Path) -> bool {
             _ => false,
         }
     })
+}
+
+// =============================================================================
+// Test Suite Execution
+// =============================================================================
+
+impl TestsCheck {
+    /// Run configured test suites.
+    ///
+    /// Returns None if no suites are configured.
+    #[allow(dead_code)] // Will be called in future phases
+    fn run_suites(&self, ctx: &CheckContext) -> Option<SuiteResults> {
+        let suites = &ctx.config.check.tests.suite;
+        if suites.is_empty() {
+            return None;
+        }
+
+        let runner_ctx = RunnerContext {
+            root: ctx.root,
+            ci_mode: ctx.ci_mode,
+            collect_coverage: ctx.ci_mode, // Coverage only in CI
+        };
+
+        // Filter suites for current mode
+        let active_suites = filter_suites_for_mode(suites, ctx.ci_mode);
+        if active_suites.is_empty() {
+            return None;
+        }
+
+        let mut results = Vec::new();
+        let mut all_passed = true;
+
+        for suite in active_suites {
+            // Run setup command if configured
+            if let Some(ref setup) = suite.setup
+                && let Err(e) = run_setup_command(setup, ctx.root)
+            {
+                // Setup failure skips the suite
+                results.push(SuiteResult {
+                    name: suite.name.clone().unwrap_or_else(|| suite.runner.clone()),
+                    runner: suite.runner.clone(),
+                    skipped: true,
+                    error: Some(e),
+                    ..Default::default()
+                });
+                continue;
+            }
+
+            // Get runner for this suite
+            let runner = match get_runner(&suite.runner) {
+                Some(r) => r,
+                None => {
+                    results.push(SuiteResult {
+                        name: suite.name.clone().unwrap_or_else(|| suite.runner.clone()),
+                        runner: suite.runner.clone(),
+                        skipped: true,
+                        error: Some(format!("unknown runner: {}", suite.runner)),
+                        ..Default::default()
+                    });
+                    continue;
+                }
+            };
+
+            // Check runner availability
+            if !runner.available(&runner_ctx) {
+                results.push(SuiteResult {
+                    name: suite.name.clone().unwrap_or_else(|| suite.runner.clone()),
+                    runner: suite.runner.clone(),
+                    skipped: true,
+                    error: Some(format!("{} not available", suite.runner)),
+                    ..Default::default()
+                });
+                continue;
+            }
+
+            // Execute the runner
+            let run_result = runner.run(suite, &runner_ctx);
+            all_passed = all_passed && run_result.passed;
+
+            // Collect metrics before moving error
+            let test_count = run_result.test_count();
+            let total_ms = run_result.total_time.as_millis() as u64;
+            let avg_ms = run_result.avg_duration().map(|d| d.as_millis() as u64);
+            let max_ms = run_result
+                .slowest_test()
+                .map(|t| t.duration.as_millis() as u64);
+            let max_test = run_result.slowest_test().map(|t| t.name.clone());
+
+            results.push(SuiteResult {
+                name: suite.name.clone().unwrap_or_else(|| suite.runner.clone()),
+                runner: suite.runner.clone(),
+                passed: run_result.passed,
+                skipped: run_result.skipped,
+                error: run_result.error,
+                test_count,
+                total_ms,
+                avg_ms,
+                max_ms,
+                max_test,
+            });
+        }
+
+        Some(SuiteResults {
+            passed: all_passed,
+            suites: results,
+        })
+    }
+}
+
+/// Aggregated results from all test suites.
+#[derive(Debug, Default)]
+struct SuiteResults {
+    /// Whether all suites passed.
+    passed: bool,
+    /// Individual suite results.
+    suites: Vec<SuiteResult>,
+}
+
+impl SuiteResults {
+    /// Convert to JSON for metrics.
+    #[allow(dead_code)] // Will be used in future phases
+    fn to_json(&self) -> serde_json::Value {
+        let suites: Vec<serde_json::Value> = self
+            .suites
+            .iter()
+            .map(|s| {
+                let mut obj = serde_json::json!({
+                    "name": s.name,
+                    "runner": s.runner,
+                    "passed": s.passed,
+                    "skipped": s.skipped,
+                });
+                if let Some(ref err) = s.error {
+                    obj["error"] = serde_json::json!(err);
+                }
+                if s.test_count > 0 {
+                    obj["test_count"] = serde_json::json!(s.test_count);
+                }
+                if s.total_ms > 0 {
+                    obj["total_ms"] = serde_json::json!(s.total_ms);
+                }
+                if let Some(avg) = s.avg_ms {
+                    obj["avg_ms"] = serde_json::json!(avg);
+                }
+                if let Some(max) = s.max_ms {
+                    obj["max_ms"] = serde_json::json!(max);
+                }
+                if let Some(ref test) = s.max_test {
+                    obj["max_test"] = serde_json::json!(test);
+                }
+                obj
+            })
+            .collect();
+
+        serde_json::json!({
+            "passed": self.passed,
+            "suites": suites,
+            "total_tests": self.suites.iter().map(|s| s.test_count).sum::<usize>(),
+            "total_ms": self.suites.iter().map(|s| s.total_ms).sum::<u64>(),
+        })
+    }
+}
+
+/// Result from a single test suite.
+#[derive(Debug, Default)]
+struct SuiteResult {
+    /// Suite name (from config or defaults to runner).
+    name: String,
+    /// Runner used.
+    runner: String,
+    /// Whether all tests passed.
+    passed: bool,
+    /// Whether the suite was skipped.
+    skipped: bool,
+    /// Error message if skipped or failed.
+    error: Option<String>,
+    /// Number of tests run.
+    test_count: usize,
+    /// Total time in milliseconds.
+    total_ms: u64,
+    /// Average time per test in milliseconds.
+    avg_ms: Option<u64>,
+    /// Maximum test time in milliseconds.
+    max_ms: Option<u64>,
+    /// Name of the slowest test.
+    max_test: Option<String>,
 }

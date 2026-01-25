@@ -19,10 +19,7 @@ fn parses_fractional_seconds() {
         parse_duration("1.5s").unwrap(),
         Duration::from_secs_f64(1.5)
     );
-    assert_eq!(
-        parse_duration("0.5s").unwrap(),
-        Duration::from_millis(500)
-    );
+    assert_eq!(parse_duration("0.5s").unwrap(), Duration::from_millis(500));
     assert_eq!(
         parse_duration("2.25s").unwrap(),
         Duration::from_secs_f64(2.25)
@@ -50,14 +47,20 @@ fn parses_minutes() {
 #[test]
 fn trims_whitespace() {
     assert_eq!(parse_duration("  30s  ").unwrap(), Duration::from_secs(30));
-    assert_eq!(parse_duration(" 500ms ").unwrap(), Duration::from_millis(500));
+    assert_eq!(
+        parse_duration(" 500ms ").unwrap(),
+        Duration::from_millis(500)
+    );
     assert_eq!(parse_duration("  1m  ").unwrap(), Duration::from_secs(60));
 }
 
 #[test]
 fn trims_internal_whitespace() {
     assert_eq!(parse_duration("30 s").unwrap(), Duration::from_secs(30));
-    assert_eq!(parse_duration("500 ms").unwrap(), Duration::from_millis(500));
+    assert_eq!(
+        parse_duration("500 ms").unwrap(),
+        Duration::from_millis(500)
+    );
 }
 
 #[test]
