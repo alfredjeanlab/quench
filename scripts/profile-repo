@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+# Profile quench on a repository with flamegraph and timing metrics
+set -euo pipefail
+
+REPO="${1:-.}"
+OUTPUT="${2:-flamegraph.svg}"
+
+# Ensure we're in the quench repo root
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+QUENCH_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# Build release binary
+echo "Building release binary..."
+cargo build --release --manifest-path "$QUENCH_ROOT/Cargo.toml"
+
+QUENCH_BIN="$QUENCH_ROOT/target/release/quench"
+
+if [[ ! -x "$QUENCH_BIN" ]]; then
+    echo "Error: quench binary not found at $QUENCH_BIN"
+    exit 1
+fi
+
+echo ""
+echo "=== Profiling quench on: $REPO ==="
+echo ""
+
+# Count files first
+FILE_COUNT=$(find "$REPO" -type f -name "*.rs" -o -name "*.go" -o -name "*.js" -o -name "*.ts" 2>/dev/null | wc -l | tr -d ' ')
+echo "Approximate source files: $FILE_COUNT"
+echo ""
+
+# Cold run with timing
+echo "--- Cold Run (cache cleared) ---"
+rm -rf "$REPO/.quench" 2>/dev/null || true
+
+if command -v hyperfine &> /dev/null; then
+    hyperfine --warmup 0 --runs 3 --prepare "rm -rf $REPO/.quench" \
+        "$QUENCH_BIN check --ci $REPO 2>/dev/null || true"
+else
+    time "$QUENCH_BIN" check --ci "$REPO" 2>/dev/null || true
+fi
+
+echo ""
+echo "--- Warm Run (cached) ---"
+# Prime the cache
+"$QUENCH_BIN" check --ci "$REPO" 2>/dev/null || true
+
+if command -v hyperfine &> /dev/null; then
+    hyperfine --warmup 1 --runs 5 "$QUENCH_BIN check --ci $REPO 2>/dev/null || true"
+else
+    time "$QUENCH_BIN" check --ci "$REPO" 2>/dev/null || true
+fi
+
+echo ""
+echo "--- Memory Usage (cold) ---"
+rm -rf "$REPO/.quench" 2>/dev/null || true
+/usr/bin/time -l "$QUENCH_BIN" check --ci "$REPO" 2>&1 | grep -E "(maximum resident|peak memory)" || \
+    /usr/bin/time -l "$QUENCH_BIN" check --ci "$REPO" 2>&1 | head -5
+
+# Generate flamegraph if requested
+if [[ "$OUTPUT" != "-" ]] && command -v flamegraph &> /dev/null; then
+    echo ""
+    echo "--- Generating Flamegraph ---"
+    rm -rf "$REPO/.quench" 2>/dev/null || true
+    # Note: flamegraph requires sudo on macOS for dtrace
+    if [[ "$(uname)" == "Darwin" ]]; then
+        echo "Note: On macOS, flamegraph requires sudo for dtrace"
+        echo "Run manually: sudo flamegraph -o $OUTPUT -- $QUENCH_BIN check --ci $REPO"
+    else
+        flamegraph -o "$OUTPUT" -- "$QUENCH_BIN" check --ci "$REPO" 2>/dev/null || true
+        echo "Flamegraph written to $OUTPUT"
+    fi
+fi
+
+echo ""
+echo "=== Profiling Complete ==="
