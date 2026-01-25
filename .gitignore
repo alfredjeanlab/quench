@@ -20,6 +20,9 @@ coverage/
 .wok/
 .v0/
 
+# Git worktrees
+.worktrees/
+
 # Quench cache directories
 .quench/
 # Exception: fixture baselines are committed (but not cache.bin)

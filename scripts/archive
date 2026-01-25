@@ -1,0 +1,350 @@
+#!/usr/bin/env bash
+#
+# archive - Move archived plans to v0/plans branch worktree
+#
+# Usage:
+#   archive --all              # Archive all plans in plans/archive/
+#   archive 2026-01-24         # Archive specific date folder
+#   archive --setup            # Just setup worktree (no archive)
+#   archive --status           # Show what would be archived
+#
+# This script:
+#   1. Creates orphan branch v0/plans if it doesn't exist
+#   2. Sets up worktree at .worktrees/plans
+#   3. Copies archived plans to the worktree
+#   4. Commits changes to v0/plans branch
+#
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+WORKTREE_DIR="$REPO_ROOT/.worktrees/plans"
+BRANCH_NAME="v0/plans"
+ARCHIVE_SRC="$REPO_ROOT/plans/archive"
+ARCHIVE_DST="$WORKTREE_DIR/plans/archive"
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+log_info() { echo -e "${BLUE}info:${NC} $*"; }
+log_success() { echo -e "${GREEN}done:${NC} $*"; }
+log_warn() { echo -e "${YELLOW}warn:${NC} $*"; }
+log_error() { echo -e "${RED}error:${NC} $*" >&2; }
+
+usage() {
+    cat <<EOF
+Usage: $(basename "$0") [OPTIONS] [DATE_FOLDER]
+
+Archive plans from plans/archive/ to the v0/plans branch.
+
+Options:
+    --all       Archive all date folders in plans/archive/
+    --setup     Just setup the worktree (no archiving)
+    --status    Show what would be archived (dry run)
+    --help      Show this help message
+
+Arguments:
+    DATE_FOLDER  Specific date folder to archive (e.g., 2026-01-24)
+
+Examples:
+    $(basename "$0") --setup              # Initial setup
+    $(basename "$0") --all                # Archive everything
+    $(basename "$0") 2026-01-24           # Archive specific date
+    $(basename "$0") --status             # See pending archives
+EOF
+}
+
+# Check if branch exists (local or remote)
+branch_exists() {
+    git -C "$REPO_ROOT" rev-parse --verify "$BRANCH_NAME" >/dev/null 2>&1 || \
+    git -C "$REPO_ROOT" rev-parse --verify "origin/$BRANCH_NAME" >/dev/null 2>&1
+}
+
+# Check if worktree exists
+worktree_exists() {
+    [[ -d "$WORKTREE_DIR/.git" ]] || [[ -f "$WORKTREE_DIR/.git" ]]
+}
+
+# Setup the orphan branch and worktree
+setup_worktree() {
+    log_info "Setting up v0/plans branch and worktree..."
+
+    # Create .worktrees directory if needed
+    mkdir -p "$(dirname "$WORKTREE_DIR")"
+
+    # Check if worktree already exists
+    if worktree_exists; then
+        log_info "Worktree already exists at $WORKTREE_DIR"
+        return 0
+    fi
+
+    # Check if branch exists
+    if branch_exists; then
+        log_info "Branch $BRANCH_NAME exists, creating worktree..."
+        git -C "$REPO_ROOT" worktree add "$WORKTREE_DIR" "$BRANCH_NAME"
+    else
+        log_info "Creating orphan branch $BRANCH_NAME..."
+
+        # Create orphan branch with initial commit
+        git -C "$REPO_ROOT" worktree add --detach "$WORKTREE_DIR"
+
+        pushd "$WORKTREE_DIR" >/dev/null
+        git checkout --orphan "$BRANCH_NAME"
+        git reset --hard
+
+        # Create initial structure
+        mkdir -p plans/archive
+        cat > README.md <<'README'
+# Quench Plans Archive
+
+This branch contains archived implementation plans from the quench project.
+
+Plans are organized by date in `plans/archive/YYYY-MM-DD/`.
+
+## Structure
+
+```
+plans/
+└── archive/
+    ├── 2026-01-22/
+    │   ├── phase-801.md
+    │   └── checkpoint-16e-perf.md
+    └── 2026-01-24/
+        └── ...
+```
+
+## Usage
+
+These plans document the implementation history and can be referenced
+for understanding past decisions and approaches.
+README
+
+        cat > plans/README.md <<'PLANS_README'
+# Plans Archive
+
+Archived implementation plans, organized by completion date.
+
+Each date folder contains plans that were completed on that date.
+PLANS_README
+
+        git add .
+        git commit -m "chore: initialize v0/plans archive branch"
+        popd >/dev/null
+    fi
+
+    log_success "Worktree ready at $WORKTREE_DIR"
+}
+
+# Get list of date folders to archive
+get_archive_folders() {
+    local mode="$1"
+    local specific="${2:-}"
+
+    if [[ "$mode" == "all" ]]; then
+        # List all date folders in archive
+        if [[ -d "$ARCHIVE_SRC" ]]; then
+            find "$ARCHIVE_SRC" -mindepth 1 -maxdepth 1 -type d -name "20*" | sort
+        fi
+    elif [[ -n "$specific" ]]; then
+        # Specific date folder
+        local folder="$ARCHIVE_SRC/$specific"
+        if [[ -d "$folder" ]]; then
+            echo "$folder"
+        else
+            log_error "Folder not found: $folder"
+            return 1
+        fi
+    fi
+}
+
+# Check what needs to be archived
+show_status() {
+    log_info "Checking archive status..."
+
+    if [[ ! -d "$ARCHIVE_SRC" ]]; then
+        log_info "No archive folder found at $ARCHIVE_SRC"
+        return 0
+    fi
+
+    local has_pending=false
+
+    while IFS= read -r src_folder; do
+        [[ -z "$src_folder" ]] && continue
+
+        local date_name
+        date_name=$(basename "$src_folder")
+        local dst_folder="$ARCHIVE_DST/$date_name"
+
+        # Count files in source
+        local src_count
+        src_count=$(find "$src_folder" -type f -name "*.md" | wc -l | tr -d ' ')
+
+        # Count files in destination (if exists)
+        local dst_count=0
+        if [[ -d "$dst_folder" ]]; then
+            dst_count=$(find "$dst_folder" -type f -name "*.md" | wc -l | tr -d ' ')
+        fi
+
+        if [[ "$src_count" -gt "$dst_count" ]]; then
+            local new_count=$((src_count - dst_count))
+            echo -e "  ${YELLOW}$date_name${NC}: $new_count new file(s) to archive"
+            has_pending=true
+        elif [[ "$dst_count" -eq 0 ]]; then
+            echo -e "  ${YELLOW}$date_name${NC}: $src_count file(s) to archive (new folder)"
+            has_pending=true
+        else
+            echo -e "  ${GREEN}$date_name${NC}: up to date ($dst_count files)"
+        fi
+    done < <(get_archive_folders "all")
+
+    if ! $has_pending; then
+        log_success "All archives are up to date"
+    fi
+}
+
+# Archive a specific folder
+# Sets ARCHIVE_COPIED to number of files copied
+archive_folder() {
+    local src_folder="$1"
+    local date_name
+    date_name=$(basename "$src_folder")
+    local dst_folder="$ARCHIVE_DST/$date_name"
+
+    log_info "Archiving $date_name..."
+
+    # Create destination folder
+    mkdir -p "$dst_folder"
+
+    # Copy files (preserving structure)
+    ARCHIVE_COPIED=0
+    while IFS= read -r src_file; do
+        local rel_path="${src_file#$src_folder/}"
+        local dst_file="$dst_folder/$rel_path"
+
+        # Create parent directory if needed
+        mkdir -p "$(dirname "$dst_file")"
+
+        # Copy if destination doesn't exist or source is newer
+        if [[ ! -f "$dst_file" ]] || [[ "$src_file" -nt "$dst_file" ]]; then
+            cp "$src_file" "$dst_file"
+            ((ARCHIVE_COPIED++))
+        fi
+    done < <(find "$src_folder" -type f -name "*.md")
+
+    if [[ $ARCHIVE_COPIED -gt 0 ]]; then
+        log_success "Copied $ARCHIVE_COPIED file(s) to $date_name"
+    else
+        log_info "No new files to copy for $date_name"
+    fi
+}
+
+# Commit changes in worktree
+commit_changes() {
+    local message="$1"
+
+    pushd "$WORKTREE_DIR" >/dev/null
+
+    # Stage all changes first
+    git add -A
+
+    # Check if there are staged changes
+    if git diff --cached --quiet; then
+        log_info "No changes to commit"
+        popd >/dev/null
+        return 0
+    fi
+
+    git commit -m "$message"
+
+    log_success "Committed: $message"
+    popd >/dev/null
+}
+
+# Main archive function
+do_archive() {
+    local mode="$1"
+    local specific="${2:-}"
+
+    # Ensure worktree exists
+    if ! worktree_exists; then
+        setup_worktree
+    fi
+
+    # Create archive destination
+    mkdir -p "$ARCHIVE_DST"
+
+    local total_copied=0
+    local folders_processed=0
+
+    while IFS= read -r folder; do
+        [[ -z "$folder" ]] && continue
+
+        archive_folder "$folder"
+        total_copied=$((total_copied + ARCHIVE_COPIED))
+        ((folders_processed++))
+    done < <(get_archive_folders "$mode" "$specific")
+
+    if [[ $folders_processed -eq 0 ]]; then
+        log_warn "No folders to archive"
+        return 0
+    fi
+
+    # Commit if there were changes
+    if [[ $total_copied -gt 0 ]]; then
+        local date_desc
+        if [[ "$mode" == "all" ]]; then
+            date_desc="all dates"
+        else
+            date_desc="$specific"
+        fi
+        commit_changes "chore: archive plans ($date_desc, $total_copied files)"
+    fi
+
+    log_success "Archived $total_copied file(s) from $folders_processed folder(s)"
+}
+
+# Main
+main() {
+    cd "$REPO_ROOT"
+
+    if [[ $# -eq 0 ]]; then
+        usage
+        exit 1
+    fi
+
+    case "${1:-}" in
+        --help|-h)
+            usage
+            exit 0
+            ;;
+        --setup)
+            setup_worktree
+            ;;
+        --status)
+            if ! worktree_exists; then
+                log_warn "Worktree not set up. Run with --setup first."
+                exit 1
+            fi
+            show_status
+            ;;
+        --all)
+            do_archive "all"
+            ;;
+        20*)
+            # Date folder (e.g., 2026-01-24)
+            do_archive "specific" "$1"
+            ;;
+        *)
+            log_error "Unknown option: $1"
+            usage
+            exit 1
+            ;;
+    esac
+}
+
+main "$@"
