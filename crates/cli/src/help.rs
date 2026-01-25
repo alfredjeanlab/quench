@@ -72,9 +72,15 @@ fn colorize_help(help: &str) -> String {
             result.push('\n');
         }
 
-        // Section headers: "Usage:", "Commands:", "Options:", "Arguments:"
+        // Section headers: "Commands:", "Options:", "Arguments:"
         if is_section_header(line) {
             result.push_str(&color::header(line));
+            continue;
+        }
+
+        // Usage line: "Usage: quench [OPTIONS] [COMMAND]"
+        if let Some(colored) = colorize_usage_line(line) {
+            result.push_str(&colored);
             continue;
         }
 
@@ -97,10 +103,40 @@ fn colorize_help(help: &str) -> String {
     result
 }
 
-/// Check if a line is a section header.
+/// Check if a line is a section header (standalone, not followed by content).
 fn is_section_header(line: &str) -> bool {
     let trimmed = line.trim();
-    matches!(trimmed, "Usage:" | "Commands:" | "Options:" | "Arguments:")
+    // "Usage:" is handled separately by colorize_usage_line since it has content after
+    matches!(trimmed, "Commands:" | "Options:" | "Arguments:")
+}
+
+/// Colorize a usage line like "Usage: quench [OPTIONS] [COMMAND]".
+fn colorize_usage_line(line: &str) -> Option<String> {
+    let trimmed = line.trim_start();
+    if !trimmed.starts_with("Usage:") {
+        return None;
+    }
+
+    let indent = &line[..line.len() - trimmed.len()];
+    let after_usage = &trimmed["Usage:".len()..];
+
+    let mut result = String::new();
+    result.push_str(indent);
+    result.push_str(&color::header("Usage:"));
+
+    // Colorize the usage pattern: command name as literal, placeholders as context
+    for word in after_usage.split_whitespace() {
+        result.push(' ');
+        if word.starts_with('[') || word.starts_with('<') {
+            // Placeholder like [OPTIONS] or <PATH>
+            result.push_str(&color::context(word));
+        } else {
+            // Command name
+            result.push_str(&color::literal(word));
+        }
+    }
+
+    Some(result)
 }
 
 /// Colorize a command/subcommand line like "  check   Run quality checks".

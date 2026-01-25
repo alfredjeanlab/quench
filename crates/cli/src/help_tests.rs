@@ -220,19 +220,42 @@ fn colorize_help_preserves_structure() {
 
 #[test]
 fn is_section_header_matches_known_headers() {
-    assert!(is_section_header("Usage:"));
+    // Usage: is handled by colorize_usage_line, not is_section_header
     assert!(is_section_header("Commands:"));
     assert!(is_section_header("Options:"));
     assert!(is_section_header("Arguments:"));
-    assert!(is_section_header("  Usage:")); // with leading whitespace
+    assert!(is_section_header("  Options:")); // with leading whitespace
 }
 
 #[test]
 fn is_section_header_rejects_non_headers() {
     assert!(!is_section_header("Description:"));
     assert!(!is_section_header("Examples:"));
+    assert!(!is_section_header("Usage:")); // Handled by colorize_usage_line
     assert!(!is_section_header("Usage: quench"));
     assert!(!is_section_header("--help"));
+}
+
+#[test]
+fn colorize_usage_line_with_pattern() {
+    let result = colorize_usage_line("Usage: quench [OPTIONS] [COMMAND]");
+    assert!(result.is_some());
+    let stripped = strip_ansi(&result.unwrap());
+    assert_eq!(stripped, "Usage: quench [OPTIONS] [COMMAND]");
+}
+
+#[test]
+fn colorize_usage_line_standalone() {
+    let result = colorize_usage_line("Usage:");
+    assert!(result.is_some());
+    let stripped = strip_ansi(&result.unwrap());
+    assert_eq!(stripped, "Usage:");
+}
+
+#[test]
+fn colorize_usage_line_rejects_non_usage() {
+    assert!(colorize_usage_line("Commands:").is_none());
+    assert!(colorize_usage_line("  check   Run checks").is_none());
 }
 
 #[test]
