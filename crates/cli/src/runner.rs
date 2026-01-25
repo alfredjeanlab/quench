@@ -81,8 +81,9 @@ impl CheckRunner {
         };
 
         // Separate files into cached and uncached
-        // Pre-size for expected distribution (optimized for warm cache case)
+        // Pre-size for expected distribution (optimized for warm cache case).
         // Cold runs will reallocate, but that's acceptable as they're infrequent
+        // (~4 reallocations worst case, negligible vs check work).
         let file_count = files.len();
         let mut cached_violations: HashMap<PathBuf, CachedViolationsArc> =
             HashMap::with_capacity(file_count);

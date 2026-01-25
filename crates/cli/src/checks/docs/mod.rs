@@ -22,6 +22,7 @@ use rayon::prelude::*;
 
 use crate::adapter::build_glob_set;
 use crate::check::{Check, CheckContext, CheckResult, Violation};
+use crate::file_reader::FileContent;
 
 /// Per-run cache for path existence checks.
 ///
@@ -96,13 +97,16 @@ where
         .flat_map(|walked| {
             let relative_path = walked.path.strip_prefix(ctx.root).unwrap_or(&walked.path);
 
-            // Read file content
-            let content = match std::fs::read_to_string(&walked.path) {
+            // Read file content (uses mmap for large files per performance spec)
+            let file_content = match FileContent::read(&walked.path) {
                 Ok(c) => c,
                 Err(_) => return Vec::new(),
             };
+            let Some(content) = file_content.as_str() else {
+                return Vec::new(); // Skip non-UTF-8 files
+            };
 
-            validator(ctx, relative_path, &content, path_cache)
+            validator(ctx, relative_path, content, path_cache)
         })
         .collect()
 }

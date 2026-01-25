@@ -23,6 +23,7 @@ use serde_json::{Value as JsonValue, json};
 use crate::adapter::{CfgTestInfo, FileKind, GenericAdapter, parse_suppress_attrs};
 use crate::check::{Check, CheckContext, CheckResult, Violation};
 use crate::config::{CheckLevel, EscapeAction, SuppressConfig, SuppressLevel};
+use crate::file_reader::FileContent;
 
 use crate::pattern::CompiledPattern;
 use go_suppress::check_go_suppress_violations;
@@ -221,10 +222,13 @@ impl Check for EscapesCheck {
                 continue;
             }
 
-            // Read file content
-            let content = match std::fs::read_to_string(&file.path) {
+            // Read file content (uses mmap for large files per performance spec)
+            let file_content = match FileContent::read(&file.path) {
                 Ok(c) => c,
                 Err(_) => continue,
+            };
+            let Some(content) = file_content.as_str() else {
+                continue; // Skip non-UTF-8 files
             };
 
             let relative = file.path.strip_prefix(ctx.root).unwrap_or(&file.path);
@@ -235,7 +239,7 @@ impl Check for EscapesCheck {
 
             // Parse cfg(test) info for Rust files (reuse for suppress + escape checking)
             let cfg_info = if has_extension(&file.path, &["rs"]) {
-                Some(CfgTestInfo::parse(&content))
+                Some(CfgTestInfo::parse(content))
             } else {
                 None
             };
@@ -245,7 +249,7 @@ impl Check for EscapesCheck {
                 let suppress_violations = check_suppress_violations(
                     ctx,
                     relative,
-                    &content,
+                    content,
                     &ctx.config.rust.suppress,
                     is_test_file,
                     info,
@@ -263,7 +267,7 @@ impl Check for EscapesCheck {
                 let shell_violations = check_shell_suppress_violations(
                     ctx,
                     relative,
-                    &content,
+                    content,
                     &ctx.config.shell.suppress,
                     is_test_file,
                     &mut limit_reached,
@@ -280,7 +284,7 @@ impl Check for EscapesCheck {
                 let go_violations = check_go_suppress_violations(
                     ctx,
                     relative,
-                    &content,
+                    content,
                     &ctx.config.golang.suppress,
                     is_test_file,
                     &mut limit_reached,
@@ -297,7 +301,7 @@ impl Check for EscapesCheck {
                 let js_violations = check_javascript_suppress_violations(
                     ctx,
                     relative,
-                    &content,
+                    content,
                     &ctx.config.javascript.suppress,
                     is_test_file,
                     &mut limit_reached,
@@ -311,7 +315,7 @@ impl Check for EscapesCheck {
 
             // Find matches for each pattern
             for pattern in &patterns {
-                let matches = pattern.matcher.find_all_with_lines(&content);
+                let matches = pattern.matcher.find_all_with_lines(content);
 
                 // Deduplicate matches by line - keep only first match per line
                 // This prevents duplicate violations when pattern appears multiple
@@ -364,7 +368,7 @@ impl Check for EscapesCheck {
                             let comment_pattern =
                                 pattern.comment.as_deref().unwrap_or("// JUSTIFIED:");
 
-                            if !has_justification_comment(&content, m.line, comment_pattern) {
+                            if !has_justification_comment(content, m.line, comment_pattern) {
                                 let advice =
                                     format_comment_advice(&pattern.advice, comment_pattern);
                                 if let Some(v) = try_create_violation(

@@ -17,6 +17,7 @@ use crate::adapter::rust::CfgTestInfo;
 use crate::adapter::{AdapterRegistry, FileKind, RustAdapter};
 use crate::check::{Check, CheckContext, CheckResult, Violation};
 use crate::config::{CfgTestSplitMode, CheckLevel, LineMetric};
+use crate::file_reader::FileContent;
 
 /// Parameters for creating a line-count violation.
 struct LineViolationInfo {
@@ -99,12 +100,17 @@ impl Check for ClocCheck {
                     let (file_source_lines, file_test_lines, is_test) =
                         if let (true, Some(adapter)) = (is_rust_source, rust_adapter.as_ref()) {
                             // Use line-level classification for Rust source files
-                            let content = match std::fs::read_to_string(&file.path) {
+                            // (uses mmap for large files per performance spec)
+                            let file_content = match FileContent::read(&file.path) {
                                 Ok(c) => c,
                                 Err(_) => {
                                     // Fallback to whole-file classification on read error
                                     continue;
                                 }
+                            };
+                            let Some(content) = file_content.as_str() else {
+                                // Skip non-UTF-8 files
+                                continue;
                             };
 
                             match rust_config.cfg_test_split {
@@ -114,7 +120,7 @@ impl Check for ClocCheck {
                                     let rust_check_level =
                                         ctx.config.cloc_check_level_for_language("rust");
                                     if rust_check_level != CheckLevel::Off {
-                                        let cfg_info = CfgTestInfo::parse(&content);
+                                        let cfg_info = CfgTestInfo::parse(content);
                                         if cfg_info.has_inline_tests()
                                             && let Some(line) = cfg_info.first_inline_test_line()
                                         {
@@ -135,7 +141,7 @@ impl Check for ClocCheck {
                                 CfgTestSplitMode::Count => {
                                     // Existing behavior: split source/test
                                     let classification =
-                                        adapter.classify_lines(relative_path, &content);
+                                        adapter.classify_lines(relative_path, content);
                                     // File is considered "test" for size limits if it has more test than source
                                     let is_test =
                                         classification.test_lines > classification.source_lines;

@@ -19,7 +19,7 @@ pub enum CompiledPattern {
 
 /// Matcher for single literal strings using SIMD-optimized memchr.
 pub struct LiteralMatcher {
-    pattern: String,
+    pattern: &'static str,
     finder: Finder<'static>,
 }
 
@@ -151,10 +151,9 @@ impl LiteralMatcher {
     /// This is acceptable since patterns are compiled once at startup and live
     /// for the program duration.
     pub fn new(pattern: &str) -> Self {
-        let pattern_owned = pattern.to_string();
-        let pattern_static: &'static str = Box::leak(pattern_owned.clone().into_boxed_str());
+        let pattern_static: &'static str = Box::leak(pattern.to_string().into_boxed_str());
         Self {
-            pattern: pattern_owned,
+            pattern: pattern_static,
             finder: Finder::new(pattern_static),
         }
     }
