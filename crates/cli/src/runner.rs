@@ -20,6 +20,9 @@ use crate::check::{Check, CheckContext, CheckResult, Violation};
 use crate::config::Config;
 use crate::walker::WalkedFile;
 
+/// Cached violations for a file (Arc for O(1) clone).
+type CachedViolationsArc = Arc<Vec<CachedViolation>>;
+
 /// Configuration for the check runner.
 pub struct RunnerConfig {
     /// Maximum violations before early termination (None = unlimited).
@@ -78,12 +81,16 @@ impl CheckRunner {
         };
 
         // Separate files into cached and uncached
-        let mut cached_violations: HashMap<PathBuf, Vec<CachedViolation>> = HashMap::new();
-        let mut uncached_files: Vec<&WalkedFile> = Vec::new();
+        // Pre-size for expected distribution (Phase 3 optimization)
+        let file_count = files.len();
+        let mut cached_violations: HashMap<PathBuf, CachedViolationsArc> =
+            HashMap::with_capacity(file_count);
+        let mut uncached_files: Vec<&WalkedFile> = Vec::with_capacity(file_count / 10 + 1);
 
         for file in files {
             let key = FileCacheKey::from_walked_file(file);
             if let Some(violations) = cache.lookup(&file.path, &key) {
+                // Arc clone is O(1) - just increments refcount
                 cached_violations.insert(file.path.clone(), violations);
             } else {
                 uncached_files.push(file);
@@ -189,7 +196,13 @@ impl CheckRunner {
 
         // Update cache with violations from newly processed files
         // Group violations by file path
-        let mut violations_by_file: HashMap<PathBuf, Vec<CachedViolation>> = HashMap::new();
+        // Pre-size for uncached file count (Phase 3 optimization)
+        let mut violations_by_file: HashMap<PathBuf, Vec<CachedViolation>> =
+            HashMap::with_capacity(uncached_files.len());
+
+        // Build a set for O(1) lookup instead of O(n) linear search
+        let processed_paths: std::collections::HashSet<&Path> =
+            uncached_files.iter().map(|f| f.path.as_path()).collect();
 
         for result in &results {
             for violation in &result.violations {
@@ -201,9 +214,8 @@ impl CheckRunner {
                         root.join(file_path)
                     };
 
-                    // Check if this file was in uncached_files
-                    let was_processed = uncached_files.iter().any(|f| f.path == abs_path);
-                    if was_processed {
+                    // Check if this file was in uncached_files (O(1) lookup)
+                    if processed_paths.contains(abs_path.as_path()) {
                         violations_by_file
                             .entry(abs_path)
                             .or_default()

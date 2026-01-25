@@ -341,24 +341,30 @@ pub fn run(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
 
     let checking_ms = checking_start.elapsed().as_millis() as u64;
 
-    // Persist cache (best effort)
-    if let Some(cache) = &cache {
+    // Persist cache asynchronously (fire and forget for speed)
+    // Cache write happens in background thread, doesn't block command exit.
+    // In CI mode, we wait for completion to ensure cache is persisted for next job.
+    let cache_handle = if let Some(cache) = &cache {
         if let Err(e) = std::fs::create_dir_all(&cache_dir) {
             tracing::warn!("failed to create cache directory: {}", e);
-        } else if let Err(e) = cache.persist(&cache_path) {
-            tracing::warn!("failed to persist cache: {}", e);
+            None
         } else {
-            tracing::debug!("persisted cache to {}", cache_path.display());
+            tracing::debug!("persisting cache to {} (async)", cache_path.display());
+            Some(cache.persist_async(cache_path.clone()))
         }
+    } else {
+        None
+    };
 
-        // Report cache stats in verbose mode
-        if args.verbose {
-            let stats = cache.stats();
-            eprintln!(
-                "Cache: {} hits, {} misses, {} entries",
-                stats.hits, stats.misses, stats.entries
-            );
-        }
+    // Report cache stats in verbose mode
+    if args.verbose
+        && let Some(cache) = &cache
+    {
+        let stats = cache.stats();
+        eprintln!(
+            "Cache: {} hits, {} misses, {} entries",
+            stats.hits, stats.misses, stats.entries
+        );
     }
 
     // Create output
@@ -528,6 +534,15 @@ pub fn run(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
             let misses = cache.as_ref().map(|c| c.stats().misses).unwrap_or(0);
             eprintln!("{}", info.format_cache(misses));
         }
+    }
+
+    // Wait for cache persistence to complete.
+    // The cache write ran concurrently with output formatting, giving us overlap benefit.
+    // We wait here to ensure the cache is fully persisted before process exit.
+    if let Some(handle) = cache_handle
+        && let Err(e) = handle.join().unwrap_or(Ok(()))
+    {
+        tracing::warn!("failed to persist cache: {}", e);
     }
 
     // Determine exit code considering ratchet result
