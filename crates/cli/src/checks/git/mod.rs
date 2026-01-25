@@ -79,7 +79,24 @@ impl Check for GitCheck {
             None
         };
 
-        if violations.is_empty() {
+        // Build metrics (only if commits were checked)
+        let metrics = if !commits.is_empty() {
+            // Count commits with violations
+            let commits_with_violations = violations
+                .iter()
+                .filter_map(|v| v.commit.as_ref())
+                .collect::<std::collections::HashSet<_>>()
+                .len();
+
+            Some(serde_json::json!({
+                "commits_checked": commits.len(),
+                "commits_valid": commits.len() - commits_with_violations,
+            }))
+        } else {
+            None
+        };
+
+        let mut result = if violations.is_empty() {
             if let Some(summary) = fix_summary {
                 CheckResult::fixed(self.name(), summary)
             } else {
@@ -87,7 +104,13 @@ impl Check for GitCheck {
             }
         } else {
             CheckResult::failed(self.name(), violations)
+        };
+
+        if let Some(m) = metrics {
+            result = result.with_metrics(m);
         }
+
+        result
     }
 
     fn default_enabled(&self) -> bool {

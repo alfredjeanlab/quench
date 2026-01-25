@@ -325,3 +325,111 @@ fn format_type_advice_with_custom_list() {
     assert!(advice.contains("custom"));
     assert!(advice.contains("special"));
 }
+
+// =============================================================================
+// EDGE CASE TESTS
+// =============================================================================
+
+#[test]
+fn validates_merge_commit_subject() {
+    // Merge commits often have format "Merge branch 'x' into y"
+    // Default: merge commits violate conventional format
+    let commit = Commit {
+        hash: "abc1234".to_string(),
+        message: "Merge branch 'feature' into main".to_string(),
+    };
+    let config = GitCommitConfig::default();
+    let mut violations = Vec::new();
+
+    validate_commit(&commit, &config, &mut violations);
+
+    assert_eq!(violations.len(), 1);
+    assert_eq!(violations[0].violation_type, "invalid_format");
+}
+
+#[test]
+fn validates_breaking_change_marker() {
+    // Breaking change marker `!` should be valid
+    let commit = Commit {
+        hash: "abc1234".to_string(),
+        message: "feat!: breaking change".to_string(),
+    };
+    let config = GitCommitConfig::default();
+    let mut violations = Vec::new();
+
+    validate_commit(&commit, &config, &mut violations);
+
+    assert!(
+        violations.is_empty(),
+        "Breaking change marker should be valid"
+    );
+}
+
+#[test]
+fn validates_breaking_change_with_scope() {
+    // Breaking change marker with scope should be valid
+    let commit = Commit {
+        hash: "abc1234".to_string(),
+        message: "feat(api)!: breaking API change".to_string(),
+    };
+    let config = GitCommitConfig::default();
+    let mut violations = Vec::new();
+
+    validate_commit(&commit, &config, &mut violations);
+
+    assert!(
+        violations.is_empty(),
+        "Breaking change with scope should be valid"
+    );
+}
+
+#[test]
+fn validates_revert_commit() {
+    // Revert commits using conventional format
+    let commit = Commit {
+        hash: "abc1234".to_string(),
+        message: "revert: undo previous change".to_string(),
+    };
+    let mut config = GitCommitConfig::default();
+    // Add "revert" to allowed types
+    config.types = Some(vec![
+        "feat".to_string(),
+        "fix".to_string(),
+        "revert".to_string(),
+    ]);
+    let mut violations = Vec::new();
+
+    validate_commit(&commit, &config, &mut violations);
+
+    assert!(violations.is_empty());
+}
+
+#[test]
+fn validates_multiple_commits_with_different_violations() {
+    // Test that violations are counted per commit
+    let commits = vec![
+        Commit {
+            hash: "abc1234".to_string(),
+            message: "feat: valid commit".to_string(),
+        },
+        Commit {
+            hash: "def5678".to_string(),
+            message: "invalid commit".to_string(),
+        },
+        Commit {
+            hash: "ghi9012".to_string(),
+            message: "unknown: wrong type".to_string(),
+        },
+    ];
+    let config = GitCommitConfig::default();
+    let mut violations = Vec::new();
+
+    for commit in &commits {
+        validate_commit(commit, &config, &mut violations);
+    }
+
+    // First commit: valid (0 violations)
+    // Second commit: invalid_format (1 violation)
+    // Third commit: invalid_type (1 violation)
+    assert_eq!(violations.len(), 2);
+}

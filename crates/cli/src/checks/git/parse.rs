@@ -17,9 +17,13 @@ use regex::Regex;
 /// - Group 2: scope with parens (optional)
 /// - Group 3: scope without parens (optional)
 /// - Group 4: description (required)
+///
+/// Supports breaking change marker `!` before the colon:
+/// - `feat!: breaking change`
+/// - `feat(api)!: breaking change`
 #[allow(clippy::expect_used)]
 static CONVENTIONAL_COMMIT: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^([a-z]+)(\(([^)]+)\))?:\s*(.+)$").expect("valid regex"));
+    LazyLock::new(|| Regex::new(r"^([a-z]+)(\(([^)]+)\))?!?:\s*(.+)$").expect("valid regex"));
 
 /// Default conventional commit types.
 pub const DEFAULT_TYPES: &[&str] = &[

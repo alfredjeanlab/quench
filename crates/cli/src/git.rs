@@ -3,11 +3,9 @@
 
 //! Git utilities for change detection.
 //!
-//! Uses git2 (libgit2) for performance-critical operations to avoid subprocess overhead.
-//! Subprocess calls are retained for diff operations which are less frequently called.
+//! Uses git2 (libgit2) for all git operations to avoid subprocess overhead.
 
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 use anyhow::Context;
 use git2::Repository;
@@ -119,42 +117,48 @@ pub fn get_all_branch_commits(root: &Path) -> anyhow::Result<Vec<Commit>> {
     }
 }
 
-// =============================================================================
-// Subprocess-based functions (retained for diff operations)
-// =============================================================================
-
 /// Get list of changed files compared to a git base ref.
+///
+/// Combines committed, staged, and unstaged changes using git2 diff operations.
 pub fn get_changed_files(root: &Path, base: &str) -> anyhow::Result<Vec<PathBuf>> {
-    // Get staged/unstaged changes (diffstat against base)
-    let output = Command::new("git")
-        .args(["diff", "--name-only", base])
-        .current_dir(root)
-        .output()?;
+    let repo = Repository::discover(root).context("Failed to open repository")?;
 
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        anyhow::bail!("git diff failed: {}", stderr.trim());
-    }
+    // Resolve base to a tree
+    let base_tree = repo
+        .revparse_single(base)
+        .with_context(|| format!("Failed to resolve base ref: {}", base))?
+        .peel_to_tree()
+        .context("Failed to get tree for base ref")?;
 
-    // Also get staged changes
-    let staged_output = Command::new("git")
-        .args(["diff", "--name-only", "--cached", base])
-        .current_dir(root)
-        .output()?;
+    // Get HEAD tree
+    let head_tree = repo.head()?.peel_to_tree()?;
 
-    let mut files: std::collections::HashSet<PathBuf> = std::collections::HashSet::new();
+    // Get index for staged changes
+    let index = repo.index()?;
 
-    for line in String::from_utf8_lossy(&output.stdout).lines() {
-        if !line.is_empty() {
-            files.insert(root.join(line));
+    let mut files = std::collections::HashSet::new();
+
+    // Compare HEAD to base (committed changes on branch)
+    let head_diff = repo.diff_tree_to_tree(Some(&base_tree), Some(&head_tree), None)?;
+    for delta in head_diff.deltas() {
+        if let Some(path) = delta.new_file().path() {
+            files.insert(root.join(path));
         }
     }
 
-    if staged_output.status.success() {
-        for line in String::from_utf8_lossy(&staged_output.stdout).lines() {
-            if !line.is_empty() {
-                files.insert(root.join(line));
-            }
+    // Compare index to base (staged changes)
+    let index_diff = repo.diff_tree_to_index(Some(&base_tree), Some(&index), None)?;
+    for delta in index_diff.deltas() {
+        if let Some(path) = delta.new_file().path() {
+            files.insert(root.join(path));
+        }
+    }
+
+    // Compare workdir to index (unstaged changes)
+    let workdir_diff = repo.diff_index_to_workdir(Some(&index), None)?;
+    for delta in workdir_diff.deltas() {
+        if let Some(path) = delta.new_file().path() {
+            files.insert(root.join(path));
         }
     }
 
@@ -162,69 +166,35 @@ pub fn get_changed_files(root: &Path, base: &str) -> anyhow::Result<Vec<PathBuf>
 }
 
 /// Get list of staged files (for --staged flag).
+///
+/// Uses git2 to compare the index against HEAD to find staged changes.
 pub fn get_staged_files(root: &Path) -> anyhow::Result<Vec<PathBuf>> {
-    // Get staged changes
-    let output = Command::new("git")
-        .args(["diff", "--name-only", "--cached"])
-        .current_dir(root)
-        .output()?;
+    let repo = Repository::discover(root).context("Failed to open repository")?;
 
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        anyhow::bail!("git diff --cached failed: {}", stderr.trim());
-    }
+    // Get HEAD tree (handle case of empty repo with no commits)
+    let head_tree = match repo.head() {
+        Ok(head) => Some(head.peel_to_tree().context("Failed to get HEAD tree")?),
+        Err(e) if e.code() == git2::ErrorCode::UnbornBranch => None,
+        Err(e) => return Err(e).context("Failed to get HEAD"),
+    };
 
-    let mut files: Vec<PathBuf> = Vec::new();
-    for line in String::from_utf8_lossy(&output.stdout).lines() {
-        if !line.is_empty() {
-            files.push(root.join(line));
+    let index = repo.index().context("Failed to get repository index")?;
+
+    // Compare HEAD tree to index to find staged changes
+    let diff = repo
+        .diff_tree_to_index(head_tree.as_ref(), Some(&index), None)
+        .context("Failed to compute diff")?;
+
+    let mut files = Vec::new();
+    for delta in diff.deltas() {
+        if let Some(path) = delta.new_file().path() {
+            files.push(root.join(path));
         }
     }
 
     Ok(files)
 }
 
-// =============================================================================
-// Subprocess fallback functions (kept for debugging/comparison)
-// =============================================================================
-
-/// Get commits since base (subprocess fallback).
-// KEEP UNTIL: git2 integration is proven stable; useful for debugging/comparison
-#[allow(dead_code)]
-fn get_commits_since_subprocess(root: &Path, base: &str) -> anyhow::Result<Vec<Commit>> {
-    let output = Command::new("git")
-        .args([
-            "log",
-            "--format=%h%n%s", // Short hash, newline, subject
-            &format!("{}..HEAD", base),
-        ])
-        .current_dir(root)
-        .output()?;
-
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        anyhow::bail!("git log failed: {}", stderr.trim());
-    }
-
-    parse_git_log_output(&String::from_utf8_lossy(&output.stdout))
-}
-
-/// Parse git log output with format "%h%n%s".
-// KEEP UNTIL: git2 integration is proven stable; used by subprocess fallback
-#[allow(dead_code)]
-fn parse_git_log_output(output: &str) -> anyhow::Result<Vec<Commit>> {
-    let lines: Vec<&str> = output.lines().collect();
-    let mut commits = Vec::new();
-
-    // Process pairs of lines (hash, message)
-    for chunk in lines.chunks(2) {
-        if chunk.len() == 2 && !chunk[0].is_empty() {
-            commits.push(Commit {
-                hash: chunk[0].to_string(),
-                message: chunk[1].to_string(),
-            });
-        }
-    }
-
-    Ok(commits)
-}
+#[cfg(test)]
+#[path = "git_tests.rs"]
+mod tests;
