@@ -1,6 +1,6 @@
 # Close Gaps: Test Coverage and API Completeness
 
-**Root Feature:** `quench-test-coverage`
+**Root Feature:** `quench-856e`
 **Priority:** HIGH - Missing tests are not minor; they represent untested behavior
 
 ## Overview
