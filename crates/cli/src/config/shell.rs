@@ -54,8 +54,8 @@ impl ShellConfig {
 
     pub(crate) fn default_tests() -> Vec<String> {
         vec![
-            "tests/**/*.bats".to_string(),
-            "test/**/*.bats".to_string(),
+            "**/tests/**/*.bats".to_string(),
+            "**/test/**/*.bats".to_string(),
             "**/*_test.sh".to_string(),
         ]
     }

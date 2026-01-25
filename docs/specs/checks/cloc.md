@@ -52,16 +52,23 @@ Comments are counted in both metrics (they're part of the code).
 
 ## Source vs Test Separation
 
-### Pattern-Based (Language Agnostic)
+### Pattern Resolution Hierarchy
 
-Default test patterns:
-- `**/tests/**` - test directories
-- `**/test/**` - test directories
-- `**/*_test.*` - test file suffix
-- `**/*_tests.*` - test file suffix
-- `**/*.test.*` - test file infix
-- `**/*.spec.*` - spec file infix
-- `**/test_*.*` - test file prefix
+Test patterns are resolved per-language using this hierarchy:
+
+1. **`[<language>].tests`** - Language-specific override (most specific)
+2. **`[project].tests`** - Project-wide patterns
+3. **Adapter defaults** - Built-in convention (zero-config)
+
+See [Pattern Resolution](../02-config.md#pattern-resolution) for details and examples.
+
+### Default Test Patterns
+
+Each language adapter has built-in defaults. See individual language specs:
+- [Rust](../langs/rust.md#default-patterns) - `**/tests/**`, `*_test.rs`, etc.
+- [Shell](../langs/shell.md#default-patterns) - `**/tests/**/*.bats`, `*_test.sh`
+- [Go](../langs/golang.md#default-patterns) - `**/*_test.go`
+- [JavaScript](../langs/javascript.md#default-patterns) - `**/*.test.*`, `**/*.spec.*`, etc.
 
 Files matching any test pattern are counted as test code.
 All other files matching source patterns are counted as source code.
@@ -206,10 +213,6 @@ Average lines per file is **reported** in metrics but not enforced.
 [check.cloc]
 check = "error"
 
-# Override default patterns
-source_patterns = ["src/**/*.rs", "lib/**/*.rs"]
-test_patterns = ["tests/**/*.rs", "**/*_tests.rs"]
-
 # File size limits (defaults shown)
 max_lines = 750
 max_lines_test = 1100
@@ -239,7 +242,9 @@ advice_test = "Can tests be parameterized or use shared fixtures to be more conc
 # rust.cfg_test_split = "count"  # count | require | off (default: "count")
 ```
 
-**Note**: Ratio is reporting-only. File size limits are enforced if configured.
+**Note**: Source and test patterns are configured in `[project]` or language-specific sections like `[shell]` and `[rust]`. See [Pattern Resolution](../02-config.md#pattern-resolution).
+
+File size limits are enforced if configured. Ratio is reporting-only.
 
 ## Performance
 

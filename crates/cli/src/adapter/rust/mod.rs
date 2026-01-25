@@ -64,13 +64,22 @@ impl RustAdapter {
         Self {
             source_patterns: build_glob_set(&["**/*.rs".to_string()]),
             test_patterns: build_glob_set(&[
-                "tests/**".to_string(),
-                "test/**/*.rs".to_string(),
-                "benches/**".to_string(),
-                "*_test.rs".to_string(),
-                "*_tests.rs".to_string(),
+                "**/tests/**".to_string(),
+                "**/test/**/*.rs".to_string(),
+                "**/benches/**".to_string(),
+                "**/*_test.rs".to_string(),
+                "**/*_tests.rs".to_string(),
             ]),
             ignore_patterns: build_glob_set(&["target/**".to_string()]),
+        }
+    }
+
+    /// Create a Rust adapter with resolved patterns from config.
+    pub fn with_patterns(patterns: super::ResolvedPatterns) -> Self {
+        Self {
+            source_patterns: build_glob_set(&patterns.source),
+            test_patterns: build_glob_set(&patterns.test),
+            ignore_patterns: build_glob_set(&patterns.ignore),
         }
     }
 

@@ -34,7 +34,8 @@ use crate::check::Violation;
 /// v21: Added change_type and lines_changed fields to missing_tests violations.
 /// v22: Added agent documentation check to git check.
 /// v23: Added skip_merge option to git check (merge commits now skipped by default).
-pub const CACHE_VERSION: u32 = 23;
+/// v24: Test pattern consolidation - hash language-specific patterns for file classification.
+pub const CACHE_VERSION: u32 = 24;
 
 /// Cache file name within .quench directory.
 pub const CACHE_FILE_NAME: &str = "cache.bin";
@@ -408,9 +409,24 @@ pub fn hash_config(config: &crate::config::Config) -> u64 {
     // Hash check config fields that affect results
     config.check.cloc.max_lines.hash(&mut hasher);
     config.check.cloc.max_lines_test.hash(&mut hasher);
-    config.check.cloc.test_patterns.hash(&mut hasher);
     config.check.cloc.exclude.hash(&mut hasher);
     config.project.packages.hash(&mut hasher);
+
+    // Hash test/source patterns from resolution hierarchy:
+    // 1. Language-specific patterns (most specific)
+    // 2. Project-level patterns
+    // Changes to any of these affect file classification.
+    config.project.tests.hash(&mut hasher);
+    config.project.source.hash(&mut hasher);
+    config.rust.tests.hash(&mut hasher);
+    config.rust.source.hash(&mut hasher);
+    config.rust.ignore.hash(&mut hasher);
+    config.golang.tests.hash(&mut hasher);
+    config.golang.source.hash(&mut hasher);
+    config.javascript.tests.hash(&mut hasher);
+    config.javascript.source.hash(&mut hasher);
+    config.shell.tests.hash(&mut hasher);
+    config.shell.source.hash(&mut hasher);
 
     hasher.finish()
 }

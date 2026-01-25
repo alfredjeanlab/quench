@@ -61,6 +61,8 @@ tests = [
 ignore = ["node_modules/", "dist/", "build/", ".next/", "coverage/"]
 ```
 
+When `[javascript].tests` is not configured, patterns fall back to `[project].tests`, then to these defaults. See [Pattern Resolution](../02-config.md#pattern-resolution).
+
 ## Test Code Detection
 
 **Test files** (entire file is test code):
@@ -324,7 +326,7 @@ These satisfy test correlation requirements, indicating planned test implementat
 
 ```toml
 [javascript]
-# Source/test patterns (defaults shown)
+# Source/test patterns (falls back to [project].tests if not set)
 # source = ["**/*.js", "**/*.jsx", "**/*.ts", "**/*.tsx", "**/*.mjs", "**/*.mts", "**/*.cjs", "**/*.cts"]
 # tests = ["**/*.test.*", "**/*.spec.*", "**/*_test.*", "**/*_tests.*", "**/test_*.*", "**/__tests__/**", "**/test/**", "**/tests/**"]
 # ignore = ["node_modules/", "dist/", "build/", ".next/", "coverage/"]

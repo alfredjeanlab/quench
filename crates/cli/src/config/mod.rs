@@ -274,9 +274,21 @@ pub enum CfgTestSplitMode {
 }
 
 /// Rust language-specific configuration.
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct RustConfig {
+    /// Source file patterns.
+    #[serde(default = "RustConfig::default_source")]
+    pub source: Vec<String>,
+
+    /// Test file patterns.
+    #[serde(default = "RustConfig::default_tests")]
+    pub tests: Vec<String>,
+
+    /// Ignore patterns.
+    #[serde(default = "RustConfig::default_ignore")]
+    pub ignore: Vec<String>,
+
     /// How to handle #[cfg(test)] blocks (default: "count").
     #[serde(default)]
     pub cfg_test_split: CfgTestSplitMode,
@@ -299,7 +311,40 @@ pub struct RustConfig {
     pub cloc_advice: Option<String>,
 }
 
+impl Default for RustConfig {
+    fn default() -> Self {
+        Self {
+            source: Self::default_source(),
+            tests: Self::default_tests(),
+            ignore: Self::default_ignore(),
+            cfg_test_split: CfgTestSplitMode::default(),
+            suppress: SuppressConfig::default(),
+            policy: RustPolicyConfig::default(),
+            cloc: None,
+            cloc_advice: None,
+        }
+    }
+}
+
 impl RustConfig {
+    pub(crate) fn default_source() -> Vec<String> {
+        vec!["**/*.rs".to_string()]
+    }
+
+    pub(crate) fn default_tests() -> Vec<String> {
+        vec![
+            "**/tests/**".to_string(),
+            "**/test/**/*.rs".to_string(),
+            "**/benches/**".to_string(),
+            "**/*_test.rs".to_string(),
+            "**/*_tests.rs".to_string(),
+        ]
+    }
+
+    pub(crate) fn default_ignore() -> Vec<String> {
+        vec!["target/**".to_string()]
+    }
+
     pub(crate) fn default_cloc_advice() -> &'static str {
         "Can the code be made more concise?\n\n\
          Look for repetitive patterns that could be extracted into helper functions\n\

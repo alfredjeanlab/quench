@@ -33,17 +33,19 @@ impl GenericAdapter {
 
     /// Create with default patterns (no source filter, common test patterns).
     pub fn with_defaults() -> Self {
-        Self::new(
-            &[],
-            &[
-                "**/tests/**".to_string(),
-                "**/test/**".to_string(),
-                "**/*_test.*".to_string(),
-                "**/*_tests.*".to_string(),
-                "**/*.test.*".to_string(),
-                "**/*.spec.*".to_string(),
-            ],
-        )
+        Self::new(&[], &Self::default_test_patterns())
+    }
+
+    /// Default test patterns for generic adapter.
+    pub fn default_test_patterns() -> Vec<String> {
+        vec![
+            "**/tests/**".to_string(),
+            "**/test/**".to_string(),
+            "**/*_test.*".to_string(),
+            "**/*_tests.*".to_string(),
+            "**/*.test.*".to_string(),
+            "**/*.spec.*".to_string(),
+        ]
     }
 }
 

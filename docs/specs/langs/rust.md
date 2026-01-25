@@ -50,9 +50,11 @@ advice = "Add a // SAFETY: comment explaining type compatibility."
 ```toml
 [rust]
 source = ["**/*.rs"]
-tests = ["tests/**", "test/**/*.rs", "benches/**", "*_test.rs", "*_tests.rs"]
+tests = ["**/tests/**", "**/test/**/*.rs", "**/benches/**", "**/*_test.rs", "**/*_tests.rs"]
 ignore = ["target/"]
 ```
+
+When `[rust].tests` is not configured, patterns fall back to `[project].tests`, then to these defaults. See [Pattern Resolution](../02-config.md#pattern-resolution).
 
 ## Test Code Detection
 
@@ -83,7 +85,7 @@ mod tests {
 External test modules are detected via file patterns, not by parsing the `mod` declaration. The default test patterns are:
 
 ```toml
-tests = ["tests/**", "test/**/*.rs", "benches/**", "*_test.rs", "*_tests.rs"]
+tests = ["**/tests/**", "**/test/**/*.rs", "**/benches/**", "**/*_test.rs", "**/*_tests.rs"]
 ```
 
 Example using the sibling `_tests.rs` convention:
@@ -436,9 +438,9 @@ Multiple test suites contribute to coverage via LLVM profile merging.
 
 ```toml
 [rust]
-# Source/test patterns (defaults shown)
+# Source/test patterns (defaults shown; falls back to [project].tests if not set)
 # source = ["**/*.rs"]
-# tests = ["tests/**", "test/**/*.rs", "benches/**", "*_test.rs", "*_tests.rs"]
+# tests = ["**/tests/**", "**/test/**/*.rs", "**/benches/**", "**/*_test.rs", "**/*_tests.rs"]
 # ignore = ["target/"]
 
 cfg_test_split = "count"         # count | require | off (default: "count")

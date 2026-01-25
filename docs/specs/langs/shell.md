@@ -14,7 +14,7 @@ the following opinionated defaults are configured:
 ```toml
 [shell]
 source = ["**/*.sh", "**/*.bash", "bin/*", "scripts/*"]
-tests = ["tests/**/*.bats", "test/**/*.bats", "**/*_test.sh"]
+tests = ["**/tests/**/*.bats", "**/test/**/*.bats", "**/*_test.sh"]
 
 [shell.suppress]
 check = "forbid"
@@ -54,8 +54,10 @@ advice = "Fix the shellcheck warning instead of disabling it."
 ```toml
 [shell]
 source = ["**/*.sh", "**/*.bash"]
-tests = ["tests/**/*.bats", "test/**/*.bats", "**/*_test.sh"]
+tests = ["**/tests/**/*.bats", "**/test/**/*.bats", "**/*_test.sh"]
 ```
+
+When `[shell].tests` is not configured, patterns fall back to `[project].tests`, then to these defaults. See [Pattern Resolution](../02-config.md#pattern-resolution).
 
 ## Test Code Detection
 
@@ -155,9 +157,9 @@ Coverage targets resolve against `[shell].source` patterns.
 
 ```toml
 [shell]
-# Source/test patterns (defaults shown)
+# Source/test patterns (defaults shown; falls back to [project].tests if not set)
 # source = ["**/*.sh", "**/*.bash"]
-# tests = ["tests/**/*.bats", "test/**/*.bats", "**/*_test.sh"]
+# tests = ["**/tests/**/*.bats", "**/test/**/*.bats", "**/*_test.sh"]
 
 [shell.cloc]
 check = "error"                  # error | warn | off

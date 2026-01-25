@@ -214,6 +214,9 @@ fn has_sh_files(dir: &Path) -> bool {
 
 impl AdapterRegistry {
     /// Create a registry pre-populated with detected adapters.
+    ///
+    /// Uses default patterns for all adapters. For config-aware pattern resolution,
+    /// use `for_project_with_config` instead.
     pub fn for_project(root: &Path) -> Self {
         let mut registry = Self::new(Arc::new(GenericAdapter::with_defaults()));
 
@@ -234,6 +237,197 @@ impl AdapterRegistry {
         }
 
         registry
+    }
+
+    /// Create a registry with config-aware pattern resolution.
+    ///
+    /// Pattern resolution hierarchy:
+    /// 1. `[<language>].tests` - Language-specific override (most specific)
+    /// 2. `[project].tests` - Project-wide patterns
+    /// 3. Adapter defaults - Built-in convention (zero-config)
+    pub fn for_project_with_config(root: &Path, config: &crate::config::Config) -> Self {
+        // Resolve fallback patterns: project config or generic defaults
+        let fallback_test_patterns = if !config.project.tests.is_empty() {
+            config.project.tests.clone()
+        } else {
+            GenericAdapter::default_test_patterns()
+        };
+
+        let fallback_source_patterns = if !config.project.source.is_empty() {
+            config.project.source.clone()
+        } else {
+            vec![] // Empty = all non-test files are source
+        };
+
+        let mut registry = Self::new(Arc::new(GenericAdapter::new(
+            &fallback_source_patterns,
+            &fallback_test_patterns,
+        )));
+
+        match detect_language(root) {
+            ProjectLanguage::Rust => {
+                let patterns = resolve_rust_patterns(config, &fallback_test_patterns);
+                registry.register(Arc::new(RustAdapter::with_patterns(patterns)));
+            }
+            ProjectLanguage::Go => {
+                let patterns = resolve_go_patterns(config, &fallback_test_patterns);
+                registry.register(Arc::new(GoAdapter::with_patterns(patterns)));
+            }
+            ProjectLanguage::JavaScript => {
+                let patterns = resolve_javascript_patterns(config, &fallback_test_patterns);
+                registry.register(Arc::new(JavaScriptAdapter::with_patterns(patterns)));
+            }
+            ProjectLanguage::Shell => {
+                let patterns = resolve_shell_patterns(config, &fallback_test_patterns);
+                registry.register(Arc::new(ShellAdapter::with_patterns(patterns)));
+            }
+            ProjectLanguage::Generic => {}
+        }
+
+        registry
+    }
+}
+
+/// Resolved patterns for an adapter.
+pub struct ResolvedPatterns {
+    pub source: Vec<String>,
+    pub test: Vec<String>,
+    pub ignore: Vec<String>,
+}
+
+/// Resolve Rust patterns from config.
+fn resolve_rust_patterns(
+    config: &crate::config::Config,
+    fallback_test: &[String],
+) -> ResolvedPatterns {
+    use crate::config::RustConfig;
+
+    // Test patterns: rust config -> project config -> defaults
+    let test = if !config.rust.tests.is_empty() {
+        config.rust.tests.clone()
+    } else if !fallback_test.is_empty() {
+        fallback_test.to_vec()
+    } else {
+        RustConfig::default_tests()
+    };
+
+    // Source patterns: rust config -> defaults
+    let source = if !config.rust.source.is_empty() {
+        config.rust.source.clone()
+    } else {
+        RustConfig::default_source()
+    };
+
+    // Ignore patterns: rust config -> defaults
+    let ignore = if !config.rust.ignore.is_empty() {
+        config.rust.ignore.clone()
+    } else {
+        RustConfig::default_ignore()
+    };
+
+    ResolvedPatterns {
+        source,
+        test,
+        ignore,
+    }
+}
+
+/// Resolve Go patterns from config.
+fn resolve_go_patterns(
+    config: &crate::config::Config,
+    fallback_test: &[String],
+) -> ResolvedPatterns {
+    use crate::config::GoConfig;
+
+    let test = if !config.golang.tests.is_empty() {
+        config.golang.tests.clone()
+    } else if !fallback_test.is_empty() {
+        fallback_test.to_vec()
+    } else {
+        GoConfig::default_tests()
+    };
+
+    let source = if !config.golang.source.is_empty() {
+        config.golang.source.clone()
+    } else {
+        GoConfig::default_source()
+    };
+
+    // Go uses vendor/ ignore by default
+    let ignore = vec!["vendor/**".to_string()];
+
+    ResolvedPatterns {
+        source,
+        test,
+        ignore,
+    }
+}
+
+/// Resolve JavaScript patterns from config.
+fn resolve_javascript_patterns(
+    config: &crate::config::Config,
+    fallback_test: &[String],
+) -> ResolvedPatterns {
+    use crate::config::JavaScriptConfig;
+
+    let test = if !config.javascript.tests.is_empty() {
+        config.javascript.tests.clone()
+    } else if !fallback_test.is_empty() {
+        fallback_test.to_vec()
+    } else {
+        JavaScriptConfig::default_tests()
+    };
+
+    let source = if !config.javascript.source.is_empty() {
+        config.javascript.source.clone()
+    } else {
+        JavaScriptConfig::default_source()
+    };
+
+    // JavaScript uses node_modules/, dist/, etc. ignore by default
+    let ignore = vec![
+        "node_modules/**".to_string(),
+        "dist/**".to_string(),
+        "build/**".to_string(),
+        ".next/**".to_string(),
+        "coverage/**".to_string(),
+    ];
+
+    ResolvedPatterns {
+        source,
+        test,
+        ignore,
+    }
+}
+
+/// Resolve Shell patterns from config.
+fn resolve_shell_patterns(
+    config: &crate::config::Config,
+    fallback_test: &[String],
+) -> ResolvedPatterns {
+    use crate::config::ShellConfig;
+
+    let test = if !config.shell.tests.is_empty() {
+        config.shell.tests.clone()
+    } else if !fallback_test.is_empty() {
+        fallback_test.to_vec()
+    } else {
+        ShellConfig::default_tests()
+    };
+
+    let source = if !config.shell.source.is_empty() {
+        config.shell.source.clone()
+    } else {
+        ShellConfig::default_source()
+    };
+
+    // Shell has no ignore patterns by default
+    let ignore = vec![];
+
+    ResolvedPatterns {
+        source,
+        test,
+        ignore,
     }
 }
 

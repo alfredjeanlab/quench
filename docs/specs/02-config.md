@@ -56,6 +56,35 @@ The `version` field is a required integer at the top of the config file.
 
 Current version: **1**
 
+## Pattern Resolution
+
+When quench classifies files as source or test code, patterns are resolved in this hierarchy:
+
+```
+1. [<language>].tests   ← Language-specific override (most specific)
+2. [project].tests      ← Project-wide patterns (applies to all languages)
+3. Adapter defaults     ← Built-in convention (zero-config)
+```
+
+**Examples:**
+
+```toml
+# All shell tests are in packages/*/tests/
+[shell]
+tests = ["packages/*/tests/**/*.bats"]
+
+# Other languages use project defaults
+[project]
+tests = ["**/tests/**", "**/*_test.*"]
+```
+
+In this setup:
+- Shell files match against `packages/*/tests/**/*.bats`
+- Rust files match against `**/tests/**` and `**/*_test.*` (from `[project]`)
+- Go files match against `**/*_test.go` (built-in default, since no override)
+
+The same hierarchy applies to `source` patterns.
+
 ## Full Schema
 
 ### [project]
@@ -66,7 +95,7 @@ Project identity and file patterns.
 [project]
 name = "my-project"                    # Optional, inferred from directory
 
-# File patterns (language-specific defaults apply)
+# File patterns (applies to all languages unless overridden by [<lang>].tests)
 source = ["**/*.rs", "**/*.sh"]
 tests = ["**/tests/**", "**/*_test.*", "**/*.spec.*"]
 ignore = ["target/", "node_modules/", "dist/", ".git/"]
@@ -113,9 +142,9 @@ Rust language configuration. Auto-detected when `Cargo.toml` exists.
 
 ```toml
 [rust]
-# Source/test patterns (defaults shown, override if needed)
+# Source/test patterns (falls back to [project].tests if not set)
 # source = ["**/*.rs"]
-# tests = ["tests/**", "test/**/*.rs", "benches/**", "*_test.rs", "*_tests.rs"]
+# tests = ["**/tests/**", "**/test/**/*.rs", "**/benches/**", "**/*_test.rs", "**/*_tests.rs"]
 # ignore = ["target/"]
 
 cfg_test_split = "count"               # count | require | off (default: "count")
@@ -153,9 +182,9 @@ Shell language configuration. Auto-detected when `*.sh` files exist in root, `bi
 
 ```toml
 [shell]
-# Source/test patterns (defaults shown)
+# Source/test patterns (falls back to [project].tests if not set)
 # source = ["**/*.sh", "**/*.bash"]
-# tests = ["tests/**/*.bats", "test/**/*.bats", "*_test.sh"]
+# tests = ["**/tests/**/*.bats", "**/test/**/*.bats", "**/*_test.sh"]
 
 # Suppress (# shellcheck disable=)
 [shell.suppress]

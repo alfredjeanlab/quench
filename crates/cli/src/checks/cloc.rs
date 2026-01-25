@@ -49,14 +49,43 @@ impl Check for ClocCheck {
         // resolution handles "off" correctly by skipping files with that level.
 
         // Build adapter registry for file classification
-        // Uses language-specific adapter when detected (e.g., Rust adapter for Cargo.toml projects)
-        let registry = AdapterRegistry::for_project(ctx.root);
+        // Uses config-aware pattern resolution with hierarchy:
+        // 1. [<language>].tests - Language-specific override
+        // 2. [project].tests - Project-wide patterns
+        // 3. Adapter defaults - Built-in convention
+        let registry = AdapterRegistry::for_project_with_config(ctx.root, ctx.config);
 
         // Get Rust config for cfg_test_split
         let rust_config = &ctx.config.rust;
         // Only create adapter for modes that need parsing
+        // Uses config-aware patterns for consistent test file classification
         let rust_adapter = match rust_config.cfg_test_split {
-            CfgTestSplitMode::Count | CfgTestSplitMode::Require => Some(RustAdapter::new()),
+            CfgTestSplitMode::Count | CfgTestSplitMode::Require => {
+                use crate::config::RustConfig;
+                let fallback_test = if !ctx.config.project.tests.is_empty() {
+                    ctx.config.project.tests.clone()
+                } else {
+                    RustConfig::default_tests()
+                };
+                let patterns = crate::adapter::ResolvedPatterns {
+                    source: if !rust_config.source.is_empty() {
+                        rust_config.source.clone()
+                    } else {
+                        RustConfig::default_source()
+                    },
+                    test: if !rust_config.tests.is_empty() {
+                        rust_config.tests.clone()
+                    } else {
+                        fallback_test
+                    },
+                    ignore: if !rust_config.ignore.is_empty() {
+                        rust_config.ignore.clone()
+                    } else {
+                        RustConfig::default_ignore()
+                    },
+                };
+                Some(RustAdapter::with_patterns(patterns))
+            }
             CfgTestSplitMode::Off => None,
         };
 

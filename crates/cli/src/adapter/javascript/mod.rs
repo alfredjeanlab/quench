@@ -93,6 +93,14 @@ impl JavaScriptAdapter {
         }
     }
 
+    /// Create a JavaScript adapter with resolved patterns from config.
+    pub fn with_patterns(patterns: super::ResolvedPatterns) -> Self {
+        Self {
+            test_patterns: build_glob_set(&patterns.test),
+            ignore_patterns: build_glob_set(&patterns.ignore),
+        }
+    }
+
     /// Check if a path should be ignored (e.g., node_modules/).
     ///
     /// Uses fast prefix check for common directories before falling back to GlobSet.

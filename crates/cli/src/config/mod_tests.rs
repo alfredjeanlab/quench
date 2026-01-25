@@ -336,7 +336,13 @@ fn shell_default_test_patterns() {
     let path = PathBuf::from("quench.toml");
     let content = "version = 1\n";
     let config = parse_with_warnings(content, &path).unwrap();
-    assert!(config.shell.tests.contains(&"tests/**/*.bats".to_string()));
+    // Updated to use **/tests/** pattern for nested directory support
+    assert!(
+        config
+            .shell
+            .tests
+            .contains(&"**/tests/**/*.bats".to_string())
+    );
     assert!(config.shell.tests.contains(&"**/*_test.sh".to_string()));
 }
 

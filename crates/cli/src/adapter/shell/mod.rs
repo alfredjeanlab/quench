@@ -62,10 +62,18 @@ impl ShellAdapter {
         Self {
             source_patterns: build_glob_set(&["**/*.sh".to_string(), "**/*.bash".to_string()]),
             test_patterns: build_glob_set(&[
-                "tests/**/*.bats".to_string(),
-                "test/**/*.bats".to_string(),
+                "**/tests/**/*.bats".to_string(),
+                "**/test/**/*.bats".to_string(),
                 "**/*_test.sh".to_string(),
             ]),
+        }
+    }
+
+    /// Create a Shell adapter with resolved patterns from config.
+    pub fn with_patterns(patterns: super::ResolvedPatterns) -> Self {
+        Self {
+            source_patterns: build_glob_set(&patterns.source),
+            test_patterns: build_glob_set(&patterns.test),
         }
     }
 }

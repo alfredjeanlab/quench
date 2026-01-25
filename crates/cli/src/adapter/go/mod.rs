@@ -69,6 +69,15 @@ impl GoAdapter {
         }
     }
 
+    /// Create a Go adapter with resolved patterns from config.
+    pub fn with_patterns(patterns: super::ResolvedPatterns) -> Self {
+        Self {
+            source_patterns: build_glob_set(&patterns.source),
+            test_patterns: build_glob_set(&patterns.test),
+            ignore_patterns: build_glob_set(&patterns.ignore),
+        }
+    }
+
     /// Check if a path should be ignored (e.g., vendor/).
     pub fn should_ignore(&self, path: &Path) -> bool {
         self.ignore_patterns.is_match(path)

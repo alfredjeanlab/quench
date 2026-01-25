@@ -60,6 +60,8 @@ tests = ["**/*_test.go"]
 ignore = ["vendor/"]
 ```
 
+When `[golang].tests` is not configured, patterns fall back to `[project].tests`, then to these defaults. See [Pattern Resolution](../02-config.md#pattern-resolution).
+
 ## Test Code Detection
 
 **Test files** (entire file is test code):
@@ -294,7 +296,7 @@ Coverage is aggregated across all packages and test runs.
 
 ```toml
 [golang]
-# Source/test patterns (defaults shown)
+# Source/test patterns (falls back to [project].tests if not set)
 # source = ["**/*.go"]
 # tests = ["**/*_test.go"]
 # ignore = ["vendor/"]
