@@ -97,7 +97,7 @@ impl TestRunner for CargoRunner {
 /// test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 /// test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
 /// ```
-fn parse_cargo_output(stdout: &str, total_time: Duration) -> TestRunResult {
+pub fn parse_cargo_output(stdout: &str, total_time: Duration) -> TestRunResult {
     let mut tests = Vec::new();
     let mut suite_passed = true;
 

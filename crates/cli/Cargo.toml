@@ -89,6 +89,10 @@ name = "tests"
 harness = false
 
 [[bench]]
+name = "tests_ci"
+harness = false
+
+[[bench]]
 name = "report"
 harness = false
 
