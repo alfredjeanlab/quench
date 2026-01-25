@@ -5,10 +5,13 @@
 //!
 //! Executes Python tests using `pytest --durations=0 -v` and parses output.
 
+use std::io::ErrorKind;
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
 
-use super::{RunnerContext, TestResult, TestRunResult, TestRunner};
+use super::{
+    RunnerContext, TestResult, TestRunResult, TestRunner, format_timeout_error, run_with_timeout,
+};
 use crate::config::TestSuiteConfig;
 
 /// Pytest runner for Python test suites.
@@ -52,8 +55,25 @@ impl TestRunner for PytestRunner {
         cmd.stdout(Stdio::piped());
         cmd.stderr(Stdio::piped());
 
-        let output = match cmd.output() {
+        let child = match cmd.spawn() {
+            Ok(c) => c,
+            Err(e) => {
+                return TestRunResult::failed(
+                    start.elapsed(),
+                    format!("failed to spawn pytest: {e}"),
+                );
+            }
+        };
+
+        let output = match run_with_timeout(child, config.timeout) {
             Ok(out) => out,
+            Err(e) if e.kind() == ErrorKind::TimedOut => {
+                let timeout_msg = config
+                    .timeout
+                    .map(|t| format_timeout_error("pytest", t))
+                    .unwrap_or_else(|| "timed out".to_string());
+                return TestRunResult::failed(start.elapsed(), timeout_msg);
+            }
             Err(e) => {
                 return TestRunResult::failed(
                     start.elapsed(),

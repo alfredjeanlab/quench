@@ -5,12 +5,15 @@
 //!
 //! Executes Go tests using `go test -json` and parses NDJSON output.
 
+use std::io::ErrorKind;
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
 
 use serde::Deserialize;
 
-use super::{RunnerContext, TestResult, TestRunResult, TestRunner};
+use super::{
+    RunnerContext, TestResult, TestRunResult, TestRunner, format_timeout_error, run_with_timeout,
+};
 use crate::config::TestSuiteConfig;
 
 /// Go test runner for Go projects.
@@ -56,8 +59,25 @@ impl TestRunner for GoRunner {
         cmd.stdout(Stdio::piped());
         cmd.stderr(Stdio::piped());
 
-        let output = match cmd.output() {
+        let child = match cmd.spawn() {
+            Ok(c) => c,
+            Err(e) => {
+                return TestRunResult::failed(
+                    start.elapsed(),
+                    format!("failed to spawn go test: {e}"),
+                );
+            }
+        };
+
+        let output = match run_with_timeout(child, config.timeout) {
             Ok(out) => out,
+            Err(e) if e.kind() == ErrorKind::TimedOut => {
+                let timeout_msg = config
+                    .timeout
+                    .map(|t| format_timeout_error("go", t))
+                    .unwrap_or_else(|| "timed out".to_string());
+                return TestRunResult::failed(start.elapsed(), timeout_msg);
+            }
             Err(e) => {
                 return TestRunResult::failed(
                     start.elapsed(),

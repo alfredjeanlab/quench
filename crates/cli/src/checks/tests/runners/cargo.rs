@@ -9,7 +9,9 @@ use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
 
 use super::coverage::collect_rust_coverage;
-use super::{RunnerContext, TestResult, TestRunResult, TestRunner, run_with_timeout};
+use super::{
+    RunnerContext, TestResult, TestRunResult, TestRunner, format_timeout_error, run_with_timeout,
+};
 use crate::config::TestSuiteConfig;
 
 /// Cargo test runner for Rust projects.
@@ -67,7 +69,7 @@ impl TestRunner for CargoRunner {
             Err(e) if e.kind() == ErrorKind::TimedOut => {
                 let timeout_msg = config
                     .timeout
-                    .map(|t| format!("timed out after {:?}", t))
+                    .map(|t| format_timeout_error("cargo", t))
                     .unwrap_or_else(|| "timed out".to_string());
                 return TestRunResult::failed(start.elapsed(), timeout_msg);
             }

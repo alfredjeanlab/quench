@@ -6,10 +6,11 @@
 //! Executes arbitrary test commands and reports pass/fail based on exit code.
 //! Does not provide per-test timing information.
 
+use std::io::ErrorKind;
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
 
-use super::{RunnerContext, TestRunResult, TestRunner};
+use super::{RunnerContext, TestRunResult, TestRunner, format_timeout_error, run_with_timeout};
 use crate::config::TestSuiteConfig;
 
 /// Custom command runner for arbitrary test commands.
@@ -47,37 +48,60 @@ impl TestRunner for CustomRunner {
         let start = Instant::now();
 
         // Execute command via shell
-        let output = if cfg!(target_os = "windows") {
-            Command::new("cmd")
-                .args(["/C", command])
-                .current_dir(ctx.root)
-                .stdout(Stdio::piped())
-                .stderr(Stdio::piped())
-                .output()
+        let mut cmd = if cfg!(target_os = "windows") {
+            let mut c = Command::new("cmd");
+            c.args(["/C", command]);
+            c
         } else {
-            Command::new("sh")
-                .args(["-c", command])
-                .current_dir(ctx.root)
-                .stdout(Stdio::piped())
-                .stderr(Stdio::piped())
-                .output()
+            let mut c = Command::new("sh");
+            c.args(["-c", command]);
+            c
+        };
+
+        cmd.current_dir(ctx.root);
+        cmd.stdout(Stdio::piped());
+        cmd.stderr(Stdio::piped());
+
+        let child = match cmd.spawn() {
+            Ok(c) => c,
+            Err(e) => {
+                return TestRunResult::failed(
+                    start.elapsed(),
+                    format!("failed to spawn custom command: {e}"),
+                );
+            }
+        };
+
+        let output = match run_with_timeout(child, config.timeout) {
+            Ok(out) => out,
+            Err(e) if e.kind() == ErrorKind::TimedOut => {
+                let timeout_msg = config
+                    .timeout
+                    .map(|t| format_timeout_error("custom", t))
+                    .unwrap_or_else(|| "timed out".to_string());
+                return TestRunResult::failed(start.elapsed(), timeout_msg);
+            }
+            Err(e) => {
+                return TestRunResult::failed(
+                    start.elapsed(),
+                    format!("failed to execute command: {e}"),
+                );
+            }
         };
 
         let total_time = start.elapsed();
 
-        match output {
-            Ok(out) if out.status.success() => TestRunResult::passed(total_time),
-            Ok(out) => {
-                let stderr = String::from_utf8_lossy(&out.stderr);
-                let truncated: String = stderr.lines().take(10).collect::<Vec<_>>().join("\n");
-                let message = if truncated.is_empty() {
-                    format!("command failed with exit code {:?}", out.status.code())
-                } else {
-                    truncated
-                };
-                TestRunResult::failed(total_time, message)
-            }
-            Err(e) => TestRunResult::failed(total_time, format!("failed to execute command: {e}")),
+        if output.status.success() {
+            TestRunResult::passed(total_time)
+        } else {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            let truncated: String = stderr.lines().take(10).collect::<Vec<_>>().join("\n");
+            let message = if truncated.is_empty() {
+                format!("command failed with exit code {:?}", output.status.code())
+            } else {
+                truncated
+            };
+            TestRunResult::failed(total_time, message)
         }
     }
 }

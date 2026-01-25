@@ -250,6 +250,20 @@ pub fn merge_coverage_results(a: CoverageResult, b: CoverageResult) -> CoverageR
 // Timeout Support
 // =============================================================================
 
+/// Format a timeout error message with runner-specific advice.
+pub fn format_timeout_error(runner: &str, timeout: Duration) -> String {
+    let base = format!("timed out after {:?}", timeout);
+    let advice = match runner {
+        "cargo" => "check for infinite loops or deadlocks",
+        "bats" => "check for infinite loops in shell scripts",
+        "pytest" => "check for slow tests or missing mocks",
+        "go" => "check for goroutine leaks or infinite loops",
+        "jest" | "vitest" | "bun" => "check for unresolved promises or infinite loops",
+        _ => "check for slow or hanging tests",
+    };
+    format!("{} - {}", base, advice)
+}
+
 /// Run a child process with an optional timeout.
 ///
 /// If timeout is None, waits indefinitely.

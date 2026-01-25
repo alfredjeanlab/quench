@@ -8,4 +8,5 @@ mod correlation;
 mod coverage;
 mod output;
 mod runners;
+mod timeout;
 mod timing;
