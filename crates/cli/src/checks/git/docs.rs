@@ -6,8 +6,18 @@
 //! Checks that commit format is documented in agent files.
 
 use std::path::Path;
+use std::sync::LazyLock;
 
 use regex::Regex;
+
+/// Compiled regex for commit type prefixes.
+/// Matches: `feat:`, `fix(`, `chore:`, etc.
+#[allow(clippy::expect_used)]
+static TYPE_PREFIX_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+    let types_pattern = COMMIT_TYPES.join("|");
+    let pattern = format!(r"(?i)\b({})[:(\(]", types_pattern);
+    Regex::new(&pattern).expect("valid regex")
+});
 
 /// Agent files to check for commit documentation.
 const AGENT_FILES: &[&str] = &["CLAUDE.md", "AGENTS.md", ".cursorrules"];
@@ -21,7 +31,10 @@ const COMMIT_TYPES: &[&str] = &[
 #[derive(Debug)]
 pub enum DocsResult {
     /// Documentation found in the specified file.
-    // NOTE(lifetime): Used in tests to verify which file matched
+    ///
+    /// The contained `String` is the filename where documentation was found.
+    /// Field is accessed via pattern matching in tests (docs_tests.rs).
+    // NOTE(lifetime): Variant is matched in tests, not directly constructed
     #[allow(dead_code)]
     Found(String),
     /// No documentation found; lists checked files.
@@ -71,13 +84,7 @@ pub fn has_commit_documentation(content: &str) -> bool {
 ///
 /// Matches: `feat:`, `fix(`, `chore:`, etc.
 fn has_type_prefix(content: &str) -> bool {
-    // Build regex pattern: (feat|fix|chore|...)[:({]
-    let types_pattern = COMMIT_TYPES.join("|");
-    let pattern = format!(r"(?i)\b({})[:(\(]", types_pattern);
-
-    Regex::new(&pattern)
-        .map(|re| re.is_match(content))
-        .unwrap_or(false)
+    TYPE_PREFIX_REGEX.is_match(content)
 }
 
 /// Check for "conventional commits" phrase (case-insensitive).

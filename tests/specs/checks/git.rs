@@ -14,83 +14,6 @@
 use crate::prelude::*;
 
 // =============================================================================
-// HELPER FUNCTIONS
-// =============================================================================
-
-/// Initialize a git repo with main branch
-fn init_git_repo(project: &Project) {
-    std::process::Command::new("git")
-        .args(["init"])
-        .current_dir(project.path())
-        .output()
-        .unwrap();
-
-    std::process::Command::new("git")
-        .args(["config", "user.email", "test@example.com"])
-        .current_dir(project.path())
-        .output()
-        .unwrap();
-
-    std::process::Command::new("git")
-        .args(["config", "user.name", "Test User"])
-        .current_dir(project.path())
-        .output()
-        .unwrap();
-}
-
-/// Create main branch with initial commit
-fn create_main_branch(project: &Project) {
-    std::process::Command::new("git")
-        .args(["add", "."])
-        .current_dir(project.path())
-        .output()
-        .unwrap();
-
-    std::process::Command::new("git")
-        .args(["commit", "-m", "feat: initial commit"])
-        .current_dir(project.path())
-        .output()
-        .unwrap();
-}
-
-/// Create a feature branch
-fn create_branch(project: &Project, name: &str) {
-    std::process::Command::new("git")
-        .args(["checkout", "-b", name])
-        .current_dir(project.path())
-        .output()
-        .unwrap();
-}
-
-/// Add a commit with the given message
-fn add_commit(project: &Project, message: &str) {
-    // Touch a file to make a change
-    let dummy_file = project.path().join(format!("dummy_{}.txt", rand_id()));
-    std::fs::write(&dummy_file, "dummy").unwrap();
-
-    std::process::Command::new("git")
-        .args(["add", "."])
-        .current_dir(project.path())
-        .output()
-        .unwrap();
-
-    std::process::Command::new("git")
-        .args(["commit", "-m", message])
-        .current_dir(project.path())
-        .output()
-        .unwrap();
-}
-
-/// Generate a random ID for unique files
-fn rand_id() -> u64 {
-    use std::time::{SystemTime, UNIX_EPOCH};
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_nanos() as u64
-}
-
-// =============================================================================
 // COMMIT FORMAT VALIDATION SPECS
 // =============================================================================
 
@@ -111,10 +34,10 @@ agents = false
         "# Project\n\n## Directory Structure\n\nMinimal.\n\n## Landing the Plane\n\n- Done\n",
     );
 
-    init_git_repo(&temp);
-    create_main_branch(&temp);
-    create_branch(&temp, "feature");
-    add_commit(&temp, "feat: add new feature");
+    git_init(&temp);
+    git_initial_commit(&temp);
+    git_branch(&temp, "feature");
+    git_commit(&temp, "feat: add new feature");
 
     // Valid format should pass
     check("git").pwd(temp.path()).args(&["--ci"]).passes();
@@ -137,10 +60,10 @@ agents = false
         "# Project\n\n## Directory Structure\n\nMinimal.\n\n## Landing the Plane\n\n- Done\n",
     );
 
-    init_git_repo(&temp);
-    create_main_branch(&temp);
-    create_branch(&temp, "feature");
-    add_commit(&temp, "update stuff"); // Invalid format!
+    git_init(&temp);
+    git_initial_commit(&temp);
+    git_branch(&temp, "feature");
+    git_commit(&temp, "update stuff"); // Invalid format!
 
     let git = check("git").pwd(temp.path()).args(&["--ci"]).json().fails();
     let violations = git.require("violations").as_array().unwrap();
@@ -175,10 +98,10 @@ agents = false
         "# Project\n\n## Commits\n\nfeat: or fix: only\n\n## Directory Structure\n\nMinimal.\n\n## Landing the Plane\n\n- Done\n",
     );
 
-    init_git_repo(&temp);
-    create_main_branch(&temp);
-    create_branch(&temp, "feature");
-    add_commit(&temp, "chore: do something"); // Invalid type!
+    git_init(&temp);
+    git_initial_commit(&temp);
+    git_branch(&temp, "feature");
+    git_commit(&temp, "chore: do something"); // Invalid type!
 
     let git = check("git").pwd(temp.path()).args(&["--ci"]).json().fails();
     let violations = git.require("violations").as_array().unwrap();
@@ -213,10 +136,10 @@ agents = false
         "# Project\n\n## Commits\n\nfeat(api): or feat(cli): only\n\n## Directory Structure\n\nMinimal.\n\n## Landing the Plane\n\n- Done\n",
     );
 
-    init_git_repo(&temp);
-    create_main_branch(&temp);
-    create_branch(&temp, "feature");
-    add_commit(&temp, "feat(unknown): add something"); // Invalid scope!
+    git_init(&temp);
+    git_initial_commit(&temp);
+    git_branch(&temp, "feature");
+    git_commit(&temp, "feat(unknown): add something"); // Invalid scope!
 
     let git = check("git").pwd(temp.path()).args(&["--ci"]).json().fails();
     let violations = git.require("violations").as_array().unwrap();
@@ -247,10 +170,10 @@ agents = false
         "# Project\n\n## Commits\n\nfeat(anything): allowed\n\n## Directory Structure\n\nMinimal.\n\n## Landing the Plane\n\n- Done\n",
     );
 
-    init_git_repo(&temp);
-    create_main_branch(&temp);
-    create_branch(&temp, "feature");
-    add_commit(&temp, "feat(random): add feature");
+    git_init(&temp);
+    git_initial_commit(&temp);
+    git_branch(&temp, "feature");
+    git_commit(&temp, "feat(random): add feature");
 
     check("git").pwd(temp.path()).args(&["--ci"]).passes();
 }
@@ -465,10 +388,10 @@ agents = false
         "# Project\n\n## Directory Structure\n\nMinimal.\n\n## Landing the Plane\n\n- Done\n",
     );
 
-    init_git_repo(&temp);
-    create_main_branch(&temp);
-    create_branch(&temp, "feature");
-    add_commit(&temp, "update stuff"); // Invalid format triggers violation
+    git_init(&temp);
+    git_initial_commit(&temp);
+    git_branch(&temp, "feature");
+    git_commit(&temp, "update stuff"); // Invalid format triggers violation
 
     let git = check("git").pwd(temp.path()).args(&["--ci"]).json().fails();
     let violations = git.require("violations").as_array().unwrap();
@@ -507,10 +430,10 @@ agents = false
         "# Project\n\n## Directory Structure\n\nMinimal.\n\n## Landing the Plane\n\n- Done\n",
     );
 
-    init_git_repo(&temp);
-    create_main_branch(&temp);
-    create_branch(&temp, "feature");
-    add_commit(&temp, "update stuff"); // Invalid format
+    git_init(&temp);
+    git_initial_commit(&temp);
+    git_branch(&temp, "feature");
+    git_commit(&temp, "update stuff"); // Invalid format
 
     let git = check("git").pwd(temp.path()).args(&["--ci"]).json().fails();
     let violations = git.require("violations").as_array().unwrap();
@@ -597,8 +520,8 @@ agents = false
     );
 
     // Initialize git repo so check doesn't skip
-    init_git_repo(&temp);
-    create_main_branch(&temp);
+    git_init(&temp);
+    git_initial_commit(&temp);
 
     check("git")
         .pwd(temp.path())

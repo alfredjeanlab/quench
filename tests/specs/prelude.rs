@@ -722,3 +722,75 @@ pub fn check_names(json: &serde_json::Value) -> Vec<&str> {
 pub const MINIMAL_CONFIG: &str = r#"[check.agents]
 required = []
 "#;
+
+// =============================================================================
+// GIT TEST HELPERS
+// =============================================================================
+
+/// Initialize a git repo with minimal config
+pub fn git_init(project: &Project) {
+    std::process::Command::new("git")
+        .args(["init"])
+        .current_dir(project.path())
+        .output()
+        .expect("git init should succeed");
+
+    std::process::Command::new("git")
+        .args(["config", "user.email", "test@example.com"])
+        .current_dir(project.path())
+        .output()
+        .expect("git config email should succeed");
+
+    std::process::Command::new("git")
+        .args(["config", "user.name", "Test User"])
+        .current_dir(project.path())
+        .output()
+        .expect("git config name should succeed");
+}
+
+/// Create main branch with initial commit (requires files to exist)
+pub fn git_initial_commit(project: &Project) {
+    std::process::Command::new("git")
+        .args(["add", "."])
+        .current_dir(project.path())
+        .output()
+        .expect("git add should succeed");
+
+    std::process::Command::new("git")
+        .args(["commit", "-m", "feat: initial commit"])
+        .current_dir(project.path())
+        .output()
+        .expect("git commit should succeed");
+}
+
+/// Create a feature branch
+pub fn git_branch(project: &Project, name: &str) {
+    std::process::Command::new("git")
+        .args(["checkout", "-b", name])
+        .current_dir(project.path())
+        .output()
+        .expect("git checkout -b should succeed");
+}
+
+/// Add a commit with the given message
+pub fn git_commit(project: &Project, message: &str) {
+    // Touch a file to make a change
+    let id = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .expect("time should work")
+        .as_nanos();
+    let dummy_file = project.path().join(format!("dummy_{}.txt", id));
+    std::fs::write(&dummy_file, "dummy").expect("write should succeed");
+
+    std::process::Command::new("git")
+        .args(["add", "."])
+        .current_dir(project.path())
+        .output()
+        .expect("git add should succeed");
+
+    std::process::Command::new("git")
+        .args(["commit", "-m", message])
+        .current_dir(project.path())
+        .output()
+        .expect("git commit should succeed");
+}
