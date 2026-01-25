@@ -15,7 +15,9 @@ use quench::color::{is_no_color_env, resolve_color};
 use quench::config::{self, CheckLevel};
 use quench::discovery;
 use quench::error::ExitCode;
-use quench::git::{detect_base_branch, get_changed_files, get_staged_files};
+use quench::git::{
+    detect_base_branch, get_changed_files, get_staged_files, is_git_repo, save_to_git_notes,
+};
 use quench::output::FormatOptions;
 use quench::output::json::{self, JsonFormatter};
 use quench::output::text::TextFormatter;
@@ -298,7 +300,8 @@ pub fn run(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
     };
 
     // Create runner
-    let limit = if args.no_limit {
+    // CI mode implicitly disables the violation limit
+    let limit = if args.no_limit || args.ci {
         None
     } else {
         Some(args.limit)
@@ -457,7 +460,8 @@ pub fn run(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
     let color_choice = resolve_color(args.color, args.no_color || is_no_color_env());
 
     // Set up formatter options
-    let limit = if args.no_limit {
+    // CI mode implicitly disables the violation limit
+    let limit = if args.no_limit || args.ci {
         None
     } else {
         Some(args.limit)
@@ -516,6 +520,30 @@ pub fn run(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
         }
     }
 
+    // Save metrics to file if requested
+    if let Some(ref save_path) = args.save {
+        if let Err(e) = save_metrics_to_file(save_path, &output) {
+            eprintln!("quench: warning: failed to save metrics: {}", e);
+        } else if args.verbose {
+            eprintln!("Saved metrics to {}", save_path.display());
+        }
+    }
+
+    // Save metrics to git notes if requested
+    if args.save_notes {
+        if !is_git_repo(&root) {
+            eprintln!("quench: error: not a git repository");
+            return Ok(ExitCode::ConfigError);
+        }
+
+        let json = serde_json::to_string(&output)?;
+        if let Err(e) = save_to_git_notes(&root, &json) {
+            eprintln!("quench: warning: failed to save to git notes: {}", e);
+        } else if args.verbose {
+            eprintln!("Saved metrics to git notes (refs/notes/quench)");
+        }
+    }
+
     let output_ms = output_start.elapsed().as_millis() as u64;
     let total_ms = total_start.elapsed().as_millis() as u64;
 
@@ -564,4 +592,23 @@ pub fn run(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
     };
 
     Ok(exit_code)
+}
+
+/// Save metrics output to a JSON file.
+fn save_metrics_to_file(
+    path: &std::path::Path,
+    output: &quench::check::CheckOutput,
+) -> anyhow::Result<()> {
+    // Create parent directories if needed
+    if let Some(parent) = path.parent()
+        && !parent.as_os_str().is_empty()
+    {
+        std::fs::create_dir_all(parent)?;
+    }
+
+    // Serialize and write
+    let json = serde_json::to_string_pretty(output)?;
+    std::fs::write(path, json)?;
+
+    Ok(())
 }
