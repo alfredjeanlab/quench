@@ -71,6 +71,15 @@ fn create_initial_commit(temp: &TempDir) {
     git_commit(temp, "chore: initial commit");
 }
 
+/// Rename a file using git mv.
+fn git_mv(temp: &TempDir, old: &str, new: &str) {
+    Command::new("git")
+        .args(["mv", old, new])
+        .current_dir(temp.path())
+        .output()
+        .expect("Failed to rename file");
+}
+
 // =============================================================================
 // GET_STAGED_FILES TESTS
 // =============================================================================
@@ -278,4 +287,150 @@ fn is_git_repo_returns_false_for_non_repo() {
     let temp = TempDir::new().unwrap();
 
     assert!(!is_git_repo(temp.path()));
+}
+
+// =============================================================================
+// DELETED FILE TESTS
+// =============================================================================
+
+#[test]
+fn get_staged_files_includes_deleted() {
+    let temp = TempDir::new().unwrap();
+    init_git_repo(&temp);
+
+    // Create and commit a file
+    std::fs::write(temp.path().join("to_delete.txt"), "content").unwrap();
+    git_add(&temp, "to_delete.txt");
+    git_commit(&temp, "feat: add file");
+
+    // Delete and stage the deletion
+    std::fs::remove_file(temp.path().join("to_delete.txt")).unwrap();
+    git_add(&temp, "to_delete.txt");
+
+    let files = get_staged_files(temp.path()).unwrap();
+    assert_eq!(files.len(), 1);
+    assert!(files[0].ends_with("to_delete.txt"));
+}
+
+#[test]
+fn get_changed_files_includes_deleted_committed() {
+    let temp = TempDir::new().unwrap();
+    init_git_repo(&temp);
+    create_initial_commit(&temp);
+
+    // Add a file on main
+    std::fs::write(temp.path().join("to_delete.txt"), "content").unwrap();
+    git_add(&temp, "to_delete.txt");
+    git_commit(&temp, "feat: add file");
+
+    // Create branch and delete the file
+    git_checkout_b(&temp, "feature");
+    std::fs::remove_file(temp.path().join("to_delete.txt")).unwrap();
+    git_add(&temp, "to_delete.txt");
+    git_commit(&temp, "chore: delete file");
+
+    let files = get_changed_files(temp.path(), "main").unwrap();
+    assert_eq!(files.len(), 1);
+    assert!(files[0].ends_with("to_delete.txt"));
+}
+
+#[test]
+fn get_changed_files_includes_deleted_staged() {
+    let temp = TempDir::new().unwrap();
+    init_git_repo(&temp);
+    create_initial_commit(&temp);
+
+    // Add and commit a file
+    std::fs::write(temp.path().join("to_delete.txt"), "content").unwrap();
+    git_add(&temp, "to_delete.txt");
+    git_commit(&temp, "feat: add file");
+
+    // Create branch and stage deletion
+    git_checkout_b(&temp, "feature");
+    std::fs::remove_file(temp.path().join("to_delete.txt")).unwrap();
+    git_add(&temp, "to_delete.txt");
+
+    let files = get_changed_files(temp.path(), "main").unwrap();
+    assert!(files.iter().any(|f| f.ends_with("to_delete.txt")));
+}
+
+#[test]
+fn get_changed_files_includes_deleted_unstaged() {
+    let temp = TempDir::new().unwrap();
+    init_git_repo(&temp);
+    create_initial_commit(&temp);
+
+    git_checkout_b(&temp, "feature");
+
+    // Delete README.md (tracked file) without staging
+    std::fs::remove_file(temp.path().join("README.md")).unwrap();
+
+    let files = get_changed_files(temp.path(), "main").unwrap();
+    assert!(files.iter().any(|f| f.ends_with("README.md")));
+}
+
+// =============================================================================
+// RENAMED FILE TESTS
+// =============================================================================
+
+#[test]
+fn get_staged_files_includes_renamed_new_path() {
+    let temp = TempDir::new().unwrap();
+    init_git_repo(&temp);
+
+    // Create and commit a file
+    std::fs::write(temp.path().join("old_name.txt"), "content").unwrap();
+    git_add(&temp, "old_name.txt");
+    git_commit(&temp, "feat: add file");
+
+    // Rename the file using git mv
+    git_mv(&temp, "old_name.txt", "new_name.txt");
+
+    let files = get_staged_files(temp.path()).unwrap();
+    // Without rename detection, git mv shows as deletion + addition = 2 changes
+    // Both old and new paths are reported (old from deletion, new from addition)
+    assert_eq!(files.len(), 2);
+    assert!(
+        files.iter().any(|f| f.ends_with("new_name.txt")),
+        "should include new name"
+    );
+    assert!(
+        files.iter().any(|f| f.ends_with("old_name.txt")),
+        "should include old name (from deletion)"
+    );
+}
+
+#[test]
+fn get_changed_files_includes_renamed_new_path() {
+    let temp = TempDir::new().unwrap();
+    init_git_repo(&temp);
+    create_initial_commit(&temp);
+
+    git_checkout_b(&temp, "feature");
+
+    // Add and commit a file
+    std::fs::write(temp.path().join("old_name.txt"), "content").unwrap();
+    git_add(&temp, "old_name.txt");
+    git_commit(&temp, "feat: add file");
+
+    // Rename using git mv and commit
+    git_mv(&temp, "old_name.txt", "new_name.txt");
+    git_commit(&temp, "refactor: rename file");
+
+    let files = get_changed_files(temp.path(), "main").unwrap();
+    assert!(files.iter().any(|f| f.ends_with("new_name.txt")));
+}
+
+// =============================================================================
+// EDGE CASE TESTS
+// =============================================================================
+
+#[test]
+fn get_changed_files_empty_repo() {
+    let temp = TempDir::new().unwrap();
+    init_git_repo(&temp);
+
+    // Try to get changed files against nonexistent ref
+    let result = get_changed_files(temp.path(), "main");
+    assert!(result.is_err(), "should error when base ref doesn't exist");
 }

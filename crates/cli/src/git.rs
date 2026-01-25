@@ -4,11 +4,28 @@
 //! Git utilities for change detection.
 //!
 //! Uses git2 (libgit2) for all git operations to avoid subprocess overhead.
+//!
+//! ## File Detection
+//!
+//! When detecting changed files:
+//! - Added files: path from `new_file()`
+//! - Modified files: path from `new_file()` (same as old)
+//! - Renamed files: path from `new_file()` (the new location)
+//! - Deleted files: path from `old_file()` (since `new_file()` is empty)
 
 use std::path::{Path, PathBuf};
 
 use anyhow::Context;
 use git2::Repository;
+
+/// Extract file path from a diff delta.
+///
+/// For deleted files, `new_file().path()` is `None`, so fall back to `old_file()`.
+/// Order matters: try `new_file` first (works for add, modify, rename, copy),
+/// then fall back to `old_file` (needed for delete).
+fn extract_path<'a>(delta: &'a git2::DiffDelta<'a>) -> Option<&'a Path> {
+    delta.new_file().path().or_else(|| delta.old_file().path())
+}
 
 /// A commit with its hash and message.
 #[derive(Debug, Clone)]
@@ -141,7 +158,7 @@ pub fn get_changed_files(root: &Path, base: &str) -> anyhow::Result<Vec<PathBuf>
     // Compare HEAD to base (committed changes on branch)
     let head_diff = repo.diff_tree_to_tree(Some(&base_tree), Some(&head_tree), None)?;
     for delta in head_diff.deltas() {
-        if let Some(path) = delta.new_file().path() {
+        if let Some(path) = extract_path(&delta) {
             files.insert(root.join(path));
         }
     }
@@ -149,7 +166,7 @@ pub fn get_changed_files(root: &Path, base: &str) -> anyhow::Result<Vec<PathBuf>
     // Compare index to base (staged changes)
     let index_diff = repo.diff_tree_to_index(Some(&base_tree), Some(&index), None)?;
     for delta in index_diff.deltas() {
-        if let Some(path) = delta.new_file().path() {
+        if let Some(path) = extract_path(&delta) {
             files.insert(root.join(path));
         }
     }
@@ -157,7 +174,7 @@ pub fn get_changed_files(root: &Path, base: &str) -> anyhow::Result<Vec<PathBuf>
     // Compare workdir to index (unstaged changes)
     let workdir_diff = repo.diff_index_to_workdir(Some(&index), None)?;
     for delta in workdir_diff.deltas() {
-        if let Some(path) = delta.new_file().path() {
+        if let Some(path) = extract_path(&delta) {
             files.insert(root.join(path));
         }
     }
@@ -187,7 +204,7 @@ pub fn get_staged_files(root: &Path) -> anyhow::Result<Vec<PathBuf>> {
 
     let mut files = Vec::new();
     for delta in diff.deltas() {
-        if let Some(path) = delta.new_file().path() {
+        if let Some(path) = extract_path(&delta) {
             files.push(root.join(path));
         }
     }
