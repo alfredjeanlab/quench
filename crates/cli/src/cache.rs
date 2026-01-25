@@ -36,7 +36,8 @@ use crate::check::Violation;
 /// v23: Added skip_merge option to git check (merge commits now skipped by default).
 /// v24: Test pattern consolidation - hash language-specific patterns for file classification.
 /// v25: Removed standalone placeholders check, integrated metrics into tests check.
-pub const CACHE_VERSION: u32 = 25;
+/// v26: Added CI mode threshold checking (coverage and time violations).
+pub const CACHE_VERSION: u32 = 26;
 
 /// Cache file name within .quench directory.
 pub const CACHE_FILE_NAME: &str = "cache.bin";

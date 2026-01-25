@@ -29,7 +29,10 @@ pub use javascript::{JavaScriptConfig, JavaScriptPolicyConfig};
 pub use ratchet::RatchetConfig;
 pub use shell::{ShellConfig, ShellPolicyConfig, ShellSuppressConfig};
 pub use suppress::{SuppressConfig, SuppressLevel, SuppressScopeConfig};
-pub use test_config::{TestSuiteConfig, TestsCommitConfig, TestsConfig, TestsTimeConfig};
+pub use test_config::{
+    TestSuiteConfig, TestsCommitConfig, TestsConfig, TestsCoverageConfig,
+    TestsPackageCoverageConfig, TestsTimeConfig,
+};
 
 use crate::error::{Error, Result};
 

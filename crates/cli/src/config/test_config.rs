@@ -1,5 +1,7 @@
 //! Test suite configuration.
 
+use std::collections::HashMap;
+
 use serde::Deserialize;
 
 use super::duration;
@@ -22,6 +24,10 @@ pub struct TestsConfig {
     /// Time limit checking.
     #[serde(default)]
     pub time: TestsTimeConfig,
+
+    /// Coverage threshold checking.
+    #[serde(default)]
+    pub coverage: TestsCoverageConfig,
 }
 
 /// Configuration for a single test suite.
@@ -88,6 +94,47 @@ impl Default for TestsTimeConfig {
 impl TestsTimeConfig {
     fn default_check() -> String {
         "warn".to_string()
+    }
+}
+
+/// Coverage threshold configuration.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct TestsCoverageConfig {
+    /// Check level: "error" | "warn" | "off"
+    #[serde(default = "TestsCoverageConfig::default_check")]
+    pub check: String,
+
+    /// Minimum overall coverage percentage (0-100).
+    #[serde(default)]
+    pub min: Option<f64>,
+
+    /// Per-package coverage thresholds.
+    #[serde(default)]
+    pub package: HashMap<String, TestsPackageCoverageConfig>,
+}
+
+/// Per-package coverage threshold.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TestsPackageCoverageConfig {
+    /// Minimum coverage percentage for this package.
+    pub min: f64,
+}
+
+impl Default for TestsCoverageConfig {
+    fn default() -> Self {
+        Self {
+            check: Self::default_check(),
+            min: None,
+            package: HashMap::new(),
+        }
+    }
+}
+
+impl TestsCoverageConfig {
+    fn default_check() -> String {
+        "off".to_string()
     }
 }
 

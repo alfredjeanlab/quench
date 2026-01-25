@@ -171,7 +171,6 @@ fn test_covered() { assert_eq!(test_project::covered(), 42); }
 /// > Configure thresholds via `[check.tests.coverage]`:
 /// > min = 75
 #[test]
-#[ignore = "requires coverage threshold violation implementation"]
 fn coverage_below_min_generates_violation() {
     let temp = Project::empty();
     temp.config(
@@ -225,9 +224,9 @@ fn test_covered() { assert_eq!(test_project::covered(), 42); }
 /// > [check.tests.coverage.package.core]
 /// > min = 90
 #[test]
-#[ignore = "requires per-package coverage threshold implementation"]
 fn per_package_coverage_thresholds_work() {
     let temp = Project::empty();
+    // Use "root" as package name since that's how coverage_by_package is keyed
     temp.config(
         r#"
 [[check.tests.suite]]
@@ -237,7 +236,7 @@ runner = "cargo"
 check = "error"
 min = 50
 
-[check.tests.coverage.package.test_project]
+[check.tests.coverage.package.root]
 min = 95
 "#,
     );
@@ -279,7 +278,6 @@ fn test_covered() { assert_eq!(test_project::covered(), 42); }
 ///
 /// > max_total = "30s"
 #[test]
-#[ignore = "requires time threshold violation implementation"]
 fn time_total_exceeded_generates_violation() {
     let temp = Project::empty();
     temp.config(
@@ -325,35 +323,33 @@ fn test_add() { assert_eq!(test_project::add(1, 2), 3); }
 /// Spec: docs/specs/11-test-runners.md#thresholds
 ///
 /// > max_test = "1s"
+///
+/// Uses bats runner since it provides per-test timing via --timing flag.
+/// Cargo test doesn't provide per-test timing in human-readable output.
 #[test]
-#[ignore = "requires time threshold violation implementation"]
 fn time_test_exceeded_generates_violation() {
     let temp = Project::empty();
     temp.config(
         r#"
 [[check.tests.suite]]
-runner = "cargo"
-max_test = "1ms"
+runner = "bats"
+path = "tests"
+max_test = "5ms"
 
 [check.tests.time]
 check = "error"
 "#,
     );
+    // Create a bats test that sleeps longer than the threshold
     temp.file(
-        "Cargo.toml",
+        "tests/slow_test.bats",
         r#"
-[package]
-name = "test_project"
-version = "0.1.0"
-edition = "2021"
-"#,
-    );
-    temp.file("src/lib.rs", "pub fn add(a: i32, b: i32) -> i32 { a + b }");
-    temp.file(
-        "tests/basic.rs",
-        r#"
-#[test]
-fn test_add() { assert_eq!(test_project::add(1, 2), 3); }
+#!/usr/bin/env bats
+
+@test "slow test that exceeds threshold" {
+    sleep 0.02
+    [ 1 -eq 1 ]
+}
 "#,
     );
 
@@ -366,11 +362,54 @@ fn test_add() { assert_eq!(test_project::add(1, 2), 3); }
     assert!(result.has_violation("time_test_exceeded"));
 }
 
+/// Spec: docs/specs/11-test-runners.md#thresholds
+///
+/// > max_avg = "100ms"
+///
+/// Uses bats runner since it provides per-test timing via --timing flag.
+/// Cargo test doesn't provide per-test timing in human-readable output.
+#[test]
+fn time_avg_exceeded_generates_violation() {
+    let temp = Project::empty();
+    temp.config(
+        r#"
+[[check.tests.suite]]
+runner = "bats"
+path = "tests"
+max_avg = "5ms"
+
+[check.tests.time]
+check = "error"
+"#,
+    );
+    // Create a bats test that takes longer than max_avg on average
+    temp.file(
+        "tests/slow_test.bats",
+        r#"
+#!/usr/bin/env bats
+
+@test "slow test exceeding avg threshold" {
+    sleep 0.02
+    [ 1 -eq 1 ]
+}
+"#,
+    );
+
+    let result = check("tests")
+        .pwd(temp.path())
+        .args(&["--ci"])
+        .json()
+        .fails();
+
+    assert!(result.has_violation("time_avg_exceeded"));
+}
+
 /// Spec: tests CI violation.type enumeration
 ///
 /// Violation types for CI thresholds:
 /// - coverage_below_min
 /// - time_total_exceeded
+/// - time_avg_exceeded
 /// - time_test_exceeded
 #[test]
 fn tests_ci_violation_types_are_documented() {
@@ -379,6 +418,7 @@ fn tests_ci_violation_types_are_documented() {
     let expected_types = [
         "coverage_below_min",
         "time_total_exceeded",
+        "time_avg_exceeded",
         "time_test_exceeded",
     ];
 

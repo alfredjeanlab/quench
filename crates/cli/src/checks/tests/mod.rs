@@ -24,7 +24,7 @@ use crate::check::{Check, CheckContext, CheckResult, Violation};
 use crate::checks::placeholders::{
     PlaceholderMetrics, collect_placeholder_metrics, default_js_patterns, default_rust_patterns,
 };
-use crate::config::TestsCommitConfig;
+use crate::config::{TestSuiteConfig, TestsCommitConfig};
 
 use self::correlation::{
     CorrelationConfig, DiffRange, analyze_commit, analyze_correlation, has_inline_test_changes,
@@ -202,11 +202,34 @@ impl TestsCheck {
             metrics["coverage_by_package"] = json!(packages_coverage);
         }
 
-        if suite_results.passed {
+        // Collect coverage threshold violations
+        let coverage_violations =
+            self.check_coverage_thresholds(ctx, &aggregated_coverage, &packages_coverage);
+
+        // Collect time threshold violations from each suite
+        let mut time_violations = Vec::new();
+        let active_suites = filter_suites_for_mode(&ctx.config.check.tests.suite, ctx.ci_mode);
+        for (suite, result) in active_suites.iter().zip(suite_results.suites.iter()) {
+            time_violations.extend(self.check_time_thresholds(ctx, suite, result));
+        }
+
+        // Combine all threshold violations
+        let all_threshold_violations: Vec<(Violation, bool)> = coverage_violations
+            .into_iter()
+            .chain(time_violations)
+            .collect();
+
+        let has_threshold_errors = all_threshold_violations.iter().any(|(_, is_err)| *is_err);
+        let threshold_violations: Vec<Violation> = all_threshold_violations
+            .into_iter()
+            .map(|(v, _)| v)
+            .collect();
+
+        if suite_results.passed && threshold_violations.is_empty() {
             CheckResult::passed(self.name()).with_metrics(metrics)
-        } else {
+        } else if !suite_results.passed {
             // Build violations for failed suites
-            let violations: Vec<Violation> = suite_results
+            let mut violations: Vec<Violation> = suite_results
                 .suites
                 .iter()
                 .filter(|s| !s.passed && !s.skipped)
@@ -219,8 +242,15 @@ impl TestsCheck {
                     Violation::file_only(format!("<suite:{}>", s.name), "test_suite_failed", advice)
                 })
                 .collect();
-
+            // Add threshold violations to suite failure violations
+            violations.extend(threshold_violations);
             CheckResult::failed(self.name(), violations).with_metrics(metrics)
+        } else if has_threshold_errors {
+            CheckResult::failed(self.name(), threshold_violations).with_metrics(metrics)
+        } else {
+            // Threshold violations exist but are warnings only
+            CheckResult::passed_with_warnings(self.name(), threshold_violations)
+                .with_metrics(metrics)
         }
     }
 
@@ -528,6 +558,143 @@ fn has_placeholder_for_source(source_path: &Path, root: &Path) -> bool {
             _ => false,
         }
     })
+}
+
+// =============================================================================
+// Threshold Checking
+// =============================================================================
+
+impl TestsCheck {
+    /// Check coverage against configured thresholds.
+    fn check_coverage_thresholds(
+        &self,
+        ctx: &CheckContext,
+        coverage: &std::collections::HashMap<String, f64>,
+        packages: &std::collections::HashMap<String, f64>,
+    ) -> Vec<(Violation, bool)> {
+        let config = &ctx.config.check.tests.coverage;
+        if config.check == "off" {
+            return Vec::new();
+        }
+
+        let is_error = config.check == "error";
+        let mut violations = Vec::new();
+
+        // Check global minimum
+        if let Some(min) = config.min {
+            for (lang, &actual) in coverage {
+                if actual < min {
+                    let advice = format!("Coverage {:.1}% below minimum {:.1}%", actual, min);
+                    let v = Violation::file_only(
+                        format!("<coverage:{}>", lang),
+                        "coverage_below_min",
+                        advice,
+                    )
+                    .with_threshold(actual as i64, min as i64);
+                    violations.push((v, is_error));
+                }
+            }
+        }
+
+        // Check per-package thresholds
+        for (pkg, pkg_config) in &config.package {
+            if let Some(&actual) = packages.get(pkg)
+                && actual < pkg_config.min
+            {
+                let advice = format!(
+                    "Package '{}' coverage {:.1}% below minimum {:.1}%",
+                    pkg, actual, pkg_config.min
+                );
+                let v = Violation::file_only(
+                    format!("<coverage:{}>", pkg),
+                    "coverage_below_min",
+                    advice,
+                )
+                .with_threshold(actual as i64, pkg_config.min as i64);
+                violations.push((v, is_error));
+            }
+        }
+
+        violations
+    }
+
+    /// Check time thresholds for a suite.
+    fn check_time_thresholds(
+        &self,
+        ctx: &CheckContext,
+        suite: &TestSuiteConfig,
+        result: &SuiteResult,
+    ) -> Vec<(Violation, bool)> {
+        let config = &ctx.config.check.tests.time;
+        if config.check == "off" {
+            return Vec::new();
+        }
+
+        let is_error = config.check == "error";
+        let mut violations = Vec::new();
+        let suite_name = &result.name;
+
+        // Check max_total
+        if let Some(max_total) = suite.max_total {
+            let max_ms = max_total.as_millis() as u64;
+            if result.total_ms > max_ms {
+                let advice = format!(
+                    "Suite '{}' took {}ms, exceeds max_total {}ms",
+                    suite_name, result.total_ms, max_ms
+                );
+                let v = Violation::file_only(
+                    format!("<suite:{}>", suite_name),
+                    "time_total_exceeded",
+                    advice,
+                )
+                .with_threshold(result.total_ms as i64, max_ms as i64);
+                violations.push((v, is_error));
+            }
+        }
+
+        // Check max_avg
+        if let Some(max_avg) = suite.max_avg
+            && let Some(avg_ms) = result.avg_ms
+        {
+            let max_ms = max_avg.as_millis() as u64;
+            if avg_ms > max_ms {
+                let advice = format!(
+                    "Suite '{}' average {}ms/test, exceeds max_avg {}ms",
+                    suite_name, avg_ms, max_ms
+                );
+                let v = Violation::file_only(
+                    format!("<suite:{}>", suite_name),
+                    "time_avg_exceeded",
+                    advice,
+                )
+                .with_threshold(avg_ms as i64, max_ms as i64);
+                violations.push((v, is_error));
+            }
+        }
+
+        // Check max_test
+        if let Some(max_test) = suite.max_test
+            && let Some(max_ms) = result.max_ms
+        {
+            let threshold_ms = max_test.as_millis() as u64;
+            if max_ms > threshold_ms {
+                let test_name = result.max_test.as_deref().unwrap_or("unknown");
+                let advice = format!(
+                    "Test '{}' took {}ms, exceeds max_test {}ms",
+                    test_name, max_ms, threshold_ms
+                );
+                let v = Violation::file_only(
+                    format!("<test:{}>", test_name),
+                    "time_test_exceeded",
+                    advice,
+                )
+                .with_threshold(max_ms as i64, threshold_ms as i64);
+                violations.push((v, is_error));
+            }
+        }
+
+        violations
+    }
 }
 
 // =============================================================================
