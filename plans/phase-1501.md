@@ -1,5 +1,7 @@
 # Phase 1501: Init Command - Behavioral Specs
 
+**Root Feature:** `quench-91c5-2`
+
 ## Overview
 
 Add comprehensive behavioral specs for the `quench init` command. This phase focuses on test coverage for existing functionality, ensuring the init command behavior is fully specified through black-box tests.
