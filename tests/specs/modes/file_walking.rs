@@ -31,7 +31,7 @@ fn ensure_bench_deep_fixture() {
         .unwrap();
         std::fs::write(
             fixture_dir.join("CLAUDE.md"),
-            "# Bench Deep\n\n## Directory Structure\n\nDeep.\n\n## Landing the Plane\n\n- Done\n",
+            "# Bench Deep\n\n## Directory Structure\n\nDeep.\n\n## Commits\n\nUse conventional commit format: `type(scope): description`\n\nTypes: feat, fix, chore, docs, test, refactor\n\n## Landing the Plane\n\n- Done\n",
         )
         .unwrap();
 

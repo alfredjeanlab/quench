@@ -27,6 +27,12 @@ cat > "$FIXTURE_DIR/CLAUDE.md" << 'EOF'
 
 Deep.
 
+## Commits
+
+Use conventional commit format: `type(scope): description`
+
+Types: feat, fix, chore, docs, test, refactor
+
 ## Landing the Plane
 
 - Done

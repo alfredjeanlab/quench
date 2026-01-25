@@ -27,6 +27,9 @@ mod cli_toggles;
 #[path = "specs/cli/report.rs"]
 mod cli_report;
 
+#[path = "specs/cli/timing.rs"]
+mod cli_timing;
+
 // config/
 #[path = "specs/config/mod.rs"]
 mod config;
