@@ -94,7 +94,6 @@ fn cargo_runner_on_rust_simple_fixture() {
 ///
 /// > bats --timing tests/
 #[test]
-#[ignore = "TODO: Phase 9XX - Test runners implementation"]
 fn bats_runner_executes_bats_with_timing() {
     let temp = Project::empty();
     temp.config(
@@ -117,14 +116,13 @@ path = "tests/"
     check("tests")
         .pwd(temp.path())
         .passes()
-        .stdout_has("tests: PASS");
+        .stdout_has("PASS: tests");
 }
 
 /// Spec: docs/specs/11-test-runners.md#bats
 ///
 /// > Parses BATS TAP output with timing information.
 #[test]
-#[ignore = "TODO: Phase 9XX - Test runners implementation"]
 fn bats_runner_parses_tap_timing() {
     let temp = Project::empty();
     temp.config(
@@ -147,4 +145,11 @@ path = "tests/"
 
     // Should report test count from TAP output
     assert_eq!(metrics.get("test_count").and_then(|v| v.as_i64()), Some(2));
+}
+
+/// Spec: Integration test on fixtures/shell-scripts
+#[test]
+fn bats_runner_on_shell_scripts_fixture() {
+    // shell-scripts fixture has quench.toml with [[check.tests.suite]] runner = "bats"
+    check("tests").on("shell-scripts").passes();
 }

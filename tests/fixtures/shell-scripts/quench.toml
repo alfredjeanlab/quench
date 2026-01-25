@@ -2,3 +2,7 @@ version = 1
 
 [project]
 name = "shell-scripts"
+
+[[check.tests.suite]]
+runner = "bats"
+path = "tests/"

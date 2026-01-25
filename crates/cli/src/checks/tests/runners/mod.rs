@@ -5,11 +5,13 @@
 //!
 //! Provides abstractions for executing test suites and collecting metrics.
 
+mod bats;
 mod cargo;
 mod coverage;
 mod result;
 mod stub;
 
+pub use bats::BatsRunner;
 pub use cargo::CargoRunner;
 pub use coverage::CoverageResult;
 pub use result::{TestResult, TestRunResult};
@@ -57,13 +59,13 @@ pub fn all_runners() -> Vec<Arc<dyn TestRunner>> {
     vec![
         // Concrete implementations
         Arc::new(CargoRunner),
+        Arc::new(BatsRunner),
         // Stub implementations for runners not yet implemented
         Arc::new(StubRunner::new("go")),
         Arc::new(StubRunner::new("pytest")),
         Arc::new(StubRunner::new("vitest")),
         Arc::new(StubRunner::new("bun")),
         Arc::new(StubRunner::new("jest")),
-        Arc::new(StubRunner::new("bats")),
     ]
 }
 
