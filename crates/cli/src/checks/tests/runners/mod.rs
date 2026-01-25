@@ -21,7 +21,7 @@ mod vitest;
 
 pub use bats::BatsRunner;
 pub use bun::BunRunner;
-pub use cargo::CargoRunner;
+pub use cargo::{CargoRunner, parse_cargo_output};
 pub use coverage::CoverageResult;
 pub use custom::CustomRunner;
 pub use go::GoRunner;

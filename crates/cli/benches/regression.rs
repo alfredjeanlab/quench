@@ -206,6 +206,50 @@ fn cache_provides_speedup() {
     );
 }
 
+/// CI mode on tests-ci fixture must complete within 30s.
+///
+/// This is a conservative limit since it runs `cargo test` which
+/// compiles and runs tests. The 30s limit matches the "unacceptable"
+/// threshold from docs/specs/20-performance.md.
+#[test]
+fn tests_ci_mode_under_30s() {
+    let path = fixture_path("tests-ci");
+    if !path.exists() {
+        eprintln!("Skipping: tests-ci fixture not found");
+        return;
+    }
+
+    let bin = quench_bin();
+    if !bin.exists() {
+        eprintln!("Skipping: release binary not found");
+        eprintln!("Run: cargo build --release");
+        return;
+    }
+
+    let start = Instant::now();
+    let output = Command::new(&bin)
+        .args(["check", "--tests", "--ci"])
+        .current_dir(&path)
+        .output()
+        .expect("quench should run");
+    let elapsed = start.elapsed();
+
+    eprintln!("Tests CI mode time: {:?}", elapsed);
+
+    assert!(
+        elapsed < Duration::from_secs(30),
+        "Tests CI mode took {:?}, exceeds 30s limit",
+        elapsed
+    );
+
+    // Should complete successfully (tests pass)
+    assert!(
+        output.status.code().unwrap_or(-1) <= 1,
+        "Unexpected exit code: {:?}",
+        output.status
+    );
+}
+
 fn main() {
     // This is a test harness, tests are run via cargo test
     println!("Run with: cargo test --bench regression -- --nocapture");
