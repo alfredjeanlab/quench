@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Alfred Jean LLC
 
-#![allow(clippy::unwrap_used, clippy::expect_used)]
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
 use super::*;
 use crate::test_utils::create_tree;
@@ -320,4 +320,132 @@ fn custom_parallel_threshold() {
         walker_low.should_use_parallel(tmp.path()),
         "low threshold should use parallel for 20 entries"
     );
+}
+
+#[test]
+fn skips_files_over_10mb() {
+    use std::fs::File;
+
+    let tmp = TempDir::new().unwrap();
+
+    // Create a normal sized file
+    fs::write(tmp.path().join("small.txt"), "hello").unwrap();
+
+    // Create a sparse file larger than 10MB (15MB)
+    let large_file = File::create(tmp.path().join("huge.txt")).unwrap();
+    large_file.set_len(15 * 1024 * 1024).unwrap();
+
+    let walker = FileWalker::new(WalkerConfig {
+        git_ignore: false,
+        hidden: false,
+        force_sequential: true, // Test sequential path
+        ..Default::default()
+    });
+    let (files, stats) = walker.walk_collect(tmp.path());
+
+    // Should only find the small file
+    assert_eq!(files.len(), 1, "should only find small file");
+    assert!(
+        files[0].path.ends_with("small.txt"),
+        "found file should be small.txt"
+    );
+
+    // Stats should reflect the skipped file
+    assert_eq!(stats.files_found, 1);
+    assert_eq!(stats.files_skipped_size, 1);
+}
+
+#[test]
+fn skips_files_over_10mb_parallel() {
+    use std::fs::File;
+
+    let tmp = TempDir::new().unwrap();
+
+    // Create a normal sized file
+    fs::write(tmp.path().join("small.txt"), "hello").unwrap();
+
+    // Create a sparse file larger than 10MB
+    let large_file = File::create(tmp.path().join("huge.txt")).unwrap();
+    large_file.set_len(15 * 1024 * 1024).unwrap();
+
+    let walker = FileWalker::new(WalkerConfig {
+        git_ignore: false,
+        hidden: false,
+        force_parallel: true, // Test parallel path
+        ..Default::default()
+    });
+    let (files, stats) = walker.walk_collect(tmp.path());
+
+    // Should only find the small file
+    assert_eq!(files.len(), 1, "should only find small file");
+    assert!(
+        files[0].path.ends_with("small.txt"),
+        "found file should be small.txt"
+    );
+
+    // Stats should reflect the skipped file
+    assert_eq!(stats.files_found, 1);
+    assert_eq!(stats.files_skipped_size, 1);
+}
+
+#[test]
+fn processes_files_just_under_10mb() {
+    use crate::file_size::MAX_FILE_SIZE;
+    use std::fs::File;
+
+    let tmp = TempDir::new().unwrap();
+
+    // Create a file just under the limit (10MB - 1 byte)
+    let borderline_file = File::create(tmp.path().join("borderline.txt")).unwrap();
+    borderline_file.set_len(MAX_FILE_SIZE - 1).unwrap();
+
+    let walker = FileWalker::new(WalkerConfig {
+        git_ignore: false,
+        hidden: false,
+        ..Default::default()
+    });
+    let (files, stats) = walker.walk_collect(tmp.path());
+
+    // Should find the borderline file
+    assert_eq!(files.len(), 1, "should find borderline file");
+    assert_eq!(stats.files_found, 1);
+    assert_eq!(stats.files_skipped_size, 0, "no files should be skipped");
+}
+
+#[test]
+fn assigns_correct_size_class() {
+    use crate::file_size::FileSizeClass;
+    use std::fs::File;
+
+    let tmp = TempDir::new().unwrap();
+
+    // Create files of different sizes
+    // Small: < 64KB
+    fs::write(tmp.path().join("small.txt"), "hello").unwrap();
+
+    // Normal: 64KB - 1MB (use 100KB)
+    let normal_file = File::create(tmp.path().join("normal.txt")).unwrap();
+    normal_file.set_len(100 * 1024).unwrap();
+
+    // Oversized: 1MB - 10MB (use 5MB)
+    let oversized_file = File::create(tmp.path().join("oversized.txt")).unwrap();
+    oversized_file.set_len(5 * 1024 * 1024).unwrap();
+
+    let walker = FileWalker::new(WalkerConfig {
+        git_ignore: false,
+        hidden: false,
+        ..Default::default()
+    });
+    let (files, _) = walker.walk_collect(tmp.path());
+
+    // Find files by name and check their size_class
+    for file in &files {
+        let name = file.path.file_name().unwrap().to_str().unwrap();
+        match name {
+            "small.txt" => assert_eq!(file.size_class, FileSizeClass::Small),
+            "normal.txt" => assert_eq!(file.size_class, FileSizeClass::Normal),
+            "oversized.txt" => assert_eq!(file.size_class, FileSizeClass::Oversized),
+            _ => panic!("unexpected file: {}", name),
+        }
+    }
 }

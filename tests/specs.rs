@@ -76,6 +76,9 @@ mod modes_file_walking;
 #[path = "specs/modes/ratchet.rs"]
 mod modes_ratchet;
 
+#[path = "specs/modes/large_files.rs"]
+mod modes_large_files;
+
 // adapters/
 #[path = "specs/adapters/mod.rs"]
 mod adapters;

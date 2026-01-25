@@ -16,6 +16,7 @@ use ignore::overrides::OverrideBuilder;
 use ignore::{WalkBuilder, WalkState};
 
 use crate::config::IgnoreConfig;
+use crate::file_size::{self, FileSizeClass};
 
 /// Helper to check if an ignore::Error is a symlink loop error.
 fn is_loop_error(err: &ignore::Error) -> bool {
@@ -101,6 +102,9 @@ pub struct WalkedFile {
 
     /// Directory depth from root.
     pub depth: usize,
+
+    /// File size classification for processing hints.
+    pub size_class: FileSizeClass,
 }
 
 /// Statistics from a walk operation.
@@ -111,6 +115,9 @@ pub struct WalkStats {
 
     /// Files skipped due to ignore patterns.
     pub files_ignored: usize,
+
+    /// Files skipped due to size limit (>10MB).
+    pub files_skipped_size: usize,
 
     /// Directories skipped due to depth limit.
     pub depth_limited: usize,
@@ -253,10 +260,12 @@ impl FileWalker {
 
         // Track stats atomically for parallel access
         let files_found = Arc::new(AtomicUsize::new(0));
+        let files_skipped_size = Arc::new(AtomicUsize::new(0));
         let errors = Arc::new(AtomicUsize::new(0));
         let symlink_loops = Arc::new(AtomicUsize::new(0));
 
         let stats_files = Arc::clone(&files_found);
+        let stats_skipped = Arc::clone(&files_skipped_size);
         let stats_errors = Arc::clone(&errors);
         let stats_loops = Arc::clone(&symlink_loops);
 
@@ -264,6 +273,7 @@ impl FileWalker {
             walker.run(|| {
                 let tx = tx.clone();
                 let files_found = Arc::clone(&stats_files);
+                let files_skipped_size = Arc::clone(&stats_skipped);
                 let errors = Arc::clone(&stats_errors);
                 let symlink_loops = Arc::clone(&stats_loops);
 
@@ -282,6 +292,18 @@ impl FileWalker {
 
                         let meta = entry.metadata();
                         let size = meta.as_ref().map(|m| m.len()).unwrap_or(0);
+
+                        // Skip files exceeding size limit (>10MB)
+                        if size > file_size::MAX_FILE_SIZE {
+                            tracing::warn!(
+                                "skipping {} ({} > 10MB limit)",
+                                entry.path().display(),
+                                file_size::human_size(size)
+                            );
+                            files_skipped_size.fetch_add(1, Ordering::Relaxed);
+                            return WalkState::Continue;
+                        }
+
                         let (mtime_secs, mtime_nanos) = meta
                             .as_ref()
                             .ok()
@@ -293,12 +315,14 @@ impl FileWalker {
                             })
                             .unwrap_or((0, 0));
                         let depth = entry.depth();
+                        let size_class = FileSizeClass::from_size(size);
                         let walked = WalkedFile {
                             path: entry.into_path(),
                             size,
                             mtime_secs,
                             mtime_nanos,
                             depth,
+                            size_class,
                         };
 
                         files_found.fetch_add(1, Ordering::Relaxed);
@@ -324,6 +348,7 @@ impl FileWalker {
 
             WalkStats {
                 files_found: stats_files.load(Ordering::Relaxed),
+                files_skipped_size: stats_skipped.load(Ordering::Relaxed),
                 errors: stats_errors.load(Ordering::Relaxed),
                 symlink_loops: stats_loops.load(Ordering::Relaxed),
                 ..Default::default()
@@ -343,6 +368,7 @@ impl FileWalker {
 
         let handle = std::thread::spawn(move || {
             let mut files_found = 0usize;
+            let mut files_skipped_size = 0usize;
             let mut errors = 0usize;
             let mut symlink_loops = 0usize;
 
@@ -357,6 +383,18 @@ impl FileWalker {
 
                         let meta = entry.metadata();
                         let size = meta.as_ref().map(|m| m.len()).unwrap_or(0);
+
+                        // Skip files exceeding size limit (>10MB)
+                        if size > file_size::MAX_FILE_SIZE {
+                            tracing::warn!(
+                                "skipping {} ({} > 10MB limit)",
+                                entry.path().display(),
+                                file_size::human_size(size)
+                            );
+                            files_skipped_size += 1;
+                            continue;
+                        }
+
                         let (mtime_secs, mtime_nanos) = meta
                             .as_ref()
                             .ok()
@@ -368,12 +406,14 @@ impl FileWalker {
                             })
                             .unwrap_or((0, 0));
                         let depth = entry.depth();
+                        let size_class = FileSizeClass::from_size(size);
                         let walked = WalkedFile {
                             path: entry.into_path(),
                             size,
                             mtime_secs,
                             mtime_nanos,
                             depth,
+                            size_class,
                         };
 
                         files_found += 1;
@@ -396,6 +436,7 @@ impl FileWalker {
 
             WalkStats {
                 files_found,
+                files_skipped_size,
                 errors,
                 symlink_loops,
                 ..Default::default()

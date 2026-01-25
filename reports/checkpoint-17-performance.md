@@ -1,11 +1,11 @@
 # Checkpoint 17: Performance Complete
 
 Date: 2026-01-24
-Commit: 638060f
+Commit: 638060f (17B), updated in 17C refactor
 
 ## Summary
 
-**5 of 6 checkpoint criteria validated.** One criterion fails (large file skip >10MB not implemented).
+**All 6 checkpoint criteria validated.** Criterion 3 (large file handling) implemented in checkpoint 17C.
 
 ## Environment
 
@@ -43,19 +43,23 @@ Range (min … max): 43.5 ms … 50.7 ms
 
 | Test | Expected | Actual | Status |
 |------|----------|--------|--------|
-| 15MB file skipped | Warning emitted, file not processed | File fully processed, line count violation reported | **FAIL** |
+| 15MB file skipped | Warning emitted, file not processed | Warning emitted, file skipped | **PASS** |
+| File not processed | No violations from file | File excluded from results | **PASS** |
 
-**Finding:** Files >10MB are NOT skipped with a warning as required by `docs/specs/20-performance.md` (lines 72-83). Instead, they are fully processed and report `file_too_large` violations based on line/token counts.
+**Implementation (checkpoint 17C):**
+- `MAX_FILE_SIZE = 10 * 1024 * 1024` constant in `file_size.rs`
+- Size check in walker before sending file to channel
+- Warning logged via `tracing::warn!`
+- `WalkStats.files_skipped_size` tracks skipped count
+- Verbose mode reports skipped files count
 
-**Evidence:**
-- `Error::FileTooLarge` type exists in `error.rs` but is never constructed
-- No `MAX_FILE_SIZE` constant or size-gating logic found in walker or file reading code
-- Tested with 15MB file: processed and reported 629,146 lines (vs 750 limit)
-
-**Action Required:** Implement size-gated file reading per spec:
-- Check file size from metadata before reading
-- Hard limit: skip files > 10MB with warning
-- Soft limit: report files > 1MB as potential violations
+**Behavioral Tests:**
+- `tests/specs/modes/large_files.rs` - 5 tests covering:
+  - Large file skipped with warning
+  - Large file not in violations
+  - Files under 10MB processed
+  - Files at exactly 10MB boundary processed
+  - Multiple large files skipped
 
 ### 4. Cache Invalidation
 
@@ -85,19 +89,13 @@ All 13 unit tests pass. Integration tests `modified_file_causes_cache_miss` and 
 
 ## Conclusion
 
-**Checkpoint 17 partially validated.** 5 of 6 criteria pass.
+**Checkpoint 17 validated.** All 6 criteria pass.
 
-### Blocking Issue
-
-- **Large file (>10MB) skip with warning not implemented.** This is a spec requirement that must be addressed before checkpoint completion.
-
-### Next Steps
-
-1. Implement size-gated file reading in walker/file reader
-2. Add `MAX_FILE_SIZE = 10 * 1024 * 1024` constant
-3. Use existing `Error::FileTooLarge` type for warning
-4. Add test fixture with >10MB file
-5. Re-validate criterion 3
+- Criterion 3 (large file handling) implemented in checkpoint 17C refactor
+- Added `file_size.rs` module with size constants and classification
+- Refactored `main.rs` from 652 lines to 59 lines
+- Extracted command handlers to `cmd_check.rs` and `cmd_report.rs`
+- Performance targets maintained after refactor
 
 ## Test Commands
 

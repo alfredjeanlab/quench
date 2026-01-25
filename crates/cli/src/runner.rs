@@ -100,6 +100,7 @@ impl CheckRunner {
                 mtime_secs: f.mtime_secs,
                 mtime_nanos: f.mtime_nanos,
                 depth: f.depth,
+                size_class: f.size_class,
             })
             .collect();
 
