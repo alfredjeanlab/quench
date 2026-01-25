@@ -59,7 +59,7 @@ fn check_help_preserves_standalone_no_cache() {
 
 /// Spec: Check toggle flags are consolidated
 ///
-/// > All 9 check toggles should show as --[no-]<check>
+/// > All 8 check toggles should show as --[no-]<check>
 #[test]
 fn check_help_shows_consolidated_check_toggles() {
     let output = quench_cmd()

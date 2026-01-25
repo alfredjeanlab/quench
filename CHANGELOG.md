@@ -24,12 +24,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **git check**: Agent documentation check for AI coding assistants
 - **git check**: Skip merge commits option (`skip_merge`)
 - **tests check**: Source/test correlation with commit-scope checking
-- **tests check**: JS/TS placeholder detection (`test.todo()`, `it.skip()` patterns)
+- **tests check**: Placeholder metrics for Rust (`#[ignore]`, `todo!()`) and JS/TS (`test.todo()`, `it.skip()`)
 - **docs check**: Table of contents validation with explicit `toc`/`no-toc` annotations
 - **docs check**: Specs index validation modes (toc, linked, auto)
 - **docs check**: Markdown link validation
 - **docs check**: Source-based area detection for commit checking
-- **placeholders check**: Detection of placeholder tests across languages
 - **cloc check**: Per-language check levels
 - **policy check**: Per-language policy enforcement
 
