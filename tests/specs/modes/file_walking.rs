@@ -24,7 +24,11 @@ fn ensure_bench_deep_fixture() {
         }
 
         std::fs::create_dir_all(&fixture_dir).unwrap();
-        std::fs::write(fixture_dir.join("quench.toml"), "version = 1\n").unwrap();
+        std::fs::write(
+            fixture_dir.join("quench.toml"),
+            "version = 1\n\n[git.commit]\nagents = false\n",
+        )
+        .unwrap();
         std::fs::write(
             fixture_dir.join("CLAUDE.md"),
             "# Bench Deep\n\n## Directory Structure\n\nDeep.\n\n## Landing the Plane\n\n- Done\n",
