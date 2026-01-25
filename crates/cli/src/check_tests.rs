@@ -123,3 +123,27 @@ fn violation_without_change_info_omits_fields() {
     assert!(json.get("change_type").is_none());
     assert!(json.get("lines_changed").is_none());
 }
+
+#[test]
+fn violation_with_scope_serializes_correctly() {
+    let v = Violation::commit_violation(
+        "abc123",
+        "feat(api): add endpoint",
+        "invalid_type",
+        "Bad type",
+    )
+    .with_scope("api");
+
+    let json = serde_json::to_value(&v).unwrap();
+
+    assert_eq!(json["scope"], "api");
+}
+
+#[test]
+fn violation_without_scope_omits_field() {
+    let v = Violation::commit_violation("abc123", "feat: add feature", "invalid_type", "Bad type");
+
+    let json = serde_json::to_value(&v).unwrap();
+
+    assert!(json.get("scope").is_none());
+}

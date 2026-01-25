@@ -180,6 +180,7 @@ impl CachedViolation {
             target: self.target_path.clone(),
             change_type: None,
             lines_changed: None,
+            scope: None,
         }
     }
 }

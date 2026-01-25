@@ -528,6 +528,7 @@ fn create_threshold_violation(
         target: None,
         change_type: None,
         lines_changed: None,
+        scope: None,
     })
 }
 
