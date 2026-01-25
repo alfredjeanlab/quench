@@ -295,8 +295,7 @@ fn bench_classify(c: &mut Criterion) {
 /// Benchmark cfg test parsing.
 fn bench_cfg_test_parse(c: &mut Criterion) {
     // Content with cfg test block at line 50
-    // Note: Avoid literal "#[cfg(test)]" to bypass bootstrap check
-    let cfg_test_attr = concat!("#[cfg", "(test)]");
+    let cfg_test_attr = "#[cfg(test)]";
     let content_with_cfg: String = (0..100)
         .map(|i| {
             if i == 50 {
@@ -344,8 +343,7 @@ fn bench_classify_lines(c: &mut Criterion) {
     let test_path = Path::new("tests/integration.rs");
 
     // Mixed source/test content (simulates file with inline tests)
-    // Note: Avoid literal cfg test attr to bypass bootstrap check
-    let cfg_test_attr = concat!("#[cfg", "(test)]");
+    let cfg_test_attr = "#[cfg(test)]";
     let mixed_content: String = (0..100)
         .map(|i| {
             if (60..80).contains(&i) {
@@ -428,8 +426,7 @@ fn bench_workspace_detection(c: &mut Criterion) {
 /// Benchmark suppress attribute parsing.
 fn bench_suppress_parse(c: &mut Criterion) {
     // Content with various suppress attributes (~10% of lines)
-    // Note: Split attributes to bypass bootstrap check
-    let allow_dead = concat!("#[allow(dead", "_code)]");
+    let allow_dead = "#[allow(dead_code)]";
     let content_with_suppresses: String = (0..100)
         .map(|i| {
             if i % 10 == 0 {

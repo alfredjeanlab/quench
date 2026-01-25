@@ -265,8 +265,7 @@ fn bench_has_correlated_test(c: &mut Criterion) {
 fn bench_inline_test_detection(c: &mut Criterion) {
     let mut group = c.benchmark_group("tests-inline-detection");
 
-    // Avoid literal cfg(test) to bypass bootstrap check
-    let cfg_test_attr = concat!("#[cfg", "(test)]");
+    let cfg_test_attr = "#[cfg(test)]";
 
     // Small diff with no test changes
     let small_no_tests = r#"

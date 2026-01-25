@@ -1,0 +1,7 @@
+version = 1
+
+[check.cloc]
+max_lines = 5  # Very low limit to trigger many violations
+
+[check.agents]
+required = ["CLAUDE.md"]
