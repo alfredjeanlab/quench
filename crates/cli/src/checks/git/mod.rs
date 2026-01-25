@@ -13,7 +13,7 @@ use crate::check::{Check, CheckContext, CheckResult, Violation};
 use crate::config::GitCommitConfig;
 use crate::git::{Commit, get_all_branch_commits, get_commits_since};
 
-mod docs;
+pub mod docs;
 pub mod parse;
 mod template;
 

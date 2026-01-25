@@ -1,0 +1,225 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
+# Generate benchmark fixtures for git check benchmarks
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+FIXTURES_DIR="${1:-$SCRIPT_DIR/../../tests/fixtures}"
+
+# Commit types for generating realistic histories
+TYPES=("feat" "fix" "chore" "docs" "test" "refactor" "perf")
+SCOPES=("core" "api" "cli" "config" "parser" "utils" "cache" "")
+
+# Generate a random conventional commit message
+random_commit_msg() {
+    local type_idx=$((RANDOM % ${#TYPES[@]}))
+    local scope_idx=$((RANDOM % ${#SCOPES[@]}))
+    local type="${TYPES[$type_idx]}"
+    local scope="${SCOPES[$scope_idx]}"
+    local num=$1
+
+    if [ -n "$scope" ]; then
+        echo "$type($scope): add feature $num"
+    else
+        echo "$type: add feature $num"
+    fi
+}
+
+# Create a git fixture with N commits
+create_git_fixture() {
+    local name="$1"
+    local commit_count="$2"
+    local description="$3"
+    local dir="$FIXTURES_DIR/$name"
+
+    echo "Creating $name: $commit_count commits ($description)"
+
+    # Clean up existing fixture
+    rm -rf "$dir"
+    mkdir -p "$dir/src"
+    cd "$dir"
+
+    # Initialize git repo
+    git init --initial-branch=main -q
+    git config user.email "bench@test.local"
+    git config user.name "Benchmark"
+
+    # Create quench.toml
+    cat > quench.toml << 'EOF'
+version = 1
+
+[git.commit]
+check = "error"
+agents = false
+EOF
+
+    # Create CLAUDE.md
+    cat > CLAUDE.md << 'EOF'
+# Bench Git Fixture
+
+## Commits
+
+Use conventional commit format: `type(scope): description`
+
+Types: feat, fix, chore, docs, test, refactor, perf
+EOF
+
+    # Create initial src file
+    echo "// Benchmark fixture" > src/lib.rs
+
+    # Initial commit
+    git add -A
+    git commit -q -m "chore: initial commit"
+
+    # Create branch for testing (we're already on main, create a dev branch)
+    git checkout -q -b dev
+
+    # Generate commits
+    for ((i=1; i<=commit_count; i++)); do
+        echo "// Feature $i" >> src/lib.rs
+        git add -A
+        git commit -q -m "$(random_commit_msg $i)"
+    done
+
+    echo "  Created $commit_count commits in $dir"
+}
+
+# Create bench-git-small: 10 commits
+create_git_fixture "bench-git-small" 10 "small validation set"
+
+# Create bench-git-medium: 50 commits with mixed validity
+create_bench_git_medium() {
+    local dir="$FIXTURES_DIR/bench-git-medium"
+
+    echo "Creating bench-git-medium: 50 commits (mixed scenarios)"
+
+    rm -rf "$dir"
+    mkdir -p "$dir/src"
+    cd "$dir"
+
+    git init --initial-branch=main -q
+    git config user.email "bench@test.local"
+    git config user.name "Benchmark"
+
+    cat > quench.toml << 'EOF'
+version = 1
+
+[git.commit]
+check = "error"
+agents = false
+EOF
+
+    cat > CLAUDE.md << 'EOF'
+# Bench Git Medium
+
+## Commits
+
+Use conventional commit format: `type(scope): description`
+EOF
+
+    echo "// Benchmark fixture" > src/lib.rs
+    git add -A
+    git commit -q -m "chore: initial commit"
+
+    git checkout -q -b dev
+
+    # Mix of different commit patterns
+    for ((i=1; i<=50; i++)); do
+        echo "// Feature $i" >> src/lib.rs
+        git add -A
+
+        # Vary message patterns
+        case $((i % 5)) in
+            0) git commit -q -m "feat(api): add endpoint $i" ;;
+            1) git commit -q -m "fix(core): resolve issue $i" ;;
+            2) git commit -q -m "chore: update dependencies for $i" ;;
+            3) git commit -q -m "docs(readme): improve docs section $i" ;;
+            4) git commit -q -m "refactor(parser): cleanup code $i" ;;
+        esac
+    done
+
+    echo "  Created 50 commits in $dir"
+}
+create_bench_git_medium
+
+# Create bench-git-large: 500 commits for stress testing
+create_git_fixture "bench-git-large" 500 "stress test set"
+
+# Create bench-git-worst-case: Edge cases
+create_bench_git_worst_case() {
+    local dir="$FIXTURES_DIR/bench-git-worst-case"
+
+    echo "Creating bench-git-worst-case: pathological patterns"
+
+    rm -rf "$dir"
+    mkdir -p "$dir/src"
+    cd "$dir"
+
+    git init --initial-branch=main -q
+    git config user.email "bench@test.local"
+    git config user.name "Benchmark"
+
+    cat > quench.toml << 'EOF'
+version = 1
+
+[git.commit]
+check = "error"
+agents = false
+EOF
+
+    cat > CLAUDE.md << 'EOF'
+# Bench Git Worst Case
+
+## Commits
+
+Use conventional commit format: `type(scope): description`
+EOF
+
+    echo "// Benchmark fixture" > src/lib.rs
+    git add -A
+    git commit -q -m "chore: initial commit"
+
+    git checkout -q -b dev
+
+    # Long commit messages
+    for ((i=1; i<=20; i++)); do
+        echo "// Feature $i" >> src/lib.rs
+        git add -A
+        long_desc="feat(core): this is a very long commit message that tests the parser with extended descriptions containing many words to simulate real-world verbose commit messages that some developers write when documenting their changes thoroughly in the commit history for feature number $i"
+        git commit -q -m "$long_desc"
+    done
+
+    # Unicode in scopes (some tools allow this)
+    for ((i=21; i<=30; i++)); do
+        echo "// Feature $i" >> src/lib.rs
+        git add -A
+        git commit -q -m "feat(módulo): feature with unicode scope $i"
+    done
+
+    # Deeply nested scopes (unusual but valid)
+    for ((i=31; i<=40; i++)); do
+        echo "// Feature $i" >> src/lib.rs
+        git add -A
+        git commit -q -m "fix(deeply/nested/scope): fix nested scope issue $i"
+    done
+
+    # Commit types at boundaries
+    for ((i=41; i<=50; i++)); do
+        echo "// Feature $i" >> src/lib.rs
+        git add -A
+        case $((i % 3)) in
+            0) git commit -q -m "f: minimal type $i" ;;
+            1) git commit -q -m "verylongtypename: extended type $i" ;;
+            2) git commit -q -m "perf(optimization): standard type $i" ;;
+        esac
+    done
+
+    echo "  Created 50 edge-case commits in $dir"
+}
+create_bench_git_worst_case
+
+echo ""
+echo "Git benchmark fixtures created:"
+ls -la "$FIXTURES_DIR"/bench-git-* 2>/dev/null | grep "^d" || echo "No fixtures found"
+echo ""
+echo "Run benchmarks with: cargo bench --bench git"

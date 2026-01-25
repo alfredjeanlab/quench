@@ -90,5 +90,9 @@ harness = false
 name = "report"
 harness = false
 
+[[bench]]
+name = "git"
+harness = false
+
 [lints]
 workspace = true
