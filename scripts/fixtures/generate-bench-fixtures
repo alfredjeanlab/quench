@@ -602,7 +602,7 @@ EOF
 }
 
 # Main execution
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 echo "Generating benchmark fixtures in $FIXTURES_DIR..."
 create_bench_small
 create_bench_medium

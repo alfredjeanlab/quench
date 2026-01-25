@@ -94,5 +94,13 @@ harness = false
 name = "git"
 harness = false
 
+[[bench]]
+name = "cache"
+harness = false
+
+[[bench]]
+name = "memory"
+harness = true
+
 [lints]
 workspace = true

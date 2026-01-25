@@ -144,10 +144,62 @@ fn bench_check_large_files(c: &mut Criterion) {
     group.finish();
 }
 
+/// Benchmark with timing thresholds for CI validation.
+///
+/// Thresholds from docs/specs/20-performance.md:
+/// - bench-small cold: < 200ms acceptable
+/// - bench-medium cold: < 1000ms acceptable
+fn bench_check_with_threshold(c: &mut Criterion) {
+    let quench_bin = env!("CARGO_BIN_EXE_quench");
+
+    if !has_check_command() {
+        return;
+    }
+
+    let mut group = c.benchmark_group("check_threshold");
+
+    // Set measurement time for stable results
+    group.measurement_time(std::time::Duration::from_secs(10));
+
+    let fixtures_and_thresholds = [
+        ("bench-small", 200),   // < 200ms acceptable
+        ("bench-medium", 1000), // < 1s acceptable
+    ];
+
+    for (fixture, _threshold_ms) in fixtures_and_thresholds {
+        let path = fixture_path(fixture);
+        if !path.exists() {
+            continue;
+        }
+
+        let cache_dir = path.join(".quench");
+
+        group.bench_with_input(BenchmarkId::new("cold", fixture), &path, |b, path| {
+            b.iter_custom(|iters| {
+                let mut total = std::time::Duration::ZERO;
+                for _ in 0..iters {
+                    let _ = std::fs::remove_dir_all(&cache_dir);
+                    let start = std::time::Instant::now();
+                    Command::new(quench_bin)
+                        .args(["check", "--no-limit"])
+                        .current_dir(path)
+                        .output()
+                        .expect("quench should run");
+                    total += start.elapsed();
+                }
+                total
+            })
+        });
+    }
+
+    group.finish();
+}
+
 criterion_group!(
     benches,
     bench_check_cold,
     bench_check_deep,
-    bench_check_large_files
+    bench_check_large_files,
+    bench_check_with_threshold
 );
 criterion_main!(benches);
