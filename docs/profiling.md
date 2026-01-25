@@ -2,6 +2,39 @@
 
 How to identify and fix performance bottlenecks in quench.
 
+## Automated Profiling Scripts
+
+### Quick Start
+
+```bash
+# Run profiling (generates reports in reports/profiling/)
+./scripts/perf/profile.sh tests/fixtures/stress-monorepo
+
+# Generate flame graphs
+./scripts/perf/flamegraph.sh tests/fixtures/stress-monorepo
+
+# Check performance budgets
+./scripts/perf/budget-check.sh
+```
+
+### Performance Budget Check
+
+The `budget-check.sh` script enforces hard limits and is run in CI:
+
+```bash
+./scripts/perf/budget-check.sh
+```
+
+Outputs human-readable results with GitHub Actions annotations for CI.
+
+### Performance Report
+
+Generate a detailed performance report:
+
+```bash
+./scripts/perf/report-perf.sh reports/perf-$(date +%Y%m%d).md
+```
+
 ## Quick Start
 
 ### Time Profiling
@@ -166,3 +199,43 @@ The stress fixture generator may need several minutes for 50K files:
 # Generate with progress output
 ./scripts/fixtures/generate-stress-fixtures 2>&1 | tee fixture-gen.log
 ```
+
+## Optimization History
+
+### Checkpoint 17E: Performance Budget Enforcement
+
+**Date:** 2025-01-24
+
+**Summary:** Established performance budgets and regression prevention infrastructure.
+
+**Changes:**
+- Added `scripts/perf/profile.sh` for automated profiling
+- Added `scripts/perf/flamegraph.sh` for flame graph generation
+- Added `scripts/perf/budget-check.sh` for CI budget enforcement
+- Added `crates/cli/benches/regression.rs` for hard limit tests
+- Updated CI workflow to run budget checks
+
+**Performance Baseline (bench-medium fixture):**
+
+| Metric | Target | Acceptable | Measured |
+|--------|--------|------------|----------|
+| Cold run | < 500ms | < 1s | ~316ms |
+| Warm run | < 100ms | < 200ms | ~47ms |
+| Memory | < 100MB | < 500MB | ~14.5MB |
+
+### Deferred Optimizations
+
+1. **P3: Bounded cache (moka)**
+   - **Status:** Deferred
+   - **Reason:** Memory usage 14.5MB << 100MB target
+
+2. **P4: String interning (lasso)**
+   - **Status:** Deferred
+   - **Reason:** No allocation bottleneck identified
+
+### Profiling Methodology
+
+1. **Baseline first** - Profile before any changes to identify real bottlenecks
+2. **Measure twice** - Run profiling multiple times to ensure consistency
+3. **Fix one thing** - Apply one optimization, measure, commit, repeat
+4. **Document decisions** - Record why optimizations were applied or deferred

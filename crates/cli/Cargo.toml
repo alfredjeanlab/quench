@@ -102,5 +102,9 @@ harness = false
 name = "memory"
 harness = true
 
+[[bench]]
+name = "regression"
+harness = true
+
 [lints]
 workspace = true

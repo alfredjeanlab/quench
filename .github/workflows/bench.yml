@@ -72,29 +72,8 @@ jobs:
         run: |
           cargo test --bench memory -- --nocapture
 
-      - name: Check performance targets
-        run: |
-          cargo build --release
-          echo "=== Checking cold run target (< 1s acceptable) ==="
-          COLD_TIME=$(/usr/bin/time -f "%e" ./target/release/quench check tests/fixtures/bench-medium 2>&1 | tail -1)
-          echo "Cold run time: ${COLD_TIME}s"
-          if [ "$(echo "$COLD_TIME > 2.0" | bc -l)" -eq 1 ]; then
-            echo "::error::Cold run exceeded unacceptable threshold (> 2s)"
-            exit 1
-          fi
-
-          echo "=== Checking warm run target (< 200ms acceptable) ==="
-          # Warm the cache
-          ./target/release/quench check tests/fixtures/bench-medium >/dev/null 2>&1
-          WARM_TIME=$(/usr/bin/time -f "%e" ./target/release/quench check tests/fixtures/bench-medium 2>&1 | tail -1)
-          echo "Warm run time: ${WARM_TIME}s"
-          if [ "$(echo "$WARM_TIME > 0.5" | bc -l)" -eq 1 ]; then
-            echo "::error::Warm run exceeded unacceptable threshold (> 500ms)"
-            exit 1
-          fi
-
-          echo "=== Memory usage ==="
-          /usr/bin/time -v ./target/release/quench check tests/fixtures/bench-medium 2>&1 | grep -i "maximum resident" || true
+      - name: Check performance budgets
+        run: ./scripts/perf/budget-check.sh
 
       - name: Upload benchmark results
         uses: actions/upload-artifact@v4
