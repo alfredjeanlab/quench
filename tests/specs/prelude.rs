@@ -53,6 +53,7 @@ pub fn report() -> ReportBuilder<Text> {
 pub struct Text;
 pub struct Json;
 pub struct Html;
+pub struct Markdown;
 
 /// Typestate markers for check scope
 pub struct Single(String);
@@ -204,6 +205,14 @@ impl ReportBuilder<Text> {
         }
     }
 
+    pub fn markdown(self) -> ReportBuilder<Markdown> {
+        ReportBuilder {
+            dir: self.dir,
+            args: self.args,
+            _mode: PhantomData,
+        }
+    }
+
     pub fn runs(self) -> RunAssert {
         run_passes(self.command())
     }
@@ -218,6 +227,13 @@ impl ReportBuilder<Json> {
 
 #[allow(dead_code)]
 impl ReportBuilder<Html> {
+    pub fn runs(self) -> RunAssert {
+        run_passes(self.command())
+    }
+}
+
+#[allow(dead_code)]
+impl ReportBuilder<Markdown> {
     pub fn runs(self) -> RunAssert {
         run_passes(self.command())
     }
@@ -247,6 +263,7 @@ impl<Mode: 'static> ReportBuilder<Mode> {
     fn command(self) -> Command {
         let is_json = std::any::TypeId::of::<Mode>() == std::any::TypeId::of::<Json>();
         let is_html = std::any::TypeId::of::<Mode>() == std::any::TypeId::of::<Html>();
+        let is_markdown = std::any::TypeId::of::<Mode>() == std::any::TypeId::of::<Markdown>();
 
         let mut cmd = quench_cmd();
         cmd.arg("report");
@@ -255,6 +272,8 @@ impl<Mode: 'static> ReportBuilder<Mode> {
             cmd.args(["-o", "json"]);
         } else if is_html {
             cmd.args(["-o", "html"]);
+        } else if is_markdown {
+            cmd.args(["-o", "markdown"]);
         }
 
         cmd.args(&self.args);

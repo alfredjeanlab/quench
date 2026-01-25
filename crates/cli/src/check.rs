@@ -144,6 +144,10 @@ pub struct Violation {
     /// Lines changed (added + deleted) for missing_tests violations.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub lines_changed: Option<i64>,
+
+    /// Commit scope for git check violations (e.g., "api" from "feat(api): add endpoint").
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub scope: Option<String>,
 }
 
 impl Violation {
@@ -175,6 +179,7 @@ impl Violation {
             target: None,
             change_type: None,
             lines_changed: None,
+            scope: None,
         }
     }
 
@@ -205,6 +210,7 @@ impl Violation {
             target: None,
             change_type: None,
             lines_changed: None,
+            scope: None,
         }
     }
 
@@ -236,6 +242,7 @@ impl Violation {
             target: None,
             change_type: None,
             lines_changed: None,
+            scope: None,
         }
     }
 
@@ -301,6 +308,12 @@ impl Violation {
     pub fn with_change_info(mut self, change_type: impl Into<String>, lines_changed: i64) -> Self {
         self.change_type = Some(change_type.into());
         self.lines_changed = Some(lines_changed);
+        self
+    }
+
+    /// Add scope context for git commit violations.
+    pub fn with_scope(mut self, scope: impl Into<String>) -> Self {
+        self.scope = Some(scope.into());
         self
     }
 }

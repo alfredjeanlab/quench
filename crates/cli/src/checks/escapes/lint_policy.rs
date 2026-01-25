@@ -224,6 +224,7 @@ fn make_policy_violation(
         target: None,
         change_type: None,
         lines_changed: None,
+        scope: None,
     }]
 }
 

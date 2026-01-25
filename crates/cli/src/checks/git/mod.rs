@@ -194,12 +194,16 @@ pub fn validate_commit(
             let allowed_types = config.types.as_deref();
             if !parsed.is_type_allowed(allowed_types) {
                 let advice = format_type_advice(allowed_types);
-                violations.push(Violation::commit_violation(
+                let mut violation = Violation::commit_violation(
                     &commit.hash,
                     &commit.message,
                     "invalid_type",
                     advice,
-                ));
+                );
+                if let Some(ref scope) = parsed.scope {
+                    violation = violation.with_scope(scope.clone());
+                }
+                violations.push(violation);
             }
 
             // Check scope (only if scopes are configured)
@@ -207,12 +211,16 @@ pub fn validate_commit(
                 && !parsed.is_scope_allowed(Some(scopes))
             {
                 let advice = format!("Allowed scopes: {}", scopes.join(", "));
-                violations.push(Violation::commit_violation(
+                let mut violation = Violation::commit_violation(
                     &commit.hash,
                     &commit.message,
                     "invalid_scope",
                     advice,
-                ));
+                );
+                if let Some(ref scope) = parsed.scope {
+                    violation = violation.with_scope(scope.clone());
+                }
+                violations.push(violation);
             }
         }
     }

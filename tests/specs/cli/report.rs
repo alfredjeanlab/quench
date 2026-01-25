@@ -155,6 +155,60 @@ fn report_html_includes_metrics() {
 }
 
 // =============================================================================
+// MARKDOWN FORMAT
+// =============================================================================
+
+/// Spec: docs/specs/01-cli.md#quench-report
+///
+/// > Markdown format produces valid markdown table
+#[test]
+fn report_markdown_produces_table() {
+    report()
+        .on("report/with-baseline")
+        .markdown()
+        .runs()
+        .stdout_has("| Metric |")
+        .stdout_has("|---");
+}
+
+/// Spec: docs/specs/01-cli.md#quench-report
+///
+/// > Markdown format includes all metric values
+#[test]
+fn report_markdown_includes_metrics() {
+    report()
+        .on("report/with-baseline")
+        .markdown()
+        .runs()
+        .stdout_has("Coverage")
+        .stdout_has("85.5");
+}
+
+/// Spec: docs/specs/01-cli.md#quench-report
+///
+/// > Markdown format with no baseline shows appropriate message
+#[test]
+fn report_markdown_no_baseline_shows_message() {
+    report()
+        .on("report/no-baseline")
+        .markdown()
+        .runs()
+        .stdout_has("No baseline");
+}
+
+/// Spec: docs/specs/01-cli.md#quench-report
+///
+/// > Markdown format includes baseline metadata
+#[test]
+fn report_markdown_includes_metadata() {
+    report()
+        .on("report/with-baseline")
+        .markdown()
+        .runs()
+        .stdout_has("abc1234"); // commit hash
+}
+
+// =============================================================================
 // FILE OUTPUT
 // =============================================================================
 

@@ -115,3 +115,7 @@ impl ReportFormatter for JsonFormatter {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "json_tests.rs"]
+mod tests;
