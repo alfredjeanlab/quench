@@ -9,7 +9,9 @@
 use std::collections::HashMap;
 use std::fs::Metadata;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::thread::JoinHandle;
 use std::time::SystemTime;
 
 use dashmap::DashMap;
@@ -95,13 +97,21 @@ impl FileCacheKey {
     }
 }
 
-/// Cached result for a single file.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// Cached result for a single file (runtime representation with Arc).
+#[derive(Debug, Clone)]
 pub struct CachedFileResult {
     /// Cache key when this result was computed.
     pub key: FileCacheKey,
     /// Violations found in this file (across all checks).
-    pub violations: Vec<CachedViolation>,
+    /// Uses Arc for O(1) clone on cache hits instead of O(n) deep clone.
+    pub violations: Arc<Vec<CachedViolation>>,
+}
+
+/// Cached result for a single file (serialization format).
+#[derive(Debug, Serialize, Deserialize)]
+pub(crate) struct SerializedFileResult {
+    pub(crate) key: FileCacheKey,
+    pub(crate) violations: Vec<CachedViolation>,
 }
 
 /// Minimal violation data for cache storage.
@@ -182,8 +192,8 @@ pub struct PersistentCache {
     pub quench_version: String,
     /// Hash of config that affects check results.
     pub config_hash: u64,
-    /// Per-file cached results.
-    pub files: HashMap<PathBuf, CachedFileResult>,
+    /// Per-file cached results (serialized without Arc).
+    pub(crate) files: HashMap<PathBuf, SerializedFileResult>,
 }
 
 /// Runtime cache wrapper with thread-safe access.
@@ -239,8 +249,23 @@ impl FileCache {
             return Err(CacheError::ConfigChanged);
         }
 
+        // Convert serialized format to runtime format (wrap violations in Arc)
+        let inner: DashMap<PathBuf, CachedFileResult> = cache
+            .files
+            .into_iter()
+            .map(|(path, result)| {
+                (
+                    path,
+                    CachedFileResult {
+                        key: result.key,
+                        violations: Arc::new(result.violations),
+                    },
+                )
+            })
+            .collect();
+
         Ok(Self {
-            inner: cache.files.into_iter().collect(),
+            inner,
             config_hash,
             quench_version: cache.quench_version,
             hits: AtomicUsize::new(0),
@@ -252,12 +277,14 @@ impl FileCache {
     ///
     /// Returns Some if the file has a valid cache entry (matching mtime+size).
     /// Returns None on cache miss.
-    pub fn lookup(&self, path: &Path, key: &FileCacheKey) -> Option<Vec<CachedViolation>> {
+    ///
+    /// The returned Arc allows O(1) clone instead of O(n) deep clone of violations.
+    pub fn lookup(&self, path: &Path, key: &FileCacheKey) -> Option<Arc<Vec<CachedViolation>>> {
         if let Some(entry) = self.inner.get(path)
             && entry.key == *key
         {
             self.hits.fetch_add(1, Ordering::Relaxed);
-            return Some(entry.violations.clone());
+            return Some(Arc::clone(&entry.violations));
         }
         self.misses.fetch_add(1, Ordering::Relaxed);
         None
@@ -265,8 +292,13 @@ impl FileCache {
 
     /// Insert or update a file's cached result.
     pub fn insert(&self, path: PathBuf, key: FileCacheKey, violations: Vec<CachedViolation>) {
-        self.inner
-            .insert(path, CachedFileResult { key, violations });
+        self.inner.insert(
+            path,
+            CachedFileResult {
+                key,
+                violations: Arc::new(violations),
+            },
+        );
     }
 
     /// Persist cache to disk.
@@ -275,10 +307,19 @@ impl FileCache {
             version: CACHE_VERSION,
             quench_version: self.quench_version.clone(),
             config_hash: self.config_hash,
+            // Convert runtime format to serialized format (extract from Arc)
             files: self
                 .inner
                 .iter()
-                .map(|e| (e.key().clone(), e.value().clone()))
+                .map(|e| {
+                    (
+                        e.key().clone(),
+                        SerializedFileResult {
+                            key: e.value().key.clone(),
+                            violations: (*e.value().violations).clone(),
+                        },
+                    )
+                })
                 .collect(),
         };
 
@@ -288,6 +329,54 @@ impl FileCache {
         std::fs::write(&temp_path, &bytes)?;
         std::fs::rename(&temp_path, path)?;
         Ok(())
+    }
+
+    /// Persist cache to disk asynchronously.
+    ///
+    /// Returns a join handle that can be waited on, or ignored if caller
+    /// doesn't care about completion. The cache data is cloned before
+    /// spawning the thread to avoid holding locks.
+    ///
+    /// # Example
+    /// ```ignore
+    /// // Fire and forget - cache write happens in background
+    /// let _handle = cache.persist_async(cache_path);
+    /// // Process can exit while write is in progress
+    /// ```
+    pub fn persist_async(&self, path: PathBuf) -> JoinHandle<Result<(), CacheError>> {
+        // Clone data for the background thread
+        let cache = PersistentCache {
+            version: CACHE_VERSION,
+            quench_version: self.quench_version.clone(),
+            config_hash: self.config_hash,
+            files: self
+                .inner
+                .iter()
+                .map(|e| {
+                    (
+                        e.key().clone(),
+                        SerializedFileResult {
+                            key: e.value().key.clone(),
+                            violations: (*e.value().violations).clone(),
+                        },
+                    )
+                })
+                .collect(),
+        };
+
+        std::thread::spawn(move || {
+            let temp_path = path.with_extension("tmp");
+            let bytes = postcard::to_allocvec(&cache)?;
+
+            // Ensure parent directory exists
+            if let Some(parent) = path.parent() {
+                std::fs::create_dir_all(parent)?;
+            }
+
+            std::fs::write(&temp_path, &bytes)?;
+            std::fs::rename(&temp_path, &path)?;
+            Ok(())
+        })
     }
 
     /// Get cache statistics.
