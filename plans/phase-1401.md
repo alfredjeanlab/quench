@@ -1,5 +1,7 @@
 # Phase 1401: Performance - Optimization Backlog
 
+**Root Feature:** `quench-a490`
+
 ## Overview
 
 Apply P1-P4 performance optimizations from `docs/specs/20-performance.md` only when profiling justifies them. Core performance infrastructure (P0 caching, size-gated reading, timeouts) was implemented in earlier phases. This phase establishes profiling workflows and conditionally implements optimizations based on measured bottlenecks.
