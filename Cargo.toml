@@ -10,7 +10,9 @@ license = "MIT"
 repository = "https://github.com/alfredjeanlab/quench"
 
 [workspace.lints.rust]
-unsafe_code = "forbid"
+# Use "deny" instead of "forbid" to allow localized #[allow(unsafe_code)]
+# for memory-mapped I/O in file_reader.rs (per performance spec)
+unsafe_code = "deny"
 
 [workspace.lints.clippy]
 unwrap_used = "deny"

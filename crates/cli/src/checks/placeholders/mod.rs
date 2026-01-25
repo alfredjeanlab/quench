@@ -22,6 +22,7 @@ use serde_json::json;
 use crate::adapter::{Adapter, FileKind, GenericAdapter};
 use crate::check::{Check, CheckContext, CheckResult, Violation};
 use crate::config::CheckLevel;
+use crate::file_reader::FileContent;
 
 /// Placeholders check implementation.
 pub struct PlaceholdersCheck;
@@ -60,10 +61,13 @@ impl Check for PlaceholdersCheck {
                 continue;
             }
 
-            // Read file content
-            let content = match std::fs::read_to_string(&file.path) {
+            // Read file content (uses mmap for large files per performance spec)
+            let file_content = match FileContent::read(&file.path) {
                 Ok(c) => c,
                 Err(_) => continue,
+            };
+            let Some(content) = file_content.as_str() else {
+                continue; // Skip non-UTF-8 files
             };
 
             // Detect based on file extension
@@ -71,8 +75,7 @@ impl Check for PlaceholdersCheck {
 
             match ext {
                 "rs" => {
-                    let placeholders =
-                        rust::find_rust_placeholders(&content, &config.patterns.rust);
+                    let placeholders = rust::find_rust_placeholders(content, &config.patterns.rust);
 
                     for p in placeholders {
                         metrics.increment_rust(p.kind);
@@ -91,7 +94,7 @@ impl Check for PlaceholdersCheck {
                 }
                 "js" | "jsx" | "ts" | "tsx" | "mjs" | "mts" => {
                     let placeholders =
-                        javascript::find_js_placeholders(&content, &config.patterns.javascript);
+                        javascript::find_js_placeholders(content, &config.patterns.javascript);
 
                     for p in placeholders {
                         metrics.increment_js(p.kind);

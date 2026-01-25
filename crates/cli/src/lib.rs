@@ -12,6 +12,7 @@ pub mod color;
 pub mod config;
 pub mod discovery;
 pub mod error;
+pub mod file_reader;
 pub mod file_size;
 pub mod git;
 pub mod init;

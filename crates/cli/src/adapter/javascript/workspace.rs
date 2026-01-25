@@ -147,7 +147,7 @@ fn expand_single_level(
     if let Ok(entries) = fs::read_dir(&dir) {
         for entry in entries.flatten() {
             if entry.path().is_dir() && entry.path().join("package.json").exists() {
-                let dir_name = entry.file_name().to_string_lossy().to_string();
+                let dir_name = entry.file_name().to_string_lossy().into_owned();
                 let rel_path = format!("{}/{}", base, dir_name);
                 paths.push(rel_path.clone());
                 names.insert(rel_path, dir_name);
