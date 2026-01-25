@@ -948,51 +948,6 @@ impl SuiteResults {
     }
 }
 
-impl SuiteResults {
-    /// Convert to JSON for metrics.
-    #[allow(dead_code)] // Will be used in future phases
-    fn to_json(&self) -> serde_json::Value {
-        let suites: Vec<serde_json::Value> = self
-            .suites
-            .iter()
-            .map(|s| {
-                let mut obj = serde_json::json!({
-                    "name": s.name,
-                    "runner": s.runner,
-                    "passed": s.passed,
-                    "skipped": s.skipped,
-                });
-                if let Some(ref err) = s.error {
-                    obj["error"] = serde_json::json!(err);
-                }
-                if s.test_count > 0 {
-                    obj["test_count"] = serde_json::json!(s.test_count);
-                }
-                if s.total_ms > 0 {
-                    obj["total_ms"] = serde_json::json!(s.total_ms);
-                }
-                if let Some(avg) = s.avg_ms {
-                    obj["avg_ms"] = serde_json::json!(avg);
-                }
-                if let Some(max) = s.max_ms {
-                    obj["max_ms"] = serde_json::json!(max);
-                }
-                if let Some(ref test) = s.max_test {
-                    obj["max_test"] = serde_json::json!(test);
-                }
-                obj
-            })
-            .collect();
-
-        serde_json::json!({
-            "passed": self.passed,
-            "suites": suites,
-            "total_tests": self.suites.iter().map(|s| s.test_count).sum::<usize>(),
-            "total_ms": self.suites.iter().map(|s| s.total_ms).sum::<u64>(),
-        })
-    }
-}
-
 /// Result from a single test suite.
 #[derive(Debug, Default)]
 struct SuiteResult {

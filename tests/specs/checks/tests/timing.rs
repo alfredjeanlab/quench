@@ -14,7 +14,7 @@ use crate::prelude::*;
 ///
 /// > Average: Mean time per test
 #[test]
-#[ignore = "TODO: Phase 9XX - Test runners implementation"]
+#[ignore = "Blocked: Cargo test doesn't provide per-test timing in stable output"]
 fn cargo_runner_extracts_average_timing() {
     let temp = Project::cargo("test_project");
     temp.file("src/lib.rs", "");
@@ -40,7 +40,7 @@ use std::time::Duration;
 ///
 /// > Max: Slowest individual test (with name)
 #[test]
-#[ignore = "TODO: Phase 9XX - Test runners implementation"]
+#[ignore = "Blocked: Cargo test doesn't provide per-test timing in stable output"]
 fn cargo_runner_extracts_max_timing_with_name() {
     let temp = Project::cargo("test_project");
     temp.file("src/lib.rs", "");
@@ -68,7 +68,6 @@ use std::time::Duration;
 ///
 /// > Total Time: Wall-clock time for entire test suite.
 #[test]
-#[ignore = "TODO: Phase 9XX - Test runners implementation"]
 fn runner_reports_total_time() {
     let temp = Project::cargo("test_project");
     temp.file("src/lib.rs", "");
@@ -89,7 +88,6 @@ fn runner_reports_total_time() {
 ///
 /// > Parses BATS TAP output with timing information.
 #[test]
-#[ignore = "TODO: Phase 9XX - Test runners implementation"]
 fn bats_runner_extracts_per_test_timing() {
     let temp = Project::empty();
     temp.config(
@@ -124,7 +122,7 @@ path = "tests/"
 ///
 /// > max_test = "500ms" - Max time for slowest individual test
 #[test]
-#[ignore = "TODO: Phase 9XX - Test runners implementation"]
+#[ignore = "Blocked: Cargo test doesn't provide per-test timing in stable output"]
 fn runner_fails_when_test_exceeds_max_time() {
     let temp = Project::cargo("test_project");
     temp.config(

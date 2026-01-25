@@ -311,8 +311,10 @@ fn normalize_path(path: &str) -> String {
 }
 
 /// Clean up coverage profiles after report generation.
-#[allow(dead_code)]
-pub fn cleanup_coverage_profiles(profile_dir: &Path) {
+///
+/// Available for explicit cleanup after coverage collection if needed.
+#[allow(dead_code)] // Utility for manual cleanup
+pub(crate) fn cleanup_coverage_profiles(profile_dir: &Path) {
     if profile_dir.exists() {
         let _ = std::fs::remove_dir_all(profile_dir);
     }

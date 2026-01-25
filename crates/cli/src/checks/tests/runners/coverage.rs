@@ -135,9 +135,9 @@ struct LlvmCovSummary {
 
 #[derive(Debug, Deserialize)]
 struct LlvmCovLines {
-    #[allow(dead_code)]
+    #[allow(dead_code)] // Deserialized from JSON but not directly used
     count: u64,
-    #[allow(dead_code)]
+    #[allow(dead_code)] // Deserialized from JSON but not directly used
     covered: u64,
     percent: f64,
 }
