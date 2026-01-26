@@ -17,7 +17,15 @@ use serde_json::json;
 
 use crate::adapter::{ProjectLanguage, detect_language};
 use crate::check::{Check, CheckContext, CheckResult, Violation};
-use crate::tolerance::parse_size;
+use crate::tolerance::{parse_duration, parse_size};
+
+/// Default advice for cold build time threshold violations.
+const TIME_COLD_ADVICE: &str =
+    "Cold build time exceeded threshold. Check for slow compile-time dependencies.";
+
+/// Default advice for hot build time threshold violations.
+const TIME_HOT_ADVICE: &str =
+    "Hot build time exceeded threshold. Check for excessive macro usage or large modules.";
 
 pub struct BuildCheck;
 
@@ -43,6 +51,17 @@ impl Check for BuildCheck {
         let mut metrics = BuildMetrics::default();
         let mut violations = Vec::new();
         let language = detect_language(ctx.root);
+        let build_config = &ctx.config.check.build;
+
+        // Parse time thresholds
+        let time_cold_max = build_config
+            .time_cold_max
+            .as_ref()
+            .and_then(|s| parse_duration(s).ok());
+        let time_hot_max = build_config
+            .time_hot_max
+            .as_ref()
+            .and_then(|s| parse_duration(s).ok());
 
         // Resolve targets: explicit config > auto-detection
         let targets = resolve_targets(ctx, language);
@@ -118,13 +137,35 @@ impl Check for BuildCheck {
             }
         }
 
-        // Measure build times (only if configured)
-        if ctx.config.ratchet.build_time_cold || ctx.config.ratchet.build_time_hot {
-            if ctx.config.ratchet.build_time_cold {
-                metrics.time_cold = measure_cold_build(ctx.root, language);
+        // Measure build times (only if configured or thresholds set)
+        let should_measure_cold = ctx.config.ratchet.build_time_cold || time_cold_max.is_some();
+        let should_measure_hot = ctx.config.ratchet.build_time_hot || time_hot_max.is_some();
+
+        if should_measure_cold {
+            metrics.time_cold = measure_cold_build(ctx.root, language);
+
+            // Check cold build time threshold
+            if let (Some(duration), Some(max)) = (metrics.time_cold, time_cold_max)
+                && duration > max
+            {
+                violations.push(
+                    Violation::file_only("build", "time_cold_exceeded", TIME_COLD_ADVICE)
+                        .with_threshold(duration.as_millis() as i64, max.as_millis() as i64),
+                );
             }
-            if ctx.config.ratchet.build_time_hot {
-                metrics.time_hot = measure_hot_build(ctx.root, language);
+        }
+
+        if should_measure_hot {
+            metrics.time_hot = measure_hot_build(ctx.root, language);
+
+            // Check hot build time threshold
+            if let (Some(duration), Some(max)) = (metrics.time_hot, time_hot_max)
+                && duration > max
+            {
+                violations.push(
+                    Violation::file_only("build", "time_hot_exceeded", TIME_HOT_ADVICE)
+                        .with_threshold(duration.as_millis() as i64, max.as_millis() as i64),
+                );
             }
         }
 

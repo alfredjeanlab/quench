@@ -558,7 +558,6 @@ edition = "2021"
 ///
 /// > time_cold_max = "60s" - threshold for cold build
 #[test]
-#[ignore = "TODO: Implement time threshold violation logic"]
 fn build_time_cold_exceeded_generates_violation() {
     let temp = Project::empty();
     temp.config(
@@ -595,7 +594,6 @@ edition = "2021"
 ///
 /// > time_hot_max = "5s" - threshold for hot build
 #[test]
-#[ignore = "TODO: Implement time threshold violation logic"]
 fn build_time_hot_exceeded_generates_violation() {
     let temp = Project::empty();
     temp.config(
