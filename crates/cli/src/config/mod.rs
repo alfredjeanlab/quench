@@ -448,6 +448,10 @@ pub struct CheckConfig {
     /// License check configuration.
     #[serde(default)]
     pub license: LicenseConfig,
+
+    /// Build check configuration.
+    #[serde(default)]
+    pub build: BuildConfig,
 }
 
 /// License check configuration.
@@ -462,6 +466,39 @@ pub struct LicenseConfig {
 
     /// Copyright holder.
     pub copyright: Option<String>,
+}
+
+/// Build check configuration.
+#[derive(Debug, Default, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct BuildConfig {
+    /// Check level: "error" | "warn" | "off"
+    pub check: Option<String>,
+
+    /// Explicit targets to measure (auto-detected if not specified).
+    #[serde(default)]
+    pub targets: Vec<String>,
+
+    /// Global maximum binary size (e.g., "10 MB").
+    pub size_max: Option<String>,
+
+    /// Maximum cold build time (e.g., "60s").
+    pub time_cold_max: Option<String>,
+
+    /// Maximum hot build time (e.g., "5s").
+    pub time_hot_max: Option<String>,
+
+    /// Per-target configuration.
+    #[serde(default)]
+    pub target: std::collections::HashMap<String, BuildTargetConfig>,
+}
+
+/// Per-target build configuration.
+#[derive(Debug, Default, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct BuildTargetConfig {
+    /// Maximum binary size for this target.
+    pub size_max: Option<String>,
 }
 
 /// Project-level configuration.

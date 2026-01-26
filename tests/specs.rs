@@ -68,6 +68,9 @@ mod checks_tests;
 #[path = "specs/checks/git.rs"]
 mod checks_git;
 
+#[path = "specs/checks/build.rs"]
+mod checks_build;
+
 // output/
 #[path = "specs/output/format.rs"]
 mod output_format;
