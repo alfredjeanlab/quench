@@ -71,6 +71,9 @@ mod checks_git;
 #[path = "specs/checks/build.rs"]
 mod checks_build;
 
+#[path = "specs/checks/license.rs"]
+mod checks_license;
+
 // output/
 #[path = "specs/output/format.rs"]
 mod output_format;

@@ -1,0 +1,9 @@
+version = 1
+
+[check.license]
+check = "error"
+license = "MIT"
+copyright = "Test Org"
+
+[check.license.patterns]
+shell = ["**/*.sh"]
