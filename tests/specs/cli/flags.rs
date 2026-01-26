@@ -128,4 +128,3 @@ fn check_unknown_long_flag_fails() {
         .code(2)
         .stderr(predicates::str::is_match(r"(?i)(unexpected|unknown|unrecognized)").unwrap());
 }
-

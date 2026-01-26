@@ -173,10 +173,11 @@ fn ci_mode_auto_detects_main_branch() {
     // Use --no-git since default project CLAUDE.md doesn't have Commits section
     let result = cli()
         .pwd(temp.path())
-        .args(&["--ci", "-v", "--no-git"])
+        .env("QUENCH_DEBUG", "1")
+        .args(&["--ci", "--no-git"])
         .passes();
 
-    // Verbose output should mention the detected base
+    // Debug output should mention the detected base
     result.stderr_has("main");
 }
 
@@ -204,7 +205,8 @@ fn ci_mode_falls_back_to_master() {
     // Use --no-git since default project CLAUDE.md doesn't have Commits section
     let result = cli()
         .pwd(temp.path())
-        .args(&["--ci", "-v", "--no-git"])
+        .env("QUENCH_DEBUG", "1")
+        .args(&["--ci", "--no-git"])
         .passes();
 
     result.stderr_has("master");

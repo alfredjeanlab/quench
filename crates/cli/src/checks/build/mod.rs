@@ -21,11 +21,11 @@ use crate::tolerance::{parse_duration, parse_size};
 
 /// Default advice for cold build time threshold violations.
 const TIME_COLD_ADVICE: &str =
-    "Cold build time exceeded threshold. Check for slow compile-time dependencies.";
+    "Cold build time exceeded threshold. Consider optimizing dependencies or build configuration.";
 
 /// Default advice for hot build time threshold violations.
 const TIME_HOT_ADVICE: &str =
-    "Hot build time exceeded threshold. Check for excessive macro usage or large modules.";
+    "Hot build time exceeded threshold. Consider optimizing incremental build setup.";
 
 pub struct BuildCheck;
 

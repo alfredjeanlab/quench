@@ -92,10 +92,7 @@ fn handles_multiple_pairs() {
         result.contains("--[no-]limit"),
         "Expected --[no-]limit: {result}"
     );
-    assert!(
-        result.contains("--fix"),
-        "Should preserve --fix: {result}"
-    );
+    assert!(result.contains("--fix"), "Should preserve --fix: {result}");
 
     // Count lines - should have fewer after consolidation
     let original_option_lines = input.lines().filter(|l| l.contains("--")).count();
