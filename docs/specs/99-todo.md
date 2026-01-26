@@ -530,6 +530,113 @@ layers = false
 external = ["zod", "date-fns"]
 ```
 
+## Build Scripts Validation
+
+Validate that commands referenced in documentation (e.g., "Landing the Plane" sections in `CLAUDE.md`) actually exist in the project's build system.
+
+### Motivation
+
+AI agents and developers follow instructions in `CLAUDE.md` files, but those instructions can become stale. If a `make check` command is documented but the `check` target was removed or renamed, the instructions fail silently or confusingly.
+
+### Detection Flow
+
+1. Parse `CLAUDE.md` (or configured files) for command references
+2. Identify the build system from the command prefix (`make`, `just`, `task`, `npm run`, `rake`)
+3. Verify the target/script exists in the corresponding build file
+4. Report missing or mismatched commands
+
+### Build Systems
+
+| Build System | Detection | Config File | Command Pattern |
+|--------------|-----------|-------------|-----------------|
+| `make` | `Makefile`, `GNUmakefile` | `Makefile` | `make <target>` |
+| `just` | `justfile`, `Justfile` | `justfile` | `just <recipe>` |
+| `task` | `Taskfile.yml`, `Taskfile.yaml` | `Taskfile.yml` | `task <task>` |
+| `npm` | `package.json` | `package.json` | `npm run <script>` |
+| `rake` | `Rakefile` | `Rakefile` | `rake <task>` |
+
+### Configuration
+
+```toml
+[check.build_scripts]
+check = "error"                         # error | warn | off
+
+# Files to scan for command references
+sources = ["CLAUDE.md", "README.md", "CONTRIBUTING.md"]
+
+# Sections to parse (heading patterns)
+sections = ["*Landing*", "*Development*", "*Build*", "*Setup*"]
+
+# Build systems to validate against (auto-detect if not specified)
+systems = ["make", "just", "npm"]
+```
+
+### Command Extraction
+
+Extract commands from markdown code blocks and inline code:
+
+~~~markdown
+```bash
+make check
+npm run build
+```
+
+Run `just test` to execute tests.
+~~~
+
+**Extraction rules:**
+- Fenced code blocks with `bash`, `sh`, `shell`, or no language tag
+- Inline code matching known command patterns
+- Commands chained with `&&` are split and validated individually
+
+### Output
+
+```
+build_scripts: FAIL
+  CLAUDE.md:45: missing target (make → Makefile)
+    `make check` referenced but `check` target not found in Makefile
+    Available targets: build, test, clean, lint
+
+  CLAUDE.md:52: missing script (npm → package.json)
+    `npm run deploy` referenced but `deploy` script not found
+    Available scripts: build, test, start, lint
+```
+
+### JSON Output
+
+```json
+{
+  "file": "CLAUDE.md",
+  "line": 45,
+  "type": "missing_target",
+  "system": "make",
+  "config_file": "Makefile",
+  "command": "make check",
+  "target": "check",
+  "available": ["build", "test", "clean", "lint"],
+  "advice": "`make check` referenced but `check` target not found in Makefile"
+}
+```
+
+### Parsing Build Files
+
+**Makefile**: Extract targets from lines matching `^target:` (excluding `.PHONY`, pattern rules)
+
+**justfile**: Extract recipes from lines matching `^recipe-name:` or `^[recipe-name]:`
+
+**Taskfile.yml**: Parse YAML, extract keys from `tasks:` mapping
+
+**package.json**: Parse JSON, extract keys from `scripts` object
+
+**Rakefile**: Extract tasks from `task :name` or `desc`/`task` pairs
+
+### Edge Cases
+
+- **Compound commands**: `make clean && make build` validates both targets
+- **Variable targets**: `make $(TARGET)` skipped (dynamic)
+- **Conditional commands**: `[ -f Makefile ] && make check` still validates
+- **Subshells**: Commands in `$()` or backticks are extracted and validated
+
 ## Notes from Interview
 
 - Primary users are AI agents ("landing the plane")
