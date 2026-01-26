@@ -148,6 +148,14 @@ pub struct Violation {
     /// Commit scope for git check violations (e.g., "api" from "feat(api): add endpoint").
     #[serde(skip_serializing_if = "Option::is_none")]
     pub scope: Option<String>,
+
+    /// Expected value (for license check violations - e.g., expected license or year).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expected: Option<String>,
+
+    /// Found value (for license check violations - e.g., actual license or year).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub found: Option<String>,
 }
 
 impl Violation {
@@ -180,6 +188,8 @@ impl Violation {
             change_type: None,
             lines_changed: None,
             scope: None,
+            expected: None,
+            found: None,
         }
     }
 
@@ -211,6 +221,8 @@ impl Violation {
             change_type: None,
             lines_changed: None,
             scope: None,
+            expected: None,
+            found: None,
         }
     }
 
@@ -243,6 +255,8 @@ impl Violation {
             change_type: None,
             lines_changed: None,
             scope: None,
+            expected: None,
+            found: None,
         }
     }
 
@@ -314,6 +328,17 @@ impl Violation {
     /// Add scope context for git commit violations.
     pub fn with_scope(mut self, scope: impl Into<String>) -> Self {
         self.scope = Some(scope.into());
+        self
+    }
+
+    /// Add expected/found values for license check violations.
+    pub fn with_expected_found(
+        mut self,
+        expected: impl Into<String>,
+        found: impl Into<String>,
+    ) -> Self {
+        self.expected = Some(expected.into());
+        self.found = Some(found.into());
         self
     }
 }

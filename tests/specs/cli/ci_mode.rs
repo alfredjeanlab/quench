@@ -60,11 +60,10 @@ fn ci_mode_enables_build_check() {
 ///
 /// > CI mode (`--ci`) enables slow checks (build, license).
 #[test]
-#[ignore = "TODO: Requires fixture with license files; currently both produce stub"]
 fn ci_mode_enables_license_check() {
     let temp = default_project();
 
-    // Without --ci, license check should return a stub
+    // Without --ci, license check passes silently (CI-only check)
     let result = cli().pwd(temp.path()).args(&["--license"]).json().passes();
     let license = result
         .checks()
@@ -72,12 +71,18 @@ fn ci_mode_enables_license_check() {
         .find(|c| c.get("name").and_then(|n| n.as_str()) == Some("license"))
         .expect("license check should exist");
     assert_eq!(
+        license.get("passed").and_then(|s| s.as_bool()),
+        Some(true),
+        "license check should pass without --ci (CI-only check skipped)"
+    );
+    // Verify it's not marked as a stub (real implementation)
+    assert_ne!(
         license.get("stub").and_then(|s| s.as_bool()),
         Some(true),
-        "license check should be a stub without --ci"
+        "license check is no longer a stub"
     );
 
-    // With --ci, license check should run (no stub field or stub=false)
+    // With --ci, license check runs (but passes because no license config)
     let result = cli()
         .pwd(temp.path())
         .args(&["--ci", "--license"])
@@ -88,10 +93,10 @@ fn ci_mode_enables_license_check() {
         .iter()
         .find(|c| c.get("name").and_then(|n| n.as_str()) == Some("license"))
         .expect("license check should exist");
-    assert_ne!(
-        license.get("stub").and_then(|s| s.as_bool()),
+    assert_eq!(
+        license.get("passed").and_then(|s| s.as_bool()),
         Some(true),
-        "license check should run with --ci"
+        "license check should pass with --ci (no license config = disabled)"
     );
 }
 

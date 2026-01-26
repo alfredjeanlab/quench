@@ -77,6 +77,8 @@ pub(super) fn create_threshold_violation(
         change_type: None,
         lines_changed: None,
         scope: None,
+        expected: None,
+        found: None,
     })
 }
 

@@ -225,6 +225,8 @@ fn make_policy_violation(
         change_type: None,
         lines_changed: None,
         scope: None,
+        expected: None,
+        found: None,
     }]
 }
 

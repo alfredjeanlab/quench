@@ -184,6 +184,8 @@ impl CachedViolation {
             change_type: None,
             lines_changed: None,
             scope: None,
+            expected: None,
+            found: None,
         }
     }
 }

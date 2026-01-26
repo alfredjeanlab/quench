@@ -334,6 +334,26 @@ impl TextFormatter {
                 let target = v.target.as_deref().unwrap_or("unknown");
                 format!("target not found: {}", target)
             }
+            // License check - human-readable descriptions
+            "missing_header" => "missing license header".to_string(),
+            "wrong_license" => match (&v.expected, &v.found) {
+                (Some(expected), Some(found)) => {
+                    format!(
+                        "wrong license identifier (expected: {}, found: {})",
+                        expected, found
+                    )
+                }
+                _ => "wrong license identifier".to_string(),
+            },
+            "outdated_year" => match (&v.expected, &v.found) {
+                (Some(expected), Some(found)) => {
+                    format!(
+                        "outdated copyright year (expected: {}, found: {})",
+                        expected, found
+                    )
+                }
+                _ => "outdated copyright year".to_string(),
+            },
             // Other checks - existing behavior
             _ => self.format_default_desc(v),
         }

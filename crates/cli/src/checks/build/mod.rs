@@ -99,6 +99,8 @@ impl Check for BuildCheck {
                         change_type: None,
                         lines_changed: None,
                         scope: None,
+                        expected: None,
+                        found: None,
                     });
                 }
             }
@@ -132,6 +134,8 @@ impl Check for BuildCheck {
                         change_type: None,
                         lines_changed: None,
                         scope: None,
+                        expected: None,
+                        found: None,
                     });
                 }
             }

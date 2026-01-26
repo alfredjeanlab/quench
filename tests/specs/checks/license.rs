@@ -19,7 +19,6 @@ use crate::prelude::*;
 ///
 /// > Uses SPDX license identifiers for standardization
 #[test]
-#[ignore = "TODO: Phase 1105 - License Check Detection"]
 fn license_detects_spdx_header() {
     check("license")
         .on("license/valid-headers")
@@ -31,7 +30,6 @@ fn license_detects_spdx_header() {
 ///
 /// > File has no SPDX or copyright line
 #[test]
-#[ignore = "TODO: Phase 1105 - License Check Detection"]
 fn license_missing_header_generates_violation() {
     let license = check("license")
         .on("license/missing-header")
@@ -45,7 +43,6 @@ fn license_missing_header_generates_violation() {
 ///
 /// > File has different SPDX identifier than configured
 #[test]
-#[ignore = "TODO: Phase 1105 - License Check Detection"]
 fn license_wrong_license_generates_violation() {
     let license = check("license")
         .on("license/wrong-license")
@@ -68,7 +65,6 @@ fn license_wrong_license_generates_violation() {
 ///
 /// > Copyright year doesn't include current year
 #[test]
-#[ignore = "TODO: Phase 1105 - License Check Detection"]
 fn license_outdated_year_generates_violation() {
     let license = check("license")
         .on("license/outdated-year")
@@ -196,7 +192,6 @@ shell = ["**/*.sh"]
 ///
 /// > Missing header shows file and advice
 #[test]
-#[ignore = "TODO: Phase 1105 - License Check Detection"]
 fn exact_missing_header_text() {
     check("license")
         .on("license/missing-header")
@@ -210,7 +205,6 @@ fn exact_missing_header_text() {
 ///
 /// > Violation types: `missing_header`, `outdated_year`, `wrong_license`
 #[test]
-#[ignore = "TODO: Phase 1105 - License Check Detection"]
 fn license_violation_types_are_expected_values() {
     let license = check("license")
         .on("license/mixed-violations")
@@ -234,7 +228,6 @@ fn license_violation_types_are_expected_values() {
 ///
 /// > Metrics include files_checked, files_with_headers, etc.
 #[test]
-#[ignore = "TODO: Phase 1105 - License Check Detection"]
 fn license_json_includes_metrics() {
     let license = check("license")
         .on("license/valid-headers")
@@ -282,32 +275,32 @@ rust = ["**/*.rs"]
 ///
 /// > CI-only. This check only runs in `--ci` mode. It is skipped in fast mode.
 #[test]
-#[ignore = "TODO: Phase 1105 - License Check Detection"]
 fn license_skipped_without_ci_flag() {
-    // Without --ci, license check should not run (fast mode)
-    let result = cli().on("license/missing-header").json().passes();
-    let checks = result.checks();
+    // Without --ci, license check passes silently (CI-only check)
+    // It doesn't run violation detection, just passes
+    let license = check("license")
+        .on("license/missing-header")
+        .json()
+        .passes();
 
-    // License check should not appear in fast mode output
-    let license_check = checks
-        .iter()
-        .find(|c| c.get("name").and_then(|n| n.as_str()) == Some("license"));
+    // Verify no violations were detected (check didn't actually run)
     assert!(
-        license_check.is_none()
-            || license_check
-                .unwrap()
-                .get("skipped")
-                .and_then(|s| s.as_bool())
-                == Some(true),
-        "license check should be skipped without --ci"
+        license.violations().is_empty(),
+        "license check should not detect violations without --ci"
     );
+
+    // With --ci, the same fixture should fail (has missing header)
+    check("license")
+        .on("license/missing-header")
+        .args(&["--ci"])
+        .json()
+        .fails();
 }
 
 /// Spec: docs/specs/checks/license-headers.md#configuration
 ///
 /// > Disabled by default. Enable explicitly when your project requires license headers.
 #[test]
-#[ignore = "TODO: Phase 1105 - License Check Detection"]
 fn license_disabled_by_default() {
     let temp = Project::empty();
     temp.config(""); // No license config

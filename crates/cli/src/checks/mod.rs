@@ -19,6 +19,7 @@ pub mod cloc;
 pub mod docs;
 pub mod escapes;
 pub mod git;
+pub mod license;
 pub mod placeholders;
 pub mod stub;
 pub mod testing;
@@ -46,7 +47,7 @@ pub fn all_checks() -> Vec<Arc<dyn Check>> {
         tests::TestsCheck::new(),
         Arc::new(git::GitCheck),
         Arc::new(build::BuildCheck),
-        Arc::new(stub::StubCheck::new("license", "License headers", false)),
+        Arc::new(license::LicenseCheck),
     ]
 }
 

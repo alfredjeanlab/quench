@@ -466,6 +466,15 @@ pub struct LicenseConfig {
 
     /// Copyright holder.
     pub copyright: Option<String>,
+
+    /// File patterns to check, organized by language.
+    /// Example: { rust = ["**/*.rs"], shell = ["**/*.sh"] }
+    #[serde(default)]
+    pub patterns: std::collections::HashMap<String, Vec<String>>,
+
+    /// Exclude patterns (files matching these won't be checked).
+    #[serde(default)]
+    pub exclude: Vec<String>,
 }
 
 /// Build check configuration.
