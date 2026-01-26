@@ -66,7 +66,8 @@ fn verbose_shows_cache_stats() {
     // Uses quench_cmd() directly - cache tests need cache enabled
     // First run: cache miss
     quench_cmd()
-        .args(["check", "-v"])
+        .args(["check"])
+        .env("QUENCH_DEBUG", "1")
         .current_dir(temp.path())
         .assert()
         .success()
@@ -74,7 +75,8 @@ fn verbose_shows_cache_stats() {
 
     // Second run: cache hit
     quench_cmd()
-        .args(["check", "-v"])
+        .args(["check"])
+        .env("QUENCH_DEBUG", "1")
         .current_dir(temp.path())
         .assert()
         .success()
@@ -94,7 +96,8 @@ fn modified_file_causes_cache_miss() {
     // Uses quench_cmd() directly - cache tests need cache enabled
     // First run: build cache (all misses)
     quench_cmd()
-        .args(["check", "-v"])
+        .args(["check"])
+        .env("QUENCH_DEBUG", "1")
         .current_dir(temp.path())
         .assert()
         .success()
@@ -102,7 +105,8 @@ fn modified_file_causes_cache_miss() {
 
     // Second run: should hit cache (all hits)
     quench_cmd()
-        .args(["check", "-v"])
+        .args(["check"])
+        .env("QUENCH_DEBUG", "1")
         .current_dir(temp.path())
         .assert()
         .success()
@@ -114,7 +118,8 @@ fn modified_file_causes_cache_miss() {
 
     // Third run: should have at least one miss for the touched file
     quench_cmd()
-        .args(["check", "-v"])
+        .args(["check"])
+        .env("QUENCH_DEBUG", "1")
         .current_dir(temp.path())
         .assert()
         .success()
@@ -133,7 +138,8 @@ fn config_change_invalidates_cache() {
     // Uses quench_cmd() directly - cache tests need cache enabled
     // First run: build cache with default config
     quench_cmd()
-        .args(["check", "-v"])
+        .args(["check"])
+        .env("QUENCH_DEBUG", "1")
         .current_dir(temp.path())
         .assert()
         .success()
@@ -141,7 +147,8 @@ fn config_change_invalidates_cache() {
 
     // Second run: should hit cache
     quench_cmd()
-        .args(["check", "-v"])
+        .args(["check"])
+        .env("QUENCH_DEBUG", "1")
         .current_dir(temp.path())
         .assert()
         .success()
@@ -159,7 +166,8 @@ max_lines = 500
 
     // Third run: should miss due to config change (cache invalidated)
     quench_cmd()
-        .args(["check", "-v"])
+        .args(["check"])
+        .env("QUENCH_DEBUG", "1")
         .current_dir(temp.path())
         .assert()
         .success()
@@ -193,7 +201,8 @@ fn cache_persists_across_invocations() {
 
     // Second run: should use persisted cache (all hits)
     quench_cmd()
-        .args(["check", "-v"])
+        .args(["check"])
+        .env("QUENCH_DEBUG", "1")
         .current_dir(temp.path())
         .assert()
         .success()

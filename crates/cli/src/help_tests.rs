@@ -80,7 +80,7 @@ fn handles_multiple_pairs() {
       --no-color    Disable color
       --limit <N>   Set limit
       --no-limit    No limit
-      --verbose     Verbose mode"#;
+      --fix         Auto-fix mode"#;
 
     let result = consolidate_negatable_flags(input);
 
@@ -93,8 +93,8 @@ fn handles_multiple_pairs() {
         "Expected --[no-]limit: {result}"
     );
     assert!(
-        result.contains("--verbose"),
-        "Should preserve --verbose: {result}"
+        result.contains("--fix"),
+        "Should preserve --fix: {result}"
     );
 
     // Count lines - should have fewer after consolidation

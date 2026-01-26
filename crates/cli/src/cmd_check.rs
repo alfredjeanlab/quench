@@ -26,8 +26,18 @@ use quench::runner::{CheckRunner, RunnerConfig};
 use quench::timing::{PhaseTiming, TimingInfo};
 use quench::walker::{FileWalker, WalkerConfig};
 
+/// Check if debug logging is enabled via QUENCH_DEBUG env var.
+fn debug_logging() -> bool {
+    std::env::var("QUENCH_DEBUG").is_ok_and(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+}
+
+/// Check if debug files mode is enabled via QUENCH_DEBUG_FILES env var.
+fn debug_files() -> bool {
+    std::env::var("QUENCH_DEBUG_FILES").is_ok_and(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+}
+
 /// Run the check command.
-pub fn run(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
+pub fn run(_cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
     let total_start = Instant::now();
 
     // Validate flag combinations
@@ -60,12 +70,8 @@ pub fn run(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
         }
     };
 
-    // Resolve config from root directory (not cwd)
-    let config_path = if cli.config.is_some() {
-        discovery::resolve_config(cli.config.as_deref(), &cwd)?
-    } else {
-        discovery::find_config(&root)
-    };
+    // Resolve config from root directory
+    let config_path = discovery::find_config(&root);
 
     let mut config = match &config_path {
         Some(path) => {
@@ -77,11 +83,6 @@ pub fn run(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
             config::Config::default()
         }
     };
-
-    // Config-only mode: validate and exit
-    if args.config_only {
-        return Ok(ExitCode::Success);
-    }
 
     tracing::trace!("check command starting");
 
@@ -211,7 +212,7 @@ pub fn run(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
     let (rx, handle) = walker.walk(&root);
 
     // Process files
-    if args.debug_files {
+    if debug_files() {
         // Debug mode: just list files
         for file in rx {
             // Make paths relative to root for cleaner output
@@ -219,7 +220,7 @@ pub fn run(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
             println!("{}", display_path.display());
         }
         let stats = handle.join();
-        if args.verbose {
+        if debug_logging() {
             eprintln!(
                 "Scanned {} files, {} errors, {} symlink loops",
                 stats.files_found, stats.errors, stats.symlink_loops
@@ -235,7 +236,7 @@ pub fn run(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
     let discovery_ms = discovery_start.elapsed().as_millis() as u64;
 
     // Report stats in verbose mode
-    if args.verbose {
+    if debug_logging() {
         eprintln!("Max depth limit: {}", args.max_depth);
         if stats.symlink_loops > 0 {
             eprintln!("Warning: {} symlink loop(s) detected", stats.symlink_loops);
@@ -267,7 +268,7 @@ pub fn run(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
         // Get staged files only
         match get_staged_files(&root) {
             Ok(files) => {
-                if args.verbose {
+                if debug_logging() {
                     eprintln!("Checking staged files");
                     eprintln!("{} files staged", files.len());
                 }
@@ -281,7 +282,7 @@ pub fn run(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
     } else if let Some(ref base) = base_branch {
         match get_changed_files(&root, base) {
             Ok(files) => {
-                if args.verbose {
+                if debug_logging() {
                     eprintln!("Comparing against base: {}", base);
                     eprintln!("{} files changed", files.len());
                 }
@@ -314,7 +315,6 @@ pub fn run(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
         ci_mode: args.ci,
         base_branch,
         staged: args.staged,
-        verbose: args.verbose,
     });
 
     // Set up caching (unless --no-cache)
@@ -365,7 +365,7 @@ pub fn run(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
     };
 
     // Report cache stats in verbose mode
-    if args.verbose
+    if debug_logging()
         && let Some(cache) = &cache
     {
         let stats = cache.stats();
@@ -398,7 +398,7 @@ pub fn run(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
             }
             Ok(None) => {
                 // No baseline yet - pass but suggest creating one
-                if args.verbose {
+                if debug_logging() {
                     eprintln!(
                         "No baseline found at {}. Run with --fix to create.",
                         baseline_path.display()
@@ -525,7 +525,7 @@ pub fn run(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
     if let Some(ref save_path) = args.save {
         if let Err(e) = save_metrics_to_file(save_path, &output) {
             eprintln!("quench: warning: failed to save metrics: {}", e);
-        } else if args.verbose {
+        } else if debug_logging() {
             eprintln!("Saved metrics to {}", save_path.display());
         }
     }
@@ -540,7 +540,7 @@ pub fn run(cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
         let json = serde_json::to_string(&output)?;
         if let Err(e) = save_to_git_notes(&root, &json) {
             eprintln!("quench: warning: failed to save to git notes: {}", e);
-        } else if args.verbose {
+        } else if debug_logging() {
             eprintln!("Saved metrics to git notes (refs/notes/quench)");
         }
     }

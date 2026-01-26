@@ -20,7 +20,7 @@ Write specs by reading `docs/specs/`, not by reading `src/`.
 - Use fixtures from `tests/fixtures/`
 - Reference the spec doc section in a doc comment
 - Use `#[ignore = "TODO: Phase N - description"]` for unimplemented specs
-- Create temp dirs for config-only tests
+- Create temp dirs for config tests
 
 ## DO NOT
 

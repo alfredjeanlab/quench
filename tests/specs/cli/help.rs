@@ -140,9 +140,7 @@ fn check_help_contains_all_options() {
     let stdout = String::from_utf8_lossy(&output.stdout);
 
     // Core options
-    assert!(stdout.contains("--config"), "Missing --config");
     assert!(stdout.contains("--output"), "Missing --output");
-    assert!(stdout.contains("--verbose"), "Missing --verbose");
     assert!(stdout.contains("--fix"), "Missing --fix");
     assert!(stdout.contains("--dry-run"), "Missing --dry-run");
     assert!(stdout.contains("--ci"), "Missing --ci");
@@ -150,7 +148,6 @@ fn check_help_contains_all_options() {
     assert!(stdout.contains("--base"), "Missing --base");
     assert!(stdout.contains("--staged"), "Missing --staged");
     assert!(stdout.contains("--max-depth"), "Missing --max-depth");
-    assert!(stdout.contains("--config-only"), "Missing --config-only");
 }
 
 /// Spec: No duplicate flag entries after consolidation

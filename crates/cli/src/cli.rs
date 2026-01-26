@@ -11,13 +11,17 @@ use clap::{Parser, Subcommand};
 /// A fast linting tool for AI agents that measures quality signals
 #[derive(Parser)]
 #[command(name = "quench")]
-#[command(version, about, long_about = None)]
+#[command(version, about, long_about = None, disable_version_flag = true)]
 #[command(propagate_version = true)]
 #[command(styles = help::styles())]
 pub struct Cli {
-    /// Use specific config file
-    #[arg(short = 'C', long = "config", global = true, env = "QUENCH_CONFIG")]
-    pub config: Option<PathBuf>,
+    /// Print version
+    #[arg(short = 'v', long = "version", global = true, action = clap::ArgAction::Version)]
+    version: (),
+
+    /// Hidden alias for backwards compatibility
+    #[arg(short = 'V', global = true, hide = true, action = clap::ArgAction::Version)]
+    version_compat: (),
 
     #[command(subcommand)]
     pub command: Option<Command>,
@@ -51,10 +55,6 @@ pub struct CheckArgs {
     #[arg(long)]
     pub no_limit: bool,
 
-    /// Validate config and exit without running checks
-    #[arg(long = "config-only")]
-    pub config_only: bool,
-
     /// Maximum directory depth to traverse
     #[arg(long, default_value_t = 100)]
     pub max_depth: usize,
@@ -66,14 +66,6 @@ pub struct CheckArgs {
     /// Check only staged changes (pre-commit hook)
     #[arg(long)]
     pub staged: bool,
-
-    /// List scanned files (for debugging)
-    #[arg(long, hide = true)]
-    pub debug_files: bool,
-
-    /// Enable verbose output
-    #[arg(long, short = 'v')]
-    pub verbose: bool,
 
     /// Bypass the cache (force fresh check)
     #[arg(long)]

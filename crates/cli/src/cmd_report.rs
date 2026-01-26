@@ -14,13 +14,11 @@ use quench::discovery;
 use quench::report;
 
 /// Run the report command.
-pub fn run(cli: &Cli, args: &ReportArgs) -> anyhow::Result<()> {
+pub fn run(_cli: &Cli, args: &ReportArgs) -> anyhow::Result<()> {
     let cwd = std::env::current_dir()?;
 
     // Find and load config
-    let config = if let Some(ref path) = cli.config {
-        config::load_with_warnings(path)?
-    } else if let Some(path) = discovery::find_config(&cwd) {
+    let config = if let Some(path) = discovery::find_config(&cwd) {
         config::load_with_warnings(&path)?
     } else {
         config::Config::default()

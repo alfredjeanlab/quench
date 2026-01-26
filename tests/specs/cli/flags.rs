@@ -41,22 +41,6 @@ fn short_version_flag_works() {
 
 /// Spec: docs/specs/01-cli.md#global-flags
 ///
-/// > -C <FILE> specifies config file (short for --config)
-#[test]
-fn short_config_flag_works() {
-    let temp = Project::empty();
-    temp.file("custom.toml", &format!("version = 1\n{MINIMAL_CONFIG}"));
-
-    let config_path = temp.path().join("custom.toml");
-    quench_cmd()
-        .args(["-C", config_path.to_str().unwrap(), "check"])
-        .current_dir(temp.path())
-        .assert()
-        .success();
-}
-
-/// Spec: docs/specs/01-cli.md#global-flags
-///
 /// > Unknown global flags produce error, not silently ignored
 #[test]
 fn unknown_global_flag_fails() {
@@ -145,21 +129,3 @@ fn check_unknown_long_flag_fails() {
         .stderr(predicates::str::is_match(r"(?i)(unexpected|unknown|unrecognized)").unwrap());
 }
 
-// =============================================================================
-// CONFIG FILE ERROR SPECS
-// =============================================================================
-
-/// Spec: Error messages should be helpful and actionable.
-///
-/// > Missing config file should suggest alternatives.
-#[test]
-fn missing_config_suggests_alternatives() {
-    let temp = Project::empty();
-
-    // Use a non-existent config path
-    cli()
-        .pwd(temp.path())
-        .args(&["-C", "nonexistent.toml", "check"])
-        .exits(2)
-        .stderr_has("quench.toml");
-}

@@ -60,8 +60,6 @@ pub struct RunnerContext<'a> {
     pub ci_mode: bool,
     /// Whether to collect coverage.
     pub collect_coverage: bool,
-    /// Whether verbose output is enabled.
-    pub verbose: bool,
 }
 
 /// Trait for pluggable test runners.

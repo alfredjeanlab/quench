@@ -24,7 +24,6 @@ fn make_ctx(root: &std::path::Path) -> RunnerContext<'_> {
         root,
         ci_mode: false,
         collect_coverage: false,
-        verbose: false,
     }
 }
 

@@ -50,7 +50,6 @@ fn stub_check_result_marked_as_stub() {
         ci_mode: false,
         base_branch: None,
         staged: false,
-        verbose: false,
     };
 
     let result = check.run(&ctx);

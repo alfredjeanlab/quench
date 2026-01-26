@@ -22,6 +22,11 @@ use serde_json::json;
 
 use crate::adapter::{Adapter, FileKind, GenericAdapter};
 use crate::check::{Check, CheckContext, CheckResult, Violation};
+
+/// Check if debug logging is enabled via QUENCH_DEBUG env var.
+fn debug_logging() -> bool {
+    std::env::var("QUENCH_DEBUG").is_ok_and(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+}
 use crate::checks::placeholders::{
     PlaceholderMetrics, collect_placeholder_metrics, default_js_patterns, default_rust_patterns,
 };
@@ -732,7 +737,6 @@ impl TestsCheck {
             root: ctx.root,
             ci_mode: ctx.ci_mode,
             collect_coverage: ctx.ci_mode, // Coverage only in CI
-            verbose: ctx.verbose,
         };
 
         // Filter suites for current mode
@@ -780,7 +784,7 @@ impl TestsCheck {
         let suite_name = suite.name.clone().unwrap_or_else(|| suite.runner.clone());
 
         // Verbose: show which suite is starting
-        if runner_ctx.verbose {
+        if debug_logging() {
             eprintln!("  Running suite: {} ({})", suite_name, suite.runner);
         }
 
@@ -789,7 +793,7 @@ impl TestsCheck {
             && let Err(e) = run_setup_command(setup, runner_ctx.root)
         {
             // Setup failure skips the suite
-            if runner_ctx.verbose {
+            if debug_logging() {
                 eprintln!("  SKIP {} (setup failed)", suite_name);
             }
             return SuiteResult {
@@ -805,7 +809,7 @@ impl TestsCheck {
         let runner = match get_runner(&suite.runner) {
             Some(r) => r,
             None => {
-                if runner_ctx.verbose {
+                if debug_logging() {
                     eprintln!("  SKIP {} (unknown runner)", suite_name);
                 }
                 return SuiteResult {
@@ -820,7 +824,7 @@ impl TestsCheck {
 
         // Check runner availability
         if !runner.available(runner_ctx) {
-            if runner_ctx.verbose {
+            if debug_logging() {
                 eprintln!("  SKIP {} (runner not available)", suite_name);
             }
             return SuiteResult {
@@ -857,7 +861,7 @@ impl TestsCheck {
         let coverage_by_package = run_result.coverage_by_package.clone();
 
         // Verbose: show suite completion
-        if runner_ctx.verbose {
+        if debug_logging() {
             let status = if run_result.passed { "PASS" } else { "FAIL" };
             eprintln!(
                 "  {} {} ({} tests, {}ms)",

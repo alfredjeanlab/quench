@@ -3,7 +3,6 @@
 //! Tests that quench correctly handles:
 //! - NO_COLOR (disables color output per no-color.org)
 //! - COLOR (forces color output)
-//! - QUENCH_CONFIG (sets config file location)
 //! - QUENCH_LOG (enables debug/trace logging)
 //! - Unknown QUENCH_* vars (silently ignored)
 //!
@@ -40,26 +39,6 @@ fn env_no_color_disables_color() {
         !stdout.contains("\x1b["),
         "output should not contain ANSI codes"
     );
-}
-
-/// Spec: docs/specs/02-config.md#environment-variables
-///
-/// > QUENCH_CONFIG sets config file location
-#[test]
-fn env_config_sets_path() {
-    let temp = Project::empty();
-    temp.file(
-        "custom-config.toml",
-        &format!("version = 1\n{MINIMAL_CONFIG}"),
-    );
-
-    let config_path = temp.path().join("custom-config.toml");
-    quench_cmd()
-        .arg("check")
-        .current_dir(temp.path())
-        .env("QUENCH_CONFIG", config_path.to_str().unwrap())
-        .assert()
-        .success();
 }
 
 /// Spec: docs/specs/02-config.md#environment-variables

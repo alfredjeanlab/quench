@@ -10,7 +10,6 @@ use crate::init::CursorMarker;
 fn parse_bare_invocation() {
     let cli = Cli::parse_from(["quench"]);
     assert!(cli.command.is_none());
-    assert!(cli.config.is_none());
 }
 
 #[test]
@@ -59,18 +58,6 @@ fn parse_init_with_force() {
     } else {
         panic!("expected init command");
     }
-}
-
-#[test]
-fn parse_global_config_flag() {
-    let cli = Cli::parse_from(["quench", "-C", "custom.toml", "check"]);
-    assert_eq!(cli.config, Some(PathBuf::from("custom.toml")));
-}
-
-#[test]
-fn parse_global_config_long_flag() {
-    let cli = Cli::parse_from(["quench", "--config", "custom.toml", "check"]);
-    assert_eq!(cli.config, Some(PathBuf::from("custom.toml")));
 }
 
 #[test]

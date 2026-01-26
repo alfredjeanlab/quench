@@ -67,10 +67,11 @@ fn no_baseline_verbose_suggests_fix() {
     temp.file("Cargo.toml", CARGO_TOML);
     temp.file("src/lib.rs", "fn main() {}");
 
-    // Uses quench_cmd() directly for --verbose flag
+    // Uses quench_cmd() directly for debug output
     quench_cmd()
-        .args(["check", "--verbose"])
+        .args(["check"])
         .current_dir(temp.path())
+        .env("QUENCH_DEBUG", "1")
         .assert()
         .success()
         .stderr(predicates::str::contains("No baseline found"));

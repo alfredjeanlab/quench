@@ -102,12 +102,10 @@ Flags for development and debugging:
 
 | Flag | Description |
 |------|-------------|
-| `--config` | Validate config and exit (don't run checks) |
 | `--no-cache` | Disable file cache (always re-check all files) |
 | `--timing` | Show timing breakdown (file walking, pattern matching, etc.) |
 
 ```bash
-quench check --config         # Validate quench.toml only
 quench check --no-cache       # Force fresh check, ignore cache
 quench check --timing         # Show where time is spent
 ```
@@ -236,8 +234,7 @@ Available on all commands:
 | Flag | Description |
 |------|-------------|
 | `-h, --help` | Show help |
-| `-V, --version` | Show version |
-| `-C, --config <FILE>` | Use specific config file |
+| `-v, --version` | Show version |
 
 ## Exit Codes
 

@@ -73,7 +73,7 @@ fn file_walking_respects_gitignore() {
     // src/lib.rs should be scanned, target/debug.rs should be ignored
     cli()
         .on("gitignore-test")
-        .args(&["--debug-files"])
+        .env("QUENCH_DEBUG_FILES", "1")
         .passes()
         .stdout_has("src/lib.rs")
         .stdout_lacks("target/");
@@ -87,7 +87,7 @@ fn file_walking_ignores_gitignore_glob_patterns() {
     // Files matching *.generated.rs should be ignored
     cli()
         .on("gitignore-test")
-        .args(&["--debug-files"])
+        .env("QUENCH_DEBUG_FILES", "1")
         .passes()
         .stdout_lacks(".generated.rs");
 }
@@ -100,7 +100,7 @@ fn file_walking_respects_nested_gitignore() {
     // Nested .gitignore files should also be respected
     cli()
         .on("gitignore-test")
-        .args(&["--debug-files"])
+        .env("QUENCH_DEBUG_FILES", "1")
         .passes()
         .stdout_lacks("vendor/");
 }
@@ -117,7 +117,7 @@ fn file_walking_respects_custom_ignore_patterns() {
     // Files matching patterns in [project.ignore] should be ignored
     cli()
         .on("custom-ignore")
-        .args(&["--debug-files"])
+        .env("QUENCH_DEBUG_FILES", "1")
         .passes()
         .stdout_has("src/lib.rs")
         .stdout_lacks(".snapshot");
@@ -131,7 +131,7 @@ fn file_walking_respects_custom_directory_patterns() {
     // testdata/ directory should be completely ignored
     cli()
         .on("custom-ignore")
-        .args(&["--debug-files"])
+        .env("QUENCH_DEBUG_FILES", "1")
         .passes()
         .stdout_lacks("testdata/");
 }
@@ -144,7 +144,7 @@ fn file_walking_respects_double_star_patterns() {
     // **/fixtures/** should match fixtures at any depth
     cli()
         .on("custom-ignore")
-        .args(&["--debug-files"])
+        .env("QUENCH_DEBUG_FILES", "1")
         .passes()
         .stdout_lacks("fixtures/");
 }
@@ -165,13 +165,13 @@ fn file_walking_detects_symlink_loops() {
 
 /// Spec: docs/specs/20-performance.md#deep-directory-trees
 ///
-/// > Symlink loops should be reported when verbose
+/// > Symlink loops should be reported when debug logging
 #[test]
-fn file_walking_reports_symlink_loops_in_verbose_mode() {
-    // With --verbose, symlink loops should be mentioned
+fn file_walking_reports_symlink_loops_in_debug_mode() {
+    // With QUENCH_DEBUG, symlink loops should be mentioned
     cli()
         .on("symlink-loop")
-        .args(&["--verbose"])
+        .env("QUENCH_DEBUG", "1")
         .passes()
         .stderr_has(predicates::str::contains("symlink").or(predicates::str::contains("loop")));
 }
@@ -184,7 +184,7 @@ fn file_walking_scans_normal_files_despite_symlink_loops() {
     // src/lib.rs should still be scanned even though a loop exists
     cli()
         .on("symlink-loop")
-        .args(&["--debug-files"])
+        .env("QUENCH_DEBUG_FILES", "1")
         .passes()
         .stdout_has("src/lib.rs");
 }
@@ -203,7 +203,7 @@ fn file_walking_respects_default_depth_limit() {
     // bench-deep has files at level 50 (within limit) and 120 (beyond)
     cli()
         .on("bench-deep")
-        .args(&["--debug-files"])
+        .env("QUENCH_DEBUG_FILES", "1")
         .passes()
         .stdout_has("mid.rs") // level 50, within limit
         .stdout_lacks("deep.rs"); // level 120, beyond limit
@@ -218,7 +218,8 @@ fn file_walking_respects_custom_depth_limit() {
     // With a lower depth limit, fewer files should be scanned
     cli()
         .on("bench-deep")
-        .args(&["--debug-files", "--max-depth", "25"])
+        .args(&["--max-depth", "25"])
+        .env("QUENCH_DEBUG_FILES", "1")
         .passes()
         .stdout_lacks("mid.rs"); // level 50, now beyond limit
 }
@@ -227,12 +228,12 @@ fn file_walking_respects_custom_depth_limit() {
 ///
 /// > Depth limit warnings in verbose mode
 #[test]
-fn file_walking_warns_on_depth_limit_in_verbose() {
+fn file_walking_warns_on_depth_limit_in_debug_mode() {
     ensure_bench_deep_fixture();
-    // When files are skipped due to depth, verbose mode should mention it
+    // When files are skipped due to depth, debug mode should mention it
     cli()
         .on("bench-deep")
-        .args(&["--verbose"])
+        .env("QUENCH_DEBUG", "1")
         .passes()
         .stderr_has(predicates::str::contains("depth").or(predicates::str::contains("limit")));
 }

@@ -288,23 +288,3 @@ fn timing_no_cache_shows_zero_hits() {
         .passes()
         .stderr_has("cache: 0/");
 }
-
-/// Spec: --timing without checks shows only discovery phase
-#[test]
-fn timing_config_only_shows_discovery() {
-    let temp = Project::empty();
-    temp.config(
-        r#"
-        [check.cloc]
-        max_lines = 1000
-    "#,
-    );
-    temp.file("src/main.rs", "fn main() {}");
-
-    cli()
-        .args(&["--timing", "--config-only"])
-        .pwd(temp.path())
-        .passes()
-        .stderr_lacks("discovery:") // --config-only doesn't walk files
-        .stderr_lacks("checking:");
-}

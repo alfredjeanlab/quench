@@ -335,26 +335,6 @@ fn limit_message_when_truncated() {
 }
 
 // =============================================================================
-// Config Validation Mode
-// =============================================================================
-
-/// Spec: docs/specs/01-cli.md#commands (implied)
-///
-/// > --config-only validates config and exits without running checks
-#[test]
-fn config_flag_validates_and_exits() {
-    let temp = default_project();
-    cli().pwd(temp.path()).args(&["--config-only"]).passes();
-}
-
-/// Spec: docs/specs/01-cli.md#commands (implied)
-///
-/// > --config-only with invalid config returns exit code 2
-#[test]
-fn config_flag_invalid_returns_code_2() {
-    cli().on("config-error").args(&["--config-only"]).exits(2);
-}
-
 // =============================================================================
 // Debug Output
 // =============================================================================

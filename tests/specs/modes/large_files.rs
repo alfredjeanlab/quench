@@ -25,10 +25,10 @@ fn large_file_skipped_with_warning() {
     let large_file = File::create(&large_path).unwrap();
     large_file.set_len(15 * 1024 * 1024).unwrap();
 
-    // Run with verbose and QUENCH_LOG=warn to see the tracing warning
+    // Run with QUENCH_DEBUG and QUENCH_LOG=warn to see the tracing warning
     cli()
         .pwd(project.path())
-        .args(&["--verbose"])
+        .env("QUENCH_DEBUG", "1")
         .env("QUENCH_LOG", "warn")
         .passes()
         .stderr_has("skipping")
@@ -136,7 +136,7 @@ fn multiple_large_files_skipped() {
     // All should be reported as skipped (with QUENCH_LOG=warn for tracing output)
     cli()
         .pwd(project.path())
-        .args(&["--verbose"])
+        .env("QUENCH_DEBUG", "1")
         .env("QUENCH_LOG", "warn")
         .passes()
         .stderr_has("huge1.rs")
