@@ -334,9 +334,9 @@ fn build_consolidated_line(positive: &OptionInfo, _negative: &OptionInfo) -> Str
     }
 
     // Calculate padding to align descriptions
-    // Standard clap help uses about 25-30 chars for option names
+    // Standard clap help aligns descriptions at column 31
     let opt_len = parts.iter().map(|s| s.len()).sum::<usize>();
-    let target_len = 27; // Approximate column for descriptions
+    let target_len = 31; // Match clap's description column
     let padding = if opt_len < target_len {
         " ".repeat(target_len - opt_len)
     } else {
