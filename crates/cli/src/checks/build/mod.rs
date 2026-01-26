@@ -16,7 +16,8 @@ use std::time::{Duration, Instant};
 use serde_json::json;
 
 use crate::adapter::{ProjectLanguage, detect_language};
-use crate::check::{Check, CheckContext, CheckResult};
+use crate::check::{Check, CheckContext, CheckResult, Violation};
+use crate::tolerance::parse_size;
 
 pub struct BuildCheck;
 
@@ -40,13 +41,80 @@ impl Check for BuildCheck {
         }
 
         let mut metrics = BuildMetrics::default();
+        let mut violations = Vec::new();
         let language = detect_language(ctx.root);
 
-        // Measure binary sizes
-        let targets = get_build_targets(ctx.root, language);
-        for target in targets {
-            if let Some(size) = measure_binary_size(ctx.root, &target, language) {
-                metrics.sizes.insert(target, size);
+        // Resolve targets: explicit config > auto-detection
+        let targets = resolve_targets(ctx, language);
+        let explicit_targets = !ctx.config.check.build.targets.is_empty();
+
+        // Measure binary sizes and check thresholds
+        for target in &targets {
+            if let Some(size) = measure_binary_size(ctx.root, target, language) {
+                metrics.sizes.insert(target.clone(), size);
+
+                // Check threshold
+                if let Some(threshold) = get_size_threshold(ctx, target)
+                    && size > threshold
+                {
+                    violations.push(Violation {
+                        file: None,
+                        line: None,
+                        violation_type: "size_exceeded".to_string(),
+                        advice: "Reduce binary size. Check for unnecessary dependencies."
+                            .to_string(),
+                        value: Some(size as i64),
+                        threshold: Some(threshold as i64),
+                        pattern: None,
+                        lines: None,
+                        nonblank: None,
+                        other_file: None,
+                        section: None,
+                        commit: None,
+                        message: None,
+                        expected_docs: None,
+                        area: None,
+                        area_match: None,
+                        path: None,
+                        target: Some(target.clone()),
+                        change_type: None,
+                        lines_changed: None,
+                        scope: None,
+                    });
+                }
+            }
+        }
+
+        // Check for missing targets (only when explicitly configured)
+        if explicit_targets {
+            for target in &targets {
+                if !metrics.sizes.contains_key(target) {
+                    violations.push(Violation {
+                        file: None,
+                        line: None,
+                        violation_type: "missing_target".to_string(),
+                        advice:
+                            "Configured build target not found. Verify target exists and builds successfully."
+                                .to_string(),
+                        value: None,
+                        threshold: None,
+                        pattern: None,
+                        lines: None,
+                        nonblank: None,
+                        other_file: None,
+                        section: None,
+                        commit: None,
+                        message: None,
+                        expected_docs: None,
+                        area: None,
+                        area_match: None,
+                        path: None,
+                        target: Some(target.clone()),
+                        change_type: None,
+                        lines_changed: None,
+                        scope: None,
+                    });
+                }
             }
         }
 
@@ -61,11 +129,21 @@ impl Check for BuildCheck {
         }
 
         // Return result with metrics
-        if metrics.sizes.is_empty() && metrics.time_cold.is_none() && metrics.time_hot.is_none() {
-            // No metrics collected - still pass but as stub
-            CheckResult::stub(self.name())
-        } else {
+        let has_metrics =
+            !metrics.sizes.is_empty() || metrics.time_cold.is_some() || metrics.time_hot.is_some();
+
+        if !violations.is_empty() {
+            // Violations found - fail with metrics if available
+            if has_metrics {
+                CheckResult::failed(self.name(), violations).with_metrics(metrics.to_json())
+            } else {
+                CheckResult::failed(self.name(), violations)
+            }
+        } else if has_metrics {
             CheckResult::passed(self.name()).with_metrics(metrics.to_json())
+        } else {
+            // No metrics collected and no violations - return stub
+            CheckResult::stub(self.name())
         }
     }
 }
@@ -153,6 +231,35 @@ fn get_go_targets(root: &Path) -> Vec<String> {
     }
 
     Vec::new()
+}
+
+/// Resolve build targets: explicit config > auto-detection.
+fn resolve_targets(ctx: &CheckContext, language: ProjectLanguage) -> Vec<String> {
+    // Use explicit config if provided
+    if !ctx.config.check.build.targets.is_empty() {
+        return ctx.config.check.build.targets.clone();
+    }
+
+    // Fall back to auto-detection
+    get_build_targets(ctx.root, language)
+}
+
+/// Get size threshold for a target: per-target > global > None.
+fn get_size_threshold(ctx: &CheckContext, target: &str) -> Option<u64> {
+    // Check per-target config first
+    if let Some(target_config) = ctx.config.check.build.target.get(target)
+        && let Some(ref size_str) = target_config.size_max
+    {
+        return parse_size(size_str).ok();
+    }
+
+    // Fall back to global threshold
+    ctx.config
+        .check
+        .build
+        .size_max
+        .as_ref()
+        .and_then(|s| parse_size(s).ok())
 }
 
 /// Measure binary size for a target.

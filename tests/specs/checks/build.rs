@@ -328,7 +328,6 @@ edition = "2021"
 ///
 /// > size_max = "10 MB" (Global default)
 #[test]
-#[ignore = "TODO: Implement size threshold violation logic"]
 fn build_size_exceeded_generates_violation() {
     let temp = Project::empty();
     temp.config(
@@ -377,7 +376,6 @@ edition = "2021"
 ///
 /// > Binary under threshold passes
 #[test]
-#[ignore = "TODO: Implement size threshold violation logic"]
 fn build_size_under_threshold_passes() {
     let temp = Project::empty();
     temp.config(
@@ -420,7 +418,6 @@ edition = "2021"
 ///
 /// > [check.build.target.myapp] size_max = "5 MB" - Per-target override
 #[test]
-#[ignore = "TODO: Implement per-target size threshold"]
 fn build_per_target_size_max() {
     let temp = Project::empty();
     temp.config(
@@ -646,7 +643,6 @@ edition = "2021"
 ///
 /// > Violation types: `size_exceeded`
 #[test]
-#[ignore = "TODO: Implement size threshold violation logic"]
 fn build_violation_type_is_size_exceeded() {
     let temp = Project::empty();
     temp.config(
@@ -690,7 +686,6 @@ edition = "2021"
 ///
 /// > Violation types: `missing_target`
 #[test]
-#[ignore = "TODO: Implement missing_target violation"]
 fn build_violation_type_is_missing_target() {
     let temp = Project::empty();
     temp.config(
@@ -808,7 +803,6 @@ edition = "2021"
 ///
 /// > size_exceeded advice: "Reduce binary size. Check for unnecessary dependencies."
 #[test]
-#[ignore = "TODO: Implement size threshold violation logic"]
 fn build_size_exceeded_has_correct_advice() {
     let temp = Project::empty();
     temp.config(

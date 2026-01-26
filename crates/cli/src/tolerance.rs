@@ -47,7 +47,7 @@ pub fn parse_duration(s: &str) -> Result<Duration, ParseError> {
     Ok(Duration::from_secs_f64(secs))
 }
 
-/// Parse a size string like "100KB", "5MB", "1GB".
+/// Parse a size string like "100KB", "5MB", "1GB", "100 bytes".
 pub fn parse_size(s: &str) -> Result<u64, ParseError> {
     let s = s.trim().to_uppercase();
 
@@ -57,6 +57,8 @@ pub fn parse_size(s: &str) -> Result<u64, ParseError> {
         (n, 1024 * 1024)
     } else if let Some(n) = s.strip_suffix("KB") {
         (n, 1024)
+    } else if let Some(n) = s.strip_suffix("BYTES") {
+        (n, 1)
     } else if let Some(n) = s.strip_suffix('B') {
         (n, 1)
     } else {
