@@ -1,0 +1,10 @@
+version = 1
+
+[check.agents]
+required = []
+
+[ruby.suppress]
+check = "comment"
+
+[ruby.suppress.test]
+check = "allow"

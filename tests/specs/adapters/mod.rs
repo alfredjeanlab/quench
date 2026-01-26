@@ -6,5 +6,6 @@
 
 pub mod golang;
 pub mod javascript;
+pub mod ruby;
 pub mod rust;
 pub mod shell;
