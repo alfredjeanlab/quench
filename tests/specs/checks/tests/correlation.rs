@@ -264,7 +264,7 @@ mod tests {
 /// Spec: docs/specs/checks/tests.md#placeholder-tests
 ///
 /// > Placeholder tests indicate planned test implementation.
-/// > ```rust
+/// > ```rust,ignore
 /// > #[test]
 /// > #[ignore = "TODO: implement parser"]
 /// > fn test_parser() { todo!() }
