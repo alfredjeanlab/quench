@@ -5,12 +5,14 @@
 //!
 //! Executes Go tests using `go test -json` and parses NDJSON output.
 
+use std::collections::HashMap;
 use std::io::ErrorKind;
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
 
 use serde::Deserialize;
 
+use super::go_coverage::collect_go_coverage;
 use super::{
     RunnerContext, TestResult, TestRunResult, TestRunner, format_timeout_error, run_with_timeout,
 };
@@ -89,7 +91,22 @@ impl TestRunner for GoRunner {
         let total_time = start.elapsed();
         let stdout = String::from_utf8_lossy(&output.stdout);
 
-        parse_go_json(&stdout, total_time)
+        let mut result = parse_go_json(&stdout, total_time);
+
+        // Collect coverage if requested
+        if ctx.collect_coverage {
+            let coverage = collect_go_coverage(ctx.root, config.path.as_deref());
+            if let Some(line_coverage) = coverage.line_coverage {
+                let mut cov_map = HashMap::new();
+                cov_map.insert("go".to_string(), line_coverage);
+                result = result.with_coverage(cov_map);
+            }
+            if !coverage.packages.is_empty() {
+                result = result.with_package_coverage(coverage.packages);
+            }
+        }
+
+        result
     }
 }
 

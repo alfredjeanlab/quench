@@ -3,5 +3,5 @@ version = 1
 [project]
 name = "go-multi"
 
-[golang]
-targets = ["cmd/server", "cmd/cli"]
+[[check.tests.suite]]
+runner = "go"
