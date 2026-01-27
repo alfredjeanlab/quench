@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+#### Commands
+- Shell completions via `clap_complete` for bash, zsh, fish, and PowerShell
+
+#### Behavior
+- **Ratcheting**: Git notes as default baseline storage (replaces `.quench/baseline.json`)
+- **Ratcheting**: Coverage ratcheting with per-package support
+- **License check**: `--fix` functionality for automatic license file generation
+
+#### Test Runners
+- Ruby test runners: RSpec, Minitest, and Cucumber support
+- JavaScript coverage collection for JS test runners
+- JavaScript test runner auto-detection
+- Go coverage collection for Go test runner
+
+#### Adapters
+- Ruby language adapter with project detection and escape patterns
+- Ruby language profile support in `quench init`
+
+#### Build Metrics
+- JavaScript bundle size metrics
+
 ## [0.3.0]
 
 ### Added
