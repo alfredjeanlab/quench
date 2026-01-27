@@ -30,8 +30,14 @@ pub struct MetricComparisonOutput {
     pub name: String,
     pub current: f64,
     pub baseline: f64,
-    pub tolerance: f64,
-    pub max_allowed: f64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tolerance: Option<f64>,
+    /// Minimum allowed value (for floor metrics like coverage)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_allowed: Option<f64>,
+    /// Maximum allowed value (for ceiling metrics like size, escapes, timing)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_allowed: Option<f64>,
     pub passed: bool,
     pub improved: bool,
 }
@@ -56,12 +62,29 @@ impl From<&RatchetResult> for RatchetOutput {
 
 impl From<&MetricComparison> for MetricComparisonOutput {
     fn from(comp: &MetricComparison) -> Self {
+        // Coverage uses min_allowed (floor), others use max_allowed (ceiling)
+        let is_coverage = comp.name.starts_with("coverage.");
+        let tolerance = if comp.tolerance > 0.0 {
+            Some(comp.tolerance)
+        } else {
+            None
+        };
+
         Self {
             name: comp.name.clone(),
             current: comp.current,
             baseline: comp.baseline,
-            tolerance: comp.tolerance,
-            max_allowed: comp.threshold,
+            tolerance,
+            min_allowed: if is_coverage {
+                Some(comp.threshold)
+            } else {
+                None
+            },
+            max_allowed: if !is_coverage {
+                Some(comp.threshold)
+            } else {
+                None
+            },
             passed: comp.passed,
             improved: comp.improved,
         }

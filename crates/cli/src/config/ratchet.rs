@@ -3,6 +3,7 @@
 
 //! Ratcheting configuration.
 
+use std::collections::HashMap;
 use std::time::Duration;
 
 use serde::Deserialize;
@@ -68,6 +69,21 @@ pub struct RatchetConfig {
     /// Days before baseline is considered stale (0 to disable, default: 30).
     #[serde(default = "default_stale_days")]
     pub stale_days: u32,
+
+    /// Per-package ratchet settings.
+    #[serde(default)]
+    pub package: HashMap<String, RatchetPackageConfig>,
+}
+
+/// Per-package ratcheting configuration.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct RatchetPackageConfig {
+    /// Override coverage ratcheting for this package (None = inherit global).
+    pub coverage: Option<bool>,
+
+    /// Override escapes ratcheting for this package (None = inherit global).
+    pub escapes: Option<bool>,
 }
 
 fn default_stale_days() -> u32 {
@@ -100,6 +116,26 @@ impl RatchetConfig {
             .as_ref()
             .and_then(|s| parse_duration(s).ok())
             .or_else(|| self.build_time_tolerance_duration())
+    }
+
+    /// Check if coverage is ratcheted for a specific package.
+    ///
+    /// Returns the package-specific setting if configured, otherwise the global setting.
+    pub fn is_coverage_ratcheted(&self, package: &str) -> bool {
+        self.package
+            .get(package)
+            .and_then(|p| p.coverage)
+            .unwrap_or(self.coverage)
+    }
+
+    /// Check if escapes are ratcheted for a specific package.
+    ///
+    /// Returns the package-specific setting if configured, otherwise the global setting.
+    pub fn is_escapes_ratcheted(&self, package: &str) -> bool {
+        self.package
+            .get(package)
+            .and_then(|p| p.escapes)
+            .unwrap_or(self.escapes)
     }
 }
 

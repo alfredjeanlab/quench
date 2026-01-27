@@ -423,3 +423,382 @@ fn update_baseline_with_perf_metrics() {
     let test_time = baseline.metrics.test_time.as_ref().unwrap();
     assert_eq!(test_time.total, 30.0);
 }
+
+// =============================================================================
+// Coverage Ratcheting Tests
+// =============================================================================
+
+use crate::baseline::CoverageMetrics as BaselineCoverage;
+
+fn make_coverage_config(tolerance: Option<f64>) -> RatchetConfig {
+    RatchetConfig {
+        check: CheckLevel::Error,
+        coverage: true,
+        coverage_tolerance: tolerance,
+        ..Default::default()
+    }
+}
+
+fn make_coverage_baseline(total: f64) -> BaselineMetrics {
+    BaselineMetrics {
+        coverage: Some(BaselineCoverage {
+            total,
+            by_package: None,
+        }),
+        ..Default::default()
+    }
+}
+
+fn make_coverage_current(total: f64) -> CurrentMetrics {
+    CurrentMetrics {
+        coverage: Some(CoverageCurrent {
+            total,
+            by_package: HashMap::new(),
+        }),
+        ..Default::default()
+    }
+}
+
+#[test]
+fn coverage_regression_fails() {
+    let config = make_coverage_config(None);
+    let baseline = make_coverage_baseline(0.80); // 80%
+    let current = make_coverage_current(0.75); // 75%
+
+    let result = compare(&current, &baseline, &config);
+
+    assert!(!result.passed);
+    assert_eq!(result.comparisons.len(), 1);
+    assert!(!result.comparisons[0].passed);
+    assert_eq!(result.comparisons[0].name, "coverage.total");
+    assert_eq!(result.comparisons[0].current, 0.75);
+    assert_eq!(result.comparisons[0].baseline, 0.80);
+}
+
+#[test]
+fn coverage_within_tolerance_passes() {
+    let config = make_coverage_config(Some(0.05)); // 5% tolerance
+    let baseline = make_coverage_baseline(0.80); // 80%
+    let current = make_coverage_current(0.76); // 76% (within 5% tolerance)
+
+    let result = compare(&current, &baseline, &config);
+
+    assert!(result.passed);
+    assert_eq!(result.comparisons.len(), 1);
+    assert!(result.comparisons[0].passed);
+    // Still not an improvement
+    assert!(!result.comparisons[0].improved);
+}
+
+#[test]
+fn coverage_exceeds_tolerance_fails() {
+    let config = make_coverage_config(Some(0.02)); // 2% tolerance
+    let baseline = make_coverage_baseline(0.80); // 80%
+    let current = make_coverage_current(0.75); // 75% (exceeds 2% tolerance)
+
+    let result = compare(&current, &baseline, &config);
+
+    assert!(!result.passed);
+    assert_eq!(result.comparisons[0].threshold, 0.78); // min_allowed = 0.80 - 0.02
+}
+
+#[test]
+fn coverage_improvement_tracked() {
+    let config = make_coverage_config(None);
+    let baseline = make_coverage_baseline(0.75); // 75%
+    let current = make_coverage_current(0.82); // 82%
+
+    let result = compare(&current, &baseline, &config);
+
+    assert!(result.passed);
+    assert_eq!(result.improvements.len(), 1);
+    assert_eq!(result.improvements[0].name, "coverage.total");
+    assert_eq!(result.improvements[0].old_value, 0.75);
+    assert_eq!(result.improvements[0].new_value, 0.82);
+    assert!(result.comparisons[0].improved);
+}
+
+#[test]
+fn coverage_same_value_passes_no_improvement() {
+    let config = make_coverage_config(None);
+    let baseline = make_coverage_baseline(0.80);
+    let current = make_coverage_current(0.80);
+
+    let result = compare(&current, &baseline, &config);
+
+    assert!(result.passed);
+    assert!(result.improvements.is_empty());
+    assert!(result.comparisons[0].passed);
+    assert!(!result.comparisons[0].improved);
+}
+
+#[test]
+fn coverage_disabled_skips_comparison() {
+    let config = RatchetConfig {
+        check: CheckLevel::Error,
+        coverage: false, // Disabled
+        ..Default::default()
+    };
+    let baseline = make_coverage_baseline(0.80);
+    let current = make_coverage_current(0.50); // Major regression
+
+    let result = compare(&current, &baseline, &config);
+
+    // Should pass because coverage checking is disabled
+    assert!(result.passed);
+    assert!(result.comparisons.is_empty());
+}
+
+#[test]
+fn extract_coverage_from_tests_output() {
+    let metrics_json = json!({
+        "total": 30.5,
+        "coverage": { "rust": 0.82 },
+        "coverage_by_package": {
+            "core": 0.90,
+            "cli": 0.65
+        }
+    });
+
+    let check_result = CheckResult::passed("tests").with_metrics(metrics_json);
+    let output = CheckOutput::new("2026-01-20T00:00:00Z".to_string(), vec![check_result]);
+
+    let current = CurrentMetrics::from_output(&output);
+
+    assert!(current.coverage.is_some());
+    let coverage = current.coverage.unwrap();
+    assert_eq!(coverage.total, 0.82);
+    assert_eq!(coverage.by_package.get("core"), Some(&0.90));
+    assert_eq!(coverage.by_package.get("cli"), Some(&0.65));
+}
+
+#[test]
+fn extract_coverage_no_by_package() {
+    let metrics_json = json!({
+        "total": 30.5,
+        "coverage": { "rust": 0.78 }
+    });
+
+    let check_result = CheckResult::passed("tests").with_metrics(metrics_json);
+    let output = CheckOutput::new("2026-01-20T00:00:00Z".to_string(), vec![check_result]);
+
+    let current = CurrentMetrics::from_output(&output);
+
+    assert!(current.coverage.is_some());
+    let coverage = current.coverage.unwrap();
+    assert_eq!(coverage.total, 0.78);
+    assert!(coverage.by_package.is_empty());
+}
+
+#[test]
+fn update_baseline_with_coverage() {
+    let mut baseline = Baseline::new();
+    let current = CurrentMetrics {
+        coverage: Some(CoverageCurrent {
+            total: 0.85,
+            by_package: HashMap::from([("core".to_string(), 0.92), ("cli".to_string(), 0.71)]),
+        }),
+        ..Default::default()
+    };
+
+    update_baseline(&mut baseline, &current);
+
+    assert!(baseline.metrics.coverage.is_some());
+    let coverage = baseline.metrics.coverage.unwrap();
+    assert_eq!(coverage.total, 0.85);
+    assert!(coverage.by_package.is_some());
+    let by_package = coverage.by_package.unwrap();
+    assert_eq!(by_package.get("core"), Some(&0.92));
+    assert_eq!(by_package.get("cli"), Some(&0.71));
+}
+
+#[test]
+fn update_baseline_coverage_empty_by_package() {
+    let mut baseline = Baseline::new();
+    let current = CurrentMetrics {
+        coverage: Some(CoverageCurrent {
+            total: 0.80,
+            by_package: HashMap::new(),
+        }),
+        ..Default::default()
+    };
+
+    update_baseline(&mut baseline, &current);
+
+    assert!(baseline.metrics.coverage.is_some());
+    let coverage = baseline.metrics.coverage.unwrap();
+    assert_eq!(coverage.total, 0.80);
+    assert!(coverage.by_package.is_none()); // Empty map should not be serialized
+}
+
+// =============================================================================
+// Per-Package Ratcheting Tests
+// =============================================================================
+
+use crate::config::RatchetPackageConfig;
+
+fn make_per_package_baseline(by_package: HashMap<String, f64>) -> BaselineMetrics {
+    BaselineMetrics {
+        coverage: Some(BaselineCoverage {
+            total: 0.80,
+            by_package: Some(by_package),
+        }),
+        ..Default::default()
+    }
+}
+
+fn make_per_package_current(total: f64, by_package: HashMap<String, f64>) -> CurrentMetrics {
+    CurrentMetrics {
+        coverage: Some(CoverageCurrent { total, by_package }),
+        ..Default::default()
+    }
+}
+
+#[test]
+fn per_package_coverage_regression_fails() {
+    let config = RatchetConfig {
+        check: CheckLevel::Error,
+        coverage: true,
+        ..Default::default()
+    };
+    let baseline = make_per_package_baseline(HashMap::from([
+        ("core".to_string(), 0.90),
+        ("cli".to_string(), 0.70),
+    ]));
+    let current = make_per_package_current(
+        0.80,
+        HashMap::from([
+            ("core".to_string(), 0.85), // Regression from 90% to 85%
+            ("cli".to_string(), 0.70),  // Same
+        ]),
+    );
+
+    let result = compare(&current, &baseline, &config);
+
+    assert!(!result.passed);
+    // Should have total + 2 per-package comparisons
+    assert_eq!(result.comparisons.len(), 3);
+
+    // Find the core comparison
+    let core_comp = result
+        .comparisons
+        .iter()
+        .find(|c| c.name == "coverage.core")
+        .unwrap();
+    assert!(!core_comp.passed);
+    assert_eq!(core_comp.current, 0.85);
+    assert_eq!(core_comp.baseline, 0.90);
+}
+
+#[test]
+fn per_package_coverage_disabled_skips() {
+    let config = RatchetConfig {
+        check: CheckLevel::Error,
+        coverage: true,
+        package: HashMap::from([(
+            "cli".to_string(),
+            RatchetPackageConfig {
+                coverage: Some(false), // Disable coverage ratcheting for cli
+                escapes: None,
+            },
+        )]),
+        ..Default::default()
+    };
+    let baseline = make_per_package_baseline(HashMap::from([
+        ("core".to_string(), 0.90),
+        ("cli".to_string(), 0.70),
+    ]));
+    let current = make_per_package_current(
+        0.80,
+        HashMap::from([
+            ("core".to_string(), 0.90), // Same
+            ("cli".to_string(), 0.50),  // Regression, but disabled
+        ]),
+    );
+
+    let result = compare(&current, &baseline, &config);
+
+    assert!(result.passed);
+    // Should have total + 1 per-package (core only, cli disabled)
+    assert_eq!(result.comparisons.len(), 2);
+
+    // cli comparison should not exist
+    assert!(result.comparisons.iter().all(|c| c.name != "coverage.cli"));
+}
+
+#[test]
+fn per_package_coverage_improvement_tracked() {
+    let config = RatchetConfig {
+        check: CheckLevel::Error,
+        coverage: true,
+        ..Default::default()
+    };
+    let baseline = make_per_package_baseline(HashMap::from([("core".to_string(), 0.80)]));
+    let current = make_per_package_current(0.85, HashMap::from([("core".to_string(), 0.90)]));
+
+    let result = compare(&current, &baseline, &config);
+
+    assert!(result.passed);
+    // Both total and core should be improvements
+    assert_eq!(result.improvements.len(), 2);
+    assert!(
+        result
+            .improvements
+            .iter()
+            .any(|i| i.name == "coverage.total")
+    );
+    assert!(
+        result
+            .improvements
+            .iter()
+            .any(|i| i.name == "coverage.core")
+    );
+}
+
+#[test]
+fn is_coverage_ratcheted_default() {
+    // Note: RatchetConfig::default() uses bool::default() (false) for coverage,
+    // but serde deserialization uses default_true(). This tests the method logic.
+    let config = RatchetConfig {
+        coverage: true,
+        ..Default::default()
+    };
+
+    assert!(config.is_coverage_ratcheted("any_package"));
+}
+
+#[test]
+fn is_coverage_ratcheted_package_override() {
+    let config = RatchetConfig {
+        coverage: true,
+        package: HashMap::from([(
+            "cli".to_string(),
+            RatchetPackageConfig {
+                coverage: Some(false),
+                escapes: None,
+            },
+        )]),
+        ..Default::default()
+    };
+
+    assert!(config.is_coverage_ratcheted("core")); // Not configured, uses global
+    assert!(!config.is_coverage_ratcheted("cli")); // Explicitly disabled
+}
+
+#[test]
+fn is_escapes_ratcheted_package_override() {
+    let config = RatchetConfig {
+        escapes: true,
+        package: HashMap::from([(
+            "tests".to_string(),
+            RatchetPackageConfig {
+                coverage: None,
+                escapes: Some(false), // Don't ratchet escapes in tests package
+            },
+        )]),
+        ..Default::default()
+    };
+
+    assert!(config.is_escapes_ratcheted("core")); // Uses global
+    assert!(!config.is_escapes_ratcheted("tests")); // Explicitly disabled
+}

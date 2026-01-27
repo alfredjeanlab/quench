@@ -8,7 +8,8 @@ use std::time::Duration;
 
 use crate::baseline::{
     Baseline, BaselineMetrics, BuildTimeMetrics as BaselineBuildTime,
-    EscapesMetrics as BaselineEscapes, TestTimeMetrics as BaselineTestTime,
+    CoverageMetrics as BaselineCoverage, EscapesMetrics as BaselineEscapes,
+    TestTimeMetrics as BaselineTestTime,
 };
 use crate::check::CheckOutput;
 use crate::config::RatchetConfig;
@@ -17,9 +18,17 @@ use crate::config::RatchetConfig;
 #[derive(Debug, Clone, Default)]
 pub struct CurrentMetrics {
     pub escapes: Option<EscapesCurrent>,
+    pub coverage: Option<CoverageCurrent>,
     pub binary_size: Option<HashMap<String, u64>>,
     pub build_time: Option<BuildTimeCurrent>,
     pub test_time: Option<TestTimeCurrent>,
+}
+
+/// Current coverage metrics extracted from tests output.
+#[derive(Debug, Clone)]
+pub struct CoverageCurrent {
+    pub total: f64,
+    pub by_package: HashMap<String, f64>,
 }
 
 /// Current escape metrics extracted from check output.
@@ -64,11 +73,12 @@ impl CurrentMetrics {
             metrics.build_time = extract_build_time(metrics_json);
         }
 
-        // Extract test time metrics
+        // Extract test time and coverage metrics
         if let Some(tests_result) = output.checks.iter().find(|c| c.name == "tests")
             && let Some(ref metrics_json) = tests_result.metrics
         {
             metrics.test_time = extract_test_time(metrics_json);
+            metrics.coverage = extract_coverage_metrics(metrics_json);
         }
 
         metrics
@@ -141,6 +151,30 @@ fn extract_test_time(json: &serde_json::Value) -> Option<TestTimeCurrent> {
         avg: Duration::from_secs_f64(avg),
         max: Duration::from_secs_f64(max),
     })
+}
+
+/// Extract coverage metrics from tests check JSON.
+///
+/// Coverage is stored as a fraction (0.0 to 1.0) in the baseline.
+/// The JSON format has coverage keyed by language (e.g., "rust": 0.82).
+fn extract_coverage_metrics(json: &serde_json::Value) -> Option<CoverageCurrent> {
+    let coverage = json.get("coverage")?;
+
+    // Extract total from first language (typically "rust" or "typescript")
+    let total = coverage.as_object()?.values().next()?.as_f64()?;
+
+    // Extract per-package if available
+    let by_package = json
+        .get("coverage_by_package")
+        .and_then(|v| v.as_object())
+        .map(|obj| {
+            obj.iter()
+                .filter_map(|(k, v)| v.as_f64().map(|f| (k.clone(), f)))
+                .collect()
+        })
+        .unwrap_or_default();
+
+    Some(CoverageCurrent { total, by_package })
 }
 
 /// Result of ratchet comparison.
@@ -269,6 +303,73 @@ pub fn compare(
             }
 
             comparisons.push(comparison);
+        }
+    }
+
+    // Coverage: ratchets UP (higher is better)
+    if config.coverage
+        && let (Some(curr), Some(base)) = (&current.coverage, &baseline.coverage)
+    {
+        let tolerance = config.coverage_tolerance_pct().unwrap_or(0.0);
+        let min_allowed = base.total - tolerance;
+
+        let comparison = MetricComparison {
+            name: "coverage.total".to_string(),
+            current: curr.total,
+            baseline: base.total,
+            tolerance,
+            threshold: min_allowed, // min allowed (floor)
+            passed: curr.total >= min_allowed,
+            improved: curr.total > base.total,
+        };
+
+        if !comparison.passed {
+            passed = false;
+        }
+        if comparison.improved {
+            improvements.push(MetricImprovement {
+                name: "coverage.total".to_string(),
+                old_value: base.total,
+                new_value: curr.total,
+            });
+        }
+        comparisons.push(comparison);
+
+        // Per-package coverage comparison
+        if let Some(base_by_pkg) = &base.by_package {
+            let tolerance = config.coverage_tolerance_pct().unwrap_or(0.0);
+
+            for (pkg, &base_pct) in base_by_pkg {
+                // Check if this package has ratcheting enabled
+                if !config.is_coverage_ratcheted(pkg) {
+                    continue;
+                }
+
+                let curr_pct = curr.by_package.get(pkg).copied().unwrap_or(0.0);
+                let min_allowed = base_pct - tolerance;
+
+                let comparison = MetricComparison {
+                    name: format!("coverage.{}", pkg),
+                    current: curr_pct,
+                    baseline: base_pct,
+                    tolerance,
+                    threshold: min_allowed,
+                    passed: curr_pct >= min_allowed,
+                    improved: curr_pct > base_pct,
+                };
+
+                if !comparison.passed {
+                    passed = false;
+                }
+                if comparison.improved {
+                    improvements.push(MetricImprovement {
+                        name: format!("coverage.{}", pkg),
+                        old_value: base_pct,
+                        new_value: curr_pct,
+                    });
+                }
+                comparisons.push(comparison);
+            }
         }
     }
 
@@ -437,6 +538,18 @@ pub fn update_baseline(baseline: &mut Baseline, current: &CurrentMetrics) {
         if !curr_escapes.test.is_empty() {
             base_escapes.test = Some(curr_escapes.test.clone());
         }
+    }
+
+    // Update coverage metrics
+    if let Some(curr_cov) = &current.coverage {
+        baseline.metrics.coverage = Some(BaselineCoverage {
+            total: curr_cov.total,
+            by_package: if curr_cov.by_package.is_empty() {
+                None
+            } else {
+                Some(curr_cov.by_package.clone())
+            },
+        });
     }
 
     // Update binary size metrics

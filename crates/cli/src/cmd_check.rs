@@ -450,11 +450,18 @@ pub fn run(_cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
                 } else {
                     eprintln!("ratchet: updated baseline");
                     for improvement in &result.improvements {
+                        // Coverage uses "new floor" (ratchets UP), others use "new ceiling" (ratchet DOWN)
+                        let ratchet_label = if improvement.name.starts_with("coverage.") {
+                            "new floor"
+                        } else {
+                            "new ceiling"
+                        };
                         eprintln!(
-                            "  {}: {} -> {} (new ceiling)",
+                            "  {}: {} -> {} ({})",
                             improvement.name,
                             improvement.format_value(improvement.old_value),
                             improvement.format_value(improvement.new_value),
+                            ratchet_label,
                         );
                     }
                 }

@@ -417,11 +417,18 @@ impl TextFormatter {
 
             for comp in &result.comparisons {
                 if !comp.passed {
+                    // Coverage uses "min" (floor), others use "max" (ceiling)
+                    let threshold_label = if comp.name.starts_with("coverage.") {
+                        "min"
+                    } else {
+                        "max"
+                    };
                     writeln!(
                         self.stdout,
-                        "  {}: {} (max: {} from baseline)",
+                        "  {}: {} ({}: {} from baseline)",
                         comp.name,
                         comp.format_value(comp.current),
+                        threshold_label,
                         comp.format_value(comp.baseline)
                     )?;
                     writeln!(self.stdout, "    {}", comp.advice())?;

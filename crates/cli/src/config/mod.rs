@@ -27,7 +27,7 @@ pub use checks::{
 };
 pub use go::{GoConfig, GoPolicyConfig, GoSuppressConfig};
 pub use javascript::{JavaScriptConfig, JavaScriptPolicyConfig};
-pub use ratchet::RatchetConfig;
+pub use ratchet::{RatchetConfig, RatchetPackageConfig};
 pub use ruby::{RubyConfig, RubyPolicyConfig, RubySuppressConfig};
 pub use shell::{ShellConfig, ShellPolicyConfig, ShellSuppressConfig};
 pub use suppress::{SuppressConfig, SuppressLevel, SuppressScopeConfig};

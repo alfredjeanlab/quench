@@ -360,3 +360,189 @@ fn ratchet_disabled_with_check_off() {
 
     cli().pwd(temp.path()).passes();
 }
+
+// =============================================================================
+// Coverage Ratcheting Specs
+// =============================================================================
+
+/// Spec: docs/specs/04-ratcheting.md#coverage
+///
+/// > Coverage can't drop below baseline minus tolerance.
+#[test]
+#[ignore = "TODO: Phase 1202 - Coverage ratcheting requires tests check with coverage metrics"]
+fn coverage_regression_fails() {
+    // This spec requires the tests check to produce coverage metrics, which
+    // depends on the language adapter supporting coverage. Once implemented,
+    // the spec should verify:
+    // - Baseline has coverage: 80%
+    // - Current has coverage: 75%
+    // - Output shows: coverage.total: 75.0% (min: 80.0% from baseline)
+}
+
+/// Spec: docs/specs/04-ratcheting.md#tolerance
+///
+/// > Coverage within tolerance passes.
+#[test]
+#[ignore = "TODO: Phase 1202 - Coverage ratcheting requires tests check with coverage metrics"]
+fn coverage_within_tolerance_passes() {
+    // This spec requires:
+    // - Config with coverage_tolerance = 0.05 (5%)
+    // - Baseline has coverage: 80%
+    // - Current has coverage: 76% (within 5% tolerance)
+    // - Check should pass
+}
+
+// =============================================================================
+// Binary Size Ratcheting Specs
+// =============================================================================
+
+/// Spec: docs/specs/04-ratcheting.md#binary-size
+///
+/// > Binary size can't exceed baseline plus tolerance.
+#[test]
+#[ignore = "TODO: Phase 1215 - Binary size ratcheting requires build check with size metrics"]
+fn binary_size_regression_fails() {
+    // This spec requires the build check to produce binary size metrics.
+    // Once implemented, the spec should verify:
+    // - Baseline has binary_size: 1MB
+    // - Current has binary_size: 1.5MB
+    // - Output shows: binary_size.target: 1.5MB (max: 1MB from baseline)
+}
+
+// =============================================================================
+// Stale Baseline Specs
+// =============================================================================
+
+const RATCHET_STALE_CONFIG: &str = r#"
+version = 1
+
+[ratchet]
+check = "error"
+escapes = true
+stale_days = 30
+
+[[check.escapes.patterns]]
+name = "unsafe"
+pattern = "unsafe"
+action = "count"
+threshold = 100
+"#;
+
+/// Spec: docs/specs/04-ratcheting.md#stale-baseline
+///
+/// > Warns when baseline is older than stale_days threshold.
+#[test]
+fn stale_baseline_warns() {
+    let temp = Project::empty();
+    temp.config(RATCHET_STALE_CONFIG);
+    temp.file("CLAUDE.md", CLAUDE_MD);
+    temp.file("Cargo.toml", CARGO_TOML);
+
+    // Create baseline that is 45 days old
+    fs::create_dir_all(temp.path().join(".quench")).unwrap();
+    fs::write(
+        temp.path().join(".quench/baseline.json"),
+        r#"{
+  "version": 1,
+  "updated": "2025-12-01T00:00:00Z",
+  "metrics": {
+    "escapes": {
+      "source": { "unsafe": 1 }
+    }
+  }
+}"#,
+    )
+    .unwrap();
+
+    // Source matches baseline
+    temp.file("src/lib.rs", "fn f() { unsafe {} }");
+
+    // Check passes but warns about stale baseline
+    quench_cmd()
+        .args(["check"])
+        .current_dir(temp.path())
+        .assert()
+        .success()
+        .stderr(
+            predicates::str::contains("baseline is").and(predicates::str::contains("days old")),
+        );
+}
+
+// =============================================================================
+// Warn Level Specs
+// =============================================================================
+
+const RATCHET_WARN_CONFIG: &str = r#"
+version = 1
+
+[ratchet]
+check = "warn"
+escapes = true
+
+[[check.escapes.patterns]]
+name = "unsafe"
+pattern = "unsafe"
+action = "count"
+threshold = 100
+"#;
+
+/// Spec: docs/specs/04-ratcheting.md#warn-level
+///
+/// > check = "warn" reports regressions but exits 0.
+#[test]
+fn warn_level_reports_but_passes() {
+    let temp = Project::empty();
+    temp.config(RATCHET_WARN_CONFIG);
+    temp.file("CLAUDE.md", CLAUDE_MD);
+    temp.file("Cargo.toml", CARGO_TOML);
+
+    // Create baseline with 1 unsafe
+    fs::create_dir_all(temp.path().join(".quench")).unwrap();
+    fs::write(
+        temp.path().join(".quench/baseline.json"),
+        r#"{
+  "version": 1,
+  "updated": "2026-01-20T00:00:00Z",
+  "metrics": {
+    "escapes": {
+      "source": { "unsafe": 1 }
+    }
+  }
+}"#,
+    )
+    .unwrap();
+
+    // Source has 3 unsafe blocks -> regression, but warn level
+    temp.file(
+        "src/lib.rs",
+        "fn f() {\n    unsafe {}\n    unsafe {}\n    unsafe {}\n}",
+    );
+
+    // Should pass (exit 0) but show warning
+    quench_cmd()
+        .args(["check"])
+        .current_dir(temp.path())
+        .assert()
+        .success()
+        .stdout(predicates::str::contains("ratchet: WARN"))
+        .stdout(predicates::str::contains(
+            "escapes.unsafe: 3 (max: 1 from baseline)",
+        ));
+}
+
+// =============================================================================
+// Per-Package Ratcheting Specs
+// =============================================================================
+
+/// Spec: docs/specs/04-ratcheting.md#per-package
+///
+/// > Per-package ratcheting respects package-specific settings.
+#[test]
+#[ignore = "TODO: Phase 1225 - Per-package ratcheting"]
+fn per_package_coverage_ratchet() {
+    // This spec requires:
+    // - Workspace with multiple packages
+    // - Config with per-package ratchet settings
+    // - Coverage varies by package
+    // - Only ratcheted packages fail on regression
+}
