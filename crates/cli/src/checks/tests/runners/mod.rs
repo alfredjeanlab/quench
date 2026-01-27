@@ -14,6 +14,7 @@ mod go;
 mod go_coverage;
 mod instrumented;
 mod jest;
+mod js_coverage;
 mod js_detect;
 mod kcov;
 mod pytest;
@@ -32,6 +33,7 @@ pub use instrumented::{
     InstrumentedBuild, build_instrumented, collect_instrumented_coverage, coverage_env,
 };
 pub use jest::JestRunner;
+pub use js_coverage::{collect_bun_coverage, collect_jest_coverage, collect_vitest_coverage};
 pub use js_detect::{DetectionResult, DetectionSource, JsRunner, detect_js_runner};
 pub use kcov::{collect_shell_coverage, kcov_available};
 pub use pytest::PytestRunner;
@@ -154,6 +156,8 @@ pub struct AggregatedCoverage {
     pub shell: Option<CoverageResult>,
     /// Go coverage result (merged from all Go sources).
     pub go: Option<CoverageResult>,
+    /// JavaScript coverage result (merged from all JS sources).
+    pub javascript: Option<CoverageResult>,
 }
 
 impl AggregatedCoverage {
@@ -181,6 +185,14 @@ impl AggregatedCoverage {
         });
     }
 
+    /// Merge JavaScript coverage from a suite into the aggregate.
+    pub fn merge_javascript(&mut self, result: CoverageResult) {
+        self.javascript = Some(match self.javascript.take() {
+            Some(existing) => merge_coverage_results(existing, result),
+            None => result,
+        });
+    }
+
     /// Convert to a language -> percentage map for metrics.
     pub fn to_coverage_map(&self) -> HashMap<String, f64> {
         let mut map = HashMap::new();
@@ -199,6 +211,11 @@ impl AggregatedCoverage {
         {
             map.insert("go".to_string(), pct);
         }
+        if let Some(ref javascript) = self.javascript
+            && let Some(pct) = javascript.line_coverage
+        {
+            map.insert("javascript".to_string(), pct);
+        }
         map
     }
 
@@ -212,6 +229,10 @@ impl AggregatedCoverage {
                 .as_ref()
                 .is_some_and(|r| r.line_coverage.is_some())
             || self.go.as_ref().is_some_and(|r| r.line_coverage.is_some())
+            || self
+                .javascript
+                .as_ref()
+                .is_some_and(|r| r.line_coverage.is_some())
     }
 }
 
