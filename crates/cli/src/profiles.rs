@@ -225,6 +225,75 @@ pub fn golang_landing_items() -> &'static [&'static str] {
     ]
 }
 
+/// Ruby profile configuration for quench init.
+pub fn ruby_profile_defaults() -> String {
+    r##"[ruby]
+# No build metrics for interpreted language
+
+[ruby.suppress]
+check = "comment"
+
+[ruby.suppress.test]
+check = "allow"
+
+[ruby.policy]
+lint_changes = "standalone"
+lint_config = [".rubocop.yml", ".rubocop_todo.yml", ".standard.yml"]
+
+[[check.escapes.patterns]]
+name = "binding_pry"
+pattern = "binding\\.pry"
+action = "forbid"
+in_tests = "allow"
+advice = "Remove debugger statement before committing."
+
+[[check.escapes.patterns]]
+name = "byebug"
+pattern = "byebug"
+action = "forbid"
+in_tests = "allow"
+advice = "Remove debugger statement before committing."
+
+[[check.escapes.patterns]]
+name = "debugger"
+pattern = "debugger"
+action = "forbid"
+in_tests = "allow"
+advice = "Remove debugger statement before committing."
+
+[[check.escapes.patterns]]
+name = "eval"
+pattern = "eval\\("
+action = "comment"
+comment = "# METAPROGRAMMING:"
+advice = "Add a # METAPROGRAMMING: comment explaining why eval is necessary."
+
+[[check.escapes.patterns]]
+name = "instance_eval"
+pattern = "instance_eval"
+action = "comment"
+comment = "# METAPROGRAMMING:"
+advice = "Add a # METAPROGRAMMING: comment explaining the DSL or metaprogramming use case."
+
+[[check.escapes.patterns]]
+name = "class_eval"
+pattern = "class_eval"
+action = "comment"
+comment = "# METAPROGRAMMING:"
+advice = "Add a # METAPROGRAMMING: comment explaining the metaprogramming use case."
+"##
+    .to_string()
+}
+
+/// Ruby-specific Landing the Plane checklist items.
+pub fn ruby_landing_items() -> &'static [&'static str] {
+    &[
+        "bundle exec rubocop",
+        "bundle exec rspec",
+        "bundle exec rake test",
+    ]
+}
+
 // =============================================================================
 // PROFILE REGISTRY
 // =============================================================================
@@ -237,7 +306,15 @@ pub struct ProfileRegistry;
 impl ProfileRegistry {
     /// Get all available profile names.
     pub fn available() -> &'static [&'static str] {
-        &["rust", "golang", "javascript", "shell", "claude", "cursor"]
+        &[
+            "rust",
+            "golang",
+            "javascript",
+            "ruby",
+            "shell",
+            "claude",
+            "cursor",
+        ]
     }
 
     /// Get profile content by name.
@@ -250,6 +327,7 @@ impl ProfileRegistry {
             "shell" => Some(shell_profile_defaults()),
             "golang" | "go" => Some(golang_profile_defaults()),
             "javascript" | "js" | "typescript" | "ts" => Some(javascript_profile_defaults()),
+            "ruby" | "rb" => Some(ruby_profile_defaults()),
             "claude" => Some(claude_profile_defaults().to_string()),
             "cursor" => Some(cursor_profile_defaults().to_string()),
             _ => None,
@@ -284,6 +362,7 @@ impl ProfileRegistry {
             "js" | "ts" | "typescript" | "node" => Some("javascript"),
             "go" => Some("golang"),
             "bash" | "zsh" | "sh" => Some("shell"),
+            "rb" | "rails" | "rake" => Some("ruby"),
             _ => None,
         }
     }
@@ -360,6 +439,15 @@ pub fn shell_detected_section() -> &'static str {
 shell.cloc.check = "error"
 shell.policy.check = "error"
 shell.suppress.check = "forbid"
+"#
+}
+
+/// Minimal Ruby section for auto-detection output.
+pub fn ruby_detected_section() -> &'static str {
+    r#"[ruby]
+ruby.cloc.check = "error"
+ruby.policy.check = "error"
+ruby.suppress.check = "comment"
 "#
 }
 

@@ -595,3 +595,148 @@ fn init_detected_language_uses_dotted_keys() {
     assert!(config.contains("rust.policy.check"));
     assert!(config.contains("rust.suppress.check"));
 }
+
+// =============================================================================
+// Ruby Profile and Detection Specs
+// =============================================================================
+
+/// Spec: docs/specs/langs/ruby.md#profile-defaults
+///
+/// > --with ruby configures Ruby defaults
+#[test]
+fn init_with_ruby_configures_ruby_defaults() {
+    let temp = Project::empty();
+
+    quench_cmd()
+        .args(["init", "--with", "ruby"])
+        .current_dir(temp.path())
+        .assert()
+        .success()
+        .stdout(predicates::str::contains("ruby"));
+
+    let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
+    assert!(config.contains("[ruby]"));
+    assert!(config.contains("[ruby.suppress]"));
+    assert!(config.contains("[ruby.policy]"));
+    assert!(
+        config.contains("binding"),
+        "should have debugger escape pattern"
+    );
+}
+
+/// Spec: docs/specs/langs/ruby.md#detection
+///
+/// > Auto-detects Ruby from Gemfile
+#[test]
+fn init_auto_detects_ruby_from_gemfile() {
+    let temp = Project::empty();
+    temp.file("Gemfile", "source 'https://rubygems.org'\n");
+
+    quench_cmd()
+        .args(["init"])
+        .current_dir(temp.path())
+        .assert()
+        .success();
+
+    let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
+    assert!(config.contains("[ruby]"));
+}
+
+/// Spec: docs/specs/01-cli.md#explicit-profiles
+///
+/// > --with rb is an alias for ruby
+#[test]
+fn init_with_rb_alias() {
+    let temp = Project::empty();
+
+    quench_cmd()
+        .args(["init", "--with", "rb"])
+        .current_dir(temp.path())
+        .assert()
+        .success();
+
+    let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
+    assert!(config.contains("[ruby]"));
+}
+
+/// Spec: docs/specs/langs/ruby.md#detection
+///
+/// > Auto-detects Ruby from *.gemspec
+#[test]
+fn init_auto_detects_ruby_from_gemspec() {
+    let temp = Project::empty();
+    temp.file("myapp.gemspec", "Gem::Specification.new do |s|\nend\n");
+
+    quench_cmd()
+        .args(["init"])
+        .current_dir(temp.path())
+        .assert()
+        .success();
+
+    let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
+    assert!(config.contains("[ruby]"));
+}
+
+/// Spec: docs/specs/langs/ruby.md#detection
+///
+/// > Auto-detects Ruby from config.ru (Rack)
+#[test]
+fn init_auto_detects_ruby_from_config_ru() {
+    let temp = Project::empty();
+    temp.file("config.ru", "run MyApp\n");
+
+    quench_cmd()
+        .args(["init"])
+        .current_dir(temp.path())
+        .assert()
+        .success();
+
+    let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
+    assert!(config.contains("[ruby]"));
+}
+
+/// Spec: docs/specs/langs/ruby.md#detection
+///
+/// > Auto-detects Ruby from config/application.rb (Rails)
+#[test]
+fn init_auto_detects_ruby_from_rails() {
+    let temp = Project::empty();
+    temp.file("config/application.rb", "module MyApp\nend\n");
+
+    quench_cmd()
+        .args(["init"])
+        .current_dir(temp.path())
+        .assert()
+        .success();
+
+    let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
+    assert!(config.contains("[ruby]"));
+}
+
+/// Spec: docs/specs/langs/ruby.md#profile-defaults
+///
+/// > Ruby profile includes escape patterns for debuggers
+#[test]
+fn init_ruby_profile_includes_debugger_patterns() {
+    let temp = Project::empty();
+
+    quench_cmd()
+        .args(["init", "--with", "ruby"])
+        .current_dir(temp.path())
+        .assert()
+        .success();
+
+    let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
+    assert!(
+        config.contains("binding_pry") || config.contains("binding\\\\.pry"),
+        "config should have binding.pry escape pattern"
+    );
+    assert!(
+        config.contains("byebug"),
+        "config should have byebug escape pattern"
+    );
+    assert!(
+        config.contains("# METAPROGRAMMING:"),
+        "config should have # METAPROGRAMMING: comment marker"
+    );
+}
