@@ -12,6 +12,7 @@ pub enum DetectedLanguage {
     Golang,
     JavaScript,
     Shell,
+    Ruby,
 }
 
 /// Agents that can be detected in a project.
@@ -61,6 +62,15 @@ pub fn detect_languages(root: &Path) -> Vec<DetectedLanguage> {
         languages.push(DetectedLanguage::Shell);
     }
 
+    // Ruby: Gemfile, *.gemspec, config.ru, or config/application.rb exists
+    if root.join("Gemfile").exists()
+        || has_gemspec(root)
+        || root.join("config.ru").exists()
+        || root.join("config/application.rb").exists()
+    {
+        languages.push(DetectedLanguage::Ruby);
+    }
+
     languages
 }
 
@@ -79,6 +89,19 @@ fn has_sh_files(dir: &Path) -> bool {
             entries.filter_map(|e| e.ok()).any(|entry| {
                 let path = entry.path();
                 path.is_file() && path.extension().and_then(|e| e.to_str()) == Some("sh")
+            })
+        })
+        .unwrap_or(false)
+}
+
+/// Check if project root contains *.gemspec files.
+fn has_gemspec(root: &Path) -> bool {
+    root.read_dir()
+        .ok()
+        .map(|entries| {
+            entries.filter_map(|e| e.ok()).any(|entry| {
+                let path = entry.path();
+                path.is_file() && path.extension().and_then(|e| e.to_str()) == Some("gemspec")
             })
         })
         .unwrap_or(false)

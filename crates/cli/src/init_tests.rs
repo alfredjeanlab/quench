@@ -93,6 +93,47 @@ fn no_markers_returns_empty() {
 }
 
 // =============================================================================
+// Ruby Detection Tests
+// =============================================================================
+
+#[test]
+fn detect_ruby_from_gemfile() {
+    let temp = TempDir::new().unwrap();
+    fs::write(temp.path().join("Gemfile"), "source 'https://rubygems.org'").unwrap();
+
+    let detected = detect_languages(temp.path());
+    assert!(detected.contains(&DetectedLanguage::Ruby));
+}
+
+#[test]
+fn detect_ruby_from_gemspec() {
+    let temp = TempDir::new().unwrap();
+    fs::write(temp.path().join("myapp.gemspec"), "Gem::Specification.new").unwrap();
+
+    let detected = detect_languages(temp.path());
+    assert!(detected.contains(&DetectedLanguage::Ruby));
+}
+
+#[test]
+fn detect_ruby_from_config_ru() {
+    let temp = TempDir::new().unwrap();
+    fs::write(temp.path().join("config.ru"), "run MyApp").unwrap();
+
+    let detected = detect_languages(temp.path());
+    assert!(detected.contains(&DetectedLanguage::Ruby));
+}
+
+#[test]
+fn detect_ruby_from_rails() {
+    let temp = TempDir::new().unwrap();
+    fs::create_dir_all(temp.path().join("config")).unwrap();
+    fs::write(temp.path().join("config/application.rb"), "module MyApp").unwrap();
+
+    let detected = detect_languages(temp.path());
+    assert!(detected.contains(&DetectedLanguage::Ruby));
+}
+
+// =============================================================================
 // Agent Detection Tests
 // =============================================================================
 

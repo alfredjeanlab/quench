@@ -10,8 +10,8 @@ use crate::error::ExitCode;
 use crate::init::{DetectedAgent, DetectedLanguage, detect_agents, detect_languages};
 use crate::profiles::{
     ProfileRegistry, agents_section, default_template_base, default_template_suffix,
-    golang_detected_section, javascript_detected_section, rust_detected_section,
-    shell_detected_section,
+    golang_detected_section, javascript_detected_section, ruby_detected_section,
+    rust_detected_section, shell_detected_section,
 };
 
 /// Run the `init` command to create a quench.toml configuration file.
@@ -100,6 +100,7 @@ pub fn run(args: &InitArgs) -> Result<ExitCode> {
                 DetectedLanguage::Golang => cfg.push_str(golang_detected_section()),
                 DetectedLanguage::JavaScript => cfg.push_str(javascript_detected_section()),
                 DetectedLanguage::Shell => cfg.push_str(shell_detected_section()),
+                DetectedLanguage::Ruby => cfg.push_str(ruby_detected_section()),
             }
         }
 
@@ -111,6 +112,7 @@ pub fn run(args: &InitArgs) -> Result<ExitCode> {
                 DetectedLanguage::Golang => "golang",
                 DetectedLanguage::JavaScript => "javascript",
                 DetectedLanguage::Shell => "shell",
+                DetectedLanguage::Ruby => "ruby",
             });
         }
         for agent in &detected_agents {
