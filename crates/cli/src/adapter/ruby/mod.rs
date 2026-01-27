@@ -137,7 +137,7 @@ impl RubyAdapter {
     }
 
     /// Check if a path matches ignore patterns.
-    fn is_ignored(&self, path: &Path) -> bool {
+    pub fn should_ignore(&self, path: &Path) -> bool {
         let path_str = path.to_string_lossy();
 
         // Check explicit ignore patterns
@@ -176,7 +176,7 @@ impl Adapter for RubyAdapter {
 
     fn classify(&self, path: &Path) -> FileKind {
         // Check ignore patterns first
-        if self.is_ignored(path) {
+        if self.should_ignore(path) {
             return FileKind::Other;
         }
 

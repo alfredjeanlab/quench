@@ -4,6 +4,32 @@
 //! Language adapters provide language-specific behavior for checks.
 //!
 //! See docs/specs/10-language-adapters.md for specification.
+//!
+//! # Language Adapter Pattern
+//!
+//! Each language adapter follows this structure:
+//!
+//! ```text
+//! adapter/{lang}/
+//! ├── mod.rs           # {Lang}Adapter struct + Adapter trait impl
+//! ├── mod_tests.rs     # Classification and pattern tests
+//! ├── suppress.rs      # Lint directive parsing (language-specific)
+//! ├── suppress_tests.rs
+//! └── policy.rs        # (optional) Re-export or customize common policy
+//! ```
+//!
+//! ## Required methods
+//!
+//! - `new()` - Default patterns
+//! - `with_patterns(ResolvedPatterns)` - Config-resolved patterns
+//! - `should_ignore(&Path) -> bool` - Check ignore patterns (if applicable)
+//!
+//! ## Adapter trait
+//!
+//! - `name() -> &'static str`
+//! - `extensions() -> &'static [&'static str]`
+//! - `classify(&Path) -> FileKind`
+//! - `default_escapes() -> &'static [EscapePattern]`
 
 use std::collections::HashMap;
 use std::path::Path;
