@@ -1,5 +1,7 @@
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
+use std::time::Duration;
+
 use super::*;
 
 // Bun uses the same JSON format as Jest, so we test the parsing logic here

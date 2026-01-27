@@ -134,6 +134,24 @@ impl TestRunResult {
         self
     }
 
+    /// Add coverage data from a `CoverageResult`.
+    ///
+    /// This is a convenience method that handles the common pattern of
+    /// extracting line coverage and package coverage from a `CoverageResult`.
+    pub fn with_collected_coverage(
+        mut self,
+        coverage: super::CoverageResult,
+        language: &str,
+    ) -> Self {
+        if let Some(line_coverage) = coverage.line_coverage {
+            self = self.with_coverage([(language.to_string(), line_coverage)].into());
+        }
+        if !coverage.packages.is_empty() {
+            self = self.with_package_coverage(coverage.packages);
+        }
+        self
+    }
+
     /// Get test count.
     pub fn test_count(&self) -> usize {
         self.tests.len()

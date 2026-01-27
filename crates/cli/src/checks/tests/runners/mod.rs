@@ -62,6 +62,32 @@ use std::time::{Duration, Instant};
 
 use crate::config::TestSuiteConfig;
 
+// =============================================================================
+// Runner Helper Macros
+// =============================================================================
+
+/// Execute setup command and return early on failure.
+///
+/// Usage:
+/// ```ignore
+/// run_setup_or_fail!(config, ctx);
+/// ```
+#[macro_export]
+macro_rules! run_setup_or_fail {
+    ($config:expr, $ctx:expr) => {
+        if let Some(setup) = &$config.setup {
+            if let Err(e) = $crate::checks::tests::runners::run_setup_command(setup, $ctx.root) {
+                return $crate::checks::tests::runners::TestRunResult::failed(
+                    std::time::Duration::ZERO,
+                    e,
+                );
+            }
+        }
+    };
+}
+
+pub use run_setup_or_fail;
+
 /// List of known runner names.
 pub const RUNNER_NAMES: &[&str] = &[
     "cargo", "go", "pytest", "vitest", "bun", "jest", "bats", "rspec", "minitest", "cucumber",
@@ -334,6 +360,21 @@ pub fn format_timeout_error(runner: &str, timeout: Duration) -> String {
         _ => "check for slow or hanging tests",
     };
     format!("{} - {}", base, advice)
+}
+
+/// Handle a timeout error by returning an appropriate `TestRunResult`.
+///
+/// This is a helper function for the common timeout error handling pattern
+/// in test runners.
+pub fn handle_timeout_error(
+    elapsed: Duration,
+    timeout: Option<Duration>,
+    runner_name: &str,
+) -> TestRunResult {
+    let msg = timeout
+        .map(|t| format_timeout_error(runner_name, t))
+        .unwrap_or_else(|| "timed out".to_string());
+    TestRunResult::failed(elapsed, msg)
 }
 
 /// Run a child process with an optional timeout.

@@ -10,7 +10,8 @@ use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
 
 use super::{
-    RunnerContext, TestResult, TestRunResult, TestRunner, format_timeout_error, run_with_timeout,
+    RunnerContext, TestResult, TestRunResult, TestRunner, handle_timeout_error, run_setup_or_fail,
+    run_with_timeout,
 };
 use crate::config::TestSuiteConfig;
 
@@ -33,12 +34,7 @@ impl TestRunner for PytestRunner {
     }
 
     fn run(&self, config: &TestSuiteConfig, ctx: &RunnerContext) -> TestRunResult {
-        // Run setup command if specified
-        if let Some(setup) = &config.setup
-            && let Err(e) = super::run_setup_command(setup, ctx.root)
-        {
-            return TestRunResult::failed(Duration::ZERO, e);
-        }
+        run_setup_or_fail!(config, ctx);
 
         let start = Instant::now();
 
@@ -68,11 +64,7 @@ impl TestRunner for PytestRunner {
         let output = match run_with_timeout(child, config.timeout) {
             Ok(out) => out,
             Err(e) if e.kind() == ErrorKind::TimedOut => {
-                let timeout_msg = config
-                    .timeout
-                    .map(|t| format_timeout_error("pytest", t))
-                    .unwrap_or_else(|| "timed out".to_string());
-                return TestRunResult::failed(start.elapsed(), timeout_msg);
+                return handle_timeout_error(start.elapsed(), config.timeout, "pytest");
             }
             Err(e) => {
                 return TestRunResult::failed(

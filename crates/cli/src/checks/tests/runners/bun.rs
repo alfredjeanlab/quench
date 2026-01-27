@@ -5,14 +5,16 @@
 //!
 //! Executes JavaScript/TypeScript tests using `bun test --reporter=json`.
 
-use std::collections::HashMap;
 use std::io::ErrorKind;
 use std::process::{Command, Stdio};
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 use super::jest::parse_jest_json;
 use super::js_coverage::collect_bun_coverage;
-use super::{RunnerContext, TestRunResult, TestRunner, format_timeout_error, run_with_timeout};
+use super::{
+    RunnerContext, TestRunResult, TestRunner, handle_timeout_error, run_setup_or_fail,
+    run_with_timeout,
+};
 use crate::config::TestSuiteConfig;
 
 /// Bun test runner for JavaScript/TypeScript test suites.
@@ -37,12 +39,7 @@ impl TestRunner for BunRunner {
     }
 
     fn run(&self, config: &TestSuiteConfig, ctx: &RunnerContext) -> TestRunResult {
-        // Run setup command if specified
-        if let Some(setup) = &config.setup
-            && let Err(e) = super::run_setup_command(setup, ctx.root)
-        {
-            return TestRunResult::failed(Duration::ZERO, e);
-        }
+        run_setup_or_fail!(config, ctx);
 
         let start = Instant::now();
 
@@ -69,11 +66,7 @@ impl TestRunner for BunRunner {
         let output = match run_with_timeout(child, config.timeout) {
             Ok(out) => out,
             Err(e) if e.kind() == ErrorKind::TimedOut => {
-                let timeout_msg = config
-                    .timeout
-                    .map(|t| format_timeout_error("bun", t))
-                    .unwrap_or_else(|| "timed out".to_string());
-                return TestRunResult::failed(start.elapsed(), timeout_msg);
+                return handle_timeout_error(start.elapsed(), config.timeout, "bun");
             }
             Err(e) => {
                 return TestRunResult::failed(start.elapsed(), format!("failed to run bun: {e}"));
@@ -89,14 +82,7 @@ impl TestRunner for BunRunner {
         // Collect coverage if requested
         if ctx.collect_coverage {
             let coverage = collect_bun_coverage(ctx.root, config.path.as_deref());
-            if let Some(line_coverage) = coverage.line_coverage {
-                let mut cov_map = HashMap::new();
-                cov_map.insert("javascript".to_string(), line_coverage);
-                result = result.with_coverage(cov_map);
-            }
-            if !coverage.packages.is_empty() {
-                result = result.with_package_coverage(coverage.packages);
-            }
+            result = result.with_collected_coverage(coverage, "javascript");
         }
 
         result
