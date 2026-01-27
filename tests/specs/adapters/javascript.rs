@@ -485,10 +485,11 @@ fn js_simple_produces_expected_json_structure() {
     );
 
     // Verify counts match expected
+    // Note: vitest.config.ts is also counted as a source file
     assert_eq!(
         metrics.get("source_files").and_then(|v| v.as_u64()),
-        Some(2),
-        "should have 2 source files"
+        Some(3),
+        "should have 3 source files (src/index.ts, src/utils.ts, vitest.config.ts)"
     );
     assert_eq!(
         metrics.get("test_files").and_then(|v| v.as_u64()),

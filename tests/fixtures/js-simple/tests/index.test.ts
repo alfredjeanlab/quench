@@ -2,6 +2,7 @@
  * Tests for index.ts
  */
 
+import { describe, it, expect } from 'vitest';
 import { greet, calculate } from '../src/index';
 
 describe('greet', () => {

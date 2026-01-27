@@ -38,7 +38,9 @@ use self::correlation::{
 use self::diff::{ChangeType, get_base_changes, get_commits_since, get_staged_changes};
 use self::patterns::{Language, candidate_test_paths_for, detect_language};
 use self::placeholder::{has_js_placeholder_test, has_placeholder_test};
-use self::runners::{RunnerContext, filter_suites_for_mode, get_runner, run_setup_command};
+use self::runners::{
+    RunnerContext, detect_js_runner, filter_suites_for_mode, get_runner, run_setup_command,
+};
 use std::path::{Path, PathBuf};
 
 /// File extension for Rust source files.
@@ -88,6 +90,11 @@ impl Check for TestsCheck {
         // Run test suites if configured
         if !ctx.config.check.tests.suite.is_empty() {
             return self.run_test_suites(ctx);
+        }
+
+        // Auto-detect JavaScript test runner if package.json exists
+        if let Some(suite) = self.auto_detect_js_suite(ctx) {
+            return self.run_auto_detected_suite(ctx, suite);
         }
 
         let config = &ctx.config.check.tests.commit;
@@ -712,6 +719,92 @@ impl TestsCheck {
         }
 
         violations
+    }
+}
+
+// =============================================================================
+// Auto-Detection
+// =============================================================================
+
+impl TestsCheck {
+    /// Auto-detect JavaScript test runner.
+    ///
+    /// Returns None if no runner can be detected.
+    fn auto_detect_js_suite(&self, ctx: &CheckContext) -> Option<TestSuiteConfig> {
+        // Only auto-detect if package.json exists
+        if !ctx.root.join("package.json").exists() {
+            return None;
+        }
+
+        let detection = detect_js_runner(ctx.root)?;
+
+        Some(TestSuiteConfig {
+            runner: detection.runner.name().to_string(),
+            name: Some(format!("{} (auto-detected)", detection.runner.name())),
+            path: None,
+            setup: None,
+            command: None,
+            targets: vec![],
+            ci: false,
+            max_total: None,
+            max_avg: None,
+            max_test: None,
+            timeout: None,
+        })
+    }
+
+    /// Run an auto-detected test suite.
+    fn run_auto_detected_suite(&self, ctx: &CheckContext, suite: TestSuiteConfig) -> CheckResult {
+        let runner_ctx = RunnerContext {
+            root: ctx.root,
+            ci_mode: ctx.ci_mode,
+            collect_coverage: ctx.ci_mode,
+        };
+
+        let result = Self::run_single_suite(&suite, &runner_ctx);
+
+        // Build metrics with auto_detected flag
+        let mut metrics = json!({
+            "test_count": result.test_count,
+            "total_ms": result.total_ms,
+            "auto_detected": true,
+            "runner": suite.runner,
+            "suites": [{
+                "name": result.name,
+                "runner": result.runner,
+                "passed": result.passed,
+                "test_count": result.test_count,
+            }]
+        });
+
+        // Add optional timing metrics
+        if let Some(avg) = result.avg_ms {
+            metrics["avg_ms"] = json!(avg);
+        }
+        if let Some(max) = result.max_ms {
+            metrics["max_ms"] = json!(max);
+        }
+        if let Some(ref test) = result.max_test {
+            metrics["max_test"] = json!(test);
+        }
+
+        // Add detection source if we can reconstruct it
+        if let Some(detection) = detect_js_runner(ctx.root) {
+            metrics["detection_source"] = json!(detection.source.to_metric_string());
+        }
+
+        if result.passed || result.skipped {
+            CheckResult::passed(self.name()).with_metrics(metrics)
+        } else {
+            let violation = Violation::file_only(
+                format!("<suite:{}>", result.name),
+                "test_suite_failed",
+                result
+                    .error
+                    .unwrap_or_else(|| "test suite failed".to_string()),
+            );
+            CheckResult::failed(self.name(), vec![violation]).with_metrics(metrics)
+        }
     }
 }
 

@@ -2,6 +2,7 @@
  * Tests for utils.ts
  */
 
+import { describe, it, expect } from 'vitest';
 import { add, multiply, isPositive } from '../src/utils';
 
 describe('add', () => {

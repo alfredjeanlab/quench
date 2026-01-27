@@ -14,6 +14,7 @@ mod go;
 mod go_coverage;
 mod instrumented;
 mod jest;
+mod js_detect;
 mod kcov;
 mod pytest;
 mod result;
@@ -31,6 +32,7 @@ pub use instrumented::{
     InstrumentedBuild, build_instrumented, collect_instrumented_coverage, coverage_env,
 };
 pub use jest::JestRunner;
+pub use js_detect::{DetectionResult, DetectionSource, JsRunner, detect_js_runner};
 pub use kcov::{collect_shell_coverage, kcov_available};
 pub use pytest::PytestRunner;
 pub use result::{TestResult, TestRunResult};

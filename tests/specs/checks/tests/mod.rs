@@ -6,6 +6,7 @@
 mod ci_metrics;
 mod correlation;
 mod coverage;
+mod js_runners;
 mod output;
 mod runners;
 mod thresholds;
