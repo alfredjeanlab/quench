@@ -17,6 +17,7 @@ pub mod file_size;
 pub mod git;
 pub mod help;
 pub mod init;
+pub mod latest;
 pub mod output;
 pub mod pattern;
 pub mod profiles;
@@ -34,6 +35,7 @@ pub use cli::{CheckArgs, CheckFilter, Cli, Command, InitArgs, OutputFormat, Repo
 pub use color::{context, examples, header, literal, resolve_color, should_colorize};
 pub use config::IgnoreConfig;
 pub use error::{Error, ExitCode, Result};
+pub use latest::LatestMetrics;
 pub use ratchet::{CurrentMetrics, RatchetResult};
 pub use walker::{FileWalker, WalkStats, WalkedFile, WalkerConfig};
 

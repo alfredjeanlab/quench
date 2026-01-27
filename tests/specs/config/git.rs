@@ -14,13 +14,22 @@ const CARGO_TOML: &str = "[package]\nname = \"test\"\nversion = \"0.1.0\"\nediti
 ///
 /// > baseline = "notes" uses git notes (default)
 #[test]
-#[ignore = "TODO: Phase 2 - Git notes as default baseline"]
 fn baseline_notes_config() {
     let temp = Project::empty();
     temp.config(
         r#"
 [git]
 baseline = "notes"
+
+[ratchet]
+check = "error"
+escapes = true
+
+[[check.escapes.patterns]]
+name = "unsafe"
+pattern = "unsafe"
+action = "count"
+threshold = 100
 "#,
     );
     temp.file("CLAUDE.md", CLAUDE_MD);
@@ -31,14 +40,13 @@ baseline = "notes"
     git_initial_commit(&temp);
 
     // Add note to HEAD with baseline metrics
-    let baseline = r#"{"version":1,"metrics":{"escapes":{"source":{"unsafe":0}}}}"#;
-    std::process::Command::new("git")
-        .args(["notes", "--ref=quench", "add", "-m", baseline])
-        .current_dir(temp.path())
-        .output()
-        .expect("git notes add should succeed");
+    git_add_note(
+        &temp,
+        r#"{"version":1,"updated":"2026-01-20T00:00:00Z","metrics":{"escapes":{"source":{"unsafe":0}}}}"#,
+    );
 
-    cli().pwd(temp.path()).passes();
+    // Use --no-git since CLAUDE.md doesn't have Commits section
+    cli().pwd(temp.path()).args(&["--no-git"]).passes();
     // Assert reads from notes (would fail if baseline was file-based and missing)
 }
 
@@ -46,13 +54,22 @@ baseline = "notes"
 ///
 /// > baseline = "<path>" uses file
 #[test]
-#[ignore = "TODO: Phase 3 - File-based baseline config"]
 fn baseline_file_config() {
     let temp = Project::empty();
     temp.config(
         r#"
 [git]
 baseline = ".quench/baseline.json"
+
+[ratchet]
+check = "error"
+escapes = true
+
+[[check.escapes.patterns]]
+name = "unsafe"
+pattern = "unsafe"
+action = "count"
+threshold = 100
 "#,
     );
     temp.file("CLAUDE.md", CLAUDE_MD);
@@ -79,13 +96,12 @@ baseline = ".quench/baseline.json"
     git_initial_commit(&temp);
 
     // Also add a note with different values to verify file takes precedence
-    let note_baseline = r#"{"version":1,"metrics":{"escapes":{"source":{"unsafe":100}}}}"#;
-    std::process::Command::new("git")
-        .args(["notes", "--ref=quench", "add", "-m", note_baseline])
-        .current_dir(temp.path())
-        .output()
-        .expect("git notes add should succeed");
+    git_add_note(
+        &temp,
+        r#"{"version":1,"updated":"2026-01-20T00:00:00Z","metrics":{"escapes":{"source":{"unsafe":100}}}}"#,
+    );
 
-    cli().pwd(temp.path()).passes();
+    // Use --no-git since CLAUDE.md doesn't have Commits section
+    cli().pwd(temp.path()).args(&["--no-git"]).passes();
     // Assert reads from file, not notes (file baseline has 0 unsafe, notes has 100)
 }

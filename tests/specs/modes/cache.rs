@@ -35,7 +35,9 @@ fn cache_file_created_after_check() {
 
 /// Spec: docs/specs/performance.md#file-caching
 ///
-/// > --no-cache bypasses cache (no .quench directory created)
+/// > --no-cache bypasses cache (no cache.bin file created)
+///
+/// Note: latest.json is still written even with --no-cache
 #[test]
 fn no_cache_flag_skips_cache() {
     let temp = default_project();
@@ -49,8 +51,13 @@ fn no_cache_flag_skips_cache() {
         .success();
 
     assert!(
-        !temp.path().join(".quench").exists(),
-        ".quench directory should not exist with --no-cache"
+        !temp.path().join(".quench/cache.bin").exists(),
+        "cache.bin should not exist with --no-cache"
+    );
+    // latest.json is still written for local metrics viewing
+    assert!(
+        temp.path().join(".quench/latest.json").exists(),
+        "latest.json should still be written even with --no-cache"
     );
 }
 

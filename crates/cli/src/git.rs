@@ -295,6 +295,41 @@ pub fn read_git_note(root: &Path, commit_ref: &str) -> anyhow::Result<Option<Str
     }
 }
 
+/// Find the merge-base commit for ratchet comparison.
+///
+/// If base_ref is provided, uses that ref.
+/// Otherwise, finds merge-base with main/master.
+/// Falls back to HEAD~1 if no merge-base found.
+pub fn find_ratchet_base(root: &Path, base_ref: Option<&str>) -> anyhow::Result<String> {
+    let repo = Repository::discover(root)?;
+
+    if let Some(base_ref) = base_ref {
+        // Explicit --base REF provided
+        let commit = repo.revparse_single(base_ref)?.peel_to_commit()?;
+        return Ok(commit.id().to_string());
+    }
+
+    // Try to find merge-base with main branch
+    let head = repo.head()?.peel_to_commit()?;
+
+    for main_branch in &["origin/main", "origin/master", "main", "master"] {
+        if let Ok(main_ref) = repo.revparse_single(main_branch)
+            && let Ok(main_commit) = main_ref.peel_to_commit()
+            && let Ok(base) = repo.merge_base(head.id(), main_commit.id())
+        {
+            return Ok(base.to_string());
+        }
+    }
+
+    // Fallback: use HEAD~1 (parent commit)
+    if let Ok(parent) = head.parent(0) {
+        return Ok(parent.id().to_string());
+    }
+
+    // Last resort: HEAD itself (initial commit)
+    Ok(head.id().to_string())
+}
+
 #[cfg(test)]
 #[path = "git_tests.rs"]
 mod tests;

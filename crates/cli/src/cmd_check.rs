@@ -19,6 +19,7 @@ use quench::git::{
     detect_base_branch, find_ratchet_base, get_changed_files, get_staged_files, is_git_repo,
     save_to_git_notes,
 };
+use quench::latest::{LatestMetrics, get_head_commit};
 use quench::output::FormatOptions;
 use quench::output::json::{self, JsonFormatter};
 use quench::output::text::TextFormatter;
@@ -322,7 +323,7 @@ pub fn run(_cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
         fix: args.fix,
         dry_run: args.dry_run,
         ci_mode: args.ci,
-        base_branch,
+        base_branch: base_branch.clone(),
         staged: args.staged,
     });
 
@@ -388,9 +389,83 @@ pub fn run(_cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
     let output = json::create_output(check_results);
     let total_violations = output.total_violations();
 
+    // Determine if we should use git notes for baseline
+    let use_notes = config.git.uses_notes() && !args.no_notes && is_git_repo(&root);
+
     // Ratchet checking (cache baseline for potential --fix reuse)
     let (ratchet_result, baseline) = if config.ratchet.check != CheckLevel::Off {
-        load_baseline_for_ratchet(&root, &config, &output, args.base.as_deref())?
+        if use_notes {
+            // Git notes mode (default)
+            match find_ratchet_base(&root, base_branch.as_deref()) {
+                Ok(base_commit) => match Baseline::load_from_notes(&root, &base_commit) {
+                    Ok(Some(baseline)) => {
+                        if baseline.is_stale(config.ratchet.stale_days) {
+                            eprintln!(
+                                "warning: baseline is {} days old. Consider refreshing with --fix.",
+                                baseline.age_days()
+                            );
+                        }
+                        let current = CurrentMetrics::from_output(&output);
+                        let result = ratchet::compare(&current, &baseline.metrics, &config.ratchet);
+                        (Some(result), Some(baseline))
+                    }
+                    Ok(None) => {
+                        if debug_logging() {
+                            eprintln!(
+                                "No baseline note found for {}. Run with --fix to create.",
+                                base_commit
+                            );
+                        }
+                        (None, None)
+                    }
+                    Err(e) => {
+                        eprintln!("quench: warning: failed to load baseline from notes: {}", e);
+                        (None, None)
+                    }
+                },
+                Err(e) => {
+                    if debug_logging() {
+                        eprintln!("quench: warning: failed to find ratchet base: {}", e);
+                    }
+                    (None, None)
+                }
+            }
+        } else if let Some(path) = config.git.baseline_path() {
+            // File-based baseline mode
+            let baseline_path = root.join(path);
+            match Baseline::load(&baseline_path) {
+                Ok(Some(baseline)) => {
+                    if baseline.is_stale(config.ratchet.stale_days) {
+                        eprintln!(
+                            "warning: baseline is {} days old. Consider refreshing with --fix.",
+                            baseline.age_days()
+                        );
+                    }
+                    let current = CurrentMetrics::from_output(&output);
+                    let result = ratchet::compare(&current, &baseline.metrics, &config.ratchet);
+                    (Some(result), Some(baseline))
+                }
+                Ok(None) => {
+                    if debug_logging() {
+                        eprintln!(
+                            "No baseline found at {}. Run with --fix to create.",
+                            baseline_path.display()
+                        );
+                    }
+                    (None, None)
+                }
+                Err(e) => {
+                    eprintln!("quench: warning: failed to load baseline: {}", e);
+                    (None, None)
+                }
+            }
+        } else {
+            // Not in git repo and using notes mode - skip ratchet
+            if debug_logging() {
+                eprintln!("Ratcheting requires git repository when using notes mode.");
+            }
+            (None, None)
+        }
     } else {
         (None, None)
     };
@@ -406,25 +481,40 @@ pub fn run(_cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
 
         ratchet::update_baseline(&mut baseline, &current);
 
-        // Save based on config
-        if config.git.uses_notes() && is_git_repo(&root) {
-            // Save to git notes (default)
+        // Determine save target based on config and flags
+        if use_notes {
+            // Default: save to git notes
             let json = serde_json::to_string_pretty(&baseline)?;
-            if let Err(e) = save_to_git_notes(&root, &json) {
-                eprintln!("quench: warning: failed to save to git notes: {}", e);
-            } else {
-                report_baseline_update(&ratchet_result, "git notes");
+            match save_to_git_notes(&root, &json) {
+                Ok(()) => report_baseline_update(&ratchet_result, "git notes"),
+                Err(e) => eprintln!("quench: warning: failed to save to git notes: {}", e),
             }
-        } else if let Some(path) = config.git.baseline_path() {
-            // Save to file
+        }
+
+        // Also save to file if explicitly configured (or when --no-notes is used)
+        if let Some(path) = config.git.baseline_path() {
             let baseline_path = root.join(path);
             let baseline_existed = baseline_path.exists();
             if let Err(e) = baseline.save(&baseline_path) {
                 eprintln!("quench: warning: failed to save baseline: {}", e);
-            } else {
+            } else if !use_notes {
+                // Only report file update if not using notes
                 report_baseline_update_file(&ratchet_result, &baseline_path, baseline_existed);
             }
         }
+    }
+
+    // Always write latest.json for local caching
+    let latest_path = root.join(".quench/latest.json");
+    let latest = LatestMetrics {
+        updated: chrono::Utc::now(),
+        commit: get_head_commit(&root).ok(),
+        output: output.clone(),
+    };
+    if let Err(e) = latest.save(&latest_path)
+        && debug_logging()
+    {
+        eprintln!("quench: debug: failed to write latest.json: {}", e);
     }
 
     // Resolve color mode
@@ -500,19 +590,11 @@ pub fn run(_cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
         }
     }
 
-    // Save metrics to git notes if requested
+    // Warn about deprecated --save-notes flag (git notes are now default with --fix)
     if args.save_notes {
-        if !is_git_repo(&root) {
-            eprintln!("quench: error: not a git repository");
-            return Ok(ExitCode::ConfigError);
-        }
-
-        let json = serde_json::to_string(&output)?;
-        if let Err(e) = save_to_git_notes(&root, &json) {
-            eprintln!("quench: warning: failed to save to git notes: {}", e);
-        } else if debug_logging() {
-            eprintln!("Saved metrics to git notes (refs/notes/quench)");
-        }
+        eprintln!(
+            "quench: warning: --save-notes is deprecated; git notes are now the default with --fix"
+        );
     }
 
     let output_ms = output_start.elapsed().as_millis() as u64;
@@ -584,101 +666,15 @@ fn save_metrics_to_file(
     Ok(())
 }
 
-/// Load baseline for ratchet comparison.
-///
-/// Supports both git notes mode (default) and file-based baseline.
-fn load_baseline_for_ratchet(
-    root: &std::path::Path,
-    config: &config::Config,
-    output: &quench::check::CheckOutput,
-    base_ref: Option<&str>,
-) -> anyhow::Result<(Option<ratchet::RatchetResult>, Option<Baseline>)> {
-    // Determine baseline source
-    if config.git.uses_notes() && is_git_repo(root) {
-        // Git notes mode (default)
-        let base_commit = match find_ratchet_base(root, base_ref)? {
-            Some(commit) => commit,
-            None => {
-                // No commits yet (unborn branch) - skip ratchet
-                if debug_logging() {
-                    eprintln!("No commits yet, skipping ratchet.");
-                }
-                return Ok((None, None));
-            }
-        };
-
-        match Baseline::load_from_notes(root, &base_commit) {
-            Ok(Some(baseline)) => {
-                if baseline.is_stale(config.ratchet.stale_days) {
-                    eprintln!(
-                        "warning: baseline is {} days old. Consider refreshing with --fix.",
-                        baseline.age_days()
-                    );
-                }
-                let current = CurrentMetrics::from_output(output);
-                let result = ratchet::compare(&current, &baseline.metrics, &config.ratchet);
-                Ok((Some(result), Some(baseline)))
-            }
-            Ok(None) => {
-                if debug_logging() {
-                    eprintln!(
-                        "No baseline note found for {}. Run with --fix to create.",
-                        base_commit
-                    );
-                }
-                Ok((None, None))
-            }
-            Err(e) => {
-                eprintln!("quench: warning: failed to load baseline from notes: {}", e);
-                Ok((None, None))
-            }
-        }
-    } else if let Some(path) = config.git.baseline_path() {
-        // File-based baseline mode
-        let baseline_path = root.join(path);
-        match Baseline::load(&baseline_path) {
-            Ok(Some(baseline)) => {
-                if baseline.is_stale(config.ratchet.stale_days) {
-                    eprintln!(
-                        "warning: baseline is {} days old. Consider refreshing with --fix.",
-                        baseline.age_days()
-                    );
-                }
-                let current = CurrentMetrics::from_output(output);
-                let result = ratchet::compare(&current, &baseline.metrics, &config.ratchet);
-                Ok((Some(result), Some(baseline)))
-            }
-            Ok(None) => {
-                if debug_logging() {
-                    eprintln!(
-                        "No baseline found at {}. Run with --fix to create.",
-                        baseline_path.display()
-                    );
-                }
-                Ok((None, None))
-            }
-            Err(e) => {
-                eprintln!("quench: warning: failed to load baseline: {}", e);
-                Ok((None, None))
-            }
-        }
-    } else {
-        // Not in git repo and using notes mode - skip ratchet
-        if debug_logging() {
-            eprintln!("Ratcheting requires git repository when using notes mode.");
-        }
-        Ok((None, None))
-    }
-}
-
-/// Report baseline update for git notes mode.
-fn report_baseline_update(ratchet_result: &Option<ratchet::RatchetResult>, location: &str) {
+/// Report baseline update to stderr (for git notes mode).
+fn report_baseline_update(ratchet_result: &Option<ratchet::RatchetResult>, target: &str) {
     if let Some(result) = ratchet_result {
         if result.improvements.is_empty() {
-            eprintln!("ratchet: baseline synced to {}", location);
+            eprintln!("ratchet: baseline synced ({})", target);
         } else {
-            eprintln!("ratchet: updated baseline in {}", location);
+            eprintln!("ratchet: updated baseline ({})", target);
             for improvement in &result.improvements {
+                // Coverage uses "new floor" (ratchets UP), others use "new ceiling" (ratchet DOWN)
                 let ratchet_label = if improvement.name.starts_with("coverage.") {
                     "new floor"
                 } else {
@@ -694,26 +690,23 @@ fn report_baseline_update(ratchet_result: &Option<ratchet::RatchetResult>, locat
             }
         }
     } else {
-        eprintln!("ratchet: created initial baseline in {}", location);
+        eprintln!("ratchet: created initial baseline ({})", target);
     }
 }
 
-/// Report baseline update for file-based mode.
+/// Report baseline update to stderr (for file mode).
 fn report_baseline_update_file(
     ratchet_result: &Option<ratchet::RatchetResult>,
-    baseline_path: &std::path::Path,
-    baseline_existed: bool,
+    path: &std::path::Path,
+    existed: bool,
 ) {
-    if !baseline_existed {
-        eprintln!(
-            "ratchet: created initial baseline at {}",
-            baseline_path.display()
-        );
+    if !existed {
+        eprintln!("ratchet: created initial baseline at {}", path.display());
     } else if let Some(result) = ratchet_result {
         if result.improvements.is_empty() {
             eprintln!("ratchet: baseline synced");
         } else {
-            eprintln!("ratchet: updated baseline");
+            eprintln!("ratchet: updated baseline at {}", path.display());
             for improvement in &result.improvements {
                 let ratchet_label = if improvement.name.starts_with("coverage.") {
                     "new floor"

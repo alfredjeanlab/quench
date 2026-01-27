@@ -218,9 +218,13 @@ fn report_markdown_includes_metadata() {
 #[test]
 fn report_writes_to_file() {
     let temp = Project::empty();
-    // Use file-based baseline mode since no git repo
-    temp.config(
+
+    // Config with file-based baseline
+    temp.file(
+        "quench.toml",
         r#"
+version = 1
+
 [git]
 baseline = ".quench/baseline.json"
 "#,

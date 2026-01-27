@@ -876,3 +876,28 @@ pub fn git_add_all(project: &Project) {
         .output()
         .expect("git add should succeed");
 }
+
+/// Add a git note to HEAD with the given content
+pub fn git_add_note(project: &Project, content: &str) {
+    std::process::Command::new("git")
+        .args(["notes", "--ref=quench", "add", "-m", content])
+        .current_dir(project.path())
+        .output()
+        .expect("git notes add should succeed");
+}
+
+/// Read the git note from HEAD
+#[allow(dead_code)]
+pub fn git_read_note(project: &Project) -> Option<String> {
+    let output = std::process::Command::new("git")
+        .args(["notes", "--ref=quench", "show"])
+        .current_dir(project.path())
+        .output()
+        .expect("git notes show should succeed");
+
+    if output.status.success() {
+        Some(String::from_utf8_lossy(&output.stdout).trim().to_string())
+    } else {
+        None
+    }
+}

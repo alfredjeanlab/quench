@@ -3,6 +3,8 @@
 
 //! Implementation of the `quench init` command.
 
+use std::path::Path;
+
 use anyhow::Result;
 
 use crate::cli::InitArgs;
@@ -13,6 +15,53 @@ use crate::profiles::{
     golang_detected_section, javascript_detected_section, ruby_detected_section,
     rust_detected_section, shell_detected_section,
 };
+
+/// Default entries to add to .gitignore.
+const DEFAULT_GITIGNORE_ENTRIES: &[&str] = &[".quench/"];
+
+/// Ensure .quench/ is in .gitignore.
+fn ensure_gitignored(root: &Path) -> Result<()> {
+    let gitignore = root.join(".gitignore");
+    let content = if gitignore.exists() {
+        std::fs::read_to_string(&gitignore)?
+    } else {
+        String::new()
+    };
+
+    let mut entries_to_add = Vec::new();
+    for entry in DEFAULT_GITIGNORE_ENTRIES {
+        // Check if entry is already present (as a line on its own)
+        let entry_line = format!("\n{}\n", entry);
+        let content_with_newlines = format!("\n{}\n", content);
+        if !content_with_newlines.contains(&entry_line)
+            && !content.starts_with(*entry)
+            && !content.starts_with(&format!("{}\n", entry))
+        {
+            entries_to_add.push(*entry);
+        }
+    }
+
+    if !entries_to_add.is_empty() {
+        let mut new_content = content;
+        // Add newline if file doesn't end with one
+        if !new_content.is_empty() && !new_content.ends_with('\n') {
+            new_content.push('\n');
+        }
+        // Add a blank line separator if file has content
+        if !new_content.is_empty() {
+            new_content.push('\n');
+        }
+        // Add comment and entries
+        new_content.push_str("# Quench cache (managed by quench init)\n");
+        for entry in entries_to_add {
+            new_content.push_str(entry);
+            new_content.push('\n');
+        }
+        std::fs::write(&gitignore, new_content)?;
+    }
+
+    Ok(())
+}
 
 /// Run the `init` command to create a quench.toml configuration file.
 pub fn run(args: &InitArgs) -> Result<ExitCode> {
@@ -134,6 +183,12 @@ pub fn run(args: &InitArgs) -> Result<ExitCode> {
     };
 
     std::fs::write(&config_path, config)?;
+
+    // Ensure .quench/ is in .gitignore
+    if let Err(e) = ensure_gitignored(&cwd) {
+        eprintln!("quench: warning: failed to update .gitignore: {}", e);
+    }
+
     println!("{}", message);
     Ok(ExitCode::Success)
 }

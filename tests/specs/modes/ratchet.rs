@@ -48,6 +48,24 @@ action = "count"
 threshold = 100
 "#;
 
+// File-based ratchet config for tests that don't use git
+const RATCHET_FILE_CONFIG: &str = r#"
+version = 1
+
+[git]
+baseline = ".quench/baseline.json"
+
+[ratchet]
+check = "error"
+escapes = true
+
+[[check.escapes.patterns]]
+name = "unsafe"
+pattern = "unsafe"
+action = "count"
+threshold = 100
+"#;
+
 /// Spec: docs/specs/04-ratcheting.md#no-baseline
 ///
 /// > Without a baseline file, ratchet check passes (nothing to compare against).
@@ -69,7 +87,7 @@ fn no_baseline_passes() {
 #[test]
 fn no_baseline_verbose_suggests_fix() {
     let temp = Project::empty();
-    temp.config(RATCHET_CONFIG);
+    temp.config(RATCHET_FILE_CONFIG);
     temp.file("CLAUDE.md", CLAUDE_MD);
     temp.file("Cargo.toml", CARGO_TOML);
     temp.file("src/lib.rs", "fn main() {}");
@@ -90,7 +108,7 @@ fn no_baseline_verbose_suggests_fix() {
 #[test]
 fn fix_creates_baseline() {
     let temp = Project::empty();
-    temp.config(RATCHET_CONFIG);
+    temp.config(RATCHET_FILE_CONFIG);
     temp.file("CLAUDE.md", CLAUDE_MD);
     temp.file("Cargo.toml", CARGO_TOML);
     temp.file("src/lib.rs", "fn f() { unsafe {} }");
@@ -121,7 +139,7 @@ fn fix_creates_baseline() {
 #[test]
 fn regression_fails() {
     let temp = Project::empty();
-    temp.config(RATCHET_CONFIG);
+    temp.config(RATCHET_FILE_CONFIG);
     temp.file("CLAUDE.md", CLAUDE_MD);
     temp.file("Cargo.toml", CARGO_TOML);
 
@@ -156,7 +174,7 @@ fn regression_fails() {
 #[test]
 fn same_value_passes() {
     let temp = Project::empty();
-    temp.config(RATCHET_CONFIG);
+    temp.config(RATCHET_FILE_CONFIG);
     temp.file("CLAUDE.md", CLAUDE_MD);
     temp.file("Cargo.toml", CARGO_TOML);
 
@@ -188,7 +206,7 @@ fn same_value_passes() {
 #[test]
 fn improvement_passes() {
     let temp = Project::empty();
-    temp.config(RATCHET_CONFIG);
+    temp.config(RATCHET_FILE_CONFIG);
     temp.file("CLAUDE.md", CLAUDE_MD);
     temp.file("Cargo.toml", CARGO_TOML);
 
@@ -220,7 +238,7 @@ fn improvement_passes() {
 #[test]
 fn fix_updates_baseline_on_improvement() {
     let temp = Project::empty();
-    temp.config(RATCHET_CONFIG);
+    temp.config(RATCHET_FILE_CONFIG);
     temp.file("CLAUDE.md", CLAUDE_MD);
     temp.file("Cargo.toml", CARGO_TOML);
 
@@ -264,7 +282,7 @@ fn fix_updates_baseline_on_improvement() {
 #[test]
 fn fix_baseline_synced_message() {
     let temp = Project::empty();
-    temp.config(RATCHET_CONFIG);
+    temp.config(RATCHET_FILE_CONFIG);
     temp.file("CLAUDE.md", CLAUDE_MD);
     temp.file("Cargo.toml", CARGO_TOML);
 
@@ -301,7 +319,7 @@ fn fix_baseline_synced_message() {
 #[test]
 fn fix_baseline_updated_with_improvements() {
     let temp = Project::empty();
-    temp.config(RATCHET_CONFIG);
+    temp.config(RATCHET_FILE_CONFIG);
     temp.file("CLAUDE.md", CLAUDE_MD);
     temp.file("Cargo.toml", CARGO_TOML);
 
@@ -590,20 +608,80 @@ fn ratchet_falls_back_to_file_when_no_notes() {
 ///
 /// > --no-notes disables git notes entirely
 #[test]
-#[ignore = "TODO: Phase 3 - --no-notes flag"]
 fn no_notes_flag_uses_file_only() {
-    // Setup: project with both notes and file
-    // Run: quench check --no-notes
-    // Assert: uses file, ignores notes
+    let temp = Project::empty();
+    temp.config(
+        r#"
+[git]
+baseline = ".quench/baseline.json"
+
+[ratchet]
+check = "error"
+escapes = true
+
+[[check.escapes.patterns]]
+name = "unsafe"
+pattern = "unsafe"
+action = "count"
+threshold = 100
+"#,
+    );
+    temp.file("CLAUDE.md", CLAUDE_MD);
+    temp.file("Cargo.toml", CARGO_TOML);
+    temp.file("src/lib.rs", "fn main() {}");
+
+    // Create baseline file with 0 unsafe
+    fs::create_dir_all(temp.path().join(".quench")).unwrap();
+    fs::write(
+        temp.path().join(".quench/baseline.json"),
+        r#"{"version":1,"updated":"2026-01-20T00:00:00Z","metrics":{"escapes":{"source":{"unsafe":0}}}}"#,
+    )
+    .unwrap();
+
+    git_init(&temp);
+    git_initial_commit(&temp);
+
+    // Add note with higher value (would fail ratchet if used)
+    git_add_note(
+        &temp,
+        r#"{"version":1,"updated":"2026-01-20T00:00:00Z","metrics":{"escapes":{"source":{"unsafe":10}}}}"#,
+    );
+
+    // --no-notes should use file baseline, not notes
+    // Use --no-git since CLAUDE.md doesn't have Commits section
+    cli()
+        .pwd(temp.path())
+        .args(&["--no-notes", "--no-git"])
+        .passes();
 }
 
 /// Spec: docs/specs/04-ratcheting.md#baseline-storage
 ///
 /// > --base <REF> uses baseline from that commit's note for ratchet comparison
 #[test]
-#[ignore = "TODO: Phase 2 - Git notes as default baseline"]
 fn base_ref_uses_baseline_from_that_commit() {
-    // Setup: project with notes on multiple commits
-    // Run: quench check --base main~5
-    // Assert: uses baseline from that commit's note
+    let temp = Project::empty();
+    temp.config(RATCHET_CONFIG);
+    temp.file("CLAUDE.md", CLAUDE_MD);
+    temp.file("Cargo.toml", CARGO_TOML);
+    temp.file("src/lib.rs", "fn main() {}");
+
+    git_init(&temp);
+    git_initial_commit(&temp);
+
+    // Add note with baseline metrics to first commit
+    git_add_note(
+        &temp,
+        r#"{"version":1,"updated":"2026-01-20T00:00:00Z","metrics":{"escapes":{"source":{"unsafe":0}}}}"#,
+    );
+
+    // Create second commit
+    git_commit(&temp, "feat: second commit");
+
+    // Using --base HEAD~1 should use the baseline from the first commit
+    // Use --no-git since CLAUDE.md doesn't have Commits section
+    cli()
+        .pwd(temp.path())
+        .args(&["--base", "HEAD~1", "--no-git"])
+        .passes();
 }

@@ -288,7 +288,7 @@ fn save_works_only_with_ci_mode() {
 
 /// Spec: docs/specs/01-cli.md#output-flags
 ///
-/// > --fix saves baseline to git notes by default (for ratcheting)
+/// > --fix saves baseline to git notes by default
 #[test]
 fn fix_saves_to_git_notes_by_default() {
     let temp = default_project();
@@ -301,7 +301,7 @@ fn fix_saves_to_git_notes_by_default() {
         .args(&["--ci", "--fix", "--no-git"])
         .passes();
 
-    // Git notes should be created for HEAD
+    // Git notes should be created for HEAD with baseline content
     let output = std::process::Command::new("git")
         .args(["notes", "--ref=quench", "show", "HEAD"])
         .current_dir(temp.path())
@@ -314,68 +314,50 @@ fn fix_saves_to_git_notes_by_default() {
     let json: serde_json::Value =
         serde_json::from_str(&content).expect("git note should be valid JSON");
 
-    // Baseline format: version, updated, metrics
-    assert!(
-        json.get("version").is_some(),
-        "should have version field (baseline format)"
-    );
-    assert!(
-        json.get("metrics").is_some(),
-        "should have metrics field (baseline format)"
-    );
+    // --fix saves baseline format (not full output)
+    assert!(json.get("version").is_some(), "should have version field");
+    assert!(json.get("metrics").is_some(), "should have metrics field");
 }
 
 /// Spec: docs/specs/01-cli.md#output-flags (legacy)
 ///
-/// > --save-notes stores metrics in git notes (legacy flag, still supported)
+/// > --save-notes is deprecated; git notes are now the default with --fix
 #[test]
-fn save_notes_writes_to_git() {
+fn save_notes_shows_deprecation_warning() {
     let temp = default_project();
     git_init(&temp);
     git_initial_commit(&temp);
 
     // Use --no-git since default project CLAUDE.md doesn't have Commits section
-    cli()
-        .pwd(temp.path())
-        .args(&["--ci", "--save-notes", "--no-git"])
-        .passes();
-
-    // Git notes should be created for HEAD
-    let output = std::process::Command::new("git")
-        .args(["notes", "--ref=quench", "show", "HEAD"])
+    quench_cmd()
+        .args(["check", "--ci", "--save-notes", "--no-git"])
         .current_dir(temp.path())
-        .output()
-        .expect("git notes show should succeed");
-
-    assert!(output.status.success(), "git notes should exist for HEAD");
-
-    let content = String::from_utf8_lossy(&output.stdout);
-    let json: serde_json::Value =
-        serde_json::from_str(&content).expect("git note should be valid JSON");
-
-    assert!(json.get("checks").is_some(), "should have checks field");
+        .assert()
+        .success()
+        .stderr(predicates::str::contains("--save-notes is deprecated"));
 }
 
 /// Spec: docs/specs/01-cli.md#output-flags
 ///
-/// > --save-notes requires git repository
+/// > --save-notes is deprecated, shows warning but doesn't fail
 #[test]
-fn save_notes_fails_without_git() {
+fn save_notes_deprecated_shows_warning_without_git() {
     let temp = default_project();
-    // No git init
+    // No git init - should still pass with deprecation warning
 
-    cli()
-        .pwd(temp.path())
-        .args(&["--ci", "--save-notes"])
-        .exits(2)
-        .stderr_has("not a git repository");
+    quench_cmd()
+        .args(["check", "--ci", "--save-notes"])
+        .current_dir(temp.path())
+        .assert()
+        .success()
+        .stderr(predicates::str::contains("--save-notes is deprecated"));
 }
 
 /// Spec: docs/specs/01-cli.md#output-flags
 ///
-/// > --save-notes uses refs/notes/quench namespace
+/// > --fix uses refs/notes/quench namespace (--save-notes is deprecated)
 #[test]
-fn save_notes_uses_quench_namespace() {
+fn fix_uses_quench_namespace() {
     let temp = default_project();
     git_init(&temp);
     git_initial_commit(&temp);
@@ -383,7 +365,7 @@ fn save_notes_uses_quench_namespace() {
     // Use --no-git since default project CLAUDE.md doesn't have Commits section
     cli()
         .pwd(temp.path())
-        .args(&["--ci", "--save-notes", "--no-git"])
+        .args(&["--ci", "--fix", "--no-git"])
         .passes();
 
     // Check that refs/notes/quench exists
@@ -403,11 +385,32 @@ fn save_notes_uses_quench_namespace() {
 
 /// Spec: docs/specs/04-ratcheting.md#local-cache
 ///
-/// > --fix also writes .quench/latest.json for local caching
+/// > quench check always writes .quench/latest.json for local caching
 #[test]
-#[ignore = "TODO: Phase 3 - Local cache implementation"]
-fn fix_writes_latest_json_cache() {
-    // Setup: git project
-    // Run: quench check --fix
-    // Assert: .quench/latest.json exists with current metrics
+fn check_writes_latest_json_cache() {
+    let temp = default_project();
+    temp.file("src/lib.rs", "fn main() {}");
+    temp.file(
+        "Cargo.toml",
+        "[package]\nname = \"test\"\nversion = \"0.1.0\"\nedition = \"2024\"\n",
+    );
+
+    // Run check (no git needed for latest.json)
+    cli().pwd(temp.path()).passes();
+
+    // Assert: .quench/latest.json exists
+    let latest_path = temp.path().join(".quench/latest.json");
+    assert!(
+        latest_path.exists(),
+        ".quench/latest.json should exist after check"
+    );
+
+    // Verify it's valid JSON with expected structure
+    let content = std::fs::read_to_string(&latest_path).unwrap();
+    let json: serde_json::Value = serde_json::from_str(&content).expect("valid JSON");
+    assert!(
+        json.get("updated").is_some(),
+        "should have updated timestamp"
+    );
+    assert!(json.get("output").is_some(), "should have output");
 }

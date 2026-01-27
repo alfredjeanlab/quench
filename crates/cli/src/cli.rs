@@ -94,8 +94,12 @@ pub struct CheckArgs {
     #[arg(long, value_name = "FILE")]
     pub save: Option<std::path::PathBuf>,
 
-    /// Save metrics to git notes (refs/notes/quench)
+    /// Disable git notes; use file-based baseline only.
     #[arg(long)]
+    pub no_notes: bool,
+
+    /// [DEPRECATED] Git notes are now the default. This flag is ignored.
+    #[arg(long, hide = true)]
     pub save_notes: bool,
 
     // Check enable flags (run only these checks)

@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicUsize;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 
 use crate::config::Config;
@@ -64,7 +64,7 @@ pub trait Check: Send + Sync {
 }
 
 /// A single violation within a check.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Violation {
     /// File path (None for non-file violations like commit messages).
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -344,7 +344,7 @@ impl Violation {
 }
 
 /// Result of running a single check.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CheckResult {
     /// Check identifier (e.g., "cloc", "escapes").
     pub name: String,
@@ -515,7 +515,7 @@ impl CheckResult {
 }
 
 /// Aggregated results from all checks.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CheckOutput {
     /// ISO 8601 timestamp.
     pub timestamp: String,
