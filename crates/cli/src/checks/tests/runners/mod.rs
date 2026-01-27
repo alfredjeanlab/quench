@@ -11,6 +11,7 @@ mod cargo;
 mod coverage;
 mod custom;
 mod go;
+mod go_coverage;
 mod instrumented;
 mod jest;
 mod kcov;
@@ -25,6 +26,7 @@ pub use cargo::{CargoRunner, categorize_cargo_error, parse_cargo_output};
 pub use coverage::CoverageResult;
 pub use custom::CustomRunner;
 pub use go::GoRunner;
+pub use go_coverage::{collect_go_coverage, go_available};
 pub use instrumented::{
     InstrumentedBuild, build_instrumented, collect_instrumented_coverage, coverage_env,
 };
@@ -148,6 +150,8 @@ pub struct AggregatedCoverage {
     pub rust: Option<CoverageResult>,
     /// Shell coverage result (merged from all shell sources).
     pub shell: Option<CoverageResult>,
+    /// Go coverage result (merged from all Go sources).
+    pub go: Option<CoverageResult>,
 }
 
 impl AggregatedCoverage {
@@ -167,6 +171,14 @@ impl AggregatedCoverage {
         });
     }
 
+    /// Merge Go coverage from a suite into the aggregate.
+    pub fn merge_go(&mut self, result: CoverageResult) {
+        self.go = Some(match self.go.take() {
+            Some(existing) => merge_coverage_results(existing, result),
+            None => result,
+        });
+    }
+
     /// Convert to a language -> percentage map for metrics.
     pub fn to_coverage_map(&self) -> HashMap<String, f64> {
         let mut map = HashMap::new();
@@ -180,6 +192,11 @@ impl AggregatedCoverage {
         {
             map.insert("shell".to_string(), pct);
         }
+        if let Some(ref go) = self.go
+            && let Some(pct) = go.line_coverage
+        {
+            map.insert("go".to_string(), pct);
+        }
         map
     }
 
@@ -192,6 +209,7 @@ impl AggregatedCoverage {
                 .shell
                 .as_ref()
                 .is_some_and(|r| r.line_coverage.is_some())
+            || self.go.as_ref().is_some_and(|r| r.line_coverage.is_some())
     }
 }
 

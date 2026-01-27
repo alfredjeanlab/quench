@@ -2,3 +2,6 @@ version = 1
 
 [project]
 name = "go-simple"
+
+[[check.tests.suite]]
+runner = "go"
