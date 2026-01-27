@@ -16,7 +16,7 @@ use super::*;
 /// Initialize a git repository in the temp directory.
 fn init_git_repo(temp: &TempDir) {
     Command::new("git")
-        .args(["init"])
+        .args(["init", "-b", "main"])
         .current_dir(temp.path())
         .output()
         .expect("Failed to init git repo");
