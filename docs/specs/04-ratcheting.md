@@ -26,12 +26,38 @@ This enables incremental quality improvement without manual threshold maintenanc
 
 ## Baseline Storage
 
-Ratcheting requires a stored baseline. Configure the path in `[git]`:
+Ratcheting requires a stored baseline. By default, quench uses git notes (`refs/notes/quench`) to store per-commit metrics. This provides automatic history tracking without committing baseline files.
+
+Configure the baseline source in `[git]`:
 
 ```toml
 [git]
-baseline = ".quench/baseline.json"
+# Baseline source: "notes" (default) or path to file
+baseline = "notes"
+
+# Optional: explicit file path for file-based baseline
+# baseline = ".quench/baseline.json"
 ```
+
+### Git Notes (Default)
+
+Git notes store metrics attached to each commit:
+- Per-commit history without polluting commit history
+- Easy to push/pull: `git push origin refs/notes/quench`
+- Works well with CI: each commit gets its own baseline
+- Falls back to file baseline when notes unavailable
+
+### File-Based Baseline
+
+For teams preferring committed baselines:
+- Single `.quench/baseline.json` file
+- Visible in code review
+- Works without git notes support
+- Enable with `baseline = ".quench/baseline.json"`
+
+### Local Cache
+
+When using git notes, `.quench/latest.json` caches the most recent metrics locally for faster access. This file is auto-generated and should be gitignored.
 
 ## Configuration
 
@@ -143,9 +169,12 @@ The baseline file is updated automatically.
 
 ### CI Workflow
 
-Using baseline file (recommended):
+Using git notes (default, recommended):
 
 ```yaml
+- name: Fetch baseline notes
+  run: git fetch origin refs/notes/quench:refs/notes/quench || true
+
 - name: Check quality
   run: quench check --ci
 
@@ -153,22 +182,22 @@ Using baseline file (recommended):
   if: github.ref == 'refs/heads/main'
   run: |
     quench check --ci --fix
-    git add .quench/baseline.json
-    git commit -m "chore: update quality baseline" || true
-    git push
+    git push origin refs/notes/quench
 ```
 
-Using git notes (no file commits):
+Using file-based baseline (alternative):
 
 ```yaml
 - name: Check quality
-  run: quench check --ci
+  run: quench check --ci --no-notes
 
 - name: Update baseline on main
   if: github.ref == 'refs/heads/main'
   run: |
-    quench check --ci --fix --save-notes
-    git push origin refs/notes/quench
+    quench check --ci --fix --no-notes
+    git add .quench/baseline.json
+    git commit -m "chore: update quality baseline" || true
+    git push
 ```
 
 ## Output

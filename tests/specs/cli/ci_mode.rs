@@ -288,7 +288,38 @@ fn save_works_only_with_ci_mode() {
 
 /// Spec: docs/specs/01-cli.md#output-flags
 ///
-/// > --save-notes stores metrics in git notes
+/// > --fix saves to git notes by default (was --save-notes)
+#[test]
+fn fix_saves_to_git_notes_by_default() {
+    let temp = default_project();
+    git_init(&temp);
+    git_initial_commit(&temp);
+
+    // Use --no-git since default project CLAUDE.md doesn't have Commits section
+    cli()
+        .pwd(temp.path())
+        .args(&["--ci", "--fix", "--no-git"])
+        .passes();
+
+    // Git notes should be created for HEAD
+    let output = std::process::Command::new("git")
+        .args(["notes", "--ref=quench", "show", "HEAD"])
+        .current_dir(temp.path())
+        .output()
+        .expect("git notes show should succeed");
+
+    assert!(output.status.success(), "git notes should exist for HEAD");
+
+    let content = String::from_utf8_lossy(&output.stdout);
+    let json: serde_json::Value =
+        serde_json::from_str(&content).expect("git note should be valid JSON");
+
+    assert!(json.get("checks").is_some(), "should have checks field");
+}
+
+/// Spec: docs/specs/01-cli.md#output-flags (legacy)
+///
+/// > --save-notes stores metrics in git notes (legacy flag, still supported)
 #[test]
 fn save_notes_writes_to_git() {
     let temp = default_project();
@@ -356,4 +387,19 @@ fn save_notes_uses_quench_namespace() {
 
     assert!(output.status.success(), "quench notes ref should exist");
     assert!(!output.stdout.is_empty(), "should have at least one note");
+}
+
+// =============================================================================
+// LOCAL CACHE
+// =============================================================================
+
+/// Spec: docs/specs/04-ratcheting.md#local-cache
+///
+/// > --fix also writes .quench/latest.json for local caching
+#[test]
+#[ignore = "TODO: Phase 3 - Local cache implementation"]
+fn fix_writes_latest_json_cache() {
+    // Setup: git project
+    // Run: quench check --fix
+    // Assert: .quench/latest.json exists with current metrics
 }

@@ -119,7 +119,11 @@ Git integration settings.
 ```toml
 [git]
 base = "main"                          # Default for --base (auto: main > master > develop)
-baseline = ".quench/baseline.json"     # Metrics storage path
+
+# Baseline source (default: "notes")
+#   "notes" - use git notes (refs/notes/quench)
+#   "<path>" - use file at path (e.g., ".quench/baseline.json")
+baseline = "notes"
 
 [git.commit]
 check = "off"                          # error | warn | off (disabled by default)

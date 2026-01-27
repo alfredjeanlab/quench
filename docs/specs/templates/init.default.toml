@@ -21,7 +21,10 @@ check = "off"  # stub in quench v0.3.0
 check = "off"  # stub in quench v0.3.0
 
 [git]
-baseline = ".quench/baseline.json"
+# Baseline source for ratcheting (default: git notes)
+# Use "notes" for per-commit history, or a file path for committed baseline
+# baseline = "notes"
+# baseline = ".quench/baseline.json"
 
 [git.commit]
 check = "off"  # stub in quench v0.3.0

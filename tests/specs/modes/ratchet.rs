@@ -546,3 +546,51 @@ fn per_package_coverage_ratchet() {
     // - Coverage varies by package
     // - Only ratcheted packages fail on regression
 }
+
+// =============================================================================
+// Git Notes Baseline Specs
+// =============================================================================
+
+/// Spec: docs/specs/04-ratcheting.md#baseline-storage
+///
+/// > Git notes is the default baseline source
+#[test]
+#[ignore = "TODO: Phase 2 - Git notes as default baseline"]
+fn ratchet_reads_baseline_from_git_notes_by_default() {
+    // Setup: create project with git history and notes
+    // Run: quench check (no --save-notes flag)
+    // Assert: compares against notes, not file
+}
+
+/// Spec: docs/specs/04-ratcheting.md#baseline-storage
+///
+/// > Baseline falls back to file when notes unavailable
+#[test]
+#[ignore = "TODO: Phase 2 - Git notes as default baseline"]
+fn ratchet_falls_back_to_file_when_no_notes() {
+    // Setup: project with baseline.json but no notes
+    // Run: quench check
+    // Assert: uses file baseline
+}
+
+/// Spec: docs/specs/04-ratcheting.md#baseline-storage
+///
+/// > --no-notes disables git notes entirely
+#[test]
+#[ignore = "TODO: Phase 3 - --no-notes flag"]
+fn no_notes_flag_uses_file_only() {
+    // Setup: project with both notes and file
+    // Run: quench check --no-notes
+    // Assert: uses file, ignores notes
+}
+
+/// Spec: docs/specs/04-ratcheting.md#baseline-storage
+///
+/// > --base <REF> uses baseline from that commit's note for ratchet comparison
+#[test]
+#[ignore = "TODO: Phase 2 - Git notes as default baseline"]
+fn base_ref_uses_baseline_from_that_commit() {
+    // Setup: project with notes on multiple commits
+    // Run: quench check --base main~5
+    // Assert: uses baseline from that commit's note
+}

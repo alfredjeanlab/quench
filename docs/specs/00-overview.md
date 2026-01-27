@@ -162,7 +162,7 @@ Full checks with multiple behavior changes:
 **Changes behavior:**
 - Full file scanning (no early termination)
 - Complete violation counts (not limited)
-- Metrics storage to baseline file or git notes
+- Metrics storage to git notes (default) or baseline file
 
 ### Fix Mode (`--fix`)
 

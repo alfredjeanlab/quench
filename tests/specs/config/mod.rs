@@ -3,6 +3,7 @@
 //! Tests that quench correctly handles:
 //! - Config file validation
 //! - Environment variables
+//! - Git configuration
 //!
 //! Reference: docs/specs/02-config.md
 
@@ -13,3 +14,6 @@ mod validation;
 
 #[path = "env.rs"]
 mod env;
+
+#[path = "git.rs"]
+mod git;
