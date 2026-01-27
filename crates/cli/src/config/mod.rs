@@ -10,6 +10,7 @@ pub mod defaults;
 pub mod duration;
 mod go;
 mod javascript;
+mod lang_common;
 mod ratchet;
 mod ruby;
 mod shell;
@@ -295,20 +296,22 @@ pub enum CfgTestSplitMode {
     Off,
 }
 
+use lang_common::{LanguageDefaults, define_policy_config};
+
 /// Rust language-specific configuration.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct RustConfig {
     /// Source file patterns.
-    #[serde(default = "RustConfig::default_source")]
+    #[serde(default = "RustDefaults::default_source")]
     pub source: Vec<String>,
 
     /// Test file patterns.
-    #[serde(default = "RustConfig::default_tests")]
+    #[serde(default = "RustDefaults::default_tests")]
     pub tests: Vec<String>,
 
     /// Ignore patterns.
-    #[serde(default = "RustConfig::default_ignore")]
+    #[serde(default = "RustDefaults::default_ignore")]
     pub ignore: Vec<String>,
 
     /// How to handle #[cfg(test)] blocks (default: "count").
@@ -336,9 +339,9 @@ pub struct RustConfig {
 impl Default for RustConfig {
     fn default() -> Self {
         Self {
-            source: Self::default_source(),
-            tests: Self::default_tests(),
-            ignore: Self::default_ignore(),
+            source: RustDefaults::default_source(),
+            tests: RustDefaults::default_tests(),
+            ignore: RustDefaults::default_ignore(),
             cfg_test_split: CfgTestSplitMode::default(),
             suppress: SuppressConfig::default(),
             policy: RustPolicyConfig::default(),
@@ -348,12 +351,15 @@ impl Default for RustConfig {
     }
 }
 
-impl RustConfig {
-    pub(crate) fn default_source() -> Vec<String> {
+/// Rust language defaults.
+pub struct RustDefaults;
+
+impl LanguageDefaults for RustDefaults {
+    fn default_source() -> Vec<String> {
         vec!["**/*.rs".to_string()]
     }
 
-    pub(crate) fn default_tests() -> Vec<String> {
+    fn default_tests() -> Vec<String> {
         vec![
             "**/tests/**".to_string(),
             "**/test/**/*.rs".to_string(),
@@ -363,11 +369,11 @@ impl RustConfig {
         ]
     }
 
-    pub(crate) fn default_ignore() -> Vec<String> {
+    fn default_ignore() -> Vec<String> {
         vec!["target/**".to_string()]
     }
 
-    pub(crate) fn default_cloc_advice() -> &'static str {
+    fn default_cloc_advice() -> &'static str {
         "Can the code be made more concise?\n\n\
          Look for repetitive patterns that could be extracted into helper functions\n\
          or consider refactoring to be more unit testable.\n\n\
@@ -377,53 +383,33 @@ impl RustConfig {
     }
 }
 
-/// Rust lint policy configuration.
-#[derive(Debug, Clone, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct RustPolicyConfig {
-    /// Check level: "error" | "warn" | "off" (default: inherits from global).
-    #[serde(default)]
-    pub check: Option<CheckLevel>,
+impl RustConfig {
+    pub(crate) fn default_source() -> Vec<String> {
+        RustDefaults::default_source()
+    }
 
-    /// Lint config changes policy: "standalone" requires separate PRs.
-    #[serde(default)]
-    pub lint_changes: LintChangesPolicy,
+    pub(crate) fn default_tests() -> Vec<String> {
+        RustDefaults::default_tests()
+    }
 
-    /// Files that trigger the standalone requirement.
-    #[serde(default = "RustPolicyConfig::default_lint_config")]
-    pub lint_config: Vec<String>,
-}
+    pub(crate) fn default_ignore() -> Vec<String> {
+        RustDefaults::default_ignore()
+    }
 
-impl Default for RustPolicyConfig {
-    fn default() -> Self {
-        Self {
-            check: None,
-            lint_changes: LintChangesPolicy::default(),
-            lint_config: Self::default_lint_config(),
-        }
+    pub(crate) fn default_cloc_advice() -> &'static str {
+        RustDefaults::default_cloc_advice()
     }
 }
 
-impl RustPolicyConfig {
-    pub(crate) fn default_lint_config() -> Vec<String> {
-        vec![
-            "rustfmt.toml".to_string(),
-            ".rustfmt.toml".to_string(),
-            "clippy.toml".to_string(),
-            ".clippy.toml".to_string(),
-        ]
-    }
-}
-
-impl crate::adapter::common::policy::PolicyConfig for RustPolicyConfig {
-    fn lint_changes(&self) -> LintChangesPolicy {
-        self.lint_changes
-    }
-
-    fn lint_config(&self) -> &[String] {
-        &self.lint_config
-    }
-}
+define_policy_config!(
+    RustPolicyConfig,
+    [
+        "rustfmt.toml",
+        ".rustfmt.toml",
+        "clippy.toml",
+        ".clippy.toml",
+    ]
+);
 
 /// Lint changes policy.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize)]

@@ -2,6 +2,7 @@
 
 use serde::Deserialize;
 
+use super::lang_common::{LanguageDefaults, define_policy_config};
 use super::{CheckLevel, LangClocConfig, LintChangesPolicy, SuppressLevel, SuppressScopeConfig};
 
 /// Ruby language-specific configuration.
@@ -9,15 +10,15 @@ use super::{CheckLevel, LangClocConfig, LintChangesPolicy, SuppressLevel, Suppre
 #[serde(deny_unknown_fields)]
 pub struct RubyConfig {
     /// Source file patterns.
-    #[serde(default = "RubyConfig::default_source")]
+    #[serde(default = "RubyDefaults::default_source")]
     pub source: Vec<String>,
 
     /// Test file patterns.
-    #[serde(default = "RubyConfig::default_tests")]
+    #[serde(default = "RubyDefaults::default_tests")]
     pub tests: Vec<String>,
 
     /// Ignore patterns.
-    #[serde(default = "RubyConfig::default_ignore")]
+    #[serde(default = "RubyDefaults::default_ignore")]
     pub ignore: Vec<String>,
 
     /// Lint suppression settings.
@@ -41,9 +42,9 @@ pub struct RubyConfig {
 impl Default for RubyConfig {
     fn default() -> Self {
         Self {
-            source: Self::default_source(),
-            tests: Self::default_tests(),
-            ignore: Self::default_ignore(),
+            source: RubyDefaults::default_source(),
+            tests: RubyDefaults::default_tests(),
+            ignore: RubyDefaults::default_ignore(),
             suppress: RubySuppressConfig::default(),
             policy: RubyPolicyConfig::default(),
             cloc: None,
@@ -52,8 +53,11 @@ impl Default for RubyConfig {
     }
 }
 
-impl RubyConfig {
-    pub(crate) fn default_source() -> Vec<String> {
+/// Ruby language defaults.
+pub struct RubyDefaults;
+
+impl LanguageDefaults for RubyDefaults {
+    fn default_source() -> Vec<String> {
         vec![
             "**/*.rb".to_string(),
             "**/*.rake".to_string(),
@@ -63,7 +67,7 @@ impl RubyConfig {
         ]
     }
 
-    pub(crate) fn default_tests() -> Vec<String> {
+    fn default_tests() -> Vec<String> {
         vec![
             "spec/**/*_spec.rb".to_string(),
             "test/**/*_test.rb".to_string(),
@@ -72,7 +76,7 @@ impl RubyConfig {
         ]
     }
 
-    pub(crate) fn default_ignore() -> Vec<String> {
+    fn default_ignore() -> Vec<String> {
         vec![
             "vendor/".to_string(),
             "tmp/".to_string(),
@@ -81,11 +85,29 @@ impl RubyConfig {
         ]
     }
 
-    pub(crate) fn default_cloc_advice() -> &'static str {
+    fn default_cloc_advice() -> &'static str {
         "Can the code be made more concise?\n\
          Look for repetitive patterns that could be extracted into helper methods.\n\
          Consider using Ruby's built-in enumerable methods for cleaner code.\n\
          If not, split into smaller classes or modules."
+    }
+}
+
+impl RubyConfig {
+    pub(crate) fn default_source() -> Vec<String> {
+        RubyDefaults::default_source()
+    }
+
+    pub(crate) fn default_tests() -> Vec<String> {
+        RubyDefaults::default_tests()
+    }
+
+    pub(crate) fn default_ignore() -> Vec<String> {
+        RubyDefaults::default_ignore()
+    }
+
+    pub(crate) fn default_cloc_advice() -> &'static str {
+        RubyDefaults::default_cloc_advice()
     }
 }
 
@@ -136,49 +158,7 @@ impl RubySuppressConfig {
     }
 }
 
-/// Ruby lint policy configuration.
-#[derive(Debug, Clone, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct RubyPolicyConfig {
-    /// Check level: "error" | "warn" | "off" (default: inherits from global).
-    #[serde(default)]
-    pub check: Option<CheckLevel>,
-
-    /// Lint config changes policy: "standalone" requires separate PRs.
-    #[serde(default)]
-    pub lint_changes: LintChangesPolicy,
-
-    /// Files that trigger the standalone requirement.
-    #[serde(default = "RubyPolicyConfig::default_lint_config")]
-    pub lint_config: Vec<String>,
-}
-
-impl Default for RubyPolicyConfig {
-    fn default() -> Self {
-        Self {
-            check: None,
-            lint_changes: LintChangesPolicy::default(),
-            lint_config: Self::default_lint_config(),
-        }
-    }
-}
-
-impl RubyPolicyConfig {
-    pub(crate) fn default_lint_config() -> Vec<String> {
-        vec![
-            ".rubocop.yml".to_string(),
-            ".rubocop_todo.yml".to_string(),
-            ".standard.yml".to_string(),
-        ]
-    }
-}
-
-impl crate::adapter::common::policy::PolicyConfig for RubyPolicyConfig {
-    fn lint_changes(&self) -> LintChangesPolicy {
-        self.lint_changes
-    }
-
-    fn lint_config(&self) -> &[String] {
-        &self.lint_config
-    }
-}
+define_policy_config!(
+    RubyPolicyConfig,
+    [".rubocop.yml", ".rubocop_todo.yml", ".standard.yml",]
+);

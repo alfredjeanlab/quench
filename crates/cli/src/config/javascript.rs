@@ -2,6 +2,7 @@
 
 use serde::Deserialize;
 
+use super::lang_common::{LanguageDefaults, define_policy_config};
 use super::{CheckLevel, LangClocConfig, LintChangesPolicy, SuppressConfig};
 
 /// JavaScript/TypeScript language-specific configuration.
@@ -9,11 +10,11 @@ use super::{CheckLevel, LangClocConfig, LintChangesPolicy, SuppressConfig};
 #[serde(deny_unknown_fields)]
 pub struct JavaScriptConfig {
     /// Source file patterns.
-    #[serde(default = "JavaScriptConfig::default_source")]
+    #[serde(default = "JavaScriptDefaults::default_source")]
     pub source: Vec<String>,
 
     /// Test file patterns.
-    #[serde(default = "JavaScriptConfig::default_tests")]
+    #[serde(default = "JavaScriptDefaults::default_tests")]
     pub tests: Vec<String>,
 
     /// Lint suppression settings.
@@ -37,8 +38,8 @@ pub struct JavaScriptConfig {
 impl Default for JavaScriptConfig {
     fn default() -> Self {
         Self {
-            source: Self::default_source(),
-            tests: Self::default_tests(),
+            source: JavaScriptDefaults::default_source(),
+            tests: JavaScriptDefaults::default_tests(),
             suppress: SuppressConfig::default(),
             policy: JavaScriptPolicyConfig::default(),
             cloc: None,
@@ -47,8 +48,11 @@ impl Default for JavaScriptConfig {
     }
 }
 
-impl JavaScriptConfig {
-    pub(crate) fn default_source() -> Vec<String> {
+/// JavaScript/TypeScript language defaults.
+pub struct JavaScriptDefaults;
+
+impl LanguageDefaults for JavaScriptDefaults {
+    fn default_source() -> Vec<String> {
         vec![
             "**/*.js".to_string(),
             "**/*.jsx".to_string(),
@@ -61,7 +65,7 @@ impl JavaScriptConfig {
         ]
     }
 
-    pub(crate) fn default_tests() -> Vec<String> {
+    fn default_tests() -> Vec<String> {
         vec![
             "**/tests/**".to_string(),
             "**/test/**".to_string(),
@@ -74,7 +78,7 @@ impl JavaScriptConfig {
         ]
     }
 
-    pub(crate) fn default_ignore() -> Vec<String> {
+    fn default_ignore() -> Vec<String> {
         vec![
             "node_modules/**".to_string(),
             "dist/**".to_string(),
@@ -85,58 +89,34 @@ impl JavaScriptConfig {
     }
 }
 
-/// JavaScript/TypeScript lint policy configuration.
-#[derive(Debug, Clone, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct JavaScriptPolicyConfig {
-    /// Check level: "error" | "warn" | "off" (default: inherits from global).
-    #[serde(default)]
-    pub check: Option<CheckLevel>,
+impl JavaScriptConfig {
+    pub(crate) fn default_source() -> Vec<String> {
+        JavaScriptDefaults::default_source()
+    }
 
-    /// Lint changes policy.
-    #[serde(default)]
-    pub lint_changes: LintChangesPolicy,
+    pub(crate) fn default_tests() -> Vec<String> {
+        JavaScriptDefaults::default_tests()
+    }
 
-    /// Lint config files (default: ESLint, TSConfig, Biome, Prettier).
-    #[serde(default = "JavaScriptPolicyConfig::default_lint_config")]
-    pub lint_config: Vec<String>,
-}
-
-impl Default for JavaScriptPolicyConfig {
-    fn default() -> Self {
-        Self {
-            check: None,
-            lint_changes: LintChangesPolicy::default(),
-            lint_config: Self::default_lint_config(),
-        }
+    pub(crate) fn default_ignore() -> Vec<String> {
+        JavaScriptDefaults::default_ignore()
     }
 }
 
-impl JavaScriptPolicyConfig {
-    pub(crate) fn default_lint_config() -> Vec<String> {
-        vec![
-            ".eslintrc".to_string(),
-            ".eslintrc.js".to_string(),
-            ".eslintrc.json".to_string(),
-            ".eslintrc.yml".to_string(),
-            "eslint.config.js".to_string(),
-            "eslint.config.mjs".to_string(),
-            "tsconfig.json".to_string(),
-            ".prettierrc".to_string(),
-            ".prettierrc.json".to_string(),
-            "prettier.config.js".to_string(),
-            "biome.json".to_string(),
-            "biome.jsonc".to_string(),
-        ]
-    }
-}
-
-impl crate::adapter::common::policy::PolicyConfig for JavaScriptPolicyConfig {
-    fn lint_changes(&self) -> LintChangesPolicy {
-        self.lint_changes
-    }
-
-    fn lint_config(&self) -> &[String] {
-        &self.lint_config
-    }
-}
+define_policy_config!(
+    JavaScriptPolicyConfig,
+    [
+        ".eslintrc",
+        ".eslintrc.js",
+        ".eslintrc.json",
+        ".eslintrc.yml",
+        "eslint.config.js",
+        "eslint.config.mjs",
+        "tsconfig.json",
+        ".prettierrc",
+        ".prettierrc.json",
+        "prettier.config.js",
+        "biome.json",
+        "biome.jsonc",
+    ]
+);

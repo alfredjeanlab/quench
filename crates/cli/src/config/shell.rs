@@ -2,6 +2,7 @@
 
 use serde::Deserialize;
 
+use super::lang_common::{LanguageDefaults, define_policy_config};
 use super::{CheckLevel, LangClocConfig, LintChangesPolicy, SuppressLevel, SuppressScopeConfig};
 
 /// Shell language-specific configuration.
@@ -9,11 +10,11 @@ use super::{CheckLevel, LangClocConfig, LintChangesPolicy, SuppressLevel, Suppre
 #[serde(deny_unknown_fields)]
 pub struct ShellConfig {
     /// Source file patterns.
-    #[serde(default = "ShellConfig::default_source")]
+    #[serde(default = "ShellDefaults::default_source")]
     pub source: Vec<String>,
 
     /// Test file patterns.
-    #[serde(default = "ShellConfig::default_tests")]
+    #[serde(default = "ShellDefaults::default_tests")]
     pub tests: Vec<String>,
 
     /// Lint suppression settings.
@@ -37,8 +38,8 @@ pub struct ShellConfig {
 impl Default for ShellConfig {
     fn default() -> Self {
         Self {
-            source: Self::default_source(),
-            tests: Self::default_tests(),
+            source: ShellDefaults::default_source(),
+            tests: ShellDefaults::default_tests(),
             suppress: ShellSuppressConfig::default(),
             policy: ShellPolicyConfig::default(),
             cloc: None,
@@ -47,12 +48,15 @@ impl Default for ShellConfig {
     }
 }
 
-impl ShellConfig {
-    pub(crate) fn default_source() -> Vec<String> {
+/// Shell language defaults.
+pub struct ShellDefaults;
+
+impl LanguageDefaults for ShellDefaults {
+    fn default_source() -> Vec<String> {
         vec!["**/*.sh".to_string(), "**/*.bash".to_string()]
     }
 
-    pub(crate) fn default_tests() -> Vec<String> {
+    fn default_tests() -> Vec<String> {
         vec![
             "**/tests/**/*.bats".to_string(),
             "**/test/**/*.bats".to_string(),
@@ -60,14 +64,32 @@ impl ShellConfig {
         ]
     }
 
-    pub(crate) fn default_ignore() -> Vec<String> {
+    fn default_ignore() -> Vec<String> {
         vec![]
     }
 
-    pub(crate) fn default_cloc_advice() -> &'static str {
+    fn default_cloc_advice() -> &'static str {
         "Can the script be made more concise?\n\
          Look for repetitive patterns that could be extracted into helper functions.\n\
          If not, split into multiple scripts or source helper files."
+    }
+}
+
+impl ShellConfig {
+    pub(crate) fn default_source() -> Vec<String> {
+        ShellDefaults::default_source()
+    }
+
+    pub(crate) fn default_tests() -> Vec<String> {
+        ShellDefaults::default_tests()
+    }
+
+    pub(crate) fn default_ignore() -> Vec<String> {
+        ShellDefaults::default_ignore()
+    }
+
+    pub(crate) fn default_cloc_advice() -> &'static str {
+        ShellDefaults::default_cloc_advice()
     }
 }
 
@@ -128,45 +150,4 @@ impl ShellSuppressConfig {
     }
 }
 
-/// Shell lint policy configuration.
-#[derive(Debug, Clone, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct ShellPolicyConfig {
-    /// Check level: "error" | "warn" | "off" (default: inherits from global).
-    #[serde(default)]
-    pub check: Option<CheckLevel>,
-
-    /// Lint config changes policy: "standalone" requires separate PRs.
-    #[serde(default)]
-    pub lint_changes: LintChangesPolicy,
-
-    /// Files that trigger the standalone requirement.
-    #[serde(default = "ShellPolicyConfig::default_lint_config")]
-    pub lint_config: Vec<String>,
-}
-
-impl Default for ShellPolicyConfig {
-    fn default() -> Self {
-        Self {
-            check: None,
-            lint_changes: LintChangesPolicy::default(),
-            lint_config: Self::default_lint_config(),
-        }
-    }
-}
-
-impl ShellPolicyConfig {
-    pub(crate) fn default_lint_config() -> Vec<String> {
-        vec![".shellcheckrc".to_string()]
-    }
-}
-
-impl crate::adapter::common::policy::PolicyConfig for ShellPolicyConfig {
-    fn lint_changes(&self) -> super::LintChangesPolicy {
-        self.lint_changes
-    }
-
-    fn lint_config(&self) -> &[String] {
-        &self.lint_config
-    }
-}
+define_policy_config!(ShellPolicyConfig, [".shellcheckrc",]);

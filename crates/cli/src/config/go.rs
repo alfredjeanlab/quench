@@ -2,6 +2,7 @@
 
 use serde::Deserialize;
 
+use super::lang_common::{LanguageDefaults, define_policy_config};
 use super::{CheckLevel, LangClocConfig, LintChangesPolicy, SuppressLevel, SuppressScopeConfig};
 
 /// Go language-specific configuration.
@@ -9,11 +10,11 @@ use super::{CheckLevel, LangClocConfig, LintChangesPolicy, SuppressLevel, Suppre
 #[serde(deny_unknown_fields)]
 pub struct GoConfig {
     /// Source file patterns.
-    #[serde(default = "GoConfig::default_source")]
+    #[serde(default = "GoDefaults::default_source")]
     pub source: Vec<String>,
 
     /// Test file patterns.
-    #[serde(default = "GoConfig::default_tests")]
+    #[serde(default = "GoDefaults::default_tests")]
     pub tests: Vec<String>,
 
     /// Lint suppression settings.
@@ -37,8 +38,8 @@ pub struct GoConfig {
 impl Default for GoConfig {
     fn default() -> Self {
         Self {
-            source: Self::default_source(),
-            tests: Self::default_tests(),
+            source: GoDefaults::default_source(),
+            tests: GoDefaults::default_tests(),
             suppress: GoSuppressConfig::default(),
             policy: GoPolicyConfig::default(),
             cloc: None,
@@ -47,26 +48,47 @@ impl Default for GoConfig {
     }
 }
 
-impl GoConfig {
-    pub(crate) fn default_source() -> Vec<String> {
+/// Go language defaults.
+pub struct GoDefaults;
+
+impl LanguageDefaults for GoDefaults {
+    fn default_source() -> Vec<String> {
         vec!["**/*.go".to_string()]
     }
 
-    pub(crate) fn default_tests() -> Vec<String> {
+    fn default_tests() -> Vec<String> {
         vec!["**/*_test.go".to_string()]
     }
 
-    pub(crate) fn default_ignore() -> Vec<String> {
+    fn default_ignore() -> Vec<String> {
         vec!["vendor/**".to_string()]
     }
 
-    pub(crate) fn default_cloc_advice() -> &'static str {
+    fn default_cloc_advice() -> &'static str {
         "Can the code be made more concise?\n\n\
          Look for repetitive patterns that could be extracted into helper functions.\n\n\
          If not, split large files into multiple files in the same package,\n\
          or extract reusable logic into internal packages.\n\n\
          Avoid picking and removing individual lines to satisfy the linter,\n\
          prefer properly refactoring out testable code blocks."
+    }
+}
+
+impl GoConfig {
+    pub(crate) fn default_source() -> Vec<String> {
+        GoDefaults::default_source()
+    }
+
+    pub(crate) fn default_tests() -> Vec<String> {
+        GoDefaults::default_tests()
+    }
+
+    pub(crate) fn default_ignore() -> Vec<String> {
+        GoDefaults::default_ignore()
+    }
+
+    pub(crate) fn default_cloc_advice() -> &'static str {
+        GoDefaults::default_cloc_advice()
     }
 }
 
@@ -127,49 +149,7 @@ impl GoSuppressConfig {
     }
 }
 
-/// Go lint policy configuration.
-#[derive(Debug, Clone, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct GoPolicyConfig {
-    /// Check level: "error" | "warn" | "off" (default: inherits from global).
-    #[serde(default)]
-    pub check: Option<CheckLevel>,
-
-    /// Lint config changes policy: "standalone" requires separate PRs.
-    #[serde(default)]
-    pub lint_changes: LintChangesPolicy,
-
-    /// Files that trigger the standalone requirement.
-    #[serde(default = "GoPolicyConfig::default_lint_config")]
-    pub lint_config: Vec<String>,
-}
-
-impl Default for GoPolicyConfig {
-    fn default() -> Self {
-        Self {
-            check: None,
-            lint_changes: LintChangesPolicy::default(),
-            lint_config: Self::default_lint_config(),
-        }
-    }
-}
-
-impl GoPolicyConfig {
-    pub(crate) fn default_lint_config() -> Vec<String> {
-        vec![
-            ".golangci.yml".to_string(),
-            ".golangci.yaml".to_string(),
-            ".golangci.toml".to_string(),
-        ]
-    }
-}
-
-impl crate::adapter::common::policy::PolicyConfig for GoPolicyConfig {
-    fn lint_changes(&self) -> LintChangesPolicy {
-        self.lint_changes
-    }
-
-    fn lint_config(&self) -> &[String] {
-        &self.lint_config
-    }
-}
+define_policy_config!(
+    GoPolicyConfig,
+    [".golangci.yml", ".golangci.yaml", ".golangci.toml",]
+);
