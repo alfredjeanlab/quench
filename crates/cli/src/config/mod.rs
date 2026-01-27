@@ -11,6 +11,7 @@ pub mod duration;
 mod go;
 mod javascript;
 mod ratchet;
+mod ruby;
 mod shell;
 mod suppress;
 mod test_config;
@@ -27,6 +28,7 @@ pub use checks::{
 pub use go::{GoConfig, GoPolicyConfig, GoSuppressConfig};
 pub use javascript::{JavaScriptConfig, JavaScriptPolicyConfig};
 pub use ratchet::RatchetConfig;
+pub use ruby::{RubyConfig, RubyPolicyConfig, RubySuppressConfig};
 pub use shell::{ShellConfig, ShellPolicyConfig, ShellSuppressConfig};
 pub use suppress::{SuppressConfig, SuppressLevel, SuppressScopeConfig};
 pub use test_config::{
@@ -81,6 +83,10 @@ pub struct Config {
     /// JavaScript/TypeScript-specific configuration.
     #[serde(default)]
     pub javascript: JavaScriptConfig,
+
+    /// Ruby-specific configuration.
+    #[serde(default)]
+    pub ruby: RubyConfig,
 
     /// Shell-specific configuration.
     #[serde(default)]
@@ -184,6 +190,7 @@ impl Config {
             "shell" | "sh" | "bash" | "zsh" | "fish" | "bats" => {
                 self.shell.cloc.as_ref().and_then(|c| c.check)
             }
+            "ruby" | "rb" | "rake" => self.ruby.cloc.as_ref().and_then(|c| c.check),
             _ => None,
         };
         lang_level.unwrap_or(self.check.cloc.check)
@@ -219,6 +226,12 @@ impl Config {
                 .as_ref()
                 .and_then(|c| c.advice.as_deref())
                 .or(self.javascript.cloc_advice.as_deref()),
+            "ruby" | "rb" | "rake" => self
+                .ruby
+                .cloc
+                .as_ref()
+                .and_then(|c| c.advice.as_deref())
+                .or(self.ruby.cloc_advice.as_deref()),
             "shell" | "sh" | "bash" | "zsh" | "fish" | "bats" => self
                 .shell
                 .cloc
@@ -243,6 +256,7 @@ impl Config {
         match language {
             "rust" | "rs" => RustConfig::default_cloc_advice(),
             "go" => GoConfig::default_cloc_advice(),
+            "ruby" | "rb" | "rake" => RubyConfig::default_cloc_advice(),
             "shell" | "sh" | "bash" | "zsh" | "fish" | "bats" => ShellConfig::default_cloc_advice(),
             _ => &self.check.cloc.advice,
         }
@@ -260,6 +274,7 @@ impl Config {
             "rust" => self.rust.policy.check,
             "go" | "golang" => self.golang.policy.check,
             "javascript" | "js" => self.javascript.policy.check,
+            "ruby" | "rb" => self.ruby.policy.check,
             "shell" | "sh" => self.shell.policy.check,
             _ => None,
         };

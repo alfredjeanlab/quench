@@ -15,6 +15,7 @@ pub mod glob;
 pub mod go;
 pub mod javascript;
 pub mod patterns;
+pub mod ruby;
 pub mod rust;
 pub mod shell;
 
@@ -27,7 +28,10 @@ pub use generic::GenericAdapter;
 pub use go::{
     GoAdapter, NolintDirective, enumerate_packages, parse_go_mod, parse_nolint_directives,
 };
-pub use javascript::{JavaScriptAdapter, JsWorkspace, parse_javascript_suppresses};
+pub use javascript::{
+    Bundler, JavaScriptAdapter, JsWorkspace, detect_bundler, parse_javascript_suppresses,
+};
+pub use ruby::{RubyAdapter, RubySuppress, RubySuppressKind, parse_ruby_suppresses};
 pub use rust::{CfgTestInfo, RustAdapter, parse_suppress_attrs};
 
 /// File classification result.
@@ -78,6 +82,9 @@ pub struct EscapePattern {
     pub comment: Option<&'static str>,
     /// Advice to show when pattern is violated.
     pub advice: &'static str,
+    /// Override action for test code ("allow" | "forbid" | "comment").
+    /// None means default (allow in tests).
+    pub in_tests: Option<&'static str>,
 }
 
 /// Action required for an escape pattern match.
@@ -147,6 +154,7 @@ pub enum ProjectLanguage {
     Rust,
     Go,
     JavaScript,
+    Ruby,
     Shell,
     Generic,
 }
@@ -169,12 +177,39 @@ pub fn detect_language(root: &Path) -> ProjectLanguage {
         return ProjectLanguage::JavaScript;
     }
 
+    // Ruby detection (before Shell check)
+    if has_ruby_markers(root) {
+        return ProjectLanguage::Ruby;
+    }
+
     // Check for Shell project markers: *.sh in root, bin/, or scripts/
     if has_shell_markers(root) {
         return ProjectLanguage::Shell;
     }
 
     ProjectLanguage::Generic
+}
+
+/// Check if project has Ruby markers.
+/// Detection: Gemfile, *.gemspec, config.ru, or config/application.rb (Rails)
+fn has_ruby_markers(root: &Path) -> bool {
+    root.join("Gemfile").exists()
+        || has_gemspec(root)
+        || root.join("config.ru").exists()
+        || root.join("config/application.rb").exists()
+}
+
+/// Check if a directory contains *.gemspec files.
+fn has_gemspec(root: &Path) -> bool {
+    root.read_dir()
+        .ok()
+        .map(|entries| {
+            entries.filter_map(|e| e.ok()).any(|entry| {
+                let path = entry.path();
+                path.is_file() && path.extension().and_then(|e| e.to_str()) == Some("gemspec")
+            })
+        })
+        .unwrap_or(false)
 }
 
 /// Check if project has Shell markers.
@@ -231,6 +266,9 @@ impl AdapterRegistry {
             ProjectLanguage::JavaScript => {
                 registry.register(Arc::new(JavaScriptAdapter::new()));
             }
+            ProjectLanguage::Ruby => {
+                registry.register(Arc::new(RubyAdapter::new()));
+            }
             ProjectLanguage::Shell => {
                 registry.register(Arc::new(ShellAdapter::new()));
             }
@@ -277,6 +315,10 @@ impl AdapterRegistry {
             ProjectLanguage::JavaScript => {
                 let patterns = resolve_javascript_patterns(config, &fallback_test_patterns);
                 registry.register(Arc::new(JavaScriptAdapter::with_patterns(patterns)));
+            }
+            ProjectLanguage::Ruby => {
+                let patterns = resolve_ruby_patterns(config, &fallback_test_patterns);
+                registry.register(Arc::new(RubyAdapter::with_patterns(patterns)));
             }
             ProjectLanguage::Shell => {
                 let patterns = resolve_shell_patterns(config, &fallback_test_patterns);
@@ -329,6 +371,19 @@ fn resolve_javascript_patterns(
         &config.javascript.source,
         &config.javascript.tests,
         &[],
+        fallback_test,
+    )
+}
+
+/// Resolve Ruby patterns from config.
+fn resolve_ruby_patterns(
+    config: &crate::config::Config,
+    fallback_test: &[String],
+) -> ResolvedPatterns {
+    patterns::resolve_patterns::<crate::config::RubyConfig>(
+        &config.ruby.source,
+        &config.ruby.tests,
+        &config.ruby.ignore,
         fallback_test,
     )
 }

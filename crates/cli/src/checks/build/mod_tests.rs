@@ -216,3 +216,98 @@ fn build_metrics_json_time_is_float() {
         "1500ms should be 1.5 seconds"
     );
 }
+
+// =============================================================================
+// GZIP SIZE TESTS (JavaScript bundles)
+// =============================================================================
+
+#[test]
+fn build_metrics_json_with_gzip_sizes() {
+    let mut metrics = BuildMetrics::default();
+    metrics.sizes.insert("dist/index.js".to_string(), 100_000);
+    metrics
+        .sizes_gzip
+        .insert("dist/index.js".to_string(), 25_000);
+
+    let json = metrics.to_json();
+
+    // Verify size_gzip is present
+    assert!(
+        json.get("size_gzip").is_some(),
+        "should have size_gzip when gzip sizes exist"
+    );
+
+    let size_gzip = json.get("size_gzip").unwrap();
+    assert_eq!(
+        size_gzip.get("dist/index.js").and_then(|v| v.as_u64()),
+        Some(25_000),
+        "gzip size should match"
+    );
+}
+
+#[test]
+fn build_metrics_json_no_gzip_without_js() {
+    let mut metrics = BuildMetrics::default();
+    metrics.sizes.insert("myapp".to_string(), 1024);
+    // No gzip sizes added
+
+    let json = metrics.to_json();
+
+    // size_gzip should not be present
+    assert!(
+        json.get("size_gzip").is_none(),
+        "should not have size_gzip when no gzip sizes"
+    );
+}
+
+#[test]
+fn build_metrics_has_metrics_with_sizes() {
+    let mut metrics = BuildMetrics::default();
+    metrics.sizes.insert("myapp".to_string(), 1024);
+
+    assert!(metrics.has_metrics());
+}
+
+#[test]
+fn build_metrics_has_metrics_with_time() {
+    let metrics = BuildMetrics {
+        time_cold: Some(Duration::from_secs(1)),
+        ..Default::default()
+    };
+
+    assert!(metrics.has_metrics());
+}
+
+#[test]
+fn build_metrics_has_metrics_empty() {
+    let metrics = BuildMetrics::default();
+    assert!(!metrics.has_metrics());
+}
+
+// =============================================================================
+// JAVASCRIPT TARGET DETECTION TESTS
+// =============================================================================
+
+#[test]
+fn get_build_targets_javascript() {
+    let dir = TempDir::new().unwrap();
+    let root = dir.path();
+
+    // Create package.json to mark as JS project
+    std::fs::write(root.join("package.json"), r#"{"name": "test"}"#).unwrap();
+
+    // Create dist directory with bundles
+    let dist = root.join("dist");
+    std::fs::create_dir(&dist).unwrap();
+    std::fs::write(dist.join("index.js"), "console.log('hello')").unwrap();
+    std::fs::write(dist.join("vendor.js"), "// vendor").unwrap();
+    std::fs::write(dist.join("index.js.map"), "{}").unwrap(); // Should be excluded
+
+    let targets = get_build_targets(root, ProjectLanguage::JavaScript);
+
+    assert_eq!(targets.len(), 2);
+    assert!(targets.iter().any(|t| t.contains("index.js")));
+    assert!(targets.iter().any(|t| t.contains("vendor.js")));
+    // Source maps should not be included
+    assert!(!targets.iter().any(|t| t.contains(".map")));
+}

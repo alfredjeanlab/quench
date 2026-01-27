@@ -4,9 +4,13 @@
 //! Build check: binary size and build time metrics.
 //!
 //! CI-only check that measures:
-//! - Binary sizes for configured targets
+//! - Binary sizes for configured targets (raw and gzipped for JS)
 //! - Cold build time (clean build)
 //! - Hot build time (incremental build)
+//!
+//! Supports Rust, Go, and JavaScript/TypeScript projects.
+
+mod javascript;
 
 use std::collections::HashMap;
 use std::path::Path;
@@ -15,9 +19,11 @@ use std::time::{Duration, Instant};
 
 use serde_json::json;
 
-use crate::adapter::{ProjectLanguage, detect_language};
+use crate::adapter::{ProjectLanguage, detect_bundler, detect_language};
 use crate::check::{Check, CheckContext, CheckResult, Violation};
 use crate::tolerance::{parse_duration, parse_size};
+
+use javascript::{has_build_script, measure_bundle_size, resolve_js_targets};
 
 /// Default advice for cold build time threshold violations.
 const TIME_COLD_ADVICE: &str =
@@ -67,21 +73,39 @@ impl Check for BuildCheck {
         let targets = resolve_targets(ctx, language);
         let explicit_targets = !ctx.config.check.build.targets.is_empty();
 
-        // Measure binary sizes and check thresholds
+        // Measure binary/bundle sizes and check thresholds
         for target in &targets {
-            if let Some(size) = measure_binary_size(ctx.root, target, language) {
+            let size_result = if language == ProjectLanguage::JavaScript {
+                // JavaScript: measure bundle size (raw + gzip)
+                let target_path = ctx.root.join(target);
+                measure_bundle_size(&target_path).ok().map(|bundle_size| {
+                    metrics
+                        .sizes_gzip
+                        .insert(target.clone(), bundle_size.gzipped);
+                    bundle_size.raw
+                })
+            } else {
+                // Rust/Go: measure binary size
+                measure_binary_size(ctx.root, target, language)
+            };
+
+            if let Some(size) = size_result {
                 metrics.sizes.insert(target.clone(), size);
 
                 // Check threshold
                 if let Some(threshold) = get_size_threshold(ctx, target)
                     && size > threshold
                 {
+                    let advice = if language == ProjectLanguage::JavaScript {
+                        "Reduce bundle size. Check for large dependencies or unused code."
+                    } else {
+                        "Reduce binary size. Check for unnecessary dependencies."
+                    };
                     violations.push(Violation {
                         file: None,
                         line: None,
                         violation_type: "size_exceeded".to_string(),
-                        advice: "Reduce binary size. Check for unnecessary dependencies."
-                            .to_string(),
+                        advice: advice.to_string(),
                         value: Some(size as i64),
                         threshold: Some(threshold as i64),
                         pattern: None,
@@ -174,17 +198,14 @@ impl Check for BuildCheck {
         }
 
         // Return result with metrics
-        let has_metrics =
-            !metrics.sizes.is_empty() || metrics.time_cold.is_some() || metrics.time_hot.is_some();
-
         if !violations.is_empty() {
             // Violations found - fail with metrics if available
-            if has_metrics {
+            if metrics.has_metrics() {
                 CheckResult::failed(self.name(), violations).with_metrics(metrics.to_json())
             } else {
                 CheckResult::failed(self.name(), violations)
             }
-        } else if has_metrics {
+        } else if metrics.has_metrics() {
             CheckResult::passed(self.name()).with_metrics(metrics.to_json())
         } else {
             // No metrics collected and no violations - return stub
@@ -196,19 +217,31 @@ impl Check for BuildCheck {
 #[derive(Default)]
 struct BuildMetrics {
     sizes: HashMap<String, u64>,
+    sizes_gzip: HashMap<String, u64>,
     time_cold: Option<Duration>,
     time_hot: Option<Duration>,
 }
 
 impl BuildMetrics {
     fn to_json(&self) -> serde_json::Value {
-        json!({
+        let mut result = json!({
             "size": self.sizes,
             "time": {
                 "cold": self.time_cold.map(|d| d.as_secs_f64()),
                 "hot": self.time_hot.map(|d| d.as_secs_f64()),
             }
-        })
+        });
+
+        // Only include size_gzip if there are gzipped sizes
+        if !self.sizes_gzip.is_empty() {
+            result["size_gzip"] = json!(self.sizes_gzip);
+        }
+
+        result
+    }
+
+    fn has_metrics(&self) -> bool {
+        !self.sizes.is_empty() || self.time_cold.is_some() || self.time_hot.is_some()
     }
 }
 
@@ -217,6 +250,10 @@ fn get_build_targets(root: &Path, language: ProjectLanguage) -> Vec<String> {
     match language {
         ProjectLanguage::Rust => get_rust_targets(root),
         ProjectLanguage::Go => get_go_targets(root),
+        ProjectLanguage::JavaScript => {
+            let bundler = detect_bundler(root);
+            resolve_js_targets(root, &[], bundler)
+        }
         _ => Vec::new(),
     }
 }
@@ -320,74 +357,182 @@ fn measure_binary_size(root: &Path, target: &str, language: ProjectLanguage) -> 
 
 /// Measure cold build time (clean build).
 fn measure_cold_build(root: &Path, language: ProjectLanguage) -> Option<Duration> {
-    let (clean_cmd, build_cmd) = match language {
-        ProjectLanguage::Rust => (vec!["cargo", "clean"], vec!["cargo", "build", "--release"]),
-        ProjectLanguage::Go => (vec!["go", "clean", "-cache"], vec!["go", "build", "./..."]),
-        _ => return None,
-    };
+    match language {
+        ProjectLanguage::Rust => {
+            // Clean first
+            let output = Command::new("cargo")
+                .args(["clean"])
+                .current_dir(root)
+                .output()
+                .ok()?;
 
-    // Clean first
-    let output = Command::new(clean_cmd[0])
-        .args(&clean_cmd[1..])
-        .current_dir(root)
-        .output()
-        .ok()?;
+            if !output.status.success() {
+                return None;
+            }
 
-    if !output.status.success() {
-        return None;
-    }
+            // Time the build
+            let start = Instant::now();
+            let output = Command::new("cargo")
+                .args(["build", "--release"])
+                .current_dir(root)
+                .output()
+                .ok()?;
 
-    // Time the build
-    let start = Instant::now();
-    let output = Command::new(build_cmd[0])
-        .args(&build_cmd[1..])
-        .current_dir(root)
-        .output()
-        .ok()?;
+            if output.status.success() {
+                Some(start.elapsed())
+            } else {
+                None
+            }
+        }
+        ProjectLanguage::Go => {
+            // Clean first
+            let output = Command::new("go")
+                .args(["clean", "-cache"])
+                .current_dir(root)
+                .output()
+                .ok()?;
 
-    if output.status.success() {
-        Some(start.elapsed())
-    } else {
-        None
+            if !output.status.success() {
+                return None;
+            }
+
+            // Time the build
+            let start = Instant::now();
+            let output = Command::new("go")
+                .args(["build", "./..."])
+                .current_dir(root)
+                .output()
+                .ok()?;
+
+            if output.status.success() {
+                Some(start.elapsed())
+            } else {
+                None
+            }
+        }
+        ProjectLanguage::JavaScript => {
+            // Check if build script exists
+            if !has_build_script(root) {
+                return None;
+            }
+
+            // Clean output directory
+            let bundler = detect_bundler(root);
+            let output_dir = root.join(bundler.default_output_dir());
+            if output_dir.exists() {
+                let _ = std::fs::remove_dir_all(&output_dir);
+            }
+
+            // Time the build
+            let start = Instant::now();
+            let output = Command::new("npm")
+                .args(["run", "build"])
+                .current_dir(root)
+                .output()
+                .ok()?;
+
+            if output.status.success() {
+                Some(start.elapsed())
+            } else {
+                None
+            }
+        }
+        _ => None,
     }
 }
 
 /// Measure hot build time (incremental build).
 fn measure_hot_build(root: &Path, language: ProjectLanguage) -> Option<Duration> {
-    let (touch_path, build_cmd) = match language {
+    match language {
         ProjectLanguage::Rust => {
             let lib_rs = root.join("src/lib.rs");
             let main_rs = root.join("src/main.rs");
-            let touch = if lib_rs.exists() { lib_rs } else { main_rs };
-            (touch, vec!["cargo", "build", "--release"])
+            let touch_path = if lib_rs.exists() { lib_rs } else { main_rs };
+
+            // Touch a source file to trigger incremental rebuild
+            if touch_path.exists() {
+                let _ = Command::new("touch")
+                    .arg(&touch_path)
+                    .current_dir(root)
+                    .output();
+            }
+
+            // Time the build
+            let start = Instant::now();
+            let output = Command::new("cargo")
+                .args(["build", "--release"])
+                .current_dir(root)
+                .output()
+                .ok()?;
+
+            if output.status.success() {
+                Some(start.elapsed())
+            } else {
+                None
+            }
         }
         ProjectLanguage::Go => {
-            let main_go = root.join("main.go");
-            (main_go, vec!["go", "build", "./..."])
+            let touch_path = root.join("main.go");
+
+            // Touch a source file to trigger incremental rebuild
+            if touch_path.exists() {
+                let _ = Command::new("touch")
+                    .arg(&touch_path)
+                    .current_dir(root)
+                    .output();
+            }
+
+            // Time the build
+            let start = Instant::now();
+            let output = Command::new("go")
+                .args(["build", "./..."])
+                .current_dir(root)
+                .output()
+                .ok()?;
+
+            if output.status.success() {
+                Some(start.elapsed())
+            } else {
+                None
+            }
         }
-        _ => return None,
-    };
+        ProjectLanguage::JavaScript => {
+            // Check if build script exists
+            if !has_build_script(root) {
+                return None;
+            }
 
-    // Touch a source file to trigger incremental rebuild
-    if touch_path.exists() {
-        let _ = Command::new("touch")
-            .arg(&touch_path)
-            .current_dir(root)
-            .output();
-    }
+            // Touch a source file to trigger rebuild (common entry points)
+            let touch_candidates = [
+                root.join("src/index.ts"),
+                root.join("src/index.js"),
+                root.join("src/main.ts"),
+                root.join("src/main.js"),
+                root.join("index.ts"),
+                root.join("index.js"),
+            ];
+            for touch_path in touch_candidates {
+                if touch_path.exists() {
+                    let _ = Command::new("touch").arg(&touch_path).output();
+                    break;
+                }
+            }
 
-    // Time the build
-    let start = Instant::now();
-    let output = Command::new(build_cmd[0])
-        .args(&build_cmd[1..])
-        .current_dir(root)
-        .output()
-        .ok()?;
+            // Time the build
+            let start = Instant::now();
+            let output = Command::new("npm")
+                .args(["run", "build"])
+                .current_dir(root)
+                .output()
+                .ok()?;
 
-    if output.status.success() {
-        Some(start.elapsed())
-    } else {
-        None
+            if output.status.success() {
+                Some(start.elapsed())
+            } else {
+                None
+            }
+        }
+        _ => None,
     }
 }
 

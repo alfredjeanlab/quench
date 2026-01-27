@@ -40,6 +40,7 @@ const RUST_ESCAPE_PATTERNS: &[EscapePattern] = &[
         action: EscapeAction::Comment,
         comment: Some("// SAFETY:"),
         advice: "Add a // SAFETY: comment explaining the invariants.",
+        in_tests: None,
     },
     EscapePattern {
         name: "transmute",
@@ -48,6 +49,7 @@ const RUST_ESCAPE_PATTERNS: &[EscapePattern] = &[
         action: EscapeAction::Comment,
         comment: Some("// SAFETY:"),
         advice: "Add a // SAFETY: comment explaining type compatibility.",
+        in_tests: None,
     },
 ];
 

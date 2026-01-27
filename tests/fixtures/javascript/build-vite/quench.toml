@@ -1,0 +1,8 @@
+version = 1
+
+[check.agents]
+required = []
+
+[check.build]
+check = "error"
+size_max = "100 KB"

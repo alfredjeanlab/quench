@@ -1,9 +1,4 @@
-//! Behavioral specs for the build check.
-//!
-//! Tests that quench correctly:
-//! - Detects binary targets from Cargo.toml
-//! - Measures binary sizes
-//! - Generates violations for size/time thresholds
+//! Rust build specs.
 //!
 //! Reference: docs/specs/checks/build.md
 
@@ -973,7 +968,7 @@ edition = "2021"
         .args(["build", "--release"])
         .current_dir(temp.path())
         .output()
-        .expect("build should succeed");
+        .expect("cargo build should succeed");
 
     let result = check("build")
         .pwd(temp.path())

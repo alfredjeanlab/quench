@@ -29,6 +29,12 @@ impl CommentStyle {
         prefix: "#",
         directive_patterns: &["shellcheck", "!"],
     };
+
+    /// Ruby comment style: `#` prefix, rubocop/standard directives.
+    pub const RUBY: Self = Self {
+        prefix: "#",
+        directive_patterns: &["rubocop:", "standard:", "!"],
+    };
 }
 
 /// Check if there's a justification comment above a directive line.

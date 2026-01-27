@@ -36,6 +36,7 @@ regex = "1"
 serde_yaml = "0.9"
 git2 = "0.19"
 percent-encoding = "2"
+flate2 = "1"
 
 [dev-dependencies]
 assert_cmd = "2"

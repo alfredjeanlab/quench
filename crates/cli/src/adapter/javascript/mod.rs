@@ -14,10 +14,12 @@ use std::path::Path;
 
 use globset::GlobSet;
 
+mod bundler;
 mod policy;
 mod suppress;
 mod workspace;
 
+pub use bundler::{Bundler, detect_bundler};
 pub use policy::{PolicyCheckResult, check_lint_policy};
 pub use suppress::{JavaScriptSuppress, SuppressTool, parse_javascript_suppresses};
 pub use workspace::JsWorkspace;
@@ -41,6 +43,7 @@ const JS_ESCAPE_PATTERNS: &[EscapePattern] = &[
         action: EscapeAction::Comment,
         comment: Some("// CAST:"),
         advice: "Add a // CAST: comment explaining why the type assertion is necessary.",
+        in_tests: None,
     },
     EscapePattern {
         name: "ts_ignore",
@@ -48,6 +51,7 @@ const JS_ESCAPE_PATTERNS: &[EscapePattern] = &[
         action: EscapeAction::Forbid,
         comment: None,
         advice: "@ts-ignore is forbidden. Use @ts-expect-error instead, which fails if the error is resolved.",
+        in_tests: None,
     },
 ];
 

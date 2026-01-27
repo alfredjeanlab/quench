@@ -1,0 +1,9 @@
+version = 1
+
+[check.agents]
+required = []
+
+[check.build]
+check = "error"
+targets = ["dist/app.js", "dist/vendor.js"]
+size_max = "100 KB"

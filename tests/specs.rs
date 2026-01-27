@@ -68,7 +68,7 @@ mod checks_tests;
 #[path = "specs/checks/git.rs"]
 mod checks_git;
 
-#[path = "specs/checks/build.rs"]
+#[path = "specs/checks/build/mod.rs"]
 mod checks_build;
 
 #[path = "specs/checks/license.rs"]
