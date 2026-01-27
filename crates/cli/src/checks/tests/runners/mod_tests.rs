@@ -299,6 +299,7 @@ fn aggregated_coverage_to_coverage_map() {
             packages: HashMap::new(),
         }),
         go: None,
+        javascript: None,
     };
 
     let map = agg.to_coverage_map();
