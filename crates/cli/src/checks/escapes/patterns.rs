@@ -8,7 +8,7 @@ use std::path::Path;
 
 use crate::adapter::{
     EscapePattern as AdapterEscapePattern, GoAdapter, JavaScriptAdapter, ProjectLanguage,
-    RustAdapter, ShellAdapter, detect_language,
+    RubyAdapter, RustAdapter, ShellAdapter, detect_language,
 };
 use crate::config::{EscapeAction, EscapePattern as ConfigEscapePattern};
 use crate::pattern::{CompiledPattern, PatternError};
@@ -25,6 +25,8 @@ pub(super) struct CompiledEscapePattern {
     pub(super) comment: Option<String>,
     /// Count threshold for action = count (default: 0).
     pub(super) threshold: usize,
+    /// Override action for test code ("allow" | "comment" | "forbid").
+    pub(super) in_tests: Option<String>,
 }
 
 /// Default test patterns for file classification.
@@ -40,6 +42,12 @@ pub(super) fn default_test_patterns() -> Vec<String> {
         "**/*_tests.*".to_string(),
         "**/*.test.*".to_string(),
         "**/*.spec.*".to_string(),
+        // Ruby RSpec patterns
+        "spec/**/*_spec.rb".to_string(),
+        "**/spec/**/*_spec.rb".to_string(),
+        // Ruby Cucumber/features patterns
+        "features/**/*.rb".to_string(),
+        "**/features/**/*.rb".to_string(),
     ]
 }
 
@@ -67,6 +75,10 @@ pub(super) fn get_adapter_escape_patterns(root: &Path) -> Vec<ConfigEscapePatter
             let js_adapter = JavaScriptAdapter::new();
             patterns.extend(convert_adapter_patterns(js_adapter.default_escapes()));
         }
+        ProjectLanguage::Ruby => {
+            let ruby_adapter = RubyAdapter::new();
+            patterns.extend(convert_adapter_patterns(ruby_adapter.default_escapes()));
+        }
         ProjectLanguage::Generic => {
             // No default patterns for generic projects
         }
@@ -88,7 +100,7 @@ fn convert_adapter_patterns(adapter_patterns: &[AdapterEscapePattern]) -> Vec<Co
             threshold: 0,
             source: Vec::new(),
             tests: Vec::new(),
-            in_tests: None,
+            in_tests: p.in_tests.map(String::from),
         })
         .collect()
 }
@@ -143,6 +155,7 @@ pub(super) fn compile_merged_patterns(
                 advice,
                 comment: p.comment.clone(),
                 threshold: p.threshold,
+                in_tests: p.in_tests.clone(),
             })
         })
         .collect()

@@ -76,6 +76,20 @@ impl LanguageDefaults for crate::config::JavaScriptConfig {
     }
 }
 
+impl LanguageDefaults for crate::config::RubyConfig {
+    fn default_source() -> Vec<String> {
+        crate::config::RubyConfig::default_source()
+    }
+
+    fn default_tests() -> Vec<String> {
+        crate::config::RubyConfig::default_tests()
+    }
+
+    fn default_ignore() -> Vec<String> {
+        crate::config::RubyConfig::default_ignore()
+    }
+}
+
 impl LanguageDefaults for crate::config::ShellConfig {
     fn default_source() -> Vec<String> {
         crate::config::ShellConfig::default_source()

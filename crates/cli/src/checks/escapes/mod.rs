@@ -12,6 +12,7 @@ mod javascript_suppress;
 mod lint_policy;
 mod metrics;
 mod patterns;
+mod ruby_suppress;
 mod shell_suppress;
 mod suppress_common;
 mod violations;
@@ -25,6 +26,7 @@ use crate::config::{CheckLevel, EscapeAction, SuppressConfig, SuppressLevel};
 use crate::file_reader::FileContent;
 use go_suppress::check_go_suppress_violations;
 use javascript_suppress::check_javascript_suppress_violations;
+use ruby_suppress::check_ruby_suppress_violations;
 use shell_suppress::check_shell_suppress_violations;
 use suppress_common::{
     SuppressAttrInfo, SuppressCheckParams, SuppressViolationKind, check_suppress_attr,
@@ -197,6 +199,23 @@ impl Check for EscapesCheck {
                 }
             }
 
+            // Check for Ruby RuboCop/Standard suppress directive violations
+            if has_extension(&file.path, &["rb", "rake"]) {
+                let ruby_violations = check_ruby_suppress_violations(
+                    ctx,
+                    relative,
+                    content,
+                    &ctx.config.ruby.suppress,
+                    is_test_file,
+                    &mut limit_reached,
+                );
+                violations.extend(ruby_violations);
+
+                if limit_reached {
+                    break;
+                }
+            }
+
             // Find matches for each pattern
             for pattern in &patterns {
                 let matches = pattern.matcher.find_all_with_lines(content);
@@ -238,9 +257,23 @@ impl Check for EscapesCheck {
                         metrics.increment_package(pkg, &pattern.name, is_test_code);
                     }
 
-                    // Test code: tracked in metrics but no violations
+                    // Handle test code based on pattern's in_tests setting
                     if is_test_code {
-                        continue;
+                        // Determine effective action for test code
+                        let test_action = match pattern.in_tests.as_deref() {
+                            Some("allow") => None, // Skip violations
+                            Some("forbid") => Some(EscapeAction::Forbid),
+                            Some("comment") => Some(EscapeAction::Comment),
+                            // Default: all patterns are allowed in tests (original behavior)
+                            // To make a pattern forbidden in tests, set in_tests = "forbid"
+                            None => None,
+                            _ => None, // Unknown value -> allow
+                        };
+
+                        // Skip if no violations needed for test code
+                        if test_action.is_none() {
+                            continue;
+                        }
                     }
 
                     // Source code: apply action logic

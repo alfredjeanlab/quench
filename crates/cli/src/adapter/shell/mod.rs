@@ -35,6 +35,7 @@ const SHELL_ESCAPE_PATTERNS: &[EscapePattern] = &[
         advice: "Most bash scripts should use 'set -e' to exit on errors. \
                  Consider adding it to this script. \
                  If error checking was intentionally disabled, add a # OK: comment explaining why.",
+        in_tests: None,
     },
     EscapePattern {
         name: "eval",
@@ -43,6 +44,7 @@ const SHELL_ESCAPE_PATTERNS: &[EscapePattern] = &[
         comment: Some("# OK:"),
         advice: "eval can execute arbitrary code and is a common source of injection vulnerabilities. \
                  If this usage is safe, add a # OK: comment explaining why.",
+        in_tests: None,
     },
 ];
 

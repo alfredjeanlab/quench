@@ -35,6 +35,7 @@ const GO_ESCAPE_PATTERNS: &[EscapePattern] = &[
         action: EscapeAction::Comment,
         comment: Some("// SAFETY:"),
         advice: "Add a // SAFETY: comment explaining pointer validity.",
+        in_tests: None,
     },
     EscapePattern {
         name: "go_linkname",
@@ -42,6 +43,7 @@ const GO_ESCAPE_PATTERNS: &[EscapePattern] = &[
         action: EscapeAction::Comment,
         comment: Some("// LINKNAME:"),
         advice: "Add a // LINKNAME: comment explaining the external symbol dependency.",
+        in_tests: None,
     },
     EscapePattern {
         name: "go_noescape",
@@ -49,6 +51,7 @@ const GO_ESCAPE_PATTERNS: &[EscapePattern] = &[
         action: EscapeAction::Comment,
         comment: Some("// NOESCAPE:"),
         advice: "Add a // NOESCAPE: comment explaining why escape analysis should be bypassed.",
+        in_tests: None,
     },
 ];
 

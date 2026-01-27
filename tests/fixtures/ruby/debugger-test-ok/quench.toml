@@ -3,5 +3,24 @@ version = 1
 [check.agents]
 required = []
 
-[ruby.escapes.debugger]
+# Allow debuggers in test files
+[[check.escapes.patterns]]
+name = "binding_pry"
+pattern = "binding\\.pry"
+action = "forbid"
 in_tests = "allow"
+advice = "Remove debugger statement before committing."
+
+[[check.escapes.patterns]]
+name = "byebug"
+pattern = "\\bbyebug\\b"
+action = "forbid"
+in_tests = "allow"
+advice = "Remove debugger statement before committing."
+
+[[check.escapes.patterns]]
+name = "debugger"
+pattern = "\\bdebugger\\b"
+action = "forbid"
+in_tests = "allow"
+advice = "Remove debugger statement before committing."

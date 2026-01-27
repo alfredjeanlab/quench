@@ -196,6 +196,14 @@ pub fn run(_cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
                 }
             }
         }
+        ProjectLanguage::Ruby => {
+            // Ignore vendor, tmp, log, coverage for Ruby projects
+            for pattern in ["vendor", "tmp", "log", "coverage"] {
+                if !ignore_patterns.iter().any(|p| p.contains(pattern)) {
+                    ignore_patterns.push(pattern.to_string());
+                }
+            }
+        }
         ProjectLanguage::Generic => {}
     }
 

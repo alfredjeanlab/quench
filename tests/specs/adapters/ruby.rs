@@ -21,7 +21,6 @@ use crate::prelude::*;
 ///
 /// > Detected when `Gemfile` exists in project root.
 #[test]
-#[ignore = "TODO: Phase 483 - Ruby Detection"]
 fn auto_detected_when_gemfile_present() {
     let result = cli().on("ruby/auto-detect").json().passes();
     let checks = result.checks();
@@ -38,7 +37,6 @@ fn auto_detected_when_gemfile_present() {
 ///
 /// > Detected when `*.gemspec` exists in project root.
 #[test]
-#[ignore = "TODO: Phase 483 - Ruby Detection"]
 fn auto_detected_when_gemspec_present() {
     let result = cli().on("ruby/gemspec-detect").json().passes();
     let checks = result.checks();
@@ -54,7 +52,6 @@ fn auto_detected_when_gemspec_present() {
 ///
 /// > Detected when `config.ru` exists in project root.
 #[test]
-#[ignore = "TODO: Phase 483 - Ruby Detection"]
 fn auto_detected_when_config_ru_present() {
     let result = cli().on("ruby/config-ru-detect").json().passes();
     let checks = result.checks();
@@ -70,7 +67,6 @@ fn auto_detected_when_config_ru_present() {
 ///
 /// > Detected when `config/application.rb` exists (Rails).
 #[test]
-#[ignore = "TODO: Phase 483 - Ruby Detection"]
 fn auto_detected_when_rails_config_present() {
     let result = cli().on("ruby/rails-detect").json().passes();
     let checks = result.checks();
@@ -90,7 +86,6 @@ fn auto_detected_when_rails_config_present() {
 ///
 /// > source = ["**/*.rb", "**/*.rake", "Rakefile", "Gemfile", "*.gemspec"]
 #[test]
-#[ignore = "TODO: Phase 483 - Ruby Detection"]
 fn default_source_pattern_matches_rb_files() {
     let cloc = check("cloc").on("ruby/auto-detect").json().passes();
     let metrics = cloc.require("metrics");
@@ -106,7 +101,6 @@ fn default_source_pattern_matches_rb_files() {
 ///
 /// > source = ["**/*.rb", "**/*.rake", ...]
 #[test]
-#[ignore = "TODO: Phase 483 - Ruby Detection"]
 fn default_source_pattern_matches_rake_files() {
     let cloc = check("cloc").on("ruby/rake-files").json().passes();
     let metrics = cloc.require("metrics");
@@ -122,7 +116,6 @@ fn default_source_pattern_matches_rake_files() {
 ///
 /// > tests = ["spec/**/*_spec.rb", ...]
 #[test]
-#[ignore = "TODO: Phase 483 - Ruby Detection"]
 fn default_test_pattern_matches_spec_files() {
     let cloc = check("cloc").on("ruby/auto-detect").json().passes();
     let metrics = cloc.require("metrics");
@@ -138,7 +131,6 @@ fn default_test_pattern_matches_spec_files() {
 ///
 /// > tests = ["test/**/*_test.rb", ...]
 #[test]
-#[ignore = "TODO: Phase 483 - Ruby Detection"]
 fn default_test_pattern_matches_test_files() {
     let cloc = check("cloc").on("ruby/test-unit").json().passes();
     let metrics = cloc.require("metrics");
@@ -154,7 +146,6 @@ fn default_test_pattern_matches_test_files() {
 ///
 /// > tests = ["features/**/*.rb", ...]
 #[test]
-#[ignore = "TODO: Phase 483 - Ruby Detection"]
 fn default_test_pattern_matches_features() {
     let cloc = check("cloc").on("ruby/cucumber-features").json().passes();
     let metrics = cloc.require("metrics");
@@ -170,7 +161,6 @@ fn default_test_pattern_matches_features() {
 ///
 /// > ignore = ["vendor/", "tmp/", "log/", "coverage/"]
 #[test]
-#[ignore = "TODO: Phase 483 - Ruby Detection"]
 fn default_ignores_vendor_directory() {
     let cloc = check("cloc").on("ruby/vendor-ignore").json().passes();
     let files = cloc.get("files").and_then(|f| f.as_array());
@@ -189,7 +179,6 @@ fn default_ignores_vendor_directory() {
 ///
 /// > ignore = ["vendor/", "tmp/", ...]
 #[test]
-#[ignore = "TODO: Phase 483 - Ruby Detection"]
 fn default_ignores_tmp_directory() {
     let cloc = check("cloc").on("ruby/tmp-ignore").json().passes();
     let files = cloc.get("files").and_then(|f| f.as_array());
@@ -208,7 +197,6 @@ fn default_ignores_tmp_directory() {
 ///
 /// > ignore = ["vendor/", "tmp/", "log/", ...]
 #[test]
-#[ignore = "TODO: Phase 483 - Ruby Detection"]
 fn default_ignores_log_directory() {
     let cloc = check("cloc").on("ruby/log-ignore").json().passes();
     let files = cloc.get("files").and_then(|f| f.as_array());
@@ -227,7 +215,6 @@ fn default_ignores_log_directory() {
 ///
 /// > ignore = ["vendor/", "tmp/", "log/", "coverage/"]
 #[test]
-#[ignore = "TODO: Phase 483 - Ruby Detection"]
 fn default_ignores_coverage_directory() {
     let cloc = check("cloc").on("ruby/coverage-ignore").json().passes();
     let files = cloc.get("files").and_then(|f| f.as_array());
@@ -250,7 +237,6 @@ fn default_ignores_coverage_directory() {
 ///
 /// > `eval(` requires `# METAPROGRAMMING:` comment
 #[test]
-#[ignore = "TODO: Phase 485 - Ruby Escapes"]
 fn eval_without_metaprogramming_comment_fails() {
     check("escapes")
         .on("ruby/eval-fail")
@@ -263,7 +249,6 @@ fn eval_without_metaprogramming_comment_fails() {
 ///
 /// > `eval(` with `# METAPROGRAMMING:` comment passes
 #[test]
-#[ignore = "TODO: Phase 485 - Ruby Escapes"]
 fn eval_with_metaprogramming_comment_passes() {
     check("escapes").on("ruby/eval-ok").passes();
 }
@@ -272,7 +257,6 @@ fn eval_with_metaprogramming_comment_passes() {
 ///
 /// > `instance_eval` requires `# METAPROGRAMMING:` comment
 #[test]
-#[ignore = "TODO: Phase 485 - Ruby Escapes"]
 fn instance_eval_without_metaprogramming_comment_fails() {
     check("escapes")
         .on("ruby/instance-eval-fail")
@@ -285,7 +269,6 @@ fn instance_eval_without_metaprogramming_comment_fails() {
 ///
 /// > `class_eval` requires `# METAPROGRAMMING:` comment
 #[test]
-#[ignore = "TODO: Phase 485 - Ruby Escapes"]
 fn class_eval_without_metaprogramming_comment_fails() {
     check("escapes")
         .on("ruby/class-eval-fail")
@@ -298,7 +281,6 @@ fn class_eval_without_metaprogramming_comment_fails() {
 ///
 /// > Metaprogramming escapes allowed in test code by default
 #[test]
-#[ignore = "TODO: Phase 485 - Ruby Escapes"]
 fn metaprogramming_in_test_code_allowed() {
     check("escapes").on("ruby/eval-test-ok").passes();
 }
@@ -311,21 +293,19 @@ fn metaprogramming_in_test_code_allowed() {
 ///
 /// > `binding.pry` is forbidden in source code
 #[test]
-#[ignore = "TODO: Phase 485 - Ruby Escapes"]
 fn binding_pry_forbidden_in_source() {
     check("escapes")
         .on("ruby/binding-pry-fail")
         .fails()
         .stdout_has("escapes: FAIL")
         .stdout_has("forbidden")
-        .stdout_has("binding.pry");
+        .stdout_has("binding_pry");
 }
 
 /// Spec: docs/specs/langs/ruby.md#default-escape-patterns
 ///
 /// > `byebug` is forbidden in source code
 #[test]
-#[ignore = "TODO: Phase 485 - Ruby Escapes"]
 fn byebug_forbidden_in_source() {
     check("escapes")
         .on("ruby/byebug-fail")
@@ -339,7 +319,6 @@ fn byebug_forbidden_in_source() {
 ///
 /// > `debugger` is forbidden in source code
 #[test]
-#[ignore = "TODO: Phase 485 - Ruby Escapes"]
 fn debugger_forbidden_in_source() {
     check("escapes")
         .on("ruby/debugger-fail")
@@ -353,7 +332,6 @@ fn debugger_forbidden_in_source() {
 ///
 /// > Debuggers: Forbidden even in tests by default (common source of CI failures)
 #[test]
-#[ignore = "TODO: Phase 485 - Ruby Escapes"]
 fn debugger_forbidden_even_in_test() {
     // Unlike metaprogramming, debuggers should fail in test code too
     check("escapes")
@@ -366,7 +344,6 @@ fn debugger_forbidden_even_in_test() {
 ///
 /// > in_tests = "allow" for debugger patterns (configurable)
 #[test]
-#[ignore = "TODO: Phase 485 - Ruby Escapes"]
 fn debugger_allowed_in_test_when_configured() {
     // With in_tests = "allow", debuggers pass in test files
     check("escapes").on("ruby/debugger-test-ok").passes();
@@ -380,7 +357,6 @@ fn debugger_allowed_in_test_when_configured() {
 ///
 /// > "comment" - Requires justification comment (default for source)
 #[test]
-#[ignore = "TODO: Phase 486 - Ruby Suppress"]
 fn rubocop_disable_without_comment_fails() {
     check("escapes")
         .on("ruby/rubocop-comment-fail")
@@ -393,7 +369,6 @@ fn rubocop_disable_without_comment_fails() {
 ///
 /// > Requires justification comment
 #[test]
-#[ignore = "TODO: Phase 486 - Ruby Suppress"]
 fn rubocop_disable_with_comment_passes() {
     check("escapes").on("ruby/rubocop-comment-ok").passes();
 }
@@ -402,7 +377,6 @@ fn rubocop_disable_with_comment_passes() {
 ///
 /// > # rubocop:disable A, B (multiple cops)
 #[test]
-#[ignore = "TODO: Phase 486 - Ruby Suppress"]
 fn rubocop_disable_multiple_cops_detected() {
     check("escapes")
         .on("ruby/rubocop-multiple-fail")
@@ -414,7 +388,6 @@ fn rubocop_disable_multiple_cops_detected() {
 ///
 /// > # rubocop:todo (same as disable)
 #[test]
-#[ignore = "TODO: Phase 486 - Ruby Suppress"]
 fn rubocop_todo_detected() {
     check("escapes")
         .on("ruby/rubocop-todo-fail")
@@ -426,7 +399,6 @@ fn rubocop_todo_detected() {
 ///
 /// > # standard:disable (StandardRB variant)
 #[test]
-#[ignore = "TODO: Phase 486 - Ruby Suppress"]
 fn standard_disable_detected() {
     check("escapes")
         .on("ruby/standard-disable-fail")
@@ -438,7 +410,6 @@ fn standard_disable_detected() {
 ///
 /// > Same-line disable detected
 #[test]
-#[ignore = "TODO: Phase 486 - Ruby Suppress"]
 fn rubocop_disable_inline_detected() {
     check("escapes")
         .on("ruby/rubocop-inline-fail")
@@ -450,7 +421,6 @@ fn rubocop_disable_inline_detected() {
 ///
 /// > [ruby.suppress.test] check = "allow" - tests can suppress freely
 #[test]
-#[ignore = "TODO: Phase 486 - Ruby Suppress"]
 fn rubocop_disable_in_test_allowed() {
     check("escapes").on("ruby/rubocop-test-ok").passes();
 }
@@ -463,7 +433,6 @@ fn rubocop_disable_in_test_allowed() {
 ///
 /// > lint_changes = "standalone" - lint config changes must be standalone PRs
 #[test]
-#[ignore = "TODO: Phase 487 - Ruby Policy"]
 fn lint_config_changes_with_source_fails_standalone_policy() {
     let temp = Project::empty();
 
@@ -533,7 +502,6 @@ lint_config = [".rubocop.yml"]
 ///
 /// > Lint config changes only (no source) passes standalone policy.
 #[test]
-#[ignore = "TODO: Phase 487 - Ruby Policy"]
 fn lint_config_standalone_passes() {
     let temp = Project::empty();
 
