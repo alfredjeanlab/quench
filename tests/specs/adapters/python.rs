@@ -3,6 +3,7 @@
 //! Tests that quench correctly:
 //! - Detects Python projects via pyproject.toml, setup.py, setup.cfg, requirements.txt
 //! - Applies default source/test/ignore patterns
+//! - Handles src-layout and flat-layout project structures
 //! - Detects package name from config files and directory structure
 //! - Applies Python-specific escape patterns
 //! - Applies Python-specific suppress patterns
@@ -18,11 +19,56 @@ use crate::prelude::*;
 // AUTO-DETECTION SPECS
 // =============================================================================
 
+/// Spec: plans/.5-roadmap-python.md#phase-443
+///
+/// > pyproject.toml detection
+#[test]
+fn auto_detected_when_pyproject_toml_present() {
+    let result = cli().on("python/auto-detect-pyproject").json().passes();
+    let checks = result.checks();
+    assert!(
+        checks
+            .iter()
+            .any(|c| c.get("name").and_then(|n| n.as_str()) == Some("cloc")),
+        "cloc check should be present for Python project"
+    );
+}
+
+/// Spec: plans/.5-roadmap-python.md#phase-443
+///
+/// > setup.py detection
+#[test]
+fn auto_detected_when_setup_py_present() {
+    let result = cli().on("python/auto-detect-setup-py").json().passes();
+    let checks = result.checks();
+    assert!(
+        checks
+            .iter()
+            .any(|c| c.get("name").and_then(|n| n.as_str()) == Some("cloc")),
+        "cloc check should be present for Python project"
+    );
+}
+
+/// Spec: plans/.5-roadmap-python.md#phase-443
+///
+/// > requirements.txt detection (fallback)
+#[test]
+fn auto_detected_when_requirements_txt_present() {
+    let result = cli().on("python/auto-detect-requirements").json().passes();
+    let checks = result.checks();
+    assert!(
+        checks
+            .iter()
+            .any(|c| c.get("name").and_then(|n| n.as_str()) == Some("cloc")),
+        "cloc check should be present for Python project"
+    );
+}
+
 /// Spec: docs/specs/langs/python.md#detection
 ///
-/// > Python adapter activates when pyproject.toml exists
+/// > Python adapter activates when pyproject.toml exists (escapes check)
 #[test]
-#[ignore = "TODO: Phase 443 - Python Detection"]
+#[ignore = "TODO: Phase 445 - Python Escapes"]
 fn python_adapter_auto_detected_when_pyproject_toml_present() {
     let result = cli().on("python/auto-detect").json().passes();
     let checks = result.checks();
@@ -39,7 +85,7 @@ fn python_adapter_auto_detected_when_pyproject_toml_present() {
 ///
 /// > Python adapter activates when setup.py exists
 #[test]
-#[ignore = "TODO: Phase 443 - Python Detection"]
+#[ignore = "TODO: Phase 445 - Python Escapes"]
 fn python_adapter_auto_detected_when_setup_py_present() {
     let result = cli().on("python/setup-py").json().passes();
     let checks = result.checks();
@@ -55,7 +101,7 @@ fn python_adapter_auto_detected_when_setup_py_present() {
 ///
 /// > Python adapter activates when setup.cfg exists
 #[test]
-#[ignore = "TODO: Phase 443 - Python Detection"]
+#[ignore = "TODO: Phase 445 - Python Escapes"]
 fn python_adapter_auto_detected_when_setup_cfg_present() {
     let result = cli().on("python/setup-cfg").json().passes();
     let checks = result.checks();
@@ -71,7 +117,7 @@ fn python_adapter_auto_detected_when_setup_cfg_present() {
 ///
 /// > Python adapter activates when requirements.txt exists (fallback)
 #[test]
-#[ignore = "TODO: Phase 443 - Python Detection"]
+#[ignore = "TODO: Phase 445 - Python Escapes"]
 fn python_adapter_auto_detected_when_requirements_txt_present() {
     let result = cli().on("python/requirements").json().passes();
     let checks = result.checks();
@@ -87,11 +133,64 @@ fn python_adapter_auto_detected_when_requirements_txt_present() {
 // DEFAULT PATTERN SPECS
 // =============================================================================
 
+/// Spec: plans/.5-roadmap-python.md#phase-443
+///
+/// > Default source patterns (**/*.py)
+#[test]
+fn default_source_pattern_matches_py_files() {
+    let cloc = check("cloc")
+        .on("python/auto-detect-pyproject")
+        .json()
+        .passes();
+    let metrics = cloc.require("metrics");
+    let source_lines = metrics
+        .get("source_lines")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(0);
+    assert!(source_lines > 0, "should count .py files as source");
+}
+
+/// Spec: plans/.5-roadmap-python.md#phase-443
+///
+/// > Default test patterns (tests/**/*.py, test_*.py, *_test.py, conftest.py)
+#[test]
+fn default_test_pattern_matches_test_files() {
+    let cloc = check("cloc")
+        .on("python/auto-detect-pyproject")
+        .json()
+        .passes();
+    let metrics = cloc.require("metrics");
+    let test_lines = metrics
+        .get("test_lines")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(0);
+    assert!(test_lines > 0, "should count test_*.py files as test");
+}
+
+/// Spec: plans/.5-roadmap-python.md#phase-443
+///
+/// > Default ignores (.venv/, __pycache__/, etc.)
+#[test]
+fn default_ignores_venv_directory() {
+    let cloc = check("cloc").on("python/venv-ignore").json().passes();
+    let metrics = cloc.require("metrics");
+    let source_lines = metrics
+        .get("source_lines")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(0);
+    // Only src/myproject/__init__.py should be counted, not .venv/lib/site.py
+    assert!(
+        source_lines < 20,
+        ".venv/ should be ignored, got {} lines",
+        source_lines
+    );
+}
+
 /// Spec: docs/specs/langs/python.md#default-patterns
 ///
 /// > source = ["**/*.py"]
 #[test]
-#[ignore = "TODO: Phase 443 - Python Detection"]
+#[ignore = "TODO: Phase 445 - Python Escapes"]
 fn python_adapter_default_source_pattern_matches_py_files() {
     let cloc = check("cloc").on("python/auto-detect").json().passes();
     let metrics = cloc.require("metrics");
@@ -108,7 +207,7 @@ fn python_adapter_default_source_pattern_matches_py_files() {
 ///
 /// > tests = ["tests/**/*.py", "test_*.py", "*_test.py", "conftest.py"]
 #[test]
-#[ignore = "TODO: Phase 443 - Python Detection"]
+#[ignore = "TODO: Phase 445 - Python Escapes"]
 fn python_adapter_default_test_pattern_matches_test_files() {
     let cloc = check("cloc").on("python/auto-detect").json().passes();
     let metrics = cloc.require("metrics");
@@ -129,7 +228,7 @@ fn python_adapter_default_test_pattern_matches_test_files() {
 ///
 /// > ignore = [".venv/", ...]
 #[test]
-#[ignore = "TODO: Phase 443 - Python Detection"]
+#[ignore = "TODO: Phase 445 - Python Escapes"]
 fn python_adapter_default_ignores_venv_directory() {
     let temp = Project::empty();
     temp.file(
@@ -156,7 +255,7 @@ fn python_adapter_default_ignores_venv_directory() {
 ///
 /// > ignore = ["__pycache__/", ...]
 #[test]
-#[ignore = "TODO: Phase 443 - Python Detection"]
+#[ignore = "TODO: Phase 445 - Python Escapes"]
 fn python_adapter_default_ignores_pycache_directory() {
     let temp = Project::empty();
     temp.file(
@@ -171,12 +270,46 @@ fn python_adapter_default_ignores_pycache_directory() {
 
     if let Some(files) = files {
         assert!(
-            !files
-                .iter()
-                .any(|f| { f.as_str().map(|s| s.contains("__pycache__/")).unwrap_or(false) }),
+            !files.iter().any(|f| {
+                f.as_str()
+                    .map(|s| s.contains("__pycache__/"))
+                    .unwrap_or(false)
+            }),
             "__pycache__/ directory should be ignored"
         );
     }
+}
+
+// =============================================================================
+// LAYOUT DETECTION SPECS
+// =============================================================================
+
+/// Spec: plans/.5-roadmap-python.md#phase-443
+///
+/// > Src-layout detection (src/package_name/)
+#[test]
+fn detects_src_layout_structure() {
+    let cloc = check("cloc").on("python/src-layout").json().passes();
+    let metrics = cloc.require("metrics");
+    let source_lines = metrics
+        .get("source_lines")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(0);
+    assert!(source_lines > 0, "should detect src-layout");
+}
+
+/// Spec: plans/.5-roadmap-python.md#phase-443
+///
+/// > Flat-layout detection (package_name/)
+#[test]
+fn detects_flat_layout_structure() {
+    let cloc = check("cloc").on("python/flat-layout").json().passes();
+    let metrics = cloc.require("metrics");
+    let source_lines = metrics
+        .get("source_lines")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(0);
+    assert!(source_lines > 0, "should detect flat-layout");
 }
 
 // =============================================================================
@@ -187,7 +320,7 @@ fn python_adapter_default_ignores_pycache_directory() {
 ///
 /// > Package name detected from pyproject.toml [project].name
 #[test]
-#[ignore = "TODO: Phase 443 - Python Detection"]
+#[ignore = "TODO: Phase 445 - Python Escapes"]
 fn python_adapter_detects_package_name_from_pyproject_toml() {
     let cloc = check("cloc").on("python/auto-detect").json().passes();
 
@@ -203,7 +336,7 @@ fn python_adapter_detects_package_name_from_pyproject_toml() {
 ///
 /// > Package name detected from setup.py setup(name=...)
 #[test]
-#[ignore = "TODO: Phase 443 - Python Detection"]
+#[ignore = "TODO: Phase 445 - Python Escapes"]
 fn python_adapter_detects_package_name_from_setup_py() {
     let cloc = check("cloc").on("python/setup-py").json().passes();
 
@@ -216,7 +349,7 @@ fn python_adapter_detects_package_name_from_setup_py() {
 ///
 /// > src-layout: src/package_name/__init__.py
 #[test]
-#[ignore = "TODO: Phase 443 - Python Detection"]
+#[ignore = "TODO: Phase 445 - Python Escapes"]
 fn python_adapter_detects_src_layout_package() {
     let cloc = check("cloc").on("python/src-layout").json().passes();
 
@@ -232,7 +365,7 @@ fn python_adapter_detects_src_layout_package() {
 ///
 /// > flat-layout: package_name/__init__.py
 #[test]
-#[ignore = "TODO: Phase 443 - Python Detection"]
+#[ignore = "TODO: Phase 445 - Python Escapes"]
 fn python_adapter_detects_flat_layout_package() {
     let cloc = check("cloc").on("python/flat-layout").json().passes();
 

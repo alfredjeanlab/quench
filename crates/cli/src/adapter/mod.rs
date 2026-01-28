@@ -41,6 +41,7 @@ pub mod glob;
 pub mod go;
 pub mod javascript;
 pub mod patterns;
+pub mod python;
 pub mod ruby;
 pub mod rust;
 pub mod shell;
@@ -56,6 +57,9 @@ pub use go::{
 };
 pub use javascript::{
     Bundler, JavaScriptAdapter, JsWorkspace, detect_bundler, parse_javascript_suppresses,
+};
+pub use python::{
+    PythonAdapter, PythonLayout, detect_layout, parse_pyproject_toml, parse_setup_py,
 };
 pub use ruby::{RubyAdapter, RubySuppress, RubySuppressKind, parse_ruby_suppresses};
 pub use rust::{CfgTestInfo, RustAdapter, parse_suppress_attrs};
@@ -181,6 +185,7 @@ pub enum ProjectLanguage {
     Go,
     JavaScript,
     Ruby,
+    Python,
     Shell,
     Generic,
 }
@@ -206,6 +211,11 @@ pub fn detect_language(root: &Path) -> ProjectLanguage {
     // Ruby detection (before Shell check)
     if has_ruby_markers(root) {
         return ProjectLanguage::Ruby;
+    }
+
+    // Python detection (before Shell check)
+    if has_python_markers(root) {
+        return ProjectLanguage::Python;
     }
 
     // Check for Shell project markers: *.sh in root, bin/, or scripts/
@@ -236,6 +246,15 @@ fn has_gemspec(root: &Path) -> bool {
             })
         })
         .unwrap_or(false)
+}
+
+/// Check if project has Python markers.
+/// Detection: pyproject.toml, setup.py, setup.cfg, or requirements.txt
+fn has_python_markers(root: &Path) -> bool {
+    root.join("pyproject.toml").exists()
+        || root.join("setup.py").exists()
+        || root.join("setup.cfg").exists()
+        || root.join("requirements.txt").exists()
 }
 
 /// Check if project has Shell markers.
@@ -295,6 +314,9 @@ impl AdapterRegistry {
             ProjectLanguage::Ruby => {
                 registry.register(Arc::new(RubyAdapter::new()));
             }
+            ProjectLanguage::Python => {
+                registry.register(Arc::new(PythonAdapter::new()));
+            }
             ProjectLanguage::Shell => {
                 registry.register(Arc::new(ShellAdapter::new()));
             }
@@ -345,6 +367,10 @@ impl AdapterRegistry {
             ProjectLanguage::Ruby => {
                 let patterns = resolve_ruby_patterns(config, &fallback_test_patterns);
                 registry.register(Arc::new(RubyAdapter::with_patterns(patterns)));
+            }
+            ProjectLanguage::Python => {
+                let patterns = resolve_python_patterns(config, &fallback_test_patterns);
+                registry.register(Arc::new(PythonAdapter::with_patterns(patterns)));
             }
             ProjectLanguage::Shell => {
                 let patterns = resolve_shell_patterns(config, &fallback_test_patterns);
@@ -424,6 +450,19 @@ fn resolve_shell_patterns(
         &config.shell.source,
         &config.shell.tests,
         &[],
+        fallback_test,
+    )
+}
+
+/// Resolve Python patterns from config.
+fn resolve_python_patterns(
+    config: &crate::config::Config,
+    fallback_test: &[String],
+) -> ResolvedPatterns {
+    patterns::resolve_patterns::<crate::config::PythonConfig>(
+        &config.python.source,
+        &config.python.tests,
+        &config.python.ignore,
         fallback_test,
     )
 }

@@ -90,6 +90,20 @@ impl LanguageDefaults for crate::config::RubyConfig {
     }
 }
 
+impl LanguageDefaults for crate::config::PythonConfig {
+    fn default_source() -> Vec<String> {
+        crate::config::PythonConfig::default_source()
+    }
+
+    fn default_tests() -> Vec<String> {
+        crate::config::PythonConfig::default_tests()
+    }
+
+    fn default_ignore() -> Vec<String> {
+        crate::config::PythonConfig::default_ignore()
+    }
+}
+
 impl LanguageDefaults for crate::config::ShellConfig {
     fn default_source() -> Vec<String> {
         crate::config::ShellConfig::default_source()

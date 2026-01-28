@@ -30,7 +30,8 @@ pub fn check_lint_policy(ctx: &CheckContext) -> PolicyCheckResult {
         ProjectLanguage::Ruby => check_ruby_lint_policy(ctx, &ctx.config.ruby),
         ProjectLanguage::Shell => check_shell_lint_policy(ctx, &ctx.config.shell),
         ProjectLanguage::JavaScript => check_javascript_lint_policy(ctx, &ctx.config.javascript),
-        ProjectLanguage::Generic => PolicyCheckResult {
+        // Python policy check is Phase 447
+        ProjectLanguage::Python | ProjectLanguage::Generic => PolicyCheckResult {
             violations: Vec::new(),
             check_level: CheckLevel::Off,
         },

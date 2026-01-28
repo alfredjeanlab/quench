@@ -206,6 +206,24 @@ pub fn run(_cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
                 }
             }
         }
+        ProjectLanguage::Python => {
+            // Ignore .venv, venv, __pycache__, dist, build for Python projects
+            for pattern in [
+                ".venv",
+                "venv",
+                "__pycache__",
+                "dist",
+                "build",
+                ".mypy_cache",
+                ".pytest_cache",
+                ".tox",
+                ".nox",
+            ] {
+                if !ignore_patterns.iter().any(|p| p.contains(pattern)) {
+                    ignore_patterns.push(pattern.to_string());
+                }
+            }
+        }
         ProjectLanguage::Generic => {}
     }
 
