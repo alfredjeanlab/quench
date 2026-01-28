@@ -10,7 +10,7 @@ use std::process::Command;
 /// Initialize a git repo with user config and initial commit.
 fn init_git_repo(path: &std::path::Path) {
     Command::new("git")
-        .args(["init"])
+        .args(["init", "-b", "main"])
         .current_dir(path)
         .output()
         .unwrap();

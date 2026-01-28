@@ -214,7 +214,7 @@ fn commit_checking_disabled_by_default() {
 /// Helper to initialize a git repo with user config.
 fn init_git_repo(path: &std::path::Path) {
     Command::new("git")
-        .args(["init"])
+        .args(["init", "-b", "main"])
         .current_dir(path)
         .output()
         .unwrap();

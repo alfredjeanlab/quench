@@ -40,7 +40,27 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          # llvm-tools-preview: Required by cargo-llvm-cov for Rust coverage
+          components: llvm-tools-preview
       - uses: Swatinem/rust-cache@v2
+      # cargo-llvm-cov: Rust coverage collection for tests/specs/checks/tests/coverage.rs
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-llvm-cov
+      # go: Required for tests/specs/checks/tests/runners.rs go_runner_* tests
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+      # bats: Required for tests/specs/checks/tests/runners.rs bats_runner_* tests
+      - name: Install bats
+        run: |
+          if [ "$RUNNER_OS" == "Linux" ]; then
+            sudo apt-get update && sudo apt-get install -y bats
+          else
+            brew install bats-core
+          fi
+        shell: bash
       - run: cargo test --all
 
   build:
