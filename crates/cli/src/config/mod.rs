@@ -11,6 +11,7 @@ pub mod duration;
 mod go;
 mod javascript;
 mod lang_common;
+mod python;
 mod ratchet;
 mod ruby;
 mod shell;
@@ -28,6 +29,7 @@ pub use checks::{
 };
 pub use go::{GoConfig, GoPolicyConfig, GoSuppressConfig};
 pub use javascript::{JavaScriptConfig, JavaScriptPolicyConfig};
+pub use python::PythonConfig;
 pub use ratchet::{RatchetConfig, RatchetPackageConfig};
 pub use ruby::{RubyConfig, RubyPolicyConfig, RubySuppressConfig};
 pub use shell::{ShellConfig, ShellPolicyConfig, ShellSuppressConfig};
@@ -88,6 +90,10 @@ pub struct Config {
     /// Ruby-specific configuration.
     #[serde(default)]
     pub ruby: RubyConfig,
+
+    /// Python-specific configuration.
+    #[serde(default)]
+    pub python: PythonConfig,
 
     /// Shell-specific configuration.
     #[serde(default)]
@@ -206,6 +212,7 @@ impl Config {
                 self.shell.cloc.as_ref().and_then(|c| c.check)
             }
             "ruby" | "rb" | "rake" => self.ruby.cloc.as_ref().and_then(|c| c.check),
+            "python" | "py" => self.python.cloc.as_ref().and_then(|c| c.check),
             _ => None,
         };
         lang_level.unwrap_or(self.check.cloc.check)
@@ -247,6 +254,12 @@ impl Config {
                 .as_ref()
                 .and_then(|c| c.advice.as_deref())
                 .or(self.ruby.cloc_advice.as_deref()),
+            "python" | "py" => self
+                .python
+                .cloc
+                .as_ref()
+                .and_then(|c| c.advice.as_deref())
+                .or(self.python.cloc_advice.as_deref()),
             "shell" | "sh" | "bash" | "zsh" | "fish" | "bats" => self
                 .shell
                 .cloc
@@ -272,6 +285,7 @@ impl Config {
             "rust" | "rs" => RustConfig::default_cloc_advice(),
             "go" => GoConfig::default_cloc_advice(),
             "ruby" | "rb" | "rake" => RubyConfig::default_cloc_advice(),
+            "python" | "py" => PythonConfig::default_cloc_advice(),
             "shell" | "sh" | "bash" | "zsh" | "fish" | "bats" => ShellConfig::default_cloc_advice(),
             _ => &self.check.cloc.advice,
         }
