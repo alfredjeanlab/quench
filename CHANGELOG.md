@@ -7,12 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0]
+
 ### Added
 
 #### Commands
+- `quench init` command with language and agent auto-detection
+- `quench report` command with JSON, HTML, and Markdown output formats
+- `--timing` flag for performance breakdown analysis
 - Shell completions via `clap_complete` for bash, zsh, fish, and PowerShell
 
 #### Behavior
+- **Ratcheting**: Quality metrics can improve but not regress. Use `--fix` to update baseline when metrics improve.
 - **Ratcheting**: Git notes as default baseline storage (replaces `.quench/baseline.json`)
 - **Ratcheting**: Coverage ratcheting with per-package support
 - **License check**: `--fix` functionality for automatic license file generation
@@ -23,24 +29,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - JavaScript test runner auto-detection
 - Go coverage collection for Go test runner
 
-#### Adapters
-- Ruby language adapter with project detection and escape patterns
-- Ruby language profile support in `quench init`
-
 #### Build Metrics
 - JavaScript bundle size metrics
-
-## [0.3.0]
-
-### Added
-
-#### Commands
-- `quench init` command with language and agent auto-detection
-- `quench report` command with JSON, HTML, and Markdown output formats
-- `--timing` flag for performance breakdown analysis
-
-#### Behavior
-- **Ratcheting**: Quality metrics can improve but not regress. Compares current metrics against `.quench/baseline.json`. Use `--fix` to update baseline when metrics improve.
 
 #### Checks
 - **git check**: Conventional commit message validation with `.gitmessage` template generation
@@ -56,6 +46,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **policy check**: Per-language policy enforcement
 
 #### Adapters
+- Ruby language adapter with project detection and escape patterns
+- Ruby language profile support in `quench init`
 - JavaScript/TypeScript adapter with project detection and escape patterns
 - Go adapter improvements with profile support
 
