@@ -121,7 +121,7 @@ pub mod git {
     /// Initialize a git repository with minimal config.
     pub fn init(path: &Path) {
         Command::new("git")
-            .args(["init"])
+            .args(["init", "-b", "main"])
             .current_dir(path)
             .output()
             .expect("git init should succeed");

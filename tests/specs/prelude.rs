@@ -794,7 +794,7 @@ required = []
 /// Initialize a git repo with minimal config
 pub fn git_init(project: &Project) {
     std::process::Command::new("git")
-        .args(["init"])
+        .args(["init", "-b", "main"])
         .current_dir(project.path())
         .output()
         .expect("git init should succeed");

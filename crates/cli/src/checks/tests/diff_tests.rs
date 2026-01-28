@@ -150,7 +150,7 @@ fn get_commit_changes_handles_initial_commit() {
 
     // Initialize repo
     std::process::Command::new("git")
-        .args(["init"])
+        .args(["init", "-b", "main"])
         .current_dir(root)
         .output()
         .expect("git init");
