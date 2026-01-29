@@ -16,13 +16,12 @@ use globset::GlobSet;
 
 mod bundler;
 mod package_manager;
-mod policy;
 mod suppress;
 mod workspace;
 
+pub use crate::adapter::common::policy::PolicyCheckResult;
 pub use bundler::{Bundler, detect_bundler};
 pub use package_manager::PackageManager;
-pub use policy::{PolicyCheckResult, check_lint_policy};
 pub use suppress::{JavaScriptSuppress, SuppressTool, parse_javascript_suppresses};
 pub use workspace::JsWorkspace;
 
@@ -135,7 +134,9 @@ impl JavaScriptAdapter {
         changed_files: &[&Path],
         policy: &JavaScriptPolicyConfig,
     ) -> PolicyCheckResult {
-        policy::check_lint_policy(changed_files, policy, |p| self.classify(p))
+        crate::adapter::common::policy::check_lint_policy(changed_files, policy, |p| {
+            self.classify(p)
+        })
     }
 }
 
@@ -181,3 +182,7 @@ impl Adapter for JavaScriptAdapter {
 #[cfg(test)]
 #[path = "../javascript_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "policy_tests.rs"]
+mod policy_tests;

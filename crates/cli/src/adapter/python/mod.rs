@@ -23,10 +23,9 @@ pub use package_manager::{PackageManager, PythonTooling};
 
 use globset::GlobSet;
 
-mod policy;
 mod suppress;
 
-pub use policy::{PolicyCheckResult, check_lint_policy};
+pub use crate::adapter::common::policy::PolicyCheckResult;
 pub use suppress::{PythonSuppress, PythonSuppressKind, parse_python_suppresses};
 
 use super::glob::build_glob_set;
@@ -269,7 +268,9 @@ impl PythonAdapter {
         changed_files: &[&Path],
         policy: &PythonPolicyConfig,
     ) -> PolicyCheckResult {
-        policy::check_lint_policy(changed_files, policy, |p| self.classify(p))
+        crate::adapter::common::policy::check_lint_policy(changed_files, policy, |p| {
+            self.classify(p)
+        })
     }
 }
 
@@ -363,3 +364,7 @@ fn has_python_package(dir: &Path) -> bool {
 #[cfg(test)]
 #[path = "mod_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "policy_tests.rs"]
+mod policy_tests;

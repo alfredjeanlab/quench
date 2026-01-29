@@ -15,10 +15,9 @@ use std::path::Path;
 
 use globset::GlobSet;
 
-mod policy;
 mod suppress;
 
-pub use policy::{PolicyCheckResult, check_lint_policy};
+pub use crate::adapter::common::policy::PolicyCheckResult;
 pub use suppress::{ShellcheckSuppress, parse_shellcheck_suppresses};
 
 use super::glob::build_glob_set;
@@ -123,10 +122,16 @@ impl ShellAdapter {
         changed_files: &[&Path],
         policy: &ShellPolicyConfig,
     ) -> PolicyCheckResult {
-        policy::check_lint_policy(changed_files, policy, |p| self.classify(p))
+        crate::adapter::common::policy::check_lint_policy(changed_files, policy, |p| {
+            self.classify(p)
+        })
     }
 }
 
 #[cfg(test)]
 #[path = "../shell_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "policy_tests.rs"]
+mod policy_tests;
