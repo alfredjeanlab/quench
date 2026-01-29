@@ -71,7 +71,6 @@ fn auto_detected_when_requirements_txt_present() {
 ///
 /// > Python adapter activates when pyproject.toml exists (escapes check)
 #[test]
-#[ignore = "TODO: Phase 445 - Python Escapes"]
 fn python_adapter_auto_detected_when_pyproject_toml_present() {
     let result = cli().on("python/auto-detect").json().passes();
     let checks = result.checks();
@@ -88,7 +87,6 @@ fn python_adapter_auto_detected_when_pyproject_toml_present() {
 ///
 /// > Python adapter activates when setup.py exists
 #[test]
-#[ignore = "TODO: Phase 445 - Python Escapes"]
 fn python_adapter_auto_detected_when_setup_py_present() {
     let result = cli().on("python/setup-py").json().passes();
     let checks = result.checks();
@@ -104,7 +102,6 @@ fn python_adapter_auto_detected_when_setup_py_present() {
 ///
 /// > Python adapter activates when setup.cfg exists
 #[test]
-#[ignore = "TODO: Phase 445 - Python Escapes"]
 fn python_adapter_auto_detected_when_setup_cfg_present() {
     let result = cli().on("python/setup-cfg").json().passes();
     let checks = result.checks();
@@ -120,7 +117,6 @@ fn python_adapter_auto_detected_when_setup_cfg_present() {
 ///
 /// > Python adapter activates when requirements.txt exists (fallback)
 #[test]
-#[ignore = "TODO: Phase 445 - Python Escapes"]
 fn python_adapter_auto_detected_when_requirements_txt_present() {
     let result = cli().on("python/requirements").json().passes();
     let checks = result.checks();
@@ -193,7 +189,6 @@ fn default_ignores_venv_directory() {
 ///
 /// > source = ["**/*.py"]
 #[test]
-#[ignore = "TODO: Phase 445 - Python Escapes"]
 fn python_adapter_default_source_pattern_matches_py_files() {
     let cloc = check("cloc").on("python/auto-detect").json().passes();
     let metrics = cloc.require("metrics");
@@ -210,7 +205,6 @@ fn python_adapter_default_source_pattern_matches_py_files() {
 ///
 /// > tests = ["tests/**/*.py", "test_*.py", "*_test.py", "conftest.py"]
 #[test]
-#[ignore = "TODO: Phase 445 - Python Escapes"]
 fn python_adapter_default_test_pattern_matches_test_files() {
     let cloc = check("cloc").on("python/auto-detect").json().passes();
     let metrics = cloc.require("metrics");
@@ -231,7 +225,6 @@ fn python_adapter_default_test_pattern_matches_test_files() {
 ///
 /// > ignore = [".venv/", ...]
 #[test]
-#[ignore = "TODO: Phase 445 - Python Escapes"]
 fn python_adapter_default_ignores_venv_directory() {
     let temp = Project::empty();
     temp.file(
@@ -258,7 +251,6 @@ fn python_adapter_default_ignores_venv_directory() {
 ///
 /// > ignore = ["__pycache__/", ...]
 #[test]
-#[ignore = "TODO: Phase 445 - Python Escapes"]
 fn python_adapter_default_ignores_pycache_directory() {
     let temp = Project::empty();
     temp.file(
@@ -323,7 +315,6 @@ fn detects_flat_layout_structure() {
 ///
 /// > Package name detected from pyproject.toml [project].name
 #[test]
-#[ignore = "TODO: Phase 445 - Python Escapes"]
 fn python_adapter_detects_package_name_from_pyproject_toml() {
     let cloc = check("cloc").on("python/auto-detect").json().passes();
 
@@ -339,7 +330,6 @@ fn python_adapter_detects_package_name_from_pyproject_toml() {
 ///
 /// > Package name detected from setup.py setup(name=...)
 #[test]
-#[ignore = "TODO: Phase 445 - Python Escapes"]
 fn python_adapter_detects_package_name_from_setup_py() {
     let cloc = check("cloc").on("python/setup-py").json().passes();
 
@@ -352,7 +342,6 @@ fn python_adapter_detects_package_name_from_setup_py() {
 ///
 /// > src-layout: src/package_name/__init__.py
 #[test]
-#[ignore = "TODO: Phase 445 - Python Escapes"]
 fn python_adapter_detects_src_layout_package() {
     let cloc = check("cloc").on("python/src-layout").json().passes();
 
@@ -368,7 +357,6 @@ fn python_adapter_detects_src_layout_package() {
 ///
 /// > flat-layout: package_name/__init__.py
 #[test]
-#[ignore = "TODO: Phase 445 - Python Escapes"]
 fn python_adapter_detects_flat_layout_package() {
     let cloc = check("cloc").on("python/flat-layout").json().passes();
 
@@ -388,7 +376,6 @@ fn python_adapter_detects_flat_layout_package() {
 ///
 /// > eval( | comment | # EVAL:
 #[test]
-#[ignore = "TODO: Phase 445 - Python Escapes"]
 fn python_adapter_eval_without_comment_fails() {
     check("escapes")
         .on("python/escape-fail")
@@ -401,7 +388,6 @@ fn python_adapter_eval_without_comment_fails() {
 ///
 /// > eval( | comment | # EVAL:
 #[test]
-#[ignore = "TODO: Phase 445 - Python Escapes"]
 fn python_adapter_eval_with_comment_passes() {
     check("escapes").on("python/escape-ok").passes();
 }
@@ -410,7 +396,6 @@ fn python_adapter_eval_with_comment_passes() {
 ///
 /// > exec( | comment | # EXEC:
 #[test]
-#[ignore = "TODO: Phase 445 - Python Escapes"]
 fn python_adapter_exec_without_comment_fails() {
     let temp = Project::empty();
     temp.file(
@@ -429,7 +414,6 @@ fn python_adapter_exec_without_comment_fails() {
 ///
 /// > __import__( | comment | # DYNAMIC:
 #[test]
-#[ignore = "TODO: Phase 445 - Python Escapes"]
 fn python_adapter_dynamic_import_without_comment_fails() {
     let temp = Project::empty();
     temp.file(
@@ -448,7 +432,6 @@ fn python_adapter_dynamic_import_without_comment_fails() {
 ///
 /// > breakpoint() | forbid
 #[test]
-#[ignore = "TODO: Phase 445 - Python Escapes"]
 fn python_adapter_breakpoint_always_fails() {
     check("escapes")
         .on("python/debugger-fail")
@@ -460,7 +443,6 @@ fn python_adapter_breakpoint_always_fails() {
 ///
 /// > pdb.set_trace() | forbid
 #[test]
-#[ignore = "TODO: Phase 445 - Python Escapes"]
 fn python_adapter_pdb_set_trace_always_fails() {
     let temp = Project::empty();
     temp.file(
@@ -479,7 +461,6 @@ fn python_adapter_pdb_set_trace_always_fails() {
 ///
 /// > import pdb | forbid
 #[test]
-#[ignore = "TODO: Phase 445 - Python Escapes"]
 fn python_adapter_import_pdb_always_fails() {
     let temp = Project::empty();
     temp.file(
@@ -502,7 +483,6 @@ fn python_adapter_import_pdb_always_fails() {
 ///
 /// > "comment" - Requires justification comment
 #[test]
-#[ignore = "TODO: Phase 447 - Python Suppress"]
 fn python_adapter_noqa_without_comment_fails_when_configured() {
     check("escapes")
         .on("python/suppress-fail")
@@ -514,7 +494,6 @@ fn python_adapter_noqa_without_comment_fails_when_configured() {
 ///
 /// > "comment" - Requires justification comment
 #[test]
-#[ignore = "TODO: Phase 447 - Python Suppress"]
 fn python_adapter_noqa_with_comment_passes() {
     let temp = Project::empty();
     temp.config(
@@ -539,7 +518,6 @@ check = "comment"
 ///
 /// > type: ignore without code fails when configured
 #[test]
-#[ignore = "TODO: Phase 447 - Python Suppress"]
 fn python_adapter_type_ignore_without_comment_fails_when_configured() {
     let temp = Project::empty();
     temp.config(
@@ -563,7 +541,6 @@ check = "comment"
 ///
 /// > [python.suppress.test] check = "allow" - tests can suppress freely
 #[test]
-#[ignore = "TODO: Phase 447 - Python Suppress"]
 fn python_adapter_noqa_in_test_code_always_passes() {
     let temp = Project::empty();
     temp.config(
@@ -586,7 +563,6 @@ check = "allow"
 ///
 /// > pylint: disable requires justification
 #[test]
-#[ignore = "TODO: Phase 447 - Python Suppress"]
 fn python_adapter_pylint_disable_without_comment_fails_when_configured() {
     let temp = Project::empty();
     temp.config(
@@ -617,7 +593,6 @@ check = "comment"
 ///
 /// > lint_changes = "standalone" - lint config changes must be standalone PRs
 #[test]
-#[ignore = "TODO: Phase 449 - Python Policy"]
 fn python_adapter_lint_config_changes_with_source_fails_standalone_policy() {
     let temp = Project::empty();
 
@@ -695,7 +670,6 @@ lint_config = ["pyproject.toml"]
 ///
 /// > lint_config files alone pass standalone policy
 #[test]
-#[ignore = "TODO: Phase 449 - Python Policy"]
 fn python_adapter_lint_config_standalone_passes() {
     let temp = Project::empty();
 

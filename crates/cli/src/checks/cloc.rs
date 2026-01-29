@@ -403,6 +403,10 @@ fn file_package(path: &Path, root: &Path, packages: &[String]) -> Option<String>
     let relative = path.strip_prefix(root).ok()?;
 
     for pkg in packages {
+        // Special case: "." means root package (all files belong to it)
+        if pkg == "." {
+            return Some(pkg.clone());
+        }
         // Check if file is under the package directory
         if relative.starts_with(pkg) {
             return Some(pkg.clone());

@@ -12,6 +12,7 @@ mod javascript_suppress;
 mod lint_policy;
 mod metrics;
 mod patterns;
+mod python_suppress;
 mod ruby_suppress;
 mod shell_suppress;
 mod suppress_common;
@@ -26,6 +27,7 @@ use crate::config::{CheckLevel, EscapeAction, SuppressConfig, SuppressLevel};
 use crate::file_reader::FileContent;
 use go_suppress::check_go_suppress_violations;
 use javascript_suppress::check_javascript_suppress_violations;
+use python_suppress::check_python_suppress_violations;
 use ruby_suppress::check_ruby_suppress_violations;
 use shell_suppress::check_shell_suppress_violations;
 use suppress_common::{
@@ -210,6 +212,23 @@ impl Check for EscapesCheck {
                     &mut limit_reached,
                 );
                 violations.extend(ruby_violations);
+
+                if limit_reached {
+                    break;
+                }
+            }
+
+            // Check for Python suppress directive violations (noqa, type: ignore, pylint)
+            if has_extension(&file.path, &["py"]) {
+                let python_violations = check_python_suppress_violations(
+                    ctx,
+                    relative,
+                    content,
+                    &ctx.config.python.suppress,
+                    is_test_file,
+                    &mut limit_reached,
+                );
+                violations.extend(python_violations);
 
                 if limit_reached {
                     break;
