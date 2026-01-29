@@ -19,8 +19,8 @@ use quench::config::{self, CheckLevel};
 use quench::discovery;
 use quench::error::ExitCode;
 use quench::git::{
-    detect_base_branch, find_ratchet_base, get_changed_files, get_staged_files, is_git_repo,
-    save_to_git_notes,
+    detect_base_branch, find_ratchet_base, get_changed_files, get_commits_since, get_staged_files,
+    is_git_repo, save_to_git_notes,
 };
 use quench::latest::{LatestMetrics, get_head_commit};
 use quench::output::FormatOptions;
@@ -29,12 +29,8 @@ use quench::output::text::TextFormatter;
 use quench::ratchet::{self, CurrentMetrics};
 use quench::runner::{CheckRunner, RunnerConfig};
 use quench::timing::{PhaseTiming, TimingInfo};
+use quench::verbose::VerboseLogger;
 use quench::walker::{FileWalker, WalkerConfig};
-
-/// Check if debug logging is enabled via QUENCH_DEBUG env var.
-fn debug_logging() -> bool {
-    std::env::var("QUENCH_DEBUG").is_ok_and(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-}
 
 /// Check if debug files mode is enabled via QUENCH_DEBUG_FILES env var.
 fn debug_files() -> bool {
@@ -59,6 +55,12 @@ pub fn run(_cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
         eprintln!("--staged and --base cannot be used together");
         return Ok(ExitCode::ConfigError);
     }
+
+    // Set up verbose logging (enabled by --ci, --verbose, or QUENCH_DEBUG)
+    let verbose_enabled = args.ci
+        || args.verbose
+        || std::env::var("QUENCH_DEBUG").is_ok_and(|v| v == "1" || v.eq_ignore_ascii_case("true"));
+    let verbose = VerboseLogger::new(verbose_enabled);
 
     let cwd = std::env::current_dir()?;
 
@@ -249,6 +251,51 @@ pub fn run(_cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
         ProjectLanguage::Generic => {}
     }
 
+    // === Verbose: Configuration ===
+    if verbose.is_enabled() {
+        verbose.section("Configuration");
+        match &config_path {
+            Some(path) => {
+                let display = path.strip_prefix(&root).unwrap_or(path);
+                verbose.log(&format!("Config: {}", display.display()));
+            }
+            None => verbose.log("Config: (defaults)"),
+        }
+        let lang = detect_language(&root);
+        verbose.log(&format!("Language: {:?}", lang));
+        if config.project.source.is_empty() {
+            verbose.log("project.source: (default)");
+        } else {
+            verbose.log(&format!(
+                "project.source: {}",
+                config.project.source.join(", ")
+            ));
+        }
+        verbose.log(&format!(
+            "project.tests: {}",
+            config.project.tests.join(", ")
+        ));
+        verbose.log(&format!("project.exclude: {}", exclude_patterns.join(", ")));
+        if !config.check.tests.commit.source_patterns.is_empty() {
+            verbose.log(&format!(
+                "check.tests.commit.source_patterns: {}",
+                config.check.tests.commit.source_patterns.join(", ")
+            ));
+        }
+        if !config.check.tests.commit.test_patterns.is_empty() {
+            verbose.log(&format!(
+                "check.tests.commit.test_patterns: {}",
+                config.check.tests.commit.test_patterns.join(", ")
+            ));
+        }
+        if !config.check.tests.commit.exclude.is_empty() {
+            verbose.log(&format!(
+                "check.tests.commit.exclude: {}",
+                config.check.tests.commit.exclude.join(", ")
+            ));
+        }
+    }
+
     let walker_config = WalkerConfig {
         max_depth: Some(args.max_depth),
         exclude_patterns,
@@ -270,7 +317,7 @@ pub fn run(_cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
             println!("{}", display_path.display());
         }
         let stats = handle.join();
-        if debug_logging() {
+        if verbose.is_enabled() {
             eprintln!(
                 "Scanned {} files, {} errors, {} symlink loops",
                 stats.files_found, stats.errors, stats.symlink_loops
@@ -285,19 +332,17 @@ pub fn run(_cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
 
     let discovery_ms = discovery_start.elapsed().as_millis() as u64;
 
-    // Report stats in verbose mode
-    if debug_logging() {
-        eprintln!("Max depth limit: {}", args.max_depth);
-        if stats.symlink_loops > 0 {
-            eprintln!("Warning: {} symlink loop(s) detected", stats.symlink_loops);
-        }
-        if stats.errors > 0 {
-            eprintln!("Warning: {} walk error(s)", stats.errors);
-        }
-        if stats.files_skipped_size > 0 {
-            eprintln!("{} file(s) skipped (>10MB limit)", stats.files_skipped_size);
-        }
-        eprintln!("Scanned {} files", files.len());
+    // === Verbose: Discovery ===
+    if verbose.is_enabled() {
+        verbose.section("Discovery");
+        verbose.log(&format!("Max depth limit: {}", args.max_depth));
+        verbose.log(&format!(
+            "Scanned {} files ({} errors, {} symlink loops, {} skipped >10MB)",
+            files.len(),
+            stats.errors,
+            stats.symlink_loops,
+            stats.files_skipped_size,
+        ));
     }
 
     // Filter checks based on CLI flags
@@ -318,9 +363,8 @@ pub fn run(_cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
         // Get staged files only
         match get_staged_files(&root) {
             Ok(files) => {
-                if debug_logging() {
-                    eprintln!("Checking staged files");
-                    eprintln!("{} files staged", files.len());
+                if verbose.is_enabled() {
+                    verbose.log(&format!("Checking staged files ({} files)", files.len()));
                 }
                 Some(files)
             }
@@ -332,9 +376,12 @@ pub fn run(_cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
     } else if let Some(ref base) = base_branch {
         match get_changed_files(&root, base) {
             Ok(files) => {
-                if debug_logging() {
-                    eprintln!("Comparing against base: {}", base);
-                    eprintln!("{} files changed", files.len());
+                if verbose.is_enabled() {
+                    verbose.log(&format!(
+                        "Comparing against base: {} ({} files changed)",
+                        base,
+                        files.len()
+                    ));
                 }
                 Some(files)
             }
@@ -357,6 +404,34 @@ pub fn run(_cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
     } else {
         Some(args.limit)
     };
+    // === Verbose: Test Suites ===
+    if verbose.is_enabled() && !config.check.tests.suite.is_empty() {
+        verbose.section("Test Suites");
+        let suite_names: Vec<String> = config
+            .check
+            .tests
+            .suite
+            .iter()
+            .map(|s| {
+                let name = s.name.clone().unwrap_or_else(|| s.runner.clone());
+                format!("{} ({})", name, s.runner)
+            })
+            .collect();
+        verbose.log(&format!("Configured suites: {}", suite_names.join(", ")));
+    }
+
+    // === Verbose: Commits ===
+    if verbose.is_enabled()
+        && let Some(ref base) = base_branch
+        && let Ok(commits) = get_commits_since(&root, base)
+    {
+        verbose.section("Commits");
+        verbose.log(&format!("Commits since {} ({}):", base, commits.len()));
+        for commit in &commits {
+            verbose.log(&format!("  {} {}", commit.hash, commit.message));
+        }
+    }
+
     let mut runner = CheckRunner::new(RunnerConfig {
         limit,
         changed_files,
@@ -365,6 +440,7 @@ pub fn run(_cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
         ci_mode: args.ci,
         base_branch: base_branch.clone(),
         staged: args.staged,
+        verbose: verbose_enabled,
     });
 
     // Set up caching (unless --no-cache)
@@ -415,14 +491,14 @@ pub fn run(_cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
     };
 
     // Report cache stats in verbose mode
-    if debug_logging()
+    if verbose.is_enabled()
         && let Some(cache) = &cache
     {
         let stats = cache.stats();
-        eprintln!(
+        verbose.log(&format!(
             "Cache: {} hits, {} misses, {} entries",
             stats.hits, stats.misses, stats.entries
-        );
+        ));
     }
 
     // Create output
@@ -432,40 +508,66 @@ pub fn run(_cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
     // Determine if we should use git notes for baseline
     let use_notes = config.git.uses_notes() && !args.no_notes && is_git_repo(&root);
 
+    // === Verbose: Ratchet ===
     // Ratchet checking (cache baseline for potential --fix reuse)
     let (ratchet_result, baseline) = if config.ratchet.check != CheckLevel::Off {
+        if verbose.is_enabled() {
+            verbose.section("Ratchet");
+            verbose.log(&format!(
+                "Mode: {}",
+                if use_notes { "git notes" } else { "file" }
+            ));
+            if let Some(ref base) = base_branch {
+                verbose.log(&format!("Base branch: {}", base));
+            }
+        }
         if use_notes {
             // Git notes mode (default)
             match find_ratchet_base(&root, base_branch.as_deref()) {
-                Ok(base_commit) => match Baseline::load_from_notes(&root, &base_commit) {
-                    Ok(Some(baseline)) => {
-                        if baseline.is_stale(config.ratchet.stale_days) {
-                            eprintln!(
-                                "warning: baseline is {} days old. Consider refreshing with --fix.",
-                                baseline.age_days()
-                            );
+                Ok(base_commit) => {
+                    if verbose.is_enabled() {
+                        verbose.log(&format!(
+                            "Ratchet base: {}",
+                            &base_commit[..7.min(base_commit.len())]
+                        ));
+                    }
+                    match Baseline::load_from_notes(&root, &base_commit) {
+                        Ok(Some(baseline)) => {
+                            if verbose.is_enabled() {
+                                verbose.log(&format!(
+                                    "Baseline: loaded from git notes for {}",
+                                    &base_commit[..7.min(base_commit.len())]
+                                ));
+                            }
+                            if baseline.is_stale(config.ratchet.stale_days) {
+                                eprintln!(
+                                    "warning: baseline is {} days old. Consider refreshing with --fix.",
+                                    baseline.age_days()
+                                );
+                            }
+                            let current = CurrentMetrics::from_output(&output);
+                            let result =
+                                ratchet::compare(&current, &baseline.metrics, &config.ratchet);
+                            (Some(result), Some(baseline))
                         }
-                        let current = CurrentMetrics::from_output(&output);
-                        let result = ratchet::compare(&current, &baseline.metrics, &config.ratchet);
-                        (Some(result), Some(baseline))
-                    }
-                    Ok(None) => {
-                        if debug_logging() {
-                            eprintln!(
-                                "No baseline note found for {}. Run with --fix to create.",
-                                base_commit
-                            );
+                        Ok(None) => {
+                            if verbose.is_enabled() {
+                                verbose.log(&format!(
+                                    "Baseline: not found (searched: refs/notes/quench for {})",
+                                    &base_commit[..7.min(base_commit.len())]
+                                ));
+                            }
+                            (None, None)
                         }
-                        (None, None)
+                        Err(e) => {
+                            eprintln!("quench: warning: failed to load baseline from notes: {}", e);
+                            (None, None)
+                        }
                     }
-                    Err(e) => {
-                        eprintln!("quench: warning: failed to load baseline from notes: {}", e);
-                        (None, None)
-                    }
-                },
+                }
                 Err(e) => {
-                    if debug_logging() {
-                        eprintln!("quench: warning: failed to find ratchet base: {}", e);
+                    if verbose.is_enabled() {
+                        verbose.log(&format!("Ratchet base: not found ({})", e));
                     }
                     (None, None)
                 }
@@ -475,6 +577,12 @@ pub fn run(_cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
             let baseline_path = root.join(path);
             match Baseline::load(&baseline_path) {
                 Ok(Some(baseline)) => {
+                    if verbose.is_enabled() {
+                        verbose.log(&format!(
+                            "Baseline: loaded from {}",
+                            baseline_path.display()
+                        ));
+                    }
                     if baseline.is_stale(config.ratchet.stale_days) {
                         eprintln!(
                             "warning: baseline is {} days old. Consider refreshing with --fix.",
@@ -486,11 +594,11 @@ pub fn run(_cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
                     (Some(result), Some(baseline))
                 }
                 Ok(None) => {
-                    if debug_logging() {
-                        eprintln!(
+                    if verbose.is_enabled() {
+                        verbose.log(&format!(
                             "No baseline found at {}. Run with --fix to create.",
                             baseline_path.display()
-                        );
+                        ));
                     }
                     (None, None)
                 }
@@ -501,12 +609,16 @@ pub fn run(_cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
             }
         } else {
             // Not in git repo and using notes mode - skip ratchet
-            if debug_logging() {
-                eprintln!("Ratcheting requires git repository when using notes mode.");
+            if verbose.is_enabled() {
+                verbose.log("Ratchet check: off (not in git repo with notes mode)");
             }
             (None, None)
         }
     } else {
+        if verbose.is_enabled() {
+            verbose.section("Ratchet");
+            verbose.log("Ratchet check: off");
+        }
         (None, None)
     };
 
@@ -552,9 +664,9 @@ pub fn run(_cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
         output: output.clone(),
     };
     if let Err(e) = latest.save(&latest_path)
-        && debug_logging()
+        && verbose.is_enabled()
     {
-        eprintln!("quench: debug: failed to write latest.json: {}", e);
+        verbose.log(&format!("Failed to write latest.json: {}", e));
     }
 
     // Resolve color mode
@@ -625,8 +737,8 @@ pub fn run(_cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
     if let Some(ref save_path) = args.save {
         if let Err(e) = save_metrics_to_file(save_path, &output) {
             eprintln!("quench: warning: failed to save metrics: {}", e);
-        } else if debug_logging() {
-            eprintln!("Saved metrics to {}", save_path.display());
+        } else if verbose.is_enabled() {
+            verbose.log(&format!("Saved metrics to {}", save_path.display()));
         }
     }
 
@@ -659,6 +771,13 @@ pub fn run(_cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
             let misses = cache.as_ref().map(|c| c.stats().misses).unwrap_or(0);
             eprintln!("{}", info.format_cache(misses));
         }
+    }
+
+    // === Verbose: Summary ===
+    if verbose.is_enabled() {
+        verbose.section("Summary");
+        let secs = total_ms as f64 / 1000.0;
+        verbose.log(&format!("Total wall time: {:.2}s", secs));
     }
 
     // Wait for cache persistence to complete.

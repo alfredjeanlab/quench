@@ -116,6 +116,8 @@ pub struct RunnerContext<'a> {
     pub collect_coverage: bool,
     /// Project configuration (for target resolution).
     pub config: &'a crate::config::Config,
+    /// Whether verbose diagnostic output is enabled.
+    pub verbose: bool,
 }
 
 /// Trait for pluggable test runners.

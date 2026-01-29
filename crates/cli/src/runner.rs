@@ -39,6 +39,8 @@ pub struct RunnerConfig {
     pub base_branch: Option<String>,
     /// Whether checking only staged changes (--staged flag).
     pub staged: bool,
+    /// Whether verbose diagnostic output is enabled.
+    pub verbose: bool,
 }
 
 impl RunnerConfig {
@@ -62,6 +64,7 @@ impl RunnerConfig {
             ci_mode: self.ci_mode,
             base_branch: self.base_branch.as_deref(),
             staged: self.staged,
+            verbose: self.verbose,
         }
     }
 }

@@ -86,6 +86,10 @@ pub struct CheckArgs {
     #[arg(long)]
     pub ci: bool,
 
+    /// Show verbose diagnostic output (always enabled in --ci mode)
+    #[arg(long)]
+    pub verbose: bool,
+
     /// Show timing breakdown (phases, per-check, cache stats)
     #[arg(long)]
     pub timing: bool,
