@@ -507,7 +507,7 @@ fn create_inline_cfg_test_violation(ctx: &CheckContext, file_path: &Path, line: 
 }
 
 /// Check if a file is a source code file (for LOC counting).
-/// Excludes configuration files, documentation, and data files.
+/// Delegates to the shared `cloc` module's text extension check.
 fn is_text_file(path: &Path) -> bool {
     let ext = path
         .extension()
@@ -515,27 +515,7 @@ fn is_text_file(path: &Path) -> bool {
         .unwrap_or("")
         .to_lowercase();
 
-    matches!(
-        ext.as_str(),
-        // Systems languages
-        "rs" | "c" | "cpp" | "h" | "hpp" | "go"
-        // JVM languages
-        | "java" | "kt" | "scala"
-        // Dynamic languages
-        | "py" | "rb" | "php" | "lua" | "pl" | "pm" | "r"
-        // JavaScript/TypeScript
-        | "js" | "ts" | "jsx" | "tsx"
-        // Apple platforms
-        | "swift" | "m" | "mm"
-        // .NET
-        | "cs"
-        // Shell scripts
-        | "sh" | "bash" | "zsh" | "fish" | "bats" | "ps1" | "bat" | "cmd"
-        // Web (code only)
-        | "vue" | "svelte"
-        // SQL
-        | "sql"
-    )
+    crate::cloc::is_text_extension(&ext)
 }
 
 /// Metrics computed from a single file read.

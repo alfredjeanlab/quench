@@ -92,10 +92,10 @@ pub(crate) use go::GoAdapter;
 pub(crate) use javascript::{Bundler, JavaScriptAdapter, detect_bundler};
 pub(crate) use python::PythonAdapter;
 pub(crate) use ruby::{RubyAdapter, parse_ruby_suppresses};
-pub(crate) use rust::{CfgTestInfo, RustAdapter};
+pub use rust::{CfgTestInfo, RustAdapter};
 
 /// File classification result.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum FileKind {
     /// Production source code.
     Source,

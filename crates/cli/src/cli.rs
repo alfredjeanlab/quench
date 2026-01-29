@@ -32,6 +32,8 @@ pub struct Cli {
 pub enum Command {
     /// Run quality checks
     Check(CheckArgs),
+    /// Count lines of code by language
+    Cloc(ClocArgs),
     /// Generate reports from stored metrics
     Report(ReportArgs),
     /// Initialize quench configuration
@@ -40,6 +42,21 @@ pub enum Command {
     Config(ConfigArgs),
     /// Generate shell completions
     Completions(CompletionsArgs),
+}
+
+#[derive(clap::Args)]
+pub struct ClocArgs {
+    /// Files or directories to count
+    #[arg(value_name = "PATH")]
+    pub paths: Vec<PathBuf>,
+
+    /// Maximum directory depth to traverse
+    #[arg(long, default_value_t = 100)]
+    pub max_depth: usize,
+
+    /// Output format
+    #[arg(short, long, default_value = "text")]
+    pub output: OutputFormat,
 }
 
 #[derive(clap::Args)]

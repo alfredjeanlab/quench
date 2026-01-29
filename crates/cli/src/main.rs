@@ -14,6 +14,7 @@ use quench::error::ExitCode;
 use quench::help::format_help;
 
 mod cmd_check;
+mod cmd_cloc;
 mod cmd_config;
 mod cmd_report;
 
@@ -76,6 +77,7 @@ fn run() -> anyhow::Result<ExitCode> {
             Ok(ExitCode::Success)
         }
         Some(Command::Check(args)) => cmd_check::run(&cli, args),
+        Some(Command::Cloc(args)) => cmd_cloc::run(args),
         Some(Command::Report(args)) => {
             cmd_report::run(&cli, args)?;
             Ok(ExitCode::Success)
@@ -100,6 +102,11 @@ fn print_custom_help(args: &[String]) {
     match subcommand.map(|s| s.as_str()) {
         Some("check") => {
             if let Some(subcmd) = cmd.find_subcommand_mut("check") {
+                print!("{}", format_help(subcmd));
+            }
+        }
+        Some("cloc") => {
+            if let Some(subcmd) = cmd.find_subcommand_mut("cloc") {
                 print!("{}", format_help(subcmd));
             }
         }

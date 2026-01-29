@@ -46,6 +46,10 @@ mod cli_help;
 #[path = "specs/config/mod.rs"]
 mod config;
 
+// cloc command
+#[path = "specs/cloc_cmd.rs"]
+mod cloc_cmd;
+
 // checks/
 #[path = "specs/checks/cloc.rs"]
 mod checks_cloc;
