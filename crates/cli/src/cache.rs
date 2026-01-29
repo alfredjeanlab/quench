@@ -43,7 +43,8 @@ use crate::check::Violation;
 /// v30: Changed default coverage check level from "off" to "warn".
 /// v31: Made test execution CI-only by default for all languages; added Rust/Go auto-detection.
 /// v32: Added cursor rule reconciliation (.mdc ↔ CLAUDE.md).
-pub(crate) const CACHE_VERSION: u32 = 32;
+/// v33: Removed reconcile_cursor/reconcile_direction fields; cursor reconciliation now uses sync config.
+pub(crate) const CACHE_VERSION: u32 = 33;
 
 /// Cache file name within .quench directory.
 pub const CACHE_FILE_NAME: &str = "cache.bin";

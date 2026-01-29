@@ -148,9 +148,9 @@ fn malformed_mdc_generates_parse_error() {
 
 /// Spec: docs/specs/checks/agents.cursor.md#disabling-reconciliation
 ///
-/// > reconcile_cursor = false disables all cursor reconciliation
+/// > sync = false disables all cursor reconciliation
 #[test]
-fn reconcile_cursor_false_disables_reconciliation() {
+fn sync_false_disables_reconciliation() {
     let temp = Project::empty();
     temp.config(
         r#"[check.agents]
@@ -159,7 +159,6 @@ sync = false
 sections.required = []
 max_lines = false
 max_tokens = false
-reconcile_cursor = false
 "#,
     );
     temp.file("CLAUDE.md", "# Project\n\n## Code Style\n\nContent.\n");
@@ -174,22 +173,22 @@ reconcile_cursor = false
 
 /// Spec: docs/specs/checks/agents.cursor.md#one-way-reconciliation
 ///
-/// > cursor_to_claude direction only checks cursor → agent
+/// > .mdc sync_source only checks cursor → agent (CursorToClaude)
 #[test]
-fn cursor_to_claude_direction_only_checks_forward() {
+fn mdc_sync_source_only_checks_cursor_to_claude() {
     let temp = Project::empty();
     temp.config(
         r#"[check.agents]
 required = []
-sync = false
+sync = true
+files = [".cursor/rules/*.mdc", "CLAUDE.md"]
+sync_source = ".cursor/rules/general.mdc"
 sections.required = []
 max_lines = false
 max_tokens = false
-reconcile_cursor = true
-reconcile_direction = "cursor_to_claude"
 "#,
     );
-    // CLAUDE.md has a section NOT in cursor - should not be flagged
+    // CLAUDE.md has extra section - should NOT be flagged in CursorToClaude mode
     temp.file(
         "CLAUDE.md",
         "## Code Style\n\nContent.\n\n## Extra Section\n\nClaude-only.\n",
@@ -199,8 +198,38 @@ reconcile_direction = "cursor_to_claude"
         "---\nalwaysApply: true\n---\n\n## Code Style\n\nContent.\n",
     );
 
-    // Should pass - extra CLAUDE.md sections not flagged in cursor_to_claude mode
+    // Should pass - extra CLAUDE.md sections not flagged in CursorToClaude mode
     check("agents").pwd(temp.path()).passes();
+}
+
+/// Spec: docs/specs/checks/agents.cursor.md#one-way-reconciliation
+///
+/// > CLAUDE.md sync_source checks agent → cursor (ClaudeToCursor)
+#[test]
+fn claude_sync_source_checks_claude_to_cursor() {
+    let temp = Project::empty();
+    temp.config(
+        r#"[check.agents]
+required = []
+sync = true
+sync_source = "CLAUDE.md"
+sections.required = []
+max_lines = false
+max_tokens = false
+"#,
+    );
+    // CLAUDE.md has section not in cursor - should be flagged
+    temp.file(
+        "CLAUDE.md",
+        "## Code Style\n\nContent.\n\n## Testing\n\nTest guidelines.\n",
+    );
+    temp.file(
+        ".cursor/rules/general.mdc",
+        "---\nalwaysApply: true\n---\n\n## Code Style\n\nContent.\n",
+    );
+
+    let result = check("agents").pwd(temp.path()).json().fails();
+    assert!(result.has_violation("claude_missing_in_cursor"));
 }
 
 // =============================================================================
@@ -216,11 +245,9 @@ fn no_frontmatter_not_reconciled() {
     temp.config(
         r#"[check.agents]
 required = []
-sync = false
 sections.required = []
 max_lines = false
 max_tokens = false
-reconcile_cursor = true
 "#,
     );
     temp.file("CLAUDE.md", "# Project\n");
@@ -241,12 +268,11 @@ fn empty_body_not_reconciled() {
     temp.config(
         r#"[check.agents]
 required = []
-sync = false
+sync = true
+sync_source = ".cursor/rules/empty.mdc"
 sections.required = []
 max_lines = false
 max_tokens = false
-reconcile_cursor = true
-reconcile_direction = "cursor_to_claude"
 "#,
     );
     temp.file("CLAUDE.md", "## Code Style\n\nContent.\n");

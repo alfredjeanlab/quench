@@ -2,9 +2,8 @@ version = 1
 
 [check.agents]
 required = []
-sync = false
+sync = true
+sync_source = ".cursor/rules/api.mdc"
 sections.required = []
 max_lines = false
 max_tokens = false
-reconcile_cursor = true
-reconcile_direction = "cursor_to_claude"

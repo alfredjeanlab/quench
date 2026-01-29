@@ -223,10 +223,7 @@ pub fn run_single_suite(suite: &TestSuiteConfig, runner_ctx: &RunnerContext) -> 
     // Check runner availability
     if !runner.available(runner_ctx) {
         if runner_ctx.verbose {
-            eprintln!(
-                "  Suite {:?} skipped: runner not available",
-                suite_name
-            );
+            eprintln!("  Suite {:?} skipped: runner not available", suite_name);
         }
         return SuiteResult {
             name: suite_name,

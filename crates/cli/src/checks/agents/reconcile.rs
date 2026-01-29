@@ -27,13 +27,34 @@ pub enum ReconcileDirection {
     ClaudeToCursor,
 }
 
-impl ReconcileDirection {
-    pub fn from_str(s: &str) -> Self {
-        match s {
-            "cursor_to_claude" => Self::CursorToClaude,
-            "claude_to_cursor" => Self::ClaudeToCursor,
-            _ => Self::Bidirectional,
+/// Derive reconciliation direction from sync configuration.
+pub fn derive_direction_from_sync(
+    sync_enabled: bool,
+    sync_source: Option<&str>,
+    _files: &[String],
+) -> Option<ReconcileDirection> {
+    // If sync is disabled, skip reconciliation
+    if !sync_enabled {
+        return None;
+    }
+
+    // Only use explicit sync_source if provided
+    let Some(source) = sync_source else {
+        // No sync_source specified → bidirectional
+        return Some(ReconcileDirection::Bidirectional);
+    };
+
+    match source {
+        // CLAUDE.md/AGENTS.md as source → sync cursor TO match
+        s if s == "CLAUDE.md" || s == "AGENTS.md" => Some(ReconcileDirection::ClaudeToCursor),
+
+        // .mdc as source → sync CLAUDE.md TO match cursor
+        s if s.ends_with(".mdc") || s.contains(".cursor/rules/") => {
+            Some(ReconcileDirection::CursorToClaude)
         }
+
+        // Other files (.cursorrules, etc.) → bidirectional
+        _ => Some(ReconcileDirection::Bidirectional),
     }
 }
 

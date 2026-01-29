@@ -80,9 +80,8 @@ impl Check for AgentsCheck {
         check_content(ctx, config, &detected, &mut violations);
 
         // Check cursor rule reconciliation
-        if config.reconcile_cursor {
-            check_cursor_reconciliation(ctx, config, &mut violations, &mut fixes);
-        }
+        // Always call - it checks sync internally and returns early if disabled
+        check_cursor_reconciliation(ctx, config, &mut violations, &mut fixes);
 
         // Build metrics
         let files_found: Vec<String> = detected
@@ -634,11 +633,15 @@ fn check_cursor_reconciliation(
     violations: &mut Vec<Violation>,
     fixes: &mut FixSummary,
 ) {
-    let direction = config
-        .reconcile_direction
-        .as_deref()
-        .map(reconcile::ReconcileDirection::from_str)
-        .unwrap_or(reconcile::ReconcileDirection::Bidirectional);
+    // Derive direction from sync configuration
+    let Some(direction) = reconcile::derive_direction_from_sync(
+        config.sync,
+        config.sync_source.as_deref(),
+        &config.files,
+    ) else {
+        // Sync disabled, skip reconciliation
+        return;
+    };
 
     let (reconcile_violations, reconcile_fixes) = reconcile::check_cursor_reconciliation(
         ctx.root,

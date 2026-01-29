@@ -510,3 +510,64 @@ fn empty_body_no_sections_to_reconcile() {
         "empty body should not produce cursor→claude violations"
     );
 }
+
+// =============================================================================
+// DERIVE DIRECTION FROM SYNC
+// =============================================================================
+
+#[test]
+fn derive_direction_claude_source() {
+    let dir = derive_direction_from_sync(true, Some("CLAUDE.md"), &["CLAUDE.md".to_string()]);
+    assert_eq!(dir, Some(ReconcileDirection::ClaudeToCursor));
+}
+
+#[test]
+fn derive_direction_agents_source() {
+    let dir = derive_direction_from_sync(true, Some("AGENTS.md"), &["AGENTS.md".to_string()]);
+    assert_eq!(dir, Some(ReconcileDirection::ClaudeToCursor));
+}
+
+#[test]
+fn derive_direction_mdc_source() {
+    let dir = derive_direction_from_sync(
+        true,
+        Some(".cursor/rules/api.mdc"),
+        &["CLAUDE.md".to_string()],
+    );
+    assert_eq!(dir, Some(ReconcileDirection::CursorToClaude));
+}
+
+#[test]
+fn derive_direction_mdc_source_ends_with_mdc() {
+    let dir = derive_direction_from_sync(true, Some("custom.mdc"), &["CLAUDE.md".to_string()]);
+    assert_eq!(dir, Some(ReconcileDirection::CursorToClaude));
+}
+
+#[test]
+fn derive_direction_sync_disabled() {
+    let dir = derive_direction_from_sync(false, Some("CLAUDE.md"), &[]);
+    assert_eq!(dir, None);
+}
+
+#[test]
+fn derive_direction_bidirectional_default() {
+    let dir = derive_direction_from_sync(true, None, &["CLAUDE.md".to_string()]);
+    assert_eq!(dir, Some(ReconcileDirection::Bidirectional));
+}
+
+#[test]
+fn derive_direction_cursorrules_bidirectional() {
+    let dir = derive_direction_from_sync(true, Some(".cursorrules"), &["CLAUDE.md".to_string()]);
+    assert_eq!(dir, Some(ReconcileDirection::Bidirectional));
+}
+
+#[test]
+fn derive_direction_no_source_is_bidirectional() {
+    // When sync_source is not provided, default to bidirectional
+    let dir = derive_direction_from_sync(
+        true,
+        None,
+        &["CLAUDE.md".to_string(), "AGENTS.md".to_string()],
+    );
+    assert_eq!(dir, Some(ReconcileDirection::Bidirectional));
+}

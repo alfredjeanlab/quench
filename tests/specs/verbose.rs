@@ -55,9 +55,7 @@ fn normal_mode_has_no_verbose_output() {
     let temp = default_project();
     temp.file("src/lib.rs", "fn main() {}");
 
-    let result = cli()
-        .pwd(temp.path())
-        .passes();
+    let result = cli().pwd(temp.path()).passes();
 
     // Normal mode should not have verbose section headers
     let stderr = result.stderr();
@@ -74,11 +72,7 @@ fn json_mode_keeps_stdout_clean() {
     let temp = default_project();
     temp.file("src/lib.rs", "fn main() {}");
 
-    let result = cli()
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .passes();
+    let result = cli().pwd(temp.path()).args(&["--ci"]).json().passes();
 
     // Verify stdout is valid JSON
     let json = result.value();
@@ -177,15 +171,20 @@ fn wall_time_is_logged() {
 // =============================================================================
 
 // =============================================================================
-// EXACT OUTPUT TESTS
+// EXACT OUTPUT TESTS (stderr_eq for full output matching)
 // =============================================================================
 
 /// Spec: plans/verbose-in-ci-mode.md - Exact format verification
 ///
-/// > Section headers use clean "Section:" format with indented content
+/// > Minimal project verbose output matches exact format
 #[test]
-fn section_header_format_is_clean() {
-    let temp = default_project();
+fn minimal_project_verbose_output_exact() {
+    let temp = Project::empty();
+    temp.file("quench.toml", "version = 1\n");
+    temp.file(
+        "CLAUDE.md",
+        "# Test\n\n## Directory Structure\n\nMinimal.\n\n## Landing the Plane\n\n- Done\n",
+    );
     temp.file("src/lib.rs", "fn main() {}");
 
     let result = cli()
@@ -195,30 +194,66 @@ fn section_header_format_is_clean() {
 
     let stderr = result.stderr();
 
-    // Verify section header format: "\nSectionName:"
-    assert!(stderr.contains("\nConfiguration:"));
-    assert!(stderr.contains("\nDiscovery:"));
-    assert!(stderr.contains("\nSummary:"));
+    let expected = "
+Configuration:
+  Config: quench.toml
+  Language: Generic
+  project.source: (default)
+  project.tests:
+  project.exclude:
+  check.tests.commit.source_patterns: src/**/*";
 
-    // Verify content is indented with 2 spaces
-    assert!(stderr.contains("  Config:"));
-    assert!(stderr.contains("  Language:"));
-    assert!(stderr.contains("  Scanned"));
-    assert!(stderr.contains("  Total wall time:"));
+    if !stderr.starts_with(expected) {
+        eprintln!("EXPECTED START:\n{:?}", expected);
+        eprintln!("ACTUAL START:\n{:?}", &stderr[..expected.len().min(stderr.len())]);
+    }
 
-    // Verify NO banners are present
-    assert!(!stderr.contains("==="));
-    assert!(!stderr.contains("---"));
-    assert!(!stderr.contains("[verbose]"));
+    // Test exact format (excluding variable timing)
+    assert!(stderr.starts_with("
+Configuration:
+  Config: quench.toml
+  Language: Generic
+  project.source: (default)
+  project.tests:
+  project.exclude:
+  check.tests.commit.source_patterns: src/**/*
+  check.tests.commit.test_patterns: tests/**/*, test/**/*, spec/**/*, **/__tests__/**, **/*_test.*, **/*_tests.*, **/*.test.*, **/*.spec.*, **/test_*.*
+  check.tests.commit.exclude: **/mod.rs, **/lib.rs, **/main.rs, **/generated/**
+
+Discovery:
+  Max depth limit: 100
+  Scanned 3 files (0 errors, 0 symlink loops, 0 skipped >10MB)
+
+Ratchet:
+  Mode: file
+  Ratchet check: off (not in git repo with notes mode)
+
+Summary:
+  Total wall time: 0."), "Verbose output format mismatch");
+
+    // Verify timing line ends correctly
+    assert!(stderr.trim().ends_with("s"), "Should end with seconds");
 }
 
-/// Spec: plans/verbose-in-ci-mode - Phase 2 exact format
+/// Spec: plans/verbose-in-ci-mode.md - Exact format verification
 ///
-/// > Configuration section has exact format
+/// > Configuration section with custom config matches exact format
 #[test]
-fn configuration_section_exact_format() {
-    let temp = default_project();
-    temp.file("src/lib.rs", "fn main() {}");
+fn custom_config_verbose_output_exact() {
+    let temp = Project::empty();
+    temp.config(
+        r#"
+[project]
+source = ["lib/**/*.rs"]
+tests = ["spec/**/*.rs"]
+exclude = ["target", "build"]
+"#,
+    );
+    temp.file(
+        "CLAUDE.md",
+        "# Test\n\n## Directory Structure\n\nMinimal.\n\n## Landing the Plane\n\n- Done\n",
+    );
+    temp.file("lib/code.rs", "fn test() {}");
 
     let result = cli()
         .pwd(temp.path())
@@ -227,28 +262,31 @@ fn configuration_section_exact_format() {
 
     let stderr = result.stderr();
 
-    // Extract just the Configuration section
-    if let Some(start) = stderr.find("Configuration:") {
-        if let Some(end) = stderr[start..].find("\nDiscovery:") {
-            let config_section = &stderr[start..start + end];
+    // Test exact format (excluding variable timing)
+    assert!(stderr.starts_with("
+Configuration:
+  Config: quench.toml
+  Language: Generic
+  project.source: lib/**/*.rs
+  project.tests: spec/**/*.rs
+  project.exclude: target, build
+  check.tests.commit.source_patterns: src/**/*
+  check.tests.commit.test_patterns: tests/**/*, test/**/*, spec/**/*, **/__tests__/**, **/*_test.*, **/*_tests.*, **/*.test.*, **/*.spec.*, **/test_*.*
+  check.tests.commit.exclude: **/mod.rs, **/lib.rs, **/main.rs, **/generated/**
 
-            // Verify indentation is consistent (2 spaces)
-            let lines: Vec<&str> = config_section.lines().collect();
-            for (i, line) in lines.iter().enumerate() {
-                if i == 0 {
-                    // First line is the header, should end with ":"
-                    assert!(line.ends_with(':'), "Header should end with colon: {:?}", line);
-                } else if !line.is_empty() {
-                    // Content lines should be indented with 2 spaces
-                    assert!(
-                        line.starts_with("  "),
-                        "Line should be indented with 2 spaces: {:?}",
-                        line
-                    );
-                }
-            }
-        }
-    }
+Discovery:
+  Max depth limit: 100
+  Scanned 2 files (0 errors, 0 symlink loops, 0 skipped >10MB)
+
+Ratchet:
+  Mode: file
+  Ratchet check: off (not in git repo with notes mode)
+
+Summary:
+  Total wall time: 0."), "Verbose output format mismatch");
+
+    // Verify timing line ends correctly
+    assert!(stderr.trim().ends_with("s"), "Should end with seconds");
 }
 
 /// Spec: plans/verbose-in-ci-mode - Phase 3 (item c)
