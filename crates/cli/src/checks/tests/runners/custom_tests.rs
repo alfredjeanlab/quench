@@ -26,6 +26,7 @@ fn make_ctx<'a>(root: &'a std::path::Path, config: &'a crate::config::Config) ->
         ci_mode: false,
         collect_coverage: false,
         config,
+        verbose: false,
     }
 }
 

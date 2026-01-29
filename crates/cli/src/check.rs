@@ -37,6 +37,8 @@ pub struct CheckContext<'a> {
     pub base_branch: Option<&'a str>,
     /// Whether checking only staged changes (--staged flag).
     pub staged: bool,
+    /// Whether verbose diagnostic output is enabled.
+    pub verbose: bool,
 }
 
 /// The Check trait defines a single quality check.

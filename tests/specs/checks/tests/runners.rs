@@ -242,13 +242,6 @@ fn go_runner_reports_package_coverage() {
 
 /// Spec: Auto-detection finds and runs ALL test suites in multi-language projects
 ///
-
-// =============================================================================
-// MULTI-LANGUAGE AUTO-DETECTION
-// =============================================================================
-
-/// Spec: Auto-detection finds and runs ALL test suites in multi-language projects
-///
 /// In a project with both Rust (Cargo.toml) and JavaScript (package.json),
 /// auto-detection should find and run BOTH test suites, not just the first match.
 ///

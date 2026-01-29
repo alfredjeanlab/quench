@@ -312,7 +312,6 @@ impl TestsCheck {
         }
     }
 
-
     /// Run all auto-detected test suites and aggregate results.
     fn run_auto_detected_suites(
         &self,
@@ -324,6 +323,7 @@ impl TestsCheck {
             ci_mode: ctx.ci_mode,
             collect_coverage: true,
             config: ctx.config,
+            verbose: ctx.verbose,
         };
 
         // Run all auto-detected suites

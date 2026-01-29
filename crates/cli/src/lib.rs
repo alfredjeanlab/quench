@@ -27,6 +27,7 @@ pub mod report;
 pub mod runner;
 pub mod timing;
 pub mod tolerance;
+pub mod verbose;
 pub mod walker;
 
 pub use baseline::Baseline;
