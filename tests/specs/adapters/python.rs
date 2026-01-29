@@ -171,9 +171,11 @@ fn python_adapter_default_ignores_pycache_directory() {
 
     if let Some(files) = files {
         assert!(
-            !files
-                .iter()
-                .any(|f| { f.as_str().map(|s| s.contains("__pycache__/")).unwrap_or(false) }),
+            !files.iter().any(|f| {
+                f.as_str()
+                    .map(|s| s.contains("__pycache__/"))
+                    .unwrap_or(false)
+            }),
             "__pycache__/ directory should be ignored"
         );
     }

@@ -113,3 +113,38 @@ fn profile_registry_aliases_work() {
     assert!(ProfileRegistry::get("typescript").is_some());
     assert!(ProfileRegistry::get("ts").is_some());
 }
+
+// =============================================================================
+// PYTHON PROFILE TESTS
+// =============================================================================
+
+#[test]
+fn profile_registry_includes_python() {
+    let available = ProfileRegistry::available();
+    assert!(available.contains(&"python"));
+}
+
+#[test]
+fn profile_registry_get_python() {
+    let profile = ProfileRegistry::get("python");
+    assert!(profile.is_some());
+
+    let profile = profile.unwrap();
+    assert!(profile.contains("[python]"));
+    assert!(profile.contains("[python.suppress]"));
+    assert!(profile.contains("[python.policy]"));
+}
+
+#[test]
+fn profile_registry_python_aliases_work() {
+    assert!(ProfileRegistry::get("py").is_some());
+}
+
+#[test]
+fn python_profile_has_escape_patterns() {
+    let profile = python_profile_defaults();
+    assert!(profile.contains("eval"));
+    assert!(profile.contains("exec"));
+    assert!(profile.contains("breakpoint"));
+    assert!(profile.contains("# EVAL:"));
+}
