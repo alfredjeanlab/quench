@@ -7,6 +7,7 @@ pub mod cache;
 pub mod check;
 pub mod checks;
 pub mod cli;
+pub mod cloc;
 pub mod cmd_init;
 pub mod color;
 pub mod completions;
