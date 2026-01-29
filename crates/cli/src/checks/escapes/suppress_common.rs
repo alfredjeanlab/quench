@@ -10,8 +10,8 @@ use std::path::Path;
 
 use crate::check::{CheckContext, Violation};
 use crate::config::{
-    GoSuppressConfig, RubySuppressConfig, ShellSuppressConfig, SuppressConfig, SuppressLevel,
-    SuppressScopeConfig,
+    GoSuppressConfig, PythonSuppressConfig, RubySuppressConfig, ShellSuppressConfig,
+    SuppressConfig, SuppressLevel, SuppressScopeConfig,
 };
 
 use super::violations::try_create_violation;
@@ -87,6 +87,21 @@ impl SuppressConfigAccess for ShellSuppressConfig {
 }
 
 impl SuppressConfigAccess for RubySuppressConfig {
+    fn check(&self) -> SuppressLevel {
+        self.check
+    }
+    fn comment(&self) -> Option<&str> {
+        self.comment.as_deref()
+    }
+    fn source(&self) -> &SuppressScopeConfig {
+        &self.source
+    }
+    fn test(&self) -> &SuppressScopeConfig {
+        &self.test
+    }
+}
+
+impl SuppressConfigAccess for PythonSuppressConfig {
     fn check(&self) -> SuppressLevel {
         self.check
     }
@@ -355,6 +370,32 @@ fn get_js_fix_guidance(lint_code: &str) -> (&'static str, &'static str) {
     }
 }
 
+/// Lint-specific fix guidance for Python lints.
+fn get_python_fix_guidance(lint_code: &str) -> (&'static str, &'static str) {
+    match lint_code {
+        "E501" => (
+            "Break long lines into smaller statements.",
+            "Use implicit line continuation or extract complex expressions into variables.",
+        ),
+        "type-ignore" | "assignment" | "arg-type" | "return-value" => (
+            "Fix the type error instead of ignoring it.",
+            "Add proper type annotations or fix the type mismatch.",
+        ),
+        "missing-docstring" | "C0114" | "C0115" | "C0116" => (
+            "Add the missing docstring.",
+            "Document what the function/class/module does.",
+        ),
+        "coverage" => (
+            "Add tests for this code instead of excluding it.",
+            "Coverage exclusions should be rare and well-justified.",
+        ),
+        _ => (
+            "Fix the underlying issue instead of suppressing the lint.",
+            "Suppressions should only be used when the lint is a false positive.",
+        ),
+    }
+}
+
 /// Format suppression instructions as a last resort.
 ///
 /// Always presents suppression with justification as the fallback option
@@ -404,6 +445,7 @@ pub fn build_suppress_missing_comment_advice(
             "shell" => get_shell_fix_guidance(code),
             "go" => get_go_fix_guidance(code),
             "javascript" => get_js_fix_guidance(code),
+            "python" => get_python_fix_guidance(code),
             _ => (
                 "Fix the underlying issue instead of suppressing the lint.",
                 "Suppressions should only be used when the lint is a false positive.",
@@ -435,6 +477,9 @@ pub fn build_suppress_missing_comment_advice(
             }
             "javascript" => {
                 "Only if the lint is a false positive, add a comment above the directive or use inline reason (-- reason)."
+            }
+            "python" => {
+                "Only if the lint is a false positive, add a justification comment on the preceding line."
             }
             _ => "Only if the lint is a false positive, add a comment above the directive.",
         };

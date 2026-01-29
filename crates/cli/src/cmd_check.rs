@@ -6,7 +6,10 @@
 use std::sync::Arc;
 use std::time::Instant;
 
-use quench::adapter::{JsWorkspace, ProjectLanguage, detect_language, rust::CargoWorkspace};
+use quench::adapter::{
+    JsWorkspace, ProjectLanguage, detect_language, python::detect_package as detect_python_package,
+    rust::CargoWorkspace,
+};
 use quench::baseline::Baseline;
 use quench::cache::{self, CACHE_FILE_NAME, FileCache};
 use quench::checks;
@@ -218,6 +221,21 @@ pub fn run(_cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
                 if !ignore_patterns.iter().any(|p| p.contains(pattern)) {
                     ignore_patterns.push(pattern.to_string());
                 }
+            }
+
+            // Auto-detect Python package if not configured
+            if config.project.packages.is_empty()
+                && let Some((pkg_path, pkg_name)) = detect_python_package(&root)
+            {
+                config
+                    .project
+                    .package_names
+                    .insert(pkg_path.clone(), pkg_name);
+                config.project.packages.push(pkg_path);
+                tracing::debug!(
+                    "auto-detected Python package: {:?}",
+                    config.project.packages
+                );
             }
         }
         ProjectLanguage::Ruby => {

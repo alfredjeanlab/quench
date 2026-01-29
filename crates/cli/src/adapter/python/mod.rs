@@ -349,6 +349,114 @@ fn has_python_package(dir: &Path) -> bool {
         .unwrap_or(false)
 }
 
+/// Check if a directory contains Python files (*.py).
+fn has_python_files(dir: &Path) -> bool {
+    if let Ok(entries) = std::fs::read_dir(dir) {
+        for entry in entries.flatten() {
+            if let Some(ext) = entry.path().extension()
+                && ext == "py"
+            {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+/// Detect Python package from project root.
+///
+/// Returns (package_path, package_name) if detected.
+/// Uses pyproject.toml or setup.py for package name, and layout detection
+/// for the package path.
+pub fn detect_package(root: &Path) -> Option<(String, String)> {
+    // Try to get package name from pyproject.toml first
+    let package_name = if let Ok(content) = std::fs::read_to_string(root.join("pyproject.toml")) {
+        parse_pyproject_toml(&content)
+    } else if let Ok(content) = std::fs::read_to_string(root.join("setup.py")) {
+        parse_setup_py(&content)
+    } else {
+        None
+    };
+
+    // Detect layout and build package path
+    let layout = detect_layout(root, package_name.as_deref());
+
+    match layout {
+        PythonLayout::SrcLayout => {
+            // src/package_name/ structure
+            let src_dir = root.join("src");
+            if let Ok(entries) = std::fs::read_dir(&src_dir) {
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    if path.is_dir() {
+                        let dir_name = entry.file_name().to_string_lossy().to_string();
+                        // Skip __pycache__ and similar
+                        if dir_name.starts_with('_') || dir_name.starts_with('.') {
+                            continue;
+                        }
+                        // Check if it's a Python package
+                        if path.join("__init__.py").exists() || path.join("py.typed").exists() {
+                            let pkg_path = format!("src/{}", dir_name);
+                            let pkg_name =
+                                package_name.unwrap_or_else(|| dir_name.replace('-', "_"));
+                            return Some((pkg_path, pkg_name));
+                        }
+                    }
+                }
+            }
+            // Fall through: src/ exists but no package directory found
+            // Treat src/ itself as the package if it has Python files
+            if has_python_files(&src_dir)
+                && let Some(name) = package_name
+            {
+                return Some(("src".to_string(), name));
+            }
+        }
+        PythonLayout::FlatLayout => {
+            // package_name/ in root
+            if let Ok(entries) = std::fs::read_dir(root) {
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    if path.is_dir() {
+                        let dir_name = entry.file_name().to_string_lossy().to_string();
+                        // Skip common non-package directories
+                        if dir_name.starts_with('_')
+                            || dir_name.starts_with('.')
+                            || dir_name == "tests"
+                            || dir_name == "test"
+                            || dir_name == "docs"
+                            || dir_name == "build"
+                            || dir_name == "dist"
+                        {
+                            continue;
+                        }
+                        // Check if it's a Python package
+                        if path.join("__init__.py").exists() {
+                            let pkg_name =
+                                package_name.unwrap_or_else(|| dir_name.replace('-', "_"));
+                            return Some((dir_name, pkg_name));
+                        }
+                    }
+                }
+            }
+            // Fall through: no package directory found
+            // Treat root as the package if we have a package name from config
+            if let Some(name) = package_name {
+                return Some((".".to_string(), name));
+            }
+        }
+        PythonLayout::Unknown => {
+            // No detected layout, but if we have package name from config,
+            // treat root as the package
+            if let Some(name) = package_name {
+                return Some((".".to_string(), name));
+            }
+        }
+    }
+
+    None
+}
+
 #[cfg(test)]
 #[path = "mod_tests.rs"]
 mod tests;

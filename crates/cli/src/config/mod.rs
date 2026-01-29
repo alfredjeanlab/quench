@@ -32,7 +32,7 @@ pub(crate) use checks::{
 };
 pub(crate) use go::{GoConfig, GoPolicyConfig, GoSuppressConfig};
 pub(crate) use javascript::{JavaScriptConfig, JavaScriptPolicyConfig};
-pub(crate) use python::{PythonConfig, PythonPolicyConfig};
+pub(crate) use python::{PythonConfig, PythonPolicyConfig, PythonSuppressConfig};
 pub(crate) use ratchet::RatchetConfig;
 #[cfg(test)]
 pub(crate) use ratchet::RatchetPackageConfig;
