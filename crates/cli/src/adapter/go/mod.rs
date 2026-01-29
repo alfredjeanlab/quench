@@ -19,6 +19,7 @@ mod suppress;
 pub use crate::adapter::common::policy::PolicyCheckResult;
 pub use suppress::{NolintDirective, parse_nolint_directives};
 
+use super::common;
 use super::glob::build_glob_set;
 use super::{Adapter, EscapeAction, EscapePattern, FileKind};
 use crate::config::GoPolicyConfig;
@@ -82,7 +83,7 @@ impl GoAdapter {
 
     /// Check if a path should be excluded (e.g., vendor/).
     pub fn should_exclude(&self, path: &Path) -> bool {
-        self.exclude_patterns.is_match(path)
+        common::patterns::check_exclude_patterns(path, &self.exclude_patterns, Some(&["vendor"]))
     }
 }
 

@@ -14,6 +14,7 @@ use std::path::Path;
 
 use globset::GlobSet;
 
+use super::common;
 use super::glob::build_glob_set;
 
 mod cfg_test;
@@ -86,7 +87,7 @@ impl RustAdapter {
 
     /// Check if a path should be excluded (e.g., target/).
     pub fn should_exclude(&self, path: &Path) -> bool {
-        self.exclude_patterns.is_match(path)
+        common::patterns::check_exclude_patterns(path, &self.exclude_patterns, None)
     }
 }
 

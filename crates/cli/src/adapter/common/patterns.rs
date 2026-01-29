@@ -3,6 +3,41 @@
 
 //! Common pattern utilities shared between language adapters.
 
+use std::path::Path;
+
+use globset::GlobSet;
+
+/// Standard exclude pattern checking with optional fast-path prefix optimization.
+///
+/// This provides a consistent implementation across all adapters:
+/// 1. Fast-path check: If prefixes are provided, check first path component
+/// 2. Fallback: Use GlobSet for full pattern matching
+///
+/// # Arguments
+/// * `path` - The path to check
+/// * `patterns` - Compiled GlobSet of exclude patterns
+/// * `fast_prefixes` - Optional array of directory names for fast checking
+pub fn check_exclude_patterns(
+    path: &Path,
+    patterns: &GlobSet,
+    fast_prefixes: Option<&[&str]>,
+) -> bool {
+    // Fast path: check common directory prefixes
+    if let Some(prefixes) = fast_prefixes
+        && let Some(std::path::Component::Normal(name)) = path.components().next()
+        && let Some(name_str) = name.to_str()
+    {
+        for prefix in prefixes {
+            if name_str == *prefix {
+                return true;
+            }
+        }
+    }
+
+    // Standard GlobSet matching
+    patterns.is_match(path)
+}
+
 /// Normalize exclude patterns to glob patterns.
 ///
 /// Converts user-friendly directory patterns to proper glob patterns:

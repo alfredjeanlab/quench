@@ -678,5 +678,9 @@ pub fn parse_with_warnings(content: &str, path: &Path) -> Result<Config> {
 mod tests;
 
 #[cfg(test)]
+#[path = "exclude_tests.rs"]
+mod exclude_tests;
+
+#[cfg(test)]
 #[path = "suppress_tests.rs"]
 mod suppress_tests;

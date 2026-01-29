@@ -20,6 +20,10 @@ pub struct JavaScriptConfig {
     #[serde(default = "JavaScriptDefaults::default_tests")]
     pub tests: Vec<String>,
 
+    /// Exclude patterns (walker-level: prevents I/O on subtrees).
+    #[serde(default = "JavaScriptDefaults::default_exclude", alias = "ignore")]
+    pub exclude: Vec<String>,
+
     /// Lint suppression settings.
     #[serde(default)]
     pub suppress: SuppressConfig,
@@ -43,6 +47,7 @@ impl Default for JavaScriptConfig {
         Self {
             source: JavaScriptDefaults::default_source(),
             tests: JavaScriptDefaults::default_tests(),
+            exclude: JavaScriptDefaults::default_exclude(),
             suppress: SuppressConfig::default(),
             policy: JavaScriptPolicyConfig::default(),
             cloc: None,
