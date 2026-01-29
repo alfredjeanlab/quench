@@ -1,0 +1,11 @@
+version = 1
+
+# Suite 1: Unit tests with Jest
+[[check.tests.suite]]
+runner = "jest"
+path = "tests/unit/"
+
+# Suite 2: Integration tests with Jest
+[[check.tests.suite]]
+runner = "jest"
+path = "tests/integration/"
