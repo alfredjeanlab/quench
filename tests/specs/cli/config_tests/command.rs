@@ -15,7 +15,7 @@ use crate::prelude::*;
 /// > to see the reference guide for that check or language.
 #[test]
 fn outputs_guide_template_for_feature() {
-    let output = quench_cmd().args(&["config", "rust"]).assert().success();
+    let output = quench_cmd().args(["config", "rust"]).assert().success();
 
     let stdout = String::from_utf8_lossy(&output.get_output().stdout);
     assert!(
@@ -37,56 +37,56 @@ fn outputs_guide_template_for_feature() {
 /// > Common abbreviations should work as shortcuts.
 #[test]
 fn supports_language_aliases() {
-    let output = quench_cmd().args(&["config", "js"]).assert().success();
+    let output = quench_cmd().args(["config", "js"]).assert().success();
     let stdout = String::from_utf8_lossy(&output.get_output().stdout);
     assert!(
         stdout.contains("# JavaScript/TypeScript Configuration Guide"),
         "js alias should show JavaScript guide"
     );
 
-    let output = quench_cmd().args(&["config", "rs"]).assert().success();
+    let output = quench_cmd().args(["config", "rs"]).assert().success();
     let stdout = String::from_utf8_lossy(&output.get_output().stdout);
     assert!(
         stdout.contains("# Rust Configuration Guide"),
         "rs alias should show Rust guide"
     );
 
-    let output = quench_cmd().args(&["config", "py"]).assert().success();
+    let output = quench_cmd().args(["config", "py"]).assert().success();
     let stdout = String::from_utf8_lossy(&output.get_output().stdout);
     assert!(
         stdout.contains("# Python Configuration Guide"),
         "py alias should show Python guide"
     );
 
-    let output = quench_cmd().args(&["config", "rb"]).assert().success();
+    let output = quench_cmd().args(["config", "rb"]).assert().success();
     let stdout = String::from_utf8_lossy(&output.get_output().stdout);
     assert!(
         stdout.contains("# Ruby Configuration Guide"),
         "rb alias should show Ruby guide"
     );
 
-    let output = quench_cmd().args(&["config", "go"]).assert().success();
+    let output = quench_cmd().args(["config", "go"]).assert().success();
     let stdout = String::from_utf8_lossy(&output.get_output().stdout);
     assert!(
         stdout.contains("# Go Configuration Guide"),
         "go alias should show Go guide"
     );
 
-    let output = quench_cmd().args(&["config", "sh"]).assert().success();
+    let output = quench_cmd().args(["config", "sh"]).assert().success();
     let stdout = String::from_utf8_lossy(&output.get_output().stdout);
     assert!(
         stdout.contains("# Shell Configuration Guide"),
         "sh alias should show Shell guide"
     );
 
-    let output = quench_cmd().args(&["config", "bash"]).assert().success();
+    let output = quench_cmd().args(["config", "bash"]).assert().success();
     let stdout = String::from_utf8_lossy(&output.get_output().stdout);
     assert!(
         stdout.contains("# Shell Configuration Guide"),
         "bash alias should show Shell guide"
     );
 
-    let output = quench_cmd().args(&["config", "ts"]).assert().success();
+    let output = quench_cmd().args(["config", "ts"]).assert().success();
     let stdout = String::from_utf8_lossy(&output.get_output().stdout);
     assert!(
         stdout.contains("# JavaScript/TypeScript Configuration Guide"),
@@ -94,7 +94,7 @@ fn supports_language_aliases() {
     );
 
     let output = quench_cmd()
-        .args(&["config", "typescript"])
+        .args(["config", "typescript"])
         .assert()
         .success();
     let stdout = String::from_utf8_lossy(&output.get_output().stdout);
@@ -112,7 +112,7 @@ fn supports_check_names() {
     for check in &[
         "agents", "build", "cloc", "docs", "escapes", "git", "license", "tests",
     ] {
-        let output = quench_cmd().args(&["config", check]).assert().success();
+        let output = quench_cmd().args(["config", check]).assert().success();
         let stdout = String::from_utf8_lossy(&output.get_output().stdout);
         assert!(
             stdout.contains("Configuration Guide"),
@@ -127,7 +127,7 @@ fn supports_check_names() {
 /// > When an invalid feature is requested, show available options.
 #[test]
 fn unknown_feature_shows_helpful_error() {
-    let output = quench_cmd().args(&["config", "invalid"]).assert().failure();
+    let output = quench_cmd().args(["config", "invalid"]).assert().failure();
     let stderr = String::from_utf8_lossy(&output.get_output().stderr);
 
     assert!(
@@ -150,9 +150,9 @@ fn unknown_feature_shows_helpful_error() {
 /// > Users should be able to use RUST, Rust, or rust.
 #[test]
 fn feature_names_are_case_insensitive() {
-    let lowercase = quench_cmd().args(&["config", "rust"]).assert().success();
-    let uppercase = quench_cmd().args(&["config", "RUST"]).assert().success();
-    let mixed = quench_cmd().args(&["config", "Rust"]).assert().success();
+    let lowercase = quench_cmd().args(["config", "rust"]).assert().success();
+    let uppercase = quench_cmd().args(["config", "RUST"]).assert().success();
+    let mixed = quench_cmd().args(["config", "Rust"]).assert().success();
 
     assert_eq!(
         lowercase.get_output().stdout,
@@ -173,7 +173,7 @@ fn feature_names_are_case_insensitive() {
 /// Spec: `quench config --help` shows usage information
 #[test]
 fn help_shows_usage() {
-    let output = quench_cmd().args(&["config", "--help"]).assert().success();
+    let output = quench_cmd().args(["config", "--help"]).assert().success();
     let stdout = String::from_utf8_lossy(&output.get_output().stdout);
 
     assert!(
@@ -190,7 +190,7 @@ fn help_shows_usage() {
 /// Spec: `quench --help` lists the config command
 #[test]
 fn listed_in_main_help() {
-    let output = quench_cmd().args(&["--help"]).assert().success();
+    let output = quench_cmd().args(["--help"]).assert().success();
     let stdout = String::from_utf8_lossy(&output.get_output().stdout);
 
     assert!(stdout.contains("config"), "Should list config command");

@@ -107,13 +107,14 @@ Text output only appears when file size limits are exceeded:
 ```
 cloc: FAIL
   src/parser.rs: 923 lines (max: 750)
-    Can the code be made more concise?
+    First, look for repetitive patterns that could be extracted into helper
+    functions, or refactor to be more unit testable and concise.
 
-    If not, split large source files into sibling modules or submodules in a folder;
-    consider refactoring to be more unit testable.
+    Then split into sibling modules or submodules in a folder by semantic concern
+    (target 150–250 lines each).
 
-    Avoid picking and removing individual lines to satisfy the linter,
-    prefer properly refactoring out testable code blocks.
+    Avoid removing individual lines to satisfy the linter;
+    prefer extracting testable code blocks.
 
 PASS: escapes, agents, docs, tests
 FAIL: cloc
@@ -143,7 +144,7 @@ Typical healthy ranges: `0.5x` to `2.0x` (project-dependent).
       "type": "file_too_large",
       "value": 923,
       "threshold": 750,
-      "advice": "Can the code be made more concise?\nIf not, split large source files into sibling modules or submodules in a folder;\nconsider refactoring to be more unit testable.\n\nAvoid picking and removing individual lines to satisfy the linter,\nprefer properly refactoring out testable code blocks."
+      "advice": "First, look for repetitive patterns that could be extracted into helper functions, or refactor to be more unit testable and concise.\n\nThen split into sibling modules or submodules in a folder by semantic concern (target 150–250 lines each).\n\nAvoid removing individual lines to satisfy the linter; prefer extracting testable code blocks."
     }
   ],
   "metrics": {
@@ -196,13 +197,14 @@ When limits are set, violations are reported:
 ```
 cloc: FAIL
   src/parser.rs: 923 lines (max: 900)
-    Can the code be made more concise?
+    First, look for repetitive patterns that could be extracted into helper
+    functions, or refactor to be more unit testable and concise.
 
-    If not, split large source files into sibling modules or submodules in a folder;
-    consider refactoring to be more unit testable.
+    Then split into sibling modules or submodules in a folder by semantic concern
+    (target 180–300 lines each).
 
-    Avoid picking and removing individual lines to satisfy the linter,
-    prefer properly refactoring out testable code blocks.
+    Avoid removing individual lines to satisfy the linter;
+    prefer extracting testable code blocks.
 ```
 
 Average lines per file is **reported** in metrics but not enforced.
@@ -221,16 +223,9 @@ max_tokens = 20000               # use false to disable
 # Exclude from size limits
 exclude = ["**/generated/**", "**/migrations/**"]
 
-# Custom advice for violations (defaults shown)
-advice = """
-Can the code be made more concise?
-
-If not, split large source files into sibling modules or submodules in a folder;
-consider refactoring to be more unit testable.
-
-Avoid picking and removing individual lines to satisfy the linter,
-prefer properly refactoring out testable code blocks."""
-advice_test = "Can tests be parameterized or use shared fixtures to be more concise? If not, split large test files into a folder."
+# Custom advice for violations (overrides computed defaults)
+# advice = "Your custom advice here..."
+# advice_test = "Your custom test advice here..."
 
 # Per-language advice (overrides generic advice for that language)
 # [rust]

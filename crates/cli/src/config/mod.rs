@@ -228,7 +228,7 @@ impl Config {
     /// 4. Language-specific default advice
     ///
     /// The `language` parameter can be either an adapter name or a file extension.
-    pub fn cloc_advice_for_language(&self, language: &str) -> &str {
+    pub fn cloc_advice_for_language(&self, language: &str, threshold: usize) -> String {
         // Check language-specific advice first
         let lang_advice = match language {
             "rust" | "rs" => self
@@ -272,23 +272,25 @@ impl Config {
 
         // If language-specific advice is set, use it
         if let Some(advice) = lang_advice {
-            return advice;
+            return advice.to_string();
         }
 
         // Check if global advice differs from default (user customized it)
         let default_advice = ClocConfig::default_advice();
         if self.check.cloc.advice != default_advice {
-            return &self.check.cloc.advice;
+            return self.check.cloc.advice.clone();
         }
 
         // Use language-specific defaults
         match language {
-            "rust" | "rs" => RustConfig::default_cloc_advice(),
-            "go" => GoConfig::default_cloc_advice(),
-            "python" | "py" => PythonConfig::default_cloc_advice(),
-            "ruby" | "rb" | "rake" => RubyConfig::default_cloc_advice(),
-            "shell" | "sh" | "bash" | "zsh" | "fish" | "bats" => ShellConfig::default_cloc_advice(),
-            _ => &self.check.cloc.advice,
+            "rust" | "rs" => RustConfig::default_cloc_advice(threshold),
+            "go" => GoConfig::default_cloc_advice(threshold),
+            "python" | "py" => PythonConfig::default_cloc_advice(threshold),
+            "ruby" | "rb" | "rake" => RubyConfig::default_cloc_advice(threshold),
+            "shell" | "sh" | "bash" | "zsh" | "fish" | "bats" => {
+                ShellConfig::default_cloc_advice(threshold)
+            }
+            _ => self.check.cloc.advice.clone(),
         }
     }
 
@@ -403,13 +405,18 @@ impl LanguageDefaults for RustDefaults {
         vec!["target/**".to_string()]
     }
 
-    fn default_cloc_advice() -> &'static str {
-        "Can the code be made more concise?\n\n\
-         Look for repetitive patterns that could be extracted into helper functions\n\
-         or consider refactoring to be more unit testable.\n\n\
-         If not, split large source files into sibling modules or submodules in a folder,\n\n\
-         Avoid picking and removing individual lines to satisfy the linter,\n\
-         prefer properly refactoring out testable code blocks."
+    fn default_cloc_advice(threshold: usize) -> String {
+        let range = defaults::advice::target_range(threshold);
+        format!(
+            "First, look for repetitive patterns that could be extracted into helper \
+functions, or refactor to be more unit testable and concise.\n\
+\n\
+Then split into sibling modules or submodules in a folder by semantic concern \
+(target {range} each).\n\
+\n\
+Avoid removing individual lines to satisfy the linter; \
+prefer extracting testable code blocks."
+        )
     }
 }
 
@@ -426,8 +433,8 @@ impl RustConfig {
         RustDefaults::default_exclude()
     }
 
-    pub(crate) fn default_cloc_advice() -> &'static str {
-        RustDefaults::default_cloc_advice()
+    pub(crate) fn default_cloc_advice(threshold: usize) -> String {
+        RustDefaults::default_cloc_advice(threshold)
     }
 }
 

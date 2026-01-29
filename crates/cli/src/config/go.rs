@@ -72,13 +72,18 @@ impl LanguageDefaults for GoDefaults {
         vec!["vendor/**".to_string()]
     }
 
-    fn default_cloc_advice() -> &'static str {
-        "Can the code be made more concise?\n\n\
-         Look for repetitive patterns that could be extracted into helper functions.\n\n\
-         If not, split large files into multiple files in the same package,\n\
-         or extract reusable logic into internal packages.\n\n\
-         Avoid picking and removing individual lines to satisfy the linter,\n\
-         prefer properly refactoring out testable code blocks."
+    fn default_cloc_advice(threshold: usize) -> String {
+        let range = super::defaults::advice::target_range(threshold);
+        format!(
+            "First, look for repetitive patterns that could be extracted \
+into helper functions.\n\
+\n\
+Then split into multiple files in the same package by semantic concern \
+(target {range} each), or extract reusable logic into internal packages.\n\
+\n\
+Avoid removing individual lines to satisfy the linter; \
+prefer extracting testable code blocks."
+        )
     }
 }
 
@@ -95,8 +100,8 @@ impl GoConfig {
         GoDefaults::default_exclude()
     }
 
-    pub(crate) fn default_cloc_advice() -> &'static str {
-        GoDefaults::default_cloc_advice()
+    pub(crate) fn default_cloc_advice(threshold: usize) -> String {
+        GoDefaults::default_cloc_advice(threshold)
     }
 }
 

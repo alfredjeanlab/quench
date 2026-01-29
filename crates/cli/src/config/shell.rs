@@ -76,10 +76,18 @@ impl LanguageDefaults for ShellDefaults {
         vec![]
     }
 
-    fn default_cloc_advice() -> &'static str {
-        "Can the script be made more concise?\n\
-         Look for repetitive patterns that could be extracted into helper functions.\n\
-         If not, split into multiple scripts or source helper files."
+    fn default_cloc_advice(threshold: usize) -> String {
+        let range = super::defaults::advice::target_range(threshold);
+        format!(
+            "First, look for repetitive patterns that could be extracted \
+into helper functions.\n\
+\n\
+Then split into multiple scripts or source helper files by semantic concern \
+(target {range} each).\n\
+\n\
+Avoid removing individual lines to satisfy the linter; \
+prefer extracting testable code blocks."
+        )
     }
 }
 
@@ -96,8 +104,8 @@ impl ShellConfig {
         ShellDefaults::default_exclude()
     }
 
-    pub(crate) fn default_cloc_advice() -> &'static str {
-        ShellDefaults::default_cloc_advice()
+    pub(crate) fn default_cloc_advice(threshold: usize) -> String {
+        ShellDefaults::default_cloc_advice(threshold)
     }
 }
 

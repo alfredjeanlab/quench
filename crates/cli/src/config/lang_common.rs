@@ -82,8 +82,16 @@ pub trait LanguageDefaults {
     }
 
     /// Default advice for cloc violations.
-    fn default_cloc_advice() -> &'static str {
-        "Can the code be made more concise?\n\
-         Look for repetitive patterns that could be extracted into helper functions."
+    fn default_cloc_advice(threshold: usize) -> String {
+        let range = super::defaults::advice::target_range(threshold);
+        format!(
+            "First, look for repetitive patterns that could be extracted \
+into helper functions.\n\
+\n\
+Then split by semantic concern (target {range} each).\n\
+\n\
+Avoid removing individual lines to satisfy the linter; \
+prefer extracting testable code blocks."
+        )
     }
 }

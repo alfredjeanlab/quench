@@ -8,7 +8,6 @@
 //! - --ci disables violation limit
 //! - --ci auto-detects base branch
 //! - --save writes metrics to file
-//! - --save-notes writes metrics to git notes
 //!
 //! Reference: docs/specs/01-cli.md#scope-flags
 
@@ -334,43 +333,9 @@ fn fix_saves_to_git_notes_by_default() {
     assert!(json.get("metrics").is_some(), "should have metrics field");
 }
 
-/// Spec: docs/specs/01-cli.md#output-flags (legacy)
-///
-/// > --save-notes is deprecated; git notes are now the default with --fix
-#[test]
-fn save_notes_shows_deprecation_warning() {
-    let temp = default_project();
-    git_init(&temp);
-    git_initial_commit(&temp);
-
-    // Use --no-git since default project CLAUDE.md doesn't have Commits section
-    quench_cmd()
-        .args(["check", "--ci", "--save-notes", "--no-git"])
-        .current_dir(temp.path())
-        .assert()
-        .success()
-        .stderr(predicates::str::contains("--save-notes is deprecated"));
-}
-
 /// Spec: docs/specs/01-cli.md#output-flags
 ///
-/// > --save-notes is deprecated, shows warning but doesn't fail
-#[test]
-fn save_notes_deprecated_shows_warning_without_git() {
-    let temp = default_project();
-    // No git init - should still pass with deprecation warning
-
-    quench_cmd()
-        .args(["check", "--ci", "--save-notes"])
-        .current_dir(temp.path())
-        .assert()
-        .success()
-        .stderr(predicates::str::contains("--save-notes is deprecated"));
-}
-
-/// Spec: docs/specs/01-cli.md#output-flags
-///
-/// > --fix uses refs/notes/quench namespace (--save-notes is deprecated)
+/// > --fix uses refs/notes/quench namespace
 #[test]
 fn fix_uses_quench_namespace() {
     let temp = default_project();

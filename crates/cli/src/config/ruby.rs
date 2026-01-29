@@ -88,11 +88,18 @@ impl LanguageDefaults for RubyDefaults {
         ]
     }
 
-    fn default_cloc_advice() -> &'static str {
-        "Can the code be made more concise?\n\
-         Look for repetitive patterns that could be extracted into helper methods.\n\
-         Consider using Ruby's built-in enumerable methods for cleaner code.\n\
-         If not, split into smaller classes or modules."
+    fn default_cloc_advice(threshold: usize) -> String {
+        let range = super::defaults::advice::target_range(threshold);
+        format!(
+            "First, look for repetitive patterns that could be extracted into helper \
+methods. Consider using built-in enumerable methods for cleaner code.\n\
+\n\
+Then split into smaller classes or modules by semantic concern \
+(target {range} each).\n\
+\n\
+Avoid removing individual lines to satisfy the linter; \
+prefer extracting testable code blocks."
+        )
     }
 }
 
@@ -109,8 +116,8 @@ impl RubyConfig {
         RubyDefaults::default_exclude()
     }
 
-    pub(crate) fn default_cloc_advice() -> &'static str {
-        RubyDefaults::default_cloc_advice()
+    pub(crate) fn default_cloc_advice(threshold: usize) -> String {
+        RubyDefaults::default_cloc_advice(threshold)
     }
 }
 

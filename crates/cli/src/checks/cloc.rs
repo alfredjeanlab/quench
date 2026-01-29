@@ -262,7 +262,8 @@ impl Check for ClocCheck {
                             LineMetric::Nonblank => nonblank_lines,
                         };
 
-                        let source_advice = ctx.config.cloc_advice_for_language(lang_key);
+                        let source_advice =
+                            ctx.config.cloc_advice_for_language(lang_key, max_lines);
 
                         if line_count > max_lines {
                             let info = LineViolationInfo {
@@ -276,7 +277,7 @@ impl Check for ClocCheck {
                                 ctx,
                                 &file.path,
                                 is_test,
-                                source_advice,
+                                &source_advice,
                                 &cloc_config.advice_test,
                                 &info,
                             ) {
@@ -293,7 +294,7 @@ impl Check for ClocCheck {
                                 ctx,
                                 &file.path,
                                 is_test,
-                                source_advice,
+                                &source_advice,
                                 &cloc_config.advice_test,
                                 token_count,
                                 max_tokens,

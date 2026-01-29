@@ -94,13 +94,18 @@ impl LanguageDefaults for PythonDefaults {
         ]
     }
 
-    fn default_cloc_advice() -> &'static str {
-        "Can the code be made more concise?\n\n\
-         Look for repetitive patterns that could be extracted into helper functions.\n\n\
-         Consider using Python's built-in functions and comprehensions for cleaner code.\n\n\
-         If not, split large modules into submodules using packages (directories with __init__.py).\n\n\
-         Avoid picking and removing individual lines to satisfy the linter,\n\
-         prefer properly refactoring out testable code blocks."
+    fn default_cloc_advice(threshold: usize) -> String {
+        let range = super::defaults::advice::target_range(threshold);
+        format!(
+            "First, look for repetitive patterns that could be extracted into helper \
+functions. Consider using built-in functions and comprehensions for cleaner code.\n\
+\n\
+Then split into submodules using packages (directories with __init__.py) by \
+semantic concern (target {range} each).\n\
+\n\
+Avoid removing individual lines to satisfy the linter; \
+prefer extracting testable code blocks."
+        )
     }
 }
 
@@ -117,8 +122,8 @@ impl PythonConfig {
         PythonDefaults::default_exclude()
     }
 
-    pub(crate) fn default_cloc_advice() -> &'static str {
-        PythonDefaults::default_cloc_advice()
+    pub(crate) fn default_cloc_advice(threshold: usize) -> String {
+        PythonDefaults::default_cloc_advice(threshold)
     }
 }
 

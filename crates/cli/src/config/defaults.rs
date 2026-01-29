@@ -23,23 +23,47 @@ pub mod size {
 
 /// Default advice messages.
 pub mod advice {
+    /// Round `n` down to the nearest multiple of `step`.
+    fn round_down(n: usize, step: usize) -> usize {
+        (n / step) * step
+    }
+
+    /// Format a target range string like "150–250 lines".
+    pub fn target_range(threshold: usize) -> String {
+        let lo = round_down(threshold / 5, 10);
+        let hi = round_down(threshold / 3, 10);
+        format!("{lo}–{hi} lines")
+    }
+
     /// Default advice for source file cloc violations.
-    pub const CLOC_SOURCE: &str = "\
-Can the code be made more concise?
-
-Look for repetitive patterns that could be extracted into helper functions
-or consider refactoring to be more unit testable.
-
-If not, split large source files into sibling modules or submodules in a folder,
-
-Avoid picking and removing individual lines to satisfy the linter,
-prefer properly refactoring out testable code blocks.";
+    pub fn cloc_source(threshold: usize) -> String {
+        let range = target_range(threshold);
+        format!(
+            "First, look for repetitive patterns that could be extracted into helper \
+functions, or refactor to be more unit testable and concise.\n\
+\n\
+Then split the remainder into smaller files by semantic concern \
+(target {range} each). Identify distinct responsibilities—types, \
+matching, classification, orchestration—and give each its own module. \
+Prefer a folder with focused submodules over a single large file.\n\
+\n\
+Avoid removing individual lines to satisfy the linter; \
+prefer extracting testable code blocks."
+        )
+    }
 
     /// Default advice for test file cloc violations.
-    pub const CLOC_TEST: &str = "\
-Can tests be parameterized or use shared fixtures to be more concise?
-Look for repetitive patterns that could be extracted into helper functions.
-If not, split large test files into a folder.";
+    pub fn cloc_test(threshold: usize) -> String {
+        let range = target_range(threshold);
+        format!(
+            "First, look for tests that can be parameterized or share fixtures, \
+and extract repetitive setup into helper functions.\n\
+\n\
+Then split by the semantic area they cover (target {range} each). \
+Group tests by the concern they exercise and place each group in a \
+subfolder or its own sibling test file."
+        )
+    }
 }
 
 /// Default glob patterns for test file detection.

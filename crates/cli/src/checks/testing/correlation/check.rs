@@ -1,9 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Alfred Jean LLC
 
-//! Public correlation checking API.
-//!
-//! Branch-scope and commit-scope checking with placeholder metrics.
+//! Branch-scope and commit-scope correlation checks with placeholder metrics.
 
 use std::path::{Path, PathBuf};
 
@@ -20,8 +18,8 @@ use super::super::diff::{
 };
 use super::super::patterns::{Language, candidate_test_paths_for, detect_language};
 use super::super::placeholder::{has_js_placeholder_test, has_placeholder_test};
-use super::analysis::{CorrelationConfig, analyze_commit, analyze_correlation};
 use super::diff::{DiffRange, has_inline_test_changes};
+use super::{CorrelationConfig, analyze_commit, analyze_correlation};
 
 const RUST_EXT: &str = "rs";
 const SHORT_HASH_LEN: usize = 7;

@@ -445,11 +445,11 @@ impl ClocConfig {
     }
 
     pub(super) fn default_advice() -> String {
-        super::defaults::advice::CLOC_SOURCE.to_string()
+        super::defaults::advice::cloc_source(super::defaults::size::MAX_LINES)
     }
 
     pub(super) fn default_advice_test() -> String {
-        super::defaults::advice::CLOC_TEST.to_string()
+        super::defaults::advice::cloc_test(super::defaults::size::MAX_LINES_TEST)
     }
 }
 

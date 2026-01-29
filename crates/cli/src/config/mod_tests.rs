@@ -414,24 +414,27 @@ cloc_advice = "Old style advice"
 "#;
     let config = parse_with_warnings(content, &path).unwrap();
     // New style [rust.cloc].advice should take precedence over old style [rust].cloc_advice
-    assert_eq!(config.cloc_advice_for_language("rust"), "New style advice");
+    assert_eq!(
+        config.cloc_advice_for_language("rust", 750),
+        "New style advice"
+    );
 }
 
 // cloc advice tests
 
 #[test]
-fn default_cloc_advice_includes_avoid_picking() {
+fn default_cloc_advice_includes_avoid_removing() {
     let path = PathBuf::from("quench.toml");
     let content = "version = 1\n";
     let config = parse_with_warnings(content, &path).unwrap();
 
-    assert!(config.check.cloc.advice.contains("Avoid picking"));
+    assert!(config.check.cloc.advice.contains("Avoid removing"));
     assert!(
         config
             .check
             .cloc
             .advice
-            .contains("refactoring out testable code blocks")
+            .contains("extracting testable code blocks")
     );
 }
 
@@ -443,21 +446,21 @@ fn cloc_advice_for_language_uses_language_defaults() {
 
     // Known languages should use their language-specific defaults
     assert_eq!(
-        config.cloc_advice_for_language("rust"),
-        RustConfig::default_cloc_advice()
+        config.cloc_advice_for_language("rust", 750),
+        RustConfig::default_cloc_advice(750)
     );
     assert_eq!(
-        config.cloc_advice_for_language("go"),
-        GoConfig::default_cloc_advice()
+        config.cloc_advice_for_language("go", 750),
+        GoConfig::default_cloc_advice(750)
     );
     assert_eq!(
-        config.cloc_advice_for_language("shell"),
-        ShellConfig::default_cloc_advice()
+        config.cloc_advice_for_language("shell", 750),
+        ShellConfig::default_cloc_advice(750)
     );
     // Unknown languages fall back to generic advice
     assert_eq!(
-        config.cloc_advice_for_language("unknown"),
-        &config.check.cloc.advice
+        config.cloc_advice_for_language("unknown", 750),
+        config.check.cloc.advice
     );
 }
 
@@ -473,13 +476,13 @@ cloc_advice = "Custom Rust advice here"
     let config = parse_with_warnings(content, &path).unwrap();
 
     assert_eq!(
-        config.cloc_advice_for_language("rust"),
+        config.cloc_advice_for_language("rust", 750),
         "Custom Rust advice here"
     );
     // Other languages still use their defaults
     assert_eq!(
-        config.cloc_advice_for_language("go"),
-        GoConfig::default_cloc_advice()
+        config.cloc_advice_for_language("go", 750),
+        GoConfig::default_cloc_advice(750)
     );
 }
 
@@ -495,13 +498,13 @@ cloc_advice = "Custom Go advice here"
     let config = parse_with_warnings(content, &path).unwrap();
 
     assert_eq!(
-        config.cloc_advice_for_language("go"),
+        config.cloc_advice_for_language("go", 750),
         "Custom Go advice here"
     );
     // Other languages still use their defaults
     assert_eq!(
-        config.cloc_advice_for_language("rust"),
-        RustConfig::default_cloc_advice()
+        config.cloc_advice_for_language("rust", 750),
+        RustConfig::default_cloc_advice(750)
     );
 }
 
@@ -517,13 +520,13 @@ cloc_advice = "Custom Shell advice here"
     let config = parse_with_warnings(content, &path).unwrap();
 
     assert_eq!(
-        config.cloc_advice_for_language("shell"),
+        config.cloc_advice_for_language("shell", 750),
         "Custom Shell advice here"
     );
     // Other languages still use their defaults
     assert_eq!(
-        config.cloc_advice_for_language("rust"),
-        RustConfig::default_cloc_advice()
+        config.cloc_advice_for_language("rust", 750),
+        RustConfig::default_cloc_advice(750)
     );
 }
 
