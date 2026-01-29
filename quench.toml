@@ -1,46 +1,40 @@
 version = 1
 
-[rust]
-# source = ["**/*.rs"]
-tests = ["**/tests/**/*.rs", "**/*_test.rs", "**/*_tests.rs"]
-cfg_test_split = "count"  # recommended: "require"
+[git]
+baseline = "notes"
 
-[rust.suppress]
-check = "comment"
+[git.commit]
+check = "error"
 
-[rust.policy]
-lint_changes = "standalone"
+[check.agents]
+check = "error"
+required = ["CLAUDE.md"]
 
+[check.escapes]
+check = "error"
+
+[check.docs]
+check = "error"
 
 [check.cloc]
-max_lines_test = 1100  # TODO: refactor to 1000
+check = "error"
+exclude = ["tests/fixtures/**"]
 advice_test = """
 Can tests be parameterized using `yare` to be more concise?
 If not, split large test files into a {module}_tests/ folder.
 """
-
-# ONLY for intentionally large fixture/test data
-# NEVER for tests or source files
-exclude = [
-    "tests/fixtures/cloc/**",
-    "tests/fixtures/bench-*/**",
-]
-
-[check.agents]
-required = ["CLAUDE.md"]
+max_lines_test = 1100  # TODO: refactor to 1000
 
 [check.license]
-check = "error"              # Enable in CI mode
-license = "MIT"              # SPDX identifier
-copyright = "Alfred Jean LLC"  # Copyright holder
+check = "error"
+license = "MIT"
+copyright = "Alfred Jean LLC"
+exclude = ["tests/fixtures/**"]
 
-[check.license.patterns]
-rust = ["**/*.rs"]           # All Rust files
-shell = ["scripts/**"]       # All scripts in scripts/ directory
+[rust]
+cfg_test_split = "require"
 
-# Exclude test fixtures and build artifacts
-exclude = [
-    "tests/fixtures/**",     # Test fixture data (intentional violations)
-    "target/**",             # Build artifacts
-    ".v0/**",                # V0 artifacts
-]
+[ratchet]
+check = "error"
+coverage = true
+escapes = true

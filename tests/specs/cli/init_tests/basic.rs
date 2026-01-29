@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
 //! Basic creation, force flag, and profile validation specs.
 
 use crate::prelude::*;

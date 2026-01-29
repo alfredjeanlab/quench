@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
 //! Large file handling behavioral tests.
 //!
 //! Verifies that files >10MB are skipped per docs/specs/20-performance.md.

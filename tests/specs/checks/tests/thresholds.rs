@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
 //! Behavioral specs for CI mode threshold violations.
 //!
 //! Reference: docs/specs/checks/tests.md#coverage, #test-time

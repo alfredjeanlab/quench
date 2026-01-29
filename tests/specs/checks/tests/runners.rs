@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
 //! Behavioral specs for test runner execution.
 //!
 //! Reference: docs/specs/11-test-runners.md

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
 //! Test helpers for behavioral specifications.
 //!
 //! Provides high-level DSL for testing quench CLI behavior.

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
 //! Behavioral specs for markdown link validation in the docs check.
 //!
 //! Reference: docs/specs/checks/docs.md#fast-mode-link-validation

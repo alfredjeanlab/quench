@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
 //! Behavioral specs for source/test correlation.
 //!
 //! Reference: docs/specs/checks/tests.md#commit-checking-fast-mode

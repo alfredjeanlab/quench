@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
 //! Behavioral specs for placeholder metrics in the tests check.
 //!
 //! Tests that quench correctly:

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
 //! Ratchet behavioral specifications.
 //!
 //! Tests baseline file I/O and ratchet comparison behavior.

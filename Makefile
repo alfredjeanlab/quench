@@ -1,4 +1,4 @@
-.PHONY: check build test install clean bench bench-ci bench-baseline bench-check
+.PHONY: check build test install clean bench bench-ci bench-baseline bench-check license
 
 # Run all CI checks
 check:
@@ -50,3 +50,8 @@ bench-baseline:
 bench-check:
 	cargo bench --bench adapter -- --baseline main --noplot
 	cargo bench --bench stress -- --baseline main --noplot
+
+# Check and fix license headers
+license:
+	cargo build --release
+	./target/release/quench check --ci --license --fix

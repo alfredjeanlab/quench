@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
 //! Behavioral specs for language adapters.
 //!
 //! Tests that quench correctly detects and applies language-specific behavior.

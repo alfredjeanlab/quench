@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
 //! Behavioral specs for specs index file detection.
 //!
 //! Reference: docs/specs/checks/docs.md#index-file

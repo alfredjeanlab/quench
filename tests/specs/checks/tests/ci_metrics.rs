@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
 //! Behavioral specs for CI mode metrics aggregation.
 //!
 //! Reference: docs/specs/11-test-runners.md#ci-mode-metrics

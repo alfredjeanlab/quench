@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
 //! Behavioral specs for section validation in spec files.
 //!
 //! Reference: docs/specs/checks/docs.md#section-validation

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
 //! Behavioral specs for docs check output formats.
 //!
 //! Reference: docs/specs/checks/docs.md#text-output

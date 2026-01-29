@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
 //! Behavioral specs for spec content validation.
 //!
 //! Tests content rules (tables, diagrams, mermaid), size limits, and

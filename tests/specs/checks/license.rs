@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
 //! Behavioral specs for the license check.
 //!
 //! Tests that quench correctly:
@@ -303,5 +306,252 @@ fn license_disabled_by_default() {
     temp.file("src/lib.rs", "pub fn hello() {}\n");
 
     // Should pass even with --ci because license check is off by default
+    check("license").pwd(temp.path()).args(&["--ci"]).passes();
+}
+
+// =============================================================================
+// LICENSE AND README.MD FILE SPECS
+// =============================================================================
+
+/// Spec: docs/specs/checks/license-headers.md#license-and-readmemd-files
+///
+/// > Also checks copyright year in root `LICENSE` and `README.md` files
+#[test]
+fn license_checks_license_file_year() {
+    let temp = Project::empty();
+    temp.config(
+        r#"
+[check.license]
+check = "error"
+license = "MIT"
+copyright = "Test Org"
+
+[check.license.patterns]
+rust = ["**/*.rs"]
+"#,
+    );
+    temp.file(
+        "src/lib.rs",
+        "// SPDX-License-Identifier: MIT\n// Copyright (c) 2026 Test Org\n\npub fn hello() {}\n",
+    );
+    temp.file(
+        "LICENSE",
+        "MIT License\n\nCopyright (c) 2020 Test Org\n\nPermission is hereby granted...\n",
+    );
+
+    let license = check("license")
+        .pwd(temp.path())
+        .args(&["--ci"])
+        .json()
+        .fails();
+
+    assert!(
+        license.has_violation_for_file("LICENSE"),
+        "should detect outdated year in LICENSE file"
+    );
+    let violation = license
+        .violations()
+        .iter()
+        .find(|v| {
+            v.get("file")
+                .and_then(|f| f.as_str())
+                .map(|f| f == "LICENSE")
+                .unwrap_or(false)
+        })
+        .unwrap();
+    assert_eq!(
+        violation.get("type").and_then(|t| t.as_str()),
+        Some("outdated_year")
+    );
+}
+
+/// Spec: docs/specs/checks/license-headers.md#license-and-readmemd-files
+///
+/// > Also checks copyright year in root `LICENSE` and `README.md` files
+#[test]
+fn license_checks_readme_file_year() {
+    let temp = Project::empty();
+    temp.config(
+        r#"
+[check.license]
+check = "error"
+license = "MIT"
+copyright = "Test Org"
+
+[check.license.patterns]
+rust = ["**/*.rs"]
+"#,
+    );
+    temp.file(
+        "src/lib.rs",
+        "// SPDX-License-Identifier: MIT\n// Copyright (c) 2026 Test Org\n\npub fn hello() {}\n",
+    );
+    temp.file(
+        "README.md",
+        "# Project\n\n## License\n\nMIT - Copyright (c) 2020 Test Org\n",
+    );
+
+    let license = check("license")
+        .pwd(temp.path())
+        .args(&["--ci"])
+        .json()
+        .fails();
+
+    assert!(
+        license.has_violation_for_file("README.md"),
+        "should detect outdated year in README.md file"
+    );
+}
+
+/// Spec: docs/specs/checks/license-headers.md#auto-fix
+///
+/// > Update LICENSE/README.md: Update copyright year in root LICENSE and README.md files
+#[test]
+fn license_fix_updates_license_file_year() {
+    let temp = Project::empty();
+    temp.config(
+        r#"
+[check.license]
+check = "error"
+license = "MIT"
+copyright = "Test Org"
+
+[check.license.patterns]
+rust = ["**/*.rs"]
+"#,
+    );
+    temp.file(
+        "src/lib.rs",
+        "// SPDX-License-Identifier: MIT\n// Copyright (c) 2026 Test Org\n\npub fn hello() {}\n",
+    );
+    temp.file(
+        "LICENSE",
+        "MIT License\n\nCopyright (c) 2020 Test Org\n\nPermission is hereby granted...\n",
+    );
+
+    check("license")
+        .pwd(temp.path())
+        .args(&["--ci", "--fix"])
+        .passes();
+
+    let content = std::fs::read_to_string(temp.path().join("LICENSE")).unwrap();
+    assert!(
+        content.contains("2020-2026"),
+        "should extend year range to include current year: {}",
+        content
+    );
+}
+
+/// Spec: docs/specs/checks/license-headers.md#auto-fix
+///
+/// > Update LICENSE/README.md: Update copyright year in root LICENSE and README.md files
+#[test]
+fn license_fix_updates_readme_file_year() {
+    let temp = Project::empty();
+    temp.config(
+        r#"
+[check.license]
+check = "error"
+license = "MIT"
+copyright = "Test Org"
+
+[check.license.patterns]
+rust = ["**/*.rs"]
+"#,
+    );
+    temp.file(
+        "src/lib.rs",
+        "// SPDX-License-Identifier: MIT\n// Copyright (c) 2026 Test Org\n\npub fn hello() {}\n",
+    );
+    temp.file(
+        "README.md",
+        "# Project\n\n## License\n\nMIT - Copyright (c) 2025 Test Org\n",
+    );
+
+    check("license")
+        .pwd(temp.path())
+        .args(&["--ci", "--fix"])
+        .passes();
+
+    let content = std::fs::read_to_string(temp.path().join("README.md")).unwrap();
+    assert!(
+        content.contains("2025-2026"),
+        "should extend year range to include current year: {}",
+        content
+    );
+}
+
+/// Spec: docs/specs/checks/license-headers.md#auto-fix
+///
+/// > Update copyright year: Extend year range to include current year (2025 → 2025-2026, 2020-2025 → 2020-2026)
+#[test]
+fn license_fix_extends_existing_year_range_in_license() {
+    let temp = Project::empty();
+    temp.config(
+        r#"
+[check.license]
+check = "error"
+license = "MIT"
+copyright = "Test Org"
+
+[check.license.patterns]
+rust = ["**/*.rs"]
+"#,
+    );
+    temp.file(
+        "src/lib.rs",
+        "// SPDX-License-Identifier: MIT\n// Copyright (c) 2026 Test Org\n\npub fn hello() {}\n",
+    );
+    temp.file(
+        "LICENSE",
+        "MIT License\n\nCopyright (c) 2020-2025 Test Org\n\nPermission is hereby granted...\n",
+    );
+
+    check("license")
+        .pwd(temp.path())
+        .args(&["--ci", "--fix"])
+        .passes();
+
+    let content = std::fs::read_to_string(temp.path().join("LICENSE")).unwrap();
+    assert!(
+        content.contains("2020-2026"),
+        "should extend existing range end year: {}",
+        content
+    );
+    assert!(
+        !content.contains("2020-2025"),
+        "should not contain old range: {}",
+        content
+    );
+}
+
+/// Spec: docs/specs/checks/license-headers.md#license-and-readmemd-files
+///
+/// > These files only check copyright year, not SPDX headers
+#[test]
+fn license_skips_license_and_readme_when_no_copyright_line() {
+    let temp = Project::empty();
+    temp.config(
+        r#"
+[check.license]
+check = "error"
+license = "MIT"
+copyright = "Test Org"
+
+[check.license.patterns]
+rust = ["**/*.rs"]
+"#,
+    );
+    temp.file(
+        "src/lib.rs",
+        "// SPDX-License-Identifier: MIT\n// Copyright (c) 2026 Test Org\n\npub fn hello() {}\n",
+    );
+    temp.file(
+        "LICENSE",
+        "Some custom license text without copyright line\n",
+    );
+    temp.file("README.md", "# Project\n\nNo copyright info here.\n");
+
+    // Should pass - LICENSE and README.md are silently skipped when they don't have copyright lines
     check("license").pwd(temp.path()).args(&["--ci"]).passes();
 }

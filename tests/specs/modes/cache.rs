@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
 //! Cache behavioral specifications.
 //!
 //! Tests file-level caching behavior for faster iterative runs.

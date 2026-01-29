@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
 //! Profile-specific configuration specs for shell, ruby, and python.
 
 use crate::prelude::*;

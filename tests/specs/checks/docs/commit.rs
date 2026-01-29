@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
 //! Behavioral specs for commit checking in CI mode.
 //!
 //! Reference: docs/specs/checks/docs.md#ci-mode-commit-checking

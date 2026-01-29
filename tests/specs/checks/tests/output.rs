@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
 //! Output format specs for tests check.
 //!
 //! Reference: docs/specs/checks/tests.md

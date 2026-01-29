@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
 //! Behavioral specs for output infrastructure.
 //!
 //! Tests that quench correctly formats output according to:

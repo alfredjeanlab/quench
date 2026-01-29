@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
 //! Rust build specs.
 //!
 //! Reference: docs/specs/checks/build.md

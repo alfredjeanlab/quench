@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
 //! Tests for git configuration.
 //!
 //! Reference: docs/specs/02-config.md#git

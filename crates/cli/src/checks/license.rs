@@ -207,7 +207,7 @@ impl Check for LicenseCheck {
         }
 
         // Check LICENSE and README.md files for copyright year (unless limit reached)
-        if ctx.limit.map_or(true, |limit| violations.len() < limit) {
+        if ctx.limit.is_none_or(|limit| violations.len() < limit) {
             check_root_file(
                 &ctx.root.join("LICENSE"),
                 ctx.root,
@@ -222,7 +222,7 @@ impl Check for LicenseCheck {
             );
         }
 
-        if ctx.limit.map_or(true, |limit| violations.len() < limit) {
+        if ctx.limit.is_none_or(|limit| violations.len() < limit) {
             check_root_file(
                 &ctx.root.join("README.md"),
                 ctx.root,
@@ -453,6 +453,7 @@ fn update_copyright_year(content: &str, current_year: i32) -> String {
 }
 
 /// Check LICENSE or README.md file for outdated copyright year.
+// TODO(refactor): Extract common parameters into LicenseCheckContext
 #[allow(clippy::too_many_arguments)]
 fn check_root_file(
     file_path: &Path,
