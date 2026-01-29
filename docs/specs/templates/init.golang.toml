@@ -1,3 +1,4 @@
+# See: `quench config golang`
 [golang]
 # source = ["**/*.go"]
 # tests = ["**/*_test.go"]

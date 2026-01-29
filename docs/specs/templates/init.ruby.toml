@@ -1,3 +1,4 @@
+# See: `quench config ruby`
 [ruby]
 # source = ["**/*.rb"]
 # tests = ["**/test/**/*.rb", "**/spec/**/*.rb", "**/*_test.rb", "**/*_spec.rb"]

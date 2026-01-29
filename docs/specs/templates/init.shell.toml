@@ -1,3 +1,4 @@
+# See: `quench config shell`
 [shell]
 # source = ["**/*.sh", "**/*.bash"]
 # tests = ["tests/**/*.bats", "test/**/*.bats", "*_test.sh", "**/*_test.sh"]

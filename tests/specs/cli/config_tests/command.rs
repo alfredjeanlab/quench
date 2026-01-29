@@ -180,7 +180,7 @@ fn no_args_shows_help() {
     let stdout = String::from_utf8_lossy(&output.get_output().stdout);
 
     assert!(
-        stdout.contains("Show configuration examples"),
+        stdout.contains("Read configuration reference documentation"),
         "Should show command description"
     );
     assert!(stdout.contains("[FEATURE]"), "Should show feature argument");
@@ -193,7 +193,7 @@ fn help_shows_usage() {
     let stdout = String::from_utf8_lossy(&output.get_output().stdout);
 
     assert!(
-        stdout.contains("Show configuration examples"),
+        stdout.contains("Read configuration reference documentation"),
         "Should show command description"
     );
     assert!(stdout.contains("[FEATURE]"), "Should show feature argument");
@@ -211,7 +211,7 @@ fn listed_in_main_help() {
 
     assert!(stdout.contains("config"), "Should list config command");
     assert!(
-        stdout.contains("Show configuration examples"),
+        stdout.contains("Read configuration reference documentation"),
         "Should show config description"
     );
 }

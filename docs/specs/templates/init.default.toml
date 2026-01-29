@@ -17,15 +17,19 @@ check = "error"       # error | warn | off
 coverage = true       # Coverage can't drop
 escapes = true        # Escape counts can't increase
 
+# See: `quench config cloc`
 [check.cloc]
 check = "error"
 
+# See: `quench config escapes`
 [check.escapes]
 check = "error"
 
+# See: `quench config agents`
 [check.agents]
 check = "error"
 
+# See: `quench config docs`
 [check.docs]
 check = "error"
 

@@ -1,3 +1,4 @@
+# See: `quench config rust`
 [rust]
 # source = ["**/*.rs"]
 # tests = ["**/tests/**/*.rs", "**/*_test.rs", "**/*_tests.rs"]

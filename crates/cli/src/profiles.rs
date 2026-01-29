@@ -37,7 +37,8 @@ required = [".cursorrules"]
 
 /// JavaScript profile configuration for quench init.
 pub fn javascript_profile_defaults() -> String {
-    r#"[javascript]
+    r#"# See: `quench config javascript`
+[javascript]
 # source = ["**/*.js", "**/*.jsx", "**/*.ts", "**/*.tsx", "**/*.mjs", "**/*.mts"]
 # tests = ["**/*.test.*", "**/*.spec.*", "**/test/**", "**/tests/**", "**/__tests__/**"]
 
@@ -88,7 +89,8 @@ pub fn javascript_landing_items_for(root: &Path) -> Vec<String> {
 
 /// Default Rust profile configuration for quench init.
 pub fn rust_profile_defaults() -> String {
-    r#"[rust]
+    r#"# See: `quench config rust`
+[rust]
 # source = ["**/*.rs"]
 # tests = ["**/tests/**/*.rs", "**/*_test.rs", "**/*_tests.rs"]
 cfg_test_split = "count"  # recommended: "require"
@@ -114,7 +116,8 @@ pub fn rust_landing_items() -> &'static [&'static str] {
 
 /// Default Shell profile configuration for quench init.
 pub fn shell_profile_defaults() -> String {
-    r#"[shell]
+    r#"# See: `quench config shell`
+[shell]
 # source = ["**/*.sh", "**/*.bash"]
 # tests = ["tests/**/*.bats", "test/**/*.bats", "*_test.sh", "**/*_test.sh"]
 
@@ -134,7 +137,8 @@ pub fn shell_landing_items() -> &'static [&'static str] {
 
 /// Default Go profile configuration for quench init.
 pub fn golang_profile_defaults() -> String {
-    r#"[golang]
+    r#"# See: `quench config golang`
+[golang]
 # source = ["**/*.go"]
 # tests = ["**/*_test.go"]
 
@@ -160,7 +164,8 @@ pub fn golang_landing_items() -> &'static [&'static str] {
 
 /// Ruby profile configuration for quench init.
 pub fn ruby_profile_defaults() -> String {
-    r#"[ruby]
+    r#"# See: `quench config ruby`
+[ruby]
 # source = ["**/*.rb"]
 # tests = ["**/test/**/*.rb", "**/spec/**/*.rb", "**/*_test.rb", "**/*_spec.rb"]
 
@@ -184,7 +189,8 @@ pub fn ruby_landing_items() -> &'static [&'static str] {
 
 /// Python profile configuration for quench init.
 pub fn python_profile_defaults() -> String {
-    r#"[python]
+    r#"# See: `quench config python`
+[python]
 # source = ["**/*.py"]
 # tests = ["tests/**/*.py", "test/**/*.py", "test_*.py", "*_test.py", "conftest.py"]
 
@@ -443,7 +449,7 @@ python.suppress.check = "comment"
 /// The agents section is generated separately to support required field.
 pub fn default_template_base() -> &'static str {
     r#"# Quench configuration
-# https://github.com/alfredjeanlab/quench
+# Run `quench config` for reference documentation
 version = 1
 
 # Baseline source for ratcheting (default: git notes)
@@ -452,7 +458,7 @@ version = 1
 baseline = "notes"    # e.g.  ".quench/baseline.json"
 
 # Validates conventional commit format: type(scope): description
-# See: https://github.com/alfredjeanlab/quench/blob/main/docs/specs/checks/git.md
+# See: `quench config git`
 [git.commit]
 check = "error"
 
@@ -461,9 +467,11 @@ check = "error"       # error | warn | off
 coverage = true       # Coverage can't drop
 escapes = true        # Escape counts can't increase
 
+# See: `quench config cloc`
 [check.cloc]
 check = "error"
 
+# See: `quench config escapes`
 [check.escapes]
 check = "error"
 
@@ -473,16 +481,17 @@ check = "error"
 /// Portion of template after agents section.
 pub fn default_template_suffix() -> &'static str {
     r#"
+# See: `quench config docs`
 [check.docs]
 check = "error"
 
 # Verify source changes have corresponding test changes, tracks test coverage and timing for ratcheting
-# See: https://github.com/alfredjeanlab/quench/blob/main/docs/specs/checks/tests.md
+# See: `quench config tests`
 [check.tests]
 check = "off"
 
 # Validate SPDX license headers and copyright
-# See: https://github.com/alfredjeanlab/quench/blob/main/docs/specs/checks/license-headers.md
+# See: `quench config license`
 [check.license]
 check = "off"
 
@@ -494,7 +503,7 @@ check = "off"
 /// Generate [check.agents] section with optional required field.
 pub fn agents_section(agents: &[DetectedAgent]) -> String {
     if agents.is_empty() {
-        return "[check.agents]\ncheck = \"error\"\n".to_string();
+        return "# See: `quench config agents`\n[check.agents]\ncheck = \"error\"\n".to_string();
     }
 
     let required: Vec<&str> = agents
@@ -507,7 +516,7 @@ pub fn agents_section(agents: &[DetectedAgent]) -> String {
         .collect();
 
     format!(
-        "[check.agents]\ncheck = \"error\"\nrequired = {:?}\n",
+        "# See: `quench config agents`\n[check.agents]\ncheck = \"error\"\nrequired = {:?}\n",
         required
     )
 }
