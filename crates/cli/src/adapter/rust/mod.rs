@@ -17,12 +17,11 @@ use globset::GlobSet;
 use super::glob::build_glob_set;
 
 mod cfg_test;
-mod policy;
 mod suppress;
 mod workspace;
 
+pub use crate::adapter::common::policy::PolicyCheckResult;
 pub use cfg_test::CfgTestInfo;
-pub use policy::{PolicyCheckResult, check_lint_policy};
 pub use suppress::{SuppressAttr, parse_suppress_attrs};
 pub use workspace::CargoWorkspace;
 
@@ -190,10 +189,16 @@ impl RustAdapter {
         changed_files: &[&Path],
         policy: &RustPolicyConfig,
     ) -> PolicyCheckResult {
-        policy::check_lint_policy(changed_files, policy, |p| self.classify(p))
+        crate::adapter::common::policy::check_lint_policy(changed_files, policy, |p| {
+            self.classify(p)
+        })
     }
 }
 
 #[cfg(test)]
 #[path = "../rust_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "policy_tests.rs"]
+mod policy_tests;

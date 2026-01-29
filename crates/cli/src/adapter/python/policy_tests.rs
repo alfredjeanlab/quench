@@ -8,9 +8,8 @@
 use std::path::Path;
 
 use crate::adapter::FileKind;
+use crate::adapter::common::policy::check_lint_policy;
 use crate::config::{LintChangesPolicy, PythonPolicyConfig};
-
-use super::*;
 
 fn classify_mock(path: &Path) -> FileKind {
     let path_str = path.to_string_lossy();

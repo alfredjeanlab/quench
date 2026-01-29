@@ -15,10 +15,9 @@ use std::path::Path;
 
 use globset::GlobSet;
 
-mod policy;
 mod suppress;
 
-pub use policy::{PolicyCheckResult, check_lint_policy};
+pub use crate::adapter::common::policy::PolicyCheckResult;
 pub use suppress::{RubySuppress, RubySuppressKind, parse_ruby_suppresses};
 
 use super::glob::build_glob_set;
@@ -207,10 +206,16 @@ impl RubyAdapter {
         changed_files: &[&Path],
         policy: &RubyPolicyConfig,
     ) -> PolicyCheckResult {
-        policy::check_lint_policy(changed_files, policy, |p| self.classify(p))
+        crate::adapter::common::policy::check_lint_policy(changed_files, policy, |p| {
+            self.classify(p)
+        })
     }
 }
 
 #[cfg(test)]
 #[path = "mod_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "policy_tests.rs"]
+mod policy_tests;

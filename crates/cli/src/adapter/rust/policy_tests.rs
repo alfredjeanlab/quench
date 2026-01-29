@@ -6,9 +6,6 @@ use std::path::Path;
 use crate::adapter::FileKind;
 use crate::config::{LintChangesPolicy, RustPolicyConfig};
 
-#[allow(unused_imports)]
-use super::*;
-
 fn default_policy() -> RustPolicyConfig {
     RustPolicyConfig {
         check: None,

@@ -6,9 +6,6 @@ use std::path::Path;
 use crate::adapter::FileKind;
 use crate::config::{JavaScriptPolicyConfig, LintChangesPolicy};
 
-#[allow(unused_imports)]
-use super::check_lint_policy;
-
 fn default_policy() -> JavaScriptPolicyConfig {
     JavaScriptPolicyConfig {
         check: None,
