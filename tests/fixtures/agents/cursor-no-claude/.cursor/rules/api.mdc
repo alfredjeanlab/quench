@@ -1,0 +1,9 @@
+---
+description: "API guidelines"
+globs: "src/api/**"
+alwaysApply: false
+---
+
+## API Conventions
+
+Use RESTful patterns for all endpoints.

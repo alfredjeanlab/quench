@@ -12,6 +12,8 @@
 pub mod config;
 pub mod content;
 mod detection;
+pub mod mdc;
+mod reconcile;
 pub mod sections;
 mod sync;
 
@@ -76,6 +78,11 @@ impl Check for AgentsCheck {
 
         // Check content rules (tables, diagrams, size limits)
         check_content(ctx, config, &detected, &mut violations);
+
+        // Check cursor rule reconciliation
+        if config.reconcile_cursor {
+            check_cursor_reconciliation(ctx, config, &mut violations, &mut fixes);
+        }
 
         // Build metrics
         let files_found: Vec<String> = detected
@@ -616,6 +623,55 @@ fn check_content(
                 )
                 .with_threshold(violation.value as i64, violation.threshold as i64),
             );
+        }
+    }
+}
+
+/// Check cursor rule reconciliation.
+fn check_cursor_reconciliation(
+    ctx: &CheckContext,
+    config: &AgentsConfig,
+    violations: &mut Vec<Violation>,
+    fixes: &mut FixSummary,
+) {
+    let direction = config
+        .reconcile_direction
+        .as_deref()
+        .map(reconcile::ReconcileDirection::from_str)
+        .unwrap_or(reconcile::ReconcileDirection::Bidirectional);
+
+    let (reconcile_violations, reconcile_fixes) = reconcile::check_cursor_reconciliation(
+        ctx.root,
+        &config.files,
+        &direction,
+        ctx.fix,
+        ctx.dry_run,
+    );
+
+    // Convert reconcile violations to check violations
+    for rv in &reconcile_violations {
+        violations.push(reconcile::to_violation(rv));
+    }
+
+    // Track fixes
+    for rf in reconcile_fixes {
+        let target = rf
+            .target_path
+            .strip_prefix(ctx.root)
+            .unwrap_or(&rf.target_path)
+            .to_string_lossy()
+            .to_string();
+
+        if ctx.dry_run {
+            fixes.add_preview(
+                target,
+                "cursor_reconcile".to_string(),
+                String::new(),
+                rf.content,
+                1,
+            );
+        } else {
+            fixes.add_sync(target, "cursor_reconcile".to_string(), 1);
         }
     }
 }

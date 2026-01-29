@@ -14,6 +14,7 @@
 //! Reference: docs/specs/checks/agents.md
 
 mod content;
+mod cursor;
 mod defaults;
 mod detection;
 mod edge_cases;

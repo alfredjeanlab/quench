@@ -1,0 +1,8 @@
+---
+globs: "src/api/**"
+alwaysApply: false
+---
+
+## API Conventions
+
+Use REST.
