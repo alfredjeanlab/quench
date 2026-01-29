@@ -16,6 +16,12 @@ check = "error"
 [check.docs]
 check = "error"
 
+[check.license]
+check = "error"
+license = "MIT"
+copyright = "Alfred Jean LLC"
+exclude = ["tests/fixtures/**"]
+
 [check.cloc]
 check = "error"
 exclude = ["tests/fixtures/**"]
@@ -25,11 +31,8 @@ If not, split large test files into a {module}_tests/ folder.
 """
 max_lines_test = 1100  # TODO: refactor to 1000
 
-[check.license]
+[check.tests]
 check = "error"
-license = "MIT"
-copyright = "Alfred Jean LLC"
-exclude = ["tests/fixtures/**"]
 
 [rust]
 cfg_test_split = "require"
