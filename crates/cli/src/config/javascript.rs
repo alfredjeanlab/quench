@@ -109,6 +109,10 @@ impl JavaScriptConfig {
     pub(crate) fn default_exclude() -> Vec<String> {
         JavaScriptDefaults::default_exclude()
     }
+
+    pub(crate) fn default_cloc_advice(threshold: usize) -> String {
+        JavaScriptDefaults::default_cloc_advice(threshold)
+    }
 }
 
 define_policy_config!(

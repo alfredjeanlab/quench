@@ -448,7 +448,7 @@ impl ClocConfig {
         super::defaults::advice::cloc_source(super::defaults::size::MAX_LINES)
     }
 
-    pub(super) fn default_advice_test() -> String {
+    pub(crate) fn default_advice_test() -> String {
         super::defaults::advice::cloc_test(super::defaults::size::MAX_LINES_TEST)
     }
 }

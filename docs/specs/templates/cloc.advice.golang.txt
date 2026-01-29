@@ -1,9 +1,5 @@
-Can the code be made more concise?
+First, look for repetitive patterns that could be extracted into helper functions.
 
-Look for repetitive patterns that could be extracted into helper functions.
+Then split into multiple files in the same package by semantic concern (target 150–250 lines each), or extract reusable logic into internal packages.
 
-If not, split large files into multiple files in the same package,
-or extract reusable logic into internal packages.
-
-Avoid picking and removing individual lines to satisfy the linter,
-prefer properly refactoring out testable code blocks.
+Avoid removing individual lines to satisfy the linter; prefer extracting testable code blocks.

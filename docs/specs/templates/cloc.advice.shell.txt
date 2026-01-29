@@ -1,3 +1,5 @@
-Can the script be made more concise?
-Look for repetitive patterns that could be extracted into helper functions.
-If not, split into multiple scripts or source helper files.
+First, look for repetitive patterns that could be extracted into helper functions.
+
+Then split into multiple scripts or source helper files by semantic concern (target 150–250 lines each).
+
+Avoid removing individual lines to satisfy the linter; prefer extracting testable code blocks.

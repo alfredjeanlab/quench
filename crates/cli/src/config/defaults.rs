@@ -30,8 +30,15 @@ pub mod advice {
 
     /// Format a target range string like "150–250 lines".
     pub fn target_range(threshold: usize) -> String {
-        let lo = round_down(threshold / 5, 10);
-        let hi = round_down(threshold / 3, 10);
+        let lo = threshold / 5;
+        let hi = threshold / 3;
+        // Only round for meaningful thresholds; small values lose
+        // information when rounded to the nearest 10.
+        let (lo, hi) = if threshold >= 100 {
+            (round_down(lo, 10), round_down(hi, 10))
+        } else {
+            (lo, hi)
+        };
         format!("{lo}–{hi} lines")
     }
 

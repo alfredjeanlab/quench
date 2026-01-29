@@ -410,15 +410,11 @@ fn text_output_deduplicates_consecutive_identical_advice() {
     cli().on("dedup-advice").exits(1).stdout_eq(
         "cloc: FAIL
   src/file_c.rs: file_too_large (lines: 7 vs 5)
-    Can the code be made more concise?
+    First, look for repetitive patterns that could be extracted into helper functions, or refactor to be more unit testable and concise.
 
-    Look for repetitive patterns that could be extracted into helper functions
-    or consider refactoring to be more unit testable.
+    Then split into sibling modules or submodules in a folder by semantic concern (target 1\u{2013}1 lines each).
 
-    If not, split large source files into sibling modules or submodules in a folder,
-
-    Avoid picking and removing individual lines to satisfy the linter,
-    prefer properly refactoring out testable code blocks.
+    Avoid removing individual lines to satisfy the linter; prefer extracting testable code blocks.
 
   src/file_b.rs: file_too_large (lines: 7 vs 5)
   src/file_a.rs: file_too_large (lines: 7 vs 5)
@@ -468,8 +464,8 @@ fn json_output_never_deduplicates_advice() {
 
         // Verify it's the expected multi-line advice
         assert!(
-            advice.contains("Can the code be made more concise?"),
-            "should have full advice text"
+            advice.contains("look for repetitive patterns"),
+            "should have full advice text, got: {advice}"
         );
     }
 }

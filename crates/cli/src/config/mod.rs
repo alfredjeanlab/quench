@@ -206,9 +206,8 @@ impl Config {
             // (Go uses "go" for both adapter name and file extension)
             "rust" | "rs" => self.rust.cloc.as_ref().and_then(|c| c.check),
             "go" => self.golang.cloc.as_ref().and_then(|c| c.check),
-            "javascript" | "js" | "jsx" | "ts" | "tsx" | "mjs" | "mts" | "cjs" | "cts" => {
-                self.javascript.cloc.as_ref().and_then(|c| c.check)
-            }
+            "javascript" | "typescript" | "js" | "jsx" | "ts" | "tsx" | "mjs" | "mts" | "cjs"
+            | "cts" => self.javascript.cloc.as_ref().and_then(|c| c.check),
             "python" | "py" => self.python.cloc.as_ref().and_then(|c| c.check),
             "shell" | "sh" | "bash" | "zsh" | "fish" | "bats" => {
                 self.shell.cloc.as_ref().and_then(|c| c.check)
@@ -243,7 +242,8 @@ impl Config {
                 .as_ref()
                 .and_then(|c| c.advice.as_deref())
                 .or(self.golang.cloc_advice.as_deref()),
-            "javascript" | "js" | "jsx" | "ts" | "tsx" | "mjs" | "mts" | "cjs" | "cts" => self
+            "javascript" | "typescript" | "js" | "jsx" | "ts" | "tsx" | "mjs" | "mts" | "cjs"
+            | "cts" => self
                 .javascript
                 .cloc
                 .as_ref()
@@ -281,16 +281,18 @@ impl Config {
             return self.check.cloc.advice.clone();
         }
 
-        // Use language-specific defaults
+        // Use language-specific defaults (recomputed with actual threshold)
         match language {
             "rust" | "rs" => RustConfig::default_cloc_advice(threshold),
             "go" => GoConfig::default_cloc_advice(threshold),
+            "javascript" | "typescript" | "js" | "jsx" | "ts" | "tsx" | "mjs" | "mts" | "cjs"
+            | "cts" => JavaScriptConfig::default_cloc_advice(threshold),
             "python" | "py" => PythonConfig::default_cloc_advice(threshold),
             "ruby" | "rb" | "rake" => RubyConfig::default_cloc_advice(threshold),
             "shell" | "sh" | "bash" | "zsh" | "fish" | "bats" => {
                 ShellConfig::default_cloc_advice(threshold)
             }
-            _ => self.check.cloc.advice.clone(),
+            _ => defaults::advice::cloc_source(threshold),
         }
     }
 

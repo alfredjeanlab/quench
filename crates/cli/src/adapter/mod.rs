@@ -75,6 +75,7 @@ pub mod glob;
 pub mod go;
 pub mod javascript;
 pub mod patterns;
+pub mod project;
 pub mod python;
 pub mod ruby;
 pub mod rust;

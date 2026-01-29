@@ -16,7 +16,7 @@ use crate::adapter::glob::build_glob_set;
 use crate::adapter::rust::CfgTestInfo;
 use crate::adapter::{AdapterRegistry, FileKind, RustAdapter};
 use crate::check::{Check, CheckContext, CheckResult, Violation};
-use crate::config::{CfgTestSplitMode, CheckLevel, LineMetric};
+use crate::config::{CfgTestSplitMode, CheckLevel, ClocConfig, LineMetric};
 use crate::file_reader::FileContent;
 
 /// Parameters for creating a line-count violation.
@@ -87,6 +87,15 @@ impl Check for ClocCheck {
                 Some(RustAdapter::with_patterns(patterns))
             }
             CfgTestSplitMode::Off => None,
+        };
+
+        // Compute effective test advice with actual threshold.
+        // The serde default bakes in MAX_LINES_TEST; recompute when the user
+        // hasn't customized advice_test so the target range matches the real limit.
+        let test_advice = if cloc_config.advice_test == ClocConfig::default_advice_test() {
+            crate::config::defaults::advice::cloc_test(cloc_config.max_lines_test)
+        } else {
+            cloc_config.advice_test.clone()
         };
 
         // Build pattern matcher for exclude patterns only
@@ -278,7 +287,7 @@ impl Check for ClocCheck {
                                 &file.path,
                                 is_test,
                                 &source_advice,
-                                &cloc_config.advice_test,
+                                &test_advice,
                                 &info,
                             ) {
                                 Some(v) => violation_infos.push((v, is_error)),
@@ -295,7 +304,7 @@ impl Check for ClocCheck {
                                 &file.path,
                                 is_test,
                                 &source_advice,
-                                &cloc_config.advice_test,
+                                &test_advice,
                                 token_count,
                                 max_tokens,
                             ) {

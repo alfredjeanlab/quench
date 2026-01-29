@@ -96,7 +96,7 @@ check = "error"
         .stdout_eq(
             "tests: FAIL
   src/feature.rs: missing_tests
-    Add tests in tests/feature_tests.rs or update inline #[cfg(test)] block
+    Add tests in tests/feature.rs or a sibling feature_tests.rs file
 FAIL: tests
 ",
         );
