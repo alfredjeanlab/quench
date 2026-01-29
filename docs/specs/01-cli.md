@@ -8,6 +8,7 @@ Quench provides a minimal command-line interface optimized for AI agents.
 quench                    # Show help
 quench help               # Show help
 quench init               # Initialize quench.toml
+quench config <feature>   # Show configuration examples
 quench check [FLAGS]      # Run quality checks
 quench report [FLAGS]     # Generate reports
 ```
@@ -226,6 +227,56 @@ Before completing work:
 - [ ] Run `cargo clippy` (rust profile)
 - [ ] Run `shellcheck` on changed scripts (shell profile)
 ```
+
+## quench config
+
+Show configuration examples for checks and languages.
+
+```bash
+quench config <feature>       # Show configuration guide
+```
+
+### Features
+
+Available features with their configuration guides:
+
+**Checks:**
+- `agents` - Agent file validation (CLAUDE.md, .cursorrules)
+- `build` - Build metrics and size tracking
+- `cloc` - Code lines and file size limits
+- `docs` - Documentation validation
+- `escapes` - Escape hatch patterns
+- `git` - Git commit format
+- `license` - License header validation
+- `tests` - Test correlation and execution
+
+**Languages:**
+- `rust` (alias: `rs`) - Rust-specific configuration
+- `golang` (alias: `go`) - Go-specific configuration
+- `javascript` (alias: `js`) - JavaScript/TypeScript configuration
+- `python` (alias: `py`) - Python-specific configuration
+- `ruby` (alias: `rb`) - Ruby-specific configuration
+- `shell` (alias: `sh`, `bash`) - Shell script configuration
+
+### Examples
+
+```bash
+# Show Rust configuration examples
+quench config rust
+quench config rs              # Same as above
+
+# Show tests check configuration
+quench config tests
+
+# Show JavaScript/TypeScript configuration
+quench config javascript
+quench config js              # Same as above
+
+# Show CLOC check configuration
+quench config cloc
+```
+
+Configuration guides are reference documentation showing all available options with inline comments explaining what each setting does. Copy relevant sections to your `quench.toml` as needed.
 
 ## Global Flags
 
