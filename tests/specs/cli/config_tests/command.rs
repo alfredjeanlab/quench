@@ -170,6 +170,22 @@ fn feature_names_are_case_insensitive() {
 // Help Output
 // =============================================================================
 
+/// Spec: `quench config` with no arguments shows help
+///
+/// > Running config without a feature argument should display usage help
+/// > and exit successfully.
+#[test]
+fn no_args_shows_help() {
+    let output = quench_cmd().args(["config"]).assert().success();
+    let stdout = String::from_utf8_lossy(&output.get_output().stdout);
+
+    assert!(
+        stdout.contains("Show configuration examples"),
+        "Should show command description"
+    );
+    assert!(stdout.contains("[FEATURE]"), "Should show feature argument");
+}
+
 /// Spec: `quench config --help` shows usage information
 #[test]
 fn help_shows_usage() {
@@ -180,7 +196,7 @@ fn help_shows_usage() {
         stdout.contains("Show configuration examples"),
         "Should show command description"
     );
-    assert!(stdout.contains("<FEATURE>"), "Should show feature argument");
+    assert!(stdout.contains("[FEATURE]"), "Should show feature argument");
     assert!(
         stdout.contains("Feature to show configuration for"),
         "Should show feature description"

@@ -405,7 +405,7 @@ pub struct InitArgs {
 pub struct ConfigArgs {
     /// Feature to show configuration for (e.g., rust, tests, cloc)
     #[arg(value_name = "FEATURE")]
-    pub feature: String,
+    pub feature: Option<String>,
 }
 
 #[derive(clap::Args)]

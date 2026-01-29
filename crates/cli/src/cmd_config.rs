@@ -6,9 +6,11 @@
 use std::io::Write;
 
 use anyhow::{Context, Result, bail};
+use clap::CommandFactory;
 
-use quench::cli::ConfigArgs;
+use quench::cli::{Cli, ConfigArgs};
 use quench::error::ExitCode;
+use quench::help::format_help;
 
 /// Template files are embedded at compile time
 const TEMPLATES: &[(&str, &str)] = &[
@@ -107,7 +109,17 @@ const TEMPLATES: &[(&str, &str)] = &[
 ];
 
 pub fn run(args: &ConfigArgs) -> Result<ExitCode> {
-    let feature = args.feature.to_lowercase();
+    let feature = match &args.feature {
+        Some(f) => f.to_lowercase(),
+        None => {
+            let mut cmd = Cli::command();
+            if let Some(subcmd) = cmd.find_subcommand_mut("config") {
+                print!("{}", format_help(subcmd));
+                println!();
+            }
+            return Ok(ExitCode::Success);
+        }
+    };
 
     // Find the template
     let template = TEMPLATES
@@ -130,7 +142,7 @@ pub fn run(args: &ConfigArgs) -> Result<ExitCode> {
                 Available features:\n\
                   Checks:  agents, build, cloc, docs, escapes, git, license, tests\n\
                   Languages: golang (go), javascript (js/ts/typescript), python (py), ruby (rb), rust (rs), shell (sh/bash)",
-                args.feature
+                feature
             );
         }
     }
