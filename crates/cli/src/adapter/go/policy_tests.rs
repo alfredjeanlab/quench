@@ -6,9 +6,6 @@ use std::path::Path;
 use crate::adapter::FileKind;
 use crate::config::{GoPolicyConfig, LintChangesPolicy};
 
-#[allow(unused_imports)]
-use super::check_lint_policy;
-
 fn default_policy() -> GoPolicyConfig {
     GoPolicyConfig {
         check: None,

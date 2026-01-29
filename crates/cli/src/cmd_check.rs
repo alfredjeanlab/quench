@@ -198,27 +198,31 @@ pub fn run(_cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
                 }
             }
         }
-        ProjectLanguage::Ruby => {
-            // Ignore vendor, tmp, log, coverage for Ruby projects
-            for pattern in ["vendor", "tmp", "log", "coverage"] {
+        ProjectLanguage::Python => {
+            // Ignore common Python cache and build directories
+            for pattern in [
+                ".venv",
+                "venv",
+                ".env",
+                "env",
+                "__pycache__",
+                ".mypy_cache",
+                ".pytest_cache",
+                ".ruff_cache",
+                "dist",
+                "build",
+                "*.egg-info",
+                ".tox",
+                ".nox",
+            ] {
                 if !ignore_patterns.iter().any(|p| p.contains(pattern)) {
                     ignore_patterns.push(pattern.to_string());
                 }
             }
         }
-        ProjectLanguage::Python => {
-            // Ignore .venv, venv, __pycache__, dist, build for Python projects
-            for pattern in [
-                ".venv",
-                "venv",
-                "__pycache__",
-                "dist",
-                "build",
-                ".mypy_cache",
-                ".pytest_cache",
-                ".tox",
-                ".nox",
-            ] {
+        ProjectLanguage::Ruby => {
+            // Ignore vendor, tmp, log, coverage for Ruby projects
+            for pattern in ["vendor", "tmp", "log", "coverage"] {
                 if !ignore_patterns.iter().any(|p| p.contains(pattern)) {
                     ignore_patterns.push(pattern.to_string());
                 }

@@ -15,12 +15,12 @@ use std::path::Path;
 
 use globset::GlobSet;
 
-mod policy;
 mod suppress;
 
-pub use policy::{PolicyCheckResult, check_lint_policy};
+pub use crate::adapter::common::policy::PolicyCheckResult;
 pub use suppress::{RubySuppress, RubySuppressKind, parse_ruby_suppresses};
 
+use super::common::patterns::normalize_ignore_patterns;
 use super::glob::build_glob_set;
 use super::{Adapter, EscapeAction, EscapePattern, FileKind};
 use crate::config::RubyPolicyConfig;
@@ -114,20 +114,7 @@ impl RubyAdapter {
 
     /// Create a Ruby adapter with resolved patterns from config.
     pub fn with_patterns(patterns: super::ResolvedPatterns) -> Self {
-        // Convert ignore patterns to glob patterns (add ** if needed)
-        let ignore_globs: Vec<String> = patterns
-            .ignore
-            .iter()
-            .map(|p| {
-                if p.ends_with('/') {
-                    format!("{}**", p)
-                } else if !p.contains('*') {
-                    format!("{}/**", p.trim_end_matches('/'))
-                } else {
-                    p.clone()
-                }
-            })
-            .collect();
+        let ignore_globs = normalize_ignore_patterns(&patterns.ignore);
 
         Self {
             source_patterns: build_glob_set(&patterns.source),
@@ -207,10 +194,16 @@ impl RubyAdapter {
         changed_files: &[&Path],
         policy: &RubyPolicyConfig,
     ) -> PolicyCheckResult {
-        policy::check_lint_policy(changed_files, policy, |p| self.classify(p))
+        crate::adapter::common::policy::check_lint_policy(changed_files, policy, |p| {
+            self.classify(p)
+        })
     }
 }
 
 #[cfg(test)]
 #[path = "mod_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "policy_tests.rs"]
+mod policy_tests;

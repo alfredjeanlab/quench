@@ -3,6 +3,7 @@
 
 //! Common adapter utilities shared between language adapters.
 
+pub mod patterns;
 pub mod policy;
 pub mod suppress;
 

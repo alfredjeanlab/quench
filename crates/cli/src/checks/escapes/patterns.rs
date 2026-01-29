@@ -8,7 +8,7 @@ use std::path::Path;
 
 use crate::adapter::{
     EscapePattern as AdapterEscapePattern, GoAdapter, JavaScriptAdapter, ProjectLanguage,
-    RubyAdapter, RustAdapter, ShellAdapter, detect_language,
+    PythonAdapter, RubyAdapter, RustAdapter, ShellAdapter, detect_language,
 };
 use crate::config::{EscapeAction, EscapePattern as ConfigEscapePattern};
 use crate::pattern::{CompiledPattern, PatternError};
@@ -75,13 +75,13 @@ pub(super) fn get_adapter_escape_patterns(root: &Path) -> Vec<ConfigEscapePatter
             let js_adapter = JavaScriptAdapter::new();
             patterns.extend(convert_adapter_patterns(js_adapter.default_escapes()));
         }
+        ProjectLanguage::Python => {
+            let python_adapter = PythonAdapter::new();
+            patterns.extend(convert_adapter_patterns(python_adapter.default_escapes()));
+        }
         ProjectLanguage::Ruby => {
             let ruby_adapter = RubyAdapter::new();
             patterns.extend(convert_adapter_patterns(ruby_adapter.default_escapes()));
-        }
-        ProjectLanguage::Python => {
-            // Python escape patterns are Phase 445
-            // PythonAdapter::default_escapes() returns empty for now
         }
         ProjectLanguage::Generic => {
             // No default patterns for generic projects

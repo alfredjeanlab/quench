@@ -13,6 +13,7 @@ pub enum DetectedLanguage {
     JavaScript,
     Shell,
     Ruby,
+    Python,
 }
 
 /// Agents that can be detected in a project.
@@ -69,6 +70,15 @@ pub fn detect_languages(root: &Path) -> Vec<DetectedLanguage> {
         || root.join("config/application.rb").exists()
     {
         languages.push(DetectedLanguage::Ruby);
+    }
+
+    // Python: pyproject.toml, setup.py, setup.cfg, or requirements.txt exists
+    if root.join("pyproject.toml").exists()
+        || root.join("setup.py").exists()
+        || root.join("setup.cfg").exists()
+        || root.join("requirements.txt").exists()
+    {
+        languages.push(DetectedLanguage::Python);
     }
 
     languages

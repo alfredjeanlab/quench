@@ -20,11 +20,14 @@ mod js_detect;
 mod json_utils;
 mod kcov;
 mod minitest;
+mod py_detect;
 mod pytest;
+mod python_coverage;
 mod result;
 mod rspec;
 mod ruby_coverage;
 mod targets;
+mod unittest;
 mod vitest;
 
 pub use bats::BatsRunner;
@@ -43,7 +46,9 @@ pub use js_coverage::{collect_bun_coverage, collect_jest_coverage, collect_vites
 pub use js_detect::{DetectionResult, DetectionSource, JsRunner, detect_js_runner};
 pub use kcov::{collect_shell_coverage, kcov_available};
 pub use minitest::MinitestRunner;
+pub use py_detect::{PyDetectionResult, PyDetectionSource, PyRunner, detect_py_runner};
 pub use pytest::PytestRunner;
+pub use python_coverage::collect_python_coverage;
 pub use result::{TestResult, TestRunResult};
 pub use rspec::RspecRunner;
 pub use ruby_coverage::collect_ruby_coverage;
@@ -51,6 +56,7 @@ pub use targets::{
     ResolvedTarget, TargetResolutionError, is_glob_pattern, resolve_target, resolve_targets,
     rust_binary_names, shell_script_files,
 };
+pub use unittest::UnittestRunner;
 pub use vitest::VitestRunner;
 
 use std::collections::HashMap;
@@ -90,8 +96,8 @@ pub use run_setup_or_fail;
 
 /// List of known runner names.
 pub const RUNNER_NAMES: &[&str] = &[
-    "cargo", "go", "pytest", "vitest", "bun", "jest", "bats", "rspec", "minitest", "cucumber",
-    "custom",
+    "cargo", "go", "pytest", "unittest", "vitest", "bun", "jest", "bats", "rspec", "minitest",
+    "cucumber", "custom",
 ];
 
 /// Context passed to test runners during execution.
@@ -127,6 +133,7 @@ pub fn all_runners() -> Vec<Arc<dyn TestRunner>> {
         Arc::new(BatsRunner),
         Arc::new(GoRunner),
         Arc::new(PytestRunner),
+        Arc::new(UnittestRunner),
         Arc::new(VitestRunner),
         Arc::new(BunRunner),
         Arc::new(JestRunner),
@@ -199,6 +206,8 @@ pub struct AggregatedCoverage {
     pub javascript: Option<CoverageResult>,
     /// Ruby coverage result (merged from all Ruby sources).
     pub ruby: Option<CoverageResult>,
+    /// Python coverage result (merged from all Python sources).
+    pub python: Option<CoverageResult>,
 }
 
 impl AggregatedCoverage {
@@ -242,6 +251,14 @@ impl AggregatedCoverage {
         });
     }
 
+    /// Merge Python coverage from a suite into the aggregate.
+    pub fn merge_python(&mut self, result: CoverageResult) {
+        self.python = Some(match self.python.take() {
+            Some(existing) => merge_coverage_results(existing, result),
+            None => result,
+        });
+    }
+
     /// Convert to a language -> percentage map for metrics.
     pub fn to_coverage_map(&self) -> HashMap<String, f64> {
         let mut map = HashMap::new();
@@ -270,6 +287,11 @@ impl AggregatedCoverage {
         {
             map.insert("ruby".to_string(), pct);
         }
+        if let Some(ref python) = self.python
+            && let Some(pct) = python.line_coverage
+        {
+            map.insert("python".to_string(), pct);
+        }
         map
     }
 
@@ -289,6 +311,10 @@ impl AggregatedCoverage {
                 .is_some_and(|r| r.line_coverage.is_some())
             || self
                 .ruby
+                .as_ref()
+                .is_some_and(|r| r.line_coverage.is_some())
+            || self
+                .python
                 .as_ref()
                 .is_some_and(|r| r.line_coverage.is_some())
     }

@@ -34,89 +34,35 @@ pub struct ResolvedPatterns {
 // TRAIT IMPLEMENTATIONS FOR LANGUAGE CONFIGS
 // =============================================================================
 
-impl LanguageDefaults for crate::config::RustConfig {
-    fn default_source() -> Vec<String> {
-        crate::config::RustConfig::default_source()
-    }
+/// Implements `LanguageDefaults` for config types that have the same-named inherent methods.
+macro_rules! impl_language_defaults {
+    ($($config:ty),* $(,)?) => {
+        $(
+            impl LanguageDefaults for $config {
+                fn default_source() -> Vec<String> {
+                    <$config>::default_source()
+                }
 
-    fn default_tests() -> Vec<String> {
-        crate::config::RustConfig::default_tests()
-    }
+                fn default_tests() -> Vec<String> {
+                    <$config>::default_tests()
+                }
 
-    fn default_ignore() -> Vec<String> {
-        crate::config::RustConfig::default_ignore()
-    }
+                fn default_ignore() -> Vec<String> {
+                    <$config>::default_ignore()
+                }
+            }
+        )*
+    };
 }
 
-impl LanguageDefaults for crate::config::GoConfig {
-    fn default_source() -> Vec<String> {
-        crate::config::GoConfig::default_source()
-    }
-
-    fn default_tests() -> Vec<String> {
-        crate::config::GoConfig::default_tests()
-    }
-
-    fn default_ignore() -> Vec<String> {
-        crate::config::GoConfig::default_ignore()
-    }
-}
-
-impl LanguageDefaults for crate::config::JavaScriptConfig {
-    fn default_source() -> Vec<String> {
-        crate::config::JavaScriptConfig::default_source()
-    }
-
-    fn default_tests() -> Vec<String> {
-        crate::config::JavaScriptConfig::default_tests()
-    }
-
-    fn default_ignore() -> Vec<String> {
-        crate::config::JavaScriptConfig::default_ignore()
-    }
-}
-
-impl LanguageDefaults for crate::config::RubyConfig {
-    fn default_source() -> Vec<String> {
-        crate::config::RubyConfig::default_source()
-    }
-
-    fn default_tests() -> Vec<String> {
-        crate::config::RubyConfig::default_tests()
-    }
-
-    fn default_ignore() -> Vec<String> {
-        crate::config::RubyConfig::default_ignore()
-    }
-}
-
-impl LanguageDefaults for crate::config::PythonConfig {
-    fn default_source() -> Vec<String> {
-        crate::config::PythonConfig::default_source()
-    }
-
-    fn default_tests() -> Vec<String> {
-        crate::config::PythonConfig::default_tests()
-    }
-
-    fn default_ignore() -> Vec<String> {
-        crate::config::PythonConfig::default_ignore()
-    }
-}
-
-impl LanguageDefaults for crate::config::ShellConfig {
-    fn default_source() -> Vec<String> {
-        crate::config::ShellConfig::default_source()
-    }
-
-    fn default_tests() -> Vec<String> {
-        crate::config::ShellConfig::default_tests()
-    }
-
-    fn default_ignore() -> Vec<String> {
-        crate::config::ShellConfig::default_ignore()
-    }
-}
+impl_language_defaults!(
+    crate::config::RustConfig,
+    crate::config::GoConfig,
+    crate::config::JavaScriptConfig,
+    crate::config::PythonConfig,
+    crate::config::RubyConfig,
+    crate::config::ShellConfig,
+);
 
 // =============================================================================
 // PATTERN RESOLUTION

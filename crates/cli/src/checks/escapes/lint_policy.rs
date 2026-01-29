@@ -6,12 +6,13 @@
 use std::path::Path;
 
 use crate::adapter::{
-    GoAdapter, JavaScriptAdapter, ProjectLanguage, RubyAdapter, RustAdapter, ShellAdapter,
-    detect_language,
+    GoAdapter, JavaScriptAdapter, ProjectLanguage, PythonAdapter, RubyAdapter, RustAdapter,
+    ShellAdapter, detect_language,
 };
 use crate::check::{CheckContext, Violation};
 use crate::config::{
-    CheckLevel, GoConfig, JavaScriptConfig, LintChangesPolicy, RubyConfig, RustConfig, ShellConfig,
+    CheckLevel, GoConfig, JavaScriptConfig, LintChangesPolicy, PythonConfig, RubyConfig,
+    RustConfig, ShellConfig,
 };
 
 /// Result of lint policy check with violations and their check level.
@@ -27,11 +28,11 @@ pub fn check_lint_policy(ctx: &CheckContext) -> PolicyCheckResult {
     match detect_language(ctx.root) {
         ProjectLanguage::Rust => check_rust_lint_policy(ctx, &ctx.config.rust),
         ProjectLanguage::Go => check_go_lint_policy(ctx, &ctx.config.golang),
+        ProjectLanguage::Python => check_python_lint_policy(ctx, &ctx.config.python),
         ProjectLanguage::Ruby => check_ruby_lint_policy(ctx, &ctx.config.ruby),
         ProjectLanguage::Shell => check_shell_lint_policy(ctx, &ctx.config.shell),
         ProjectLanguage::JavaScript => check_javascript_lint_policy(ctx, &ctx.config.javascript),
-        // Python policy check is Phase 447
-        ProjectLanguage::Python | ProjectLanguage::Generic => PolicyCheckResult {
+        ProjectLanguage::Generic => PolicyCheckResult {
             violations: Vec::new(),
             check_level: CheckLevel::Off,
         },
@@ -142,6 +143,44 @@ fn check_shell_lint_policy(ctx: &CheckContext, shell_config: &ShellConfig) -> Po
     let adapter = ShellAdapter::new();
     let file_refs: Vec<&Path> = changed_files.iter().map(|p| p.as_path()).collect();
     let result = adapter.check_lint_policy(&file_refs, &shell_config.policy);
+    PolicyCheckResult {
+        violations: make_policy_violation(
+            result.standalone_violated,
+            &result.changed_lint_config,
+            &result.changed_source,
+        ),
+        check_level,
+    }
+}
+
+/// Check Python lint policy and generate violations.
+fn check_python_lint_policy(ctx: &CheckContext, python_config: &PythonConfig) -> PolicyCheckResult {
+    let check_level = ctx.config.policy_check_level_for_language("python");
+
+    // If policy check is off, skip entirely
+    if check_level == CheckLevel::Off {
+        return PolicyCheckResult {
+            violations: Vec::new(),
+            check_level,
+        };
+    }
+
+    if python_config.policy.lint_changes != LintChangesPolicy::Standalone {
+        return PolicyCheckResult {
+            violations: Vec::new(),
+            check_level,
+        };
+    }
+    let Some(changed_files) = ctx.changed_files else {
+        return PolicyCheckResult {
+            violations: Vec::new(),
+            check_level,
+        };
+    };
+
+    let adapter = PythonAdapter::new();
+    let file_refs: Vec<&Path> = changed_files.iter().map(|p| p.as_path()).collect();
+    let result = adapter.check_lint_policy(&file_refs, &python_config.policy);
     PolicyCheckResult {
         violations: make_policy_violation(
             result.standalone_violated,

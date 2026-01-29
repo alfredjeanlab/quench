@@ -408,8 +408,9 @@ pub use crate::profiles::{
     cursor_profile_defaults, default_template, default_template_base, default_template_suffix,
     golang_detected_section, golang_landing_items, golang_profile_defaults,
     javascript_detected_section, javascript_landing_items, javascript_landing_items_for,
-    javascript_profile_defaults, rust_detected_section, rust_landing_items, rust_profile_defaults,
-    shell_detected_section, shell_landing_items, shell_profile_defaults,
+    javascript_profile_defaults, python_landing_items, python_landing_items_for,
+    rust_detected_section, rust_landing_items, rust_profile_defaults, shell_detected_section,
+    shell_landing_items, shell_profile_defaults,
 };
 
 #[cfg(test)]

@@ -35,6 +35,12 @@ impl CommentStyle {
         prefix: "#",
         directive_patterns: &["rubocop:", "standard:", "!"],
     };
+
+    /// Python comment style: `#` prefix, noqa/type/pylint/pragma directives.
+    pub const PYTHON: Self = Self {
+        prefix: "#",
+        directive_patterns: &["noqa", "type:", "pylint:", "pragma:", "!"],
+    };
 }
 
 /// Check if there's a justification comment above a directive line.

@@ -1,0 +1,10 @@
+version = 1
+
+[[package]]
+name = "uvapp"
+version = "0.1.0"
+source = { editable = "." }
+
+[[package]]
+name = "pytest"
+version = "8.0.0"

@@ -10,8 +10,8 @@ use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
 
 use super::{
-    RunnerContext, TestResult, TestRunResult, TestRunner, handle_timeout_error, run_setup_or_fail,
-    run_with_timeout,
+    RunnerContext, TestResult, TestRunResult, TestRunner, collect_python_coverage,
+    handle_timeout_error, run_setup_or_fail, run_with_timeout,
 };
 use crate::config::TestSuiteConfig;
 
@@ -77,7 +77,15 @@ impl TestRunner for PytestRunner {
         let total_time = start.elapsed();
         let stdout = String::from_utf8_lossy(&output.stdout);
 
-        parse_pytest_output(&stdout, total_time)
+        let mut result = parse_pytest_output(&stdout, total_time);
+
+        // Collect coverage if requested
+        if ctx.collect_coverage {
+            let coverage = collect_python_coverage(ctx.root, config.path.as_deref());
+            result = result.with_collected_coverage(coverage, "python");
+        }
+
+        result
     }
 }
 

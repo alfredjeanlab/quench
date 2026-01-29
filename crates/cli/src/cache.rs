@@ -38,7 +38,8 @@ use crate::check::Violation;
 /// v25: Removed standalone placeholders check, integrated metrics into tests check.
 /// v26: Added CI mode threshold checking (coverage and time violations).
 /// v27: Added license check --fix functionality.
-pub const CACHE_VERSION: u32 = 27;
+/// v28: Added Python coverage collection and parsing.
+pub const CACHE_VERSION: u32 = 28;
 
 /// Cache file name within .quench directory.
 pub const CACHE_FILE_NAME: &str = "cache.bin";

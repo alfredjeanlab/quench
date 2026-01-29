@@ -59,7 +59,8 @@ pub use javascript::{
     Bundler, JavaScriptAdapter, JsWorkspace, detect_bundler, parse_javascript_suppresses,
 };
 pub use python::{
-    PythonAdapter, PythonLayout, detect_layout, parse_pyproject_toml, parse_setup_py,
+    PythonAdapter, PythonLayout, PythonSuppress, PythonSuppressKind, detect_layout,
+    parse_pyproject_toml, parse_python_suppresses, parse_setup_py,
 };
 pub use ruby::{RubyAdapter, RubySuppress, RubySuppressKind, parse_ruby_suppresses};
 pub use rust::{CfgTestInfo, RustAdapter, parse_suppress_attrs};
@@ -184,8 +185,8 @@ pub enum ProjectLanguage {
     Rust,
     Go,
     JavaScript,
-    Ruby,
     Python,
+    Ruby,
     Shell,
     Generic,
 }
@@ -208,14 +209,14 @@ pub fn detect_language(root: &Path) -> ProjectLanguage {
         return ProjectLanguage::JavaScript;
     }
 
+    // Python detection (before Ruby and Shell check)
+    if has_python_markers(root) {
+        return ProjectLanguage::Python;
+    }
+
     // Ruby detection (before Shell check)
     if has_ruby_markers(root) {
         return ProjectLanguage::Ruby;
-    }
-
-    // Python detection (before Shell check)
-    if has_python_markers(root) {
-        return ProjectLanguage::Python;
     }
 
     // Check for Shell project markers: *.sh in root, bin/, or scripts/
@@ -224,6 +225,15 @@ pub fn detect_language(root: &Path) -> ProjectLanguage {
     }
 
     ProjectLanguage::Generic
+}
+
+/// Check if project has Python markers.
+/// Detection: pyproject.toml, setup.py, setup.cfg, or requirements.txt
+fn has_python_markers(root: &Path) -> bool {
+    root.join("pyproject.toml").exists()
+        || root.join("setup.py").exists()
+        || root.join("setup.cfg").exists()
+        || root.join("requirements.txt").exists()
 }
 
 /// Check if project has Ruby markers.
@@ -246,15 +256,6 @@ fn has_gemspec(root: &Path) -> bool {
             })
         })
         .unwrap_or(false)
-}
-
-/// Check if project has Python markers.
-/// Detection: pyproject.toml, setup.py, setup.cfg, or requirements.txt
-fn has_python_markers(root: &Path) -> bool {
-    root.join("pyproject.toml").exists()
-        || root.join("setup.py").exists()
-        || root.join("setup.cfg").exists()
-        || root.join("requirements.txt").exists()
 }
 
 /// Check if project has Shell markers.
@@ -311,11 +312,11 @@ impl AdapterRegistry {
             ProjectLanguage::JavaScript => {
                 registry.register(Arc::new(JavaScriptAdapter::new()));
             }
-            ProjectLanguage::Ruby => {
-                registry.register(Arc::new(RubyAdapter::new()));
-            }
             ProjectLanguage::Python => {
                 registry.register(Arc::new(PythonAdapter::new()));
+            }
+            ProjectLanguage::Ruby => {
+                registry.register(Arc::new(RubyAdapter::new()));
             }
             ProjectLanguage::Shell => {
                 registry.register(Arc::new(ShellAdapter::new()));
@@ -364,13 +365,13 @@ impl AdapterRegistry {
                 let patterns = resolve_javascript_patterns(config, &fallback_test_patterns);
                 registry.register(Arc::new(JavaScriptAdapter::with_patterns(patterns)));
             }
-            ProjectLanguage::Ruby => {
-                let patterns = resolve_ruby_patterns(config, &fallback_test_patterns);
-                registry.register(Arc::new(RubyAdapter::with_patterns(patterns)));
-            }
             ProjectLanguage::Python => {
                 let patterns = resolve_python_patterns(config, &fallback_test_patterns);
                 registry.register(Arc::new(PythonAdapter::with_patterns(patterns)));
+            }
+            ProjectLanguage::Ruby => {
+                let patterns = resolve_ruby_patterns(config, &fallback_test_patterns);
+                registry.register(Arc::new(RubyAdapter::with_patterns(patterns)));
             }
             ProjectLanguage::Shell => {
                 let patterns = resolve_shell_patterns(config, &fallback_test_patterns);
@@ -386,86 +387,56 @@ impl AdapterRegistry {
 // Re-export ResolvedPatterns from the patterns module.
 pub use patterns::ResolvedPatterns;
 
-/// Resolve Rust patterns from config.
-fn resolve_rust_patterns(
-    config: &crate::config::Config,
-    fallback_test: &[String],
-) -> ResolvedPatterns {
-    patterns::resolve_patterns::<crate::config::RustConfig>(
-        &config.rust.source,
-        &config.rust.tests,
-        &config.rust.ignore,
-        fallback_test,
-    )
+/// Macro to define a resolve_*_patterns function.
+///
+/// Generates a function that resolves patterns from config with the standard
+/// fallback hierarchy: language config -> project config -> language defaults.
+macro_rules! define_resolve_patterns {
+    // For configs WITH an ignore field
+    ($fn_name:ident, $config_field:ident, $config_type:ty) => {
+        fn $fn_name(config: &crate::config::Config, fallback_test: &[String]) -> ResolvedPatterns {
+            patterns::resolve_patterns::<$config_type>(
+                &config.$config_field.source,
+                &config.$config_field.tests,
+                &config.$config_field.ignore,
+                fallback_test,
+            )
+        }
+    };
+    // For configs WITHOUT an ignore field
+    ($fn_name:ident, $config_field:ident, $config_type:ty, no_ignore) => {
+        fn $fn_name(config: &crate::config::Config, fallback_test: &[String]) -> ResolvedPatterns {
+            patterns::resolve_patterns::<$config_type>(
+                &config.$config_field.source,
+                &config.$config_field.tests,
+                &[],
+                fallback_test,
+            )
+        }
+    };
 }
 
-/// Resolve Go patterns from config.
-fn resolve_go_patterns(
-    config: &crate::config::Config,
-    fallback_test: &[String],
-) -> ResolvedPatterns {
-    // Go config doesn't have an ignore field, so pass empty slice
-    patterns::resolve_patterns::<crate::config::GoConfig>(
-        &config.golang.source,
-        &config.golang.tests,
-        &[],
-        fallback_test,
-    )
-}
-
-/// Resolve JavaScript patterns from config.
-fn resolve_javascript_patterns(
-    config: &crate::config::Config,
-    fallback_test: &[String],
-) -> ResolvedPatterns {
-    // JavaScript config doesn't have an ignore field, so pass empty slice
-    patterns::resolve_patterns::<crate::config::JavaScriptConfig>(
-        &config.javascript.source,
-        &config.javascript.tests,
-        &[],
-        fallback_test,
-    )
-}
-
-/// Resolve Ruby patterns from config.
-fn resolve_ruby_patterns(
-    config: &crate::config::Config,
-    fallback_test: &[String],
-) -> ResolvedPatterns {
-    patterns::resolve_patterns::<crate::config::RubyConfig>(
-        &config.ruby.source,
-        &config.ruby.tests,
-        &config.ruby.ignore,
-        fallback_test,
-    )
-}
-
-/// Resolve Shell patterns from config.
-fn resolve_shell_patterns(
-    config: &crate::config::Config,
-    fallback_test: &[String],
-) -> ResolvedPatterns {
-    // Shell config doesn't have an ignore field, so pass empty slice
-    patterns::resolve_patterns::<crate::config::ShellConfig>(
-        &config.shell.source,
-        &config.shell.tests,
-        &[],
-        fallback_test,
-    )
-}
-
-/// Resolve Python patterns from config.
-fn resolve_python_patterns(
-    config: &crate::config::Config,
-    fallback_test: &[String],
-) -> ResolvedPatterns {
-    patterns::resolve_patterns::<crate::config::PythonConfig>(
-        &config.python.source,
-        &config.python.tests,
-        &config.python.ignore,
-        fallback_test,
-    )
-}
+define_resolve_patterns!(resolve_rust_patterns, rust, crate::config::RustConfig);
+define_resolve_patterns!(
+    resolve_go_patterns,
+    golang,
+    crate::config::GoConfig,
+    no_ignore
+);
+define_resolve_patterns!(
+    resolve_javascript_patterns,
+    javascript,
+    crate::config::JavaScriptConfig,
+    no_ignore
+);
+define_resolve_patterns!(resolve_python_patterns, python, crate::config::PythonConfig);
+define_resolve_patterns!(resolve_ruby_patterns, ruby, crate::config::RubyConfig);
+define_resolve_patterns!(
+    resolve_shell_patterns,
+    shell,
+    crate::config::ShellConfig,
+    no_ignore
+);
 
 #[cfg(test)]
 #[path = "mod_tests.rs"]

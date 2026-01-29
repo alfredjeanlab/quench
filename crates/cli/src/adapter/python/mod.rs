@@ -8,15 +8,104 @@
 //! - Default patterns for Python files
 //! - Project layout detection (src-layout vs flat-layout)
 //! - Package name extraction from pyproject.toml and setup.py
+//! - Default escape patterns (debuggers, eval/exec)
+//! - Lint config policy checking
+//! - Suppress directive parsing (noqa, type: ignore, pylint)
+//! - Package manager detection (pip, poetry, uv, pipenv)
 //!
 //! See docs/specs/langs/python.md for specification.
 
 use std::path::Path;
 
+mod package_manager;
+
+pub use package_manager::{PackageManager, PythonTooling};
+
 use globset::GlobSet;
 
+mod suppress;
+
+pub use crate::adapter::common::policy::PolicyCheckResult;
+pub use suppress::{PythonSuppress, PythonSuppressKind, parse_python_suppresses};
+
+use super::common::patterns::normalize_ignore_patterns;
 use super::glob::build_glob_set;
-use super::{Adapter, EscapePattern, FileKind};
+use super::{Adapter, EscapeAction, EscapePattern, FileKind};
+use crate::config::PythonPolicyConfig;
+
+/// Default escape patterns for Python.
+///
+/// These patterns detect potentially dangerous or debug-only code:
+/// - Debugger patterns (breakpoint, pdb) - forbidden even in tests
+/// - Dynamic execution patterns (eval, exec, __import__, compile) - require comments
+const PYTHON_ESCAPE_PATTERNS: &[EscapePattern] = &[
+    // Debugger patterns - forbidden even in tests
+    EscapePattern {
+        name: "breakpoint",
+        pattern: r"\bbreakpoint\s*\(",
+        action: EscapeAction::Forbid,
+        comment: None,
+        advice: "Remove breakpoint() before committing.",
+        in_tests: Some("forbid"),
+    },
+    EscapePattern {
+        name: "pdb_set_trace",
+        pattern: r"\bpdb\.set_trace\s*\(",
+        action: EscapeAction::Forbid,
+        comment: None,
+        advice: "Remove pdb.set_trace() before committing.",
+        in_tests: Some("forbid"),
+    },
+    EscapePattern {
+        name: "import_pdb",
+        pattern: r"^\s*import\s+pdb\b",
+        action: EscapeAction::Forbid,
+        comment: None,
+        advice: "Remove import pdb before committing.",
+        in_tests: Some("forbid"),
+    },
+    EscapePattern {
+        name: "from_pdb",
+        pattern: r"^\s*from\s+pdb\s+import\b",
+        action: EscapeAction::Forbid,
+        comment: None,
+        advice: "Remove pdb import before committing.",
+        in_tests: Some("forbid"),
+    },
+    // Dynamic execution patterns - allowed in tests by default
+    EscapePattern {
+        name: "eval",
+        pattern: r"\beval\s*\(",
+        action: EscapeAction::Comment,
+        comment: Some("# EVAL:"),
+        advice: "Add a # EVAL: comment explaining why eval is necessary.",
+        in_tests: None,
+    },
+    EscapePattern {
+        name: "exec",
+        pattern: r"\bexec\s*\(",
+        action: EscapeAction::Comment,
+        comment: Some("# EXEC:"),
+        advice: "Add a # EXEC: comment explaining why exec is necessary.",
+        in_tests: None,
+    },
+    EscapePattern {
+        name: "__import__",
+        pattern: r"\b__import__\s*\(",
+        action: EscapeAction::Comment,
+        comment: Some("# DYNAMIC:"),
+        advice: "Add a # DYNAMIC: comment explaining why __import__ is necessary.",
+        in_tests: None,
+    },
+    EscapePattern {
+        name: "compile",
+        pattern: r"\bcompile\s*\(",
+        action: EscapeAction::Comment,
+        comment: Some("# DYNAMIC:"),
+        advice: "Add a # DYNAMIC: comment explaining why compile is necessary for code execution.",
+        in_tests: None,
+    },
+];
 
 /// Python language adapter.
 pub struct PythonAdapter {
@@ -32,6 +121,9 @@ impl PythonAdapter {
             source_patterns: build_glob_set(&["**/*.py".to_string()]),
             test_patterns: build_glob_set(&[
                 "tests/**/*.py".to_string(),
+                "**/tests/**/*.py".to_string(),
+                "test/**/*.py".to_string(),
+                "**/test/**/*.py".to_string(),
                 "**/test_*.py".to_string(),
                 "**/*_test.py".to_string(),
                 "**/conftest.py".to_string(),
@@ -39,12 +131,17 @@ impl PythonAdapter {
             ignore_patterns: build_glob_set(&[
                 ".venv/**".to_string(),
                 "venv/**".to_string(),
+                ".env/**".to_string(),
+                "env/**".to_string(),
                 "__pycache__/**".to_string(),
+                "**/__pycache__/**".to_string(),
                 ".mypy_cache/**".to_string(),
                 ".pytest_cache/**".to_string(),
+                ".ruff_cache/**".to_string(),
                 "dist/**".to_string(),
                 "build/**".to_string(),
                 "*.egg-info/**".to_string(),
+                "**/*.egg-info/**".to_string(),
                 ".tox/**".to_string(),
                 ".nox/**".to_string(),
             ]),
@@ -53,20 +150,7 @@ impl PythonAdapter {
 
     /// Create a Python adapter with resolved patterns from config.
     pub fn with_patterns(patterns: super::ResolvedPatterns) -> Self {
-        // Convert ignore patterns to glob patterns (add ** if needed)
-        let ignore_globs: Vec<String> = patterns
-            .ignore
-            .iter()
-            .map(|p| {
-                if p.ends_with('/') {
-                    format!("{}**", p)
-                } else if !p.contains('*') {
-                    format!("{}/**", p.trim_end_matches('/'))
-                } else {
-                    p.clone()
-                }
-            })
-            .collect();
+        let ignore_globs = normalize_ignore_patterns(&patterns.ignore);
 
         Self {
             source_patterns: build_glob_set(&patterns.source),
@@ -91,21 +175,32 @@ impl PythonAdapter {
             let first = parts[0];
             if first == ".venv"
                 || first == "venv"
+                || first == ".env"
+                || first == "env"
                 || first == "__pycache__"
                 || first == ".mypy_cache"
                 || first == ".pytest_cache"
+                || first == ".ruff_cache"
                 || first == "dist"
                 || first == "build"
                 || first == ".tox"
                 || first == ".nox"
-                || first.ends_with(".egg-info")
             {
+                return true;
+            }
+            // Check for *.egg-info directories at start
+            if first.ends_with(".egg-info") {
                 return true;
             }
         }
 
-        // Check for __pycache__ anywhere in the path
+        // Check for __pycache__ anywhere in path
         if parts.contains(&"__pycache__") {
+            return true;
+        }
+
+        // Check for .egg-info directories anywhere in path
+        if parts.iter().any(|p| p.ends_with(".egg-info")) {
             return true;
         }
 
@@ -148,7 +243,22 @@ impl Adapter for PythonAdapter {
     }
 
     fn default_escapes(&self) -> &'static [EscapePattern] {
-        &[] // Phase 445 will add escape patterns
+        PYTHON_ESCAPE_PATTERNS
+    }
+}
+
+impl PythonAdapter {
+    /// Check lint policy against changed files.
+    ///
+    /// Returns policy check result with violation details.
+    pub fn check_lint_policy(
+        &self,
+        changed_files: &[&Path],
+        policy: &PythonPolicyConfig,
+    ) -> PolicyCheckResult {
+        crate::adapter::common::policy::check_lint_policy(changed_files, policy, |p| {
+            self.classify(p)
+        })
     }
 }
 
@@ -242,3 +352,7 @@ fn has_python_package(dir: &Path) -> bool {
 #[cfg(test)]
 #[path = "mod_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "policy_tests.rs"]
+mod policy_tests;

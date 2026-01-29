@@ -1,0 +1,7 @@
+version = 1
+
+[project]
+name = "python-uv"
+
+[[check.tests.suite]]
+runner = "pytest"

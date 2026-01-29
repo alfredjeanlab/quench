@@ -14,10 +14,9 @@ use std::path::Path;
 
 use globset::GlobSet;
 
-mod policy;
 mod suppress;
 
-pub use policy::{PolicyCheckResult, check_lint_policy};
+pub use crate::adapter::common::policy::PolicyCheckResult;
 pub use suppress::{NolintDirective, parse_nolint_directives};
 
 use super::glob::build_glob_set;
@@ -135,7 +134,9 @@ impl GoAdapter {
         changed_files: &[&Path],
         policy: &GoPolicyConfig,
     ) -> PolicyCheckResult {
-        policy::check_lint_policy(changed_files, policy, |p| self.classify(p))
+        crate::adapter::common::policy::check_lint_policy(changed_files, policy, |p| {
+            self.classify(p)
+        })
     }
 }
 
@@ -208,3 +209,7 @@ fn enumerate_packages_recursive(root: &Path, current: &Path, packages: &mut Vec<
 #[cfg(test)]
 #[path = "../go_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "policy_tests.rs"]
+mod policy_tests;

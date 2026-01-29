@@ -39,7 +39,8 @@ use self::diff::{ChangeType, get_base_changes, get_commits_since, get_staged_cha
 use self::patterns::{Language, candidate_test_paths_for, detect_language};
 use self::placeholder::{has_js_placeholder_test, has_placeholder_test};
 use self::runners::{
-    RunnerContext, detect_js_runner, filter_suites_for_mode, get_runner, run_setup_command,
+    RunnerContext, detect_js_runner, detect_py_runner, filter_suites_for_mode, get_runner,
+    run_setup_command,
 };
 use std::path::{Path, PathBuf};
 
@@ -93,8 +94,13 @@ impl Check for TestsCheck {
         }
 
         // Auto-detect JavaScript test runner if package.json exists
-        if let Some(suite) = self.auto_detect_js_suite(ctx) {
-            return self.run_auto_detected_suite(ctx, suite);
+        if let Some((suite, source)) = self.auto_detect_js_suite(ctx) {
+            return self.run_auto_detected_suite(ctx, suite, Some(source));
+        }
+
+        // Auto-detect Python test runner if Python project markers exist
+        if let Some((suite, source)) = self.auto_detect_py_suite(ctx) {
+            return self.run_auto_detected_suite(ctx, suite, Some(source));
         }
 
         let config = &ctx.config.check.tests.commit;
@@ -730,7 +736,7 @@ impl TestsCheck {
     /// Auto-detect JavaScript test runner.
     ///
     /// Returns None if no runner can be detected.
-    fn auto_detect_js_suite(&self, ctx: &CheckContext) -> Option<TestSuiteConfig> {
+    fn auto_detect_js_suite(&self, ctx: &CheckContext) -> Option<(TestSuiteConfig, String)> {
         // Only auto-detect if package.json exists
         if !ctx.root.join("package.json").exists() {
             return None;
@@ -738,7 +744,7 @@ impl TestsCheck {
 
         let detection = detect_js_runner(ctx.root)?;
 
-        Some(TestSuiteConfig {
+        let suite = TestSuiteConfig {
             runner: detection.runner.name().to_string(),
             name: Some(format!("{} (auto-detected)", detection.runner.name())),
             path: None,
@@ -750,11 +756,18 @@ impl TestsCheck {
             max_avg: None,
             max_test: None,
             timeout: None,
-        })
+        };
+
+        Some((suite, detection.source.to_metric_string()))
     }
 
-    /// Run an auto-detected test suite.
-    fn run_auto_detected_suite(&self, ctx: &CheckContext, suite: TestSuiteConfig) -> CheckResult {
+    /// Run an auto-detected test suite with optional detection source.
+    fn run_auto_detected_suite(
+        &self,
+        ctx: &CheckContext,
+        suite: TestSuiteConfig,
+        detection_source: Option<String>,
+    ) -> CheckResult {
         let runner_ctx = RunnerContext {
             root: ctx.root,
             ci_mode: ctx.ci_mode,
@@ -788,9 +801,9 @@ impl TestsCheck {
             metrics["max_test"] = json!(test);
         }
 
-        // Add detection source if we can reconstruct it
-        if let Some(detection) = detect_js_runner(ctx.root) {
-            metrics["detection_source"] = json!(detection.source.to_metric_string());
+        // Add detection source if provided
+        if let Some(source) = detection_source {
+            metrics["detection_source"] = json!(source);
         }
 
         if result.passed || result.skipped {
@@ -805,6 +818,29 @@ impl TestsCheck {
             );
             CheckResult::failed(self.name(), vec![violation]).with_metrics(metrics)
         }
+    }
+
+    /// Auto-detect Python test runner.
+    ///
+    /// Returns None if no runner can be detected.
+    fn auto_detect_py_suite(&self, ctx: &CheckContext) -> Option<(TestSuiteConfig, String)> {
+        let detection = detect_py_runner(ctx.root)?;
+
+        let suite = TestSuiteConfig {
+            runner: detection.runner.name().to_string(),
+            name: Some(format!("{} (auto-detected)", detection.runner.name())),
+            path: None,
+            setup: None,
+            command: None,
+            targets: vec![],
+            ci: false,
+            max_total: None,
+            max_avg: None,
+            max_test: None,
+            timeout: None,
+        };
+
+        Some((suite, detection.source.to_metric_string()))
     }
 }
 

@@ -1,0 +1,7 @@
+version = 1
+
+[project]
+name = "python-coverage-simple"
+
+[[check.tests.suite]]
+runner = "pytest"

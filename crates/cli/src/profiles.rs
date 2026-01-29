@@ -8,6 +8,7 @@
 use std::path::Path;
 
 use crate::adapter::javascript::PackageManager;
+use crate::adapter::python::PythonTooling;
 use crate::init::{CursorMarker, DetectedAgent};
 
 // =============================================================================
@@ -333,6 +334,136 @@ pub fn ruby_landing_items() -> &'static [&'static str] {
     ]
 }
 
+/// Python profile configuration for quench init.
+pub fn python_profile_defaults() -> String {
+    r##"[python]
+source = ["**/*.py"]
+tests = ["tests/**/*.py", "test/**/*.py", "test_*.py", "*_test.py", "conftest.py"]
+
+[python.suppress]
+check = "comment"
+
+[python.suppress.test]
+check = "allow"
+
+[python.policy]
+lint_changes = "standalone"
+lint_config = ["pyproject.toml", "ruff.toml", ".ruff.toml", ".flake8", ".pylintrc", "pylintrc", "mypy.ini", ".mypy.ini", "setup.cfg"]
+
+[[check.escapes.patterns]]
+name = "eval"
+pattern = "\\beval\\("
+action = "comment"
+comment = "# EVAL:"
+advice = "Add a # EVAL: comment explaining why eval is necessary."
+
+[[check.escapes.patterns]]
+name = "exec"
+pattern = "\\bexec\\("
+action = "comment"
+comment = "# EXEC:"
+advice = "Add a # EXEC: comment explaining why exec is necessary."
+
+[[check.escapes.patterns]]
+name = "dynamic_import"
+pattern = "__import__\\("
+action = "comment"
+comment = "# DYNAMIC:"
+advice = "Add a # DYNAMIC: comment explaining the dynamic import."
+
+[[check.escapes.patterns]]
+name = "breakpoint"
+pattern = "\\bbreakpoint\\("
+action = "forbid"
+in_tests = "allow"
+advice = "Remove breakpoint() before committing."
+
+[[check.escapes.patterns]]
+name = "pdb_trace"
+pattern = "pdb\\.set_trace\\("
+action = "forbid"
+in_tests = "allow"
+advice = "Remove pdb.set_trace() before committing."
+
+[[check.escapes.patterns]]
+name = "import_pdb"
+pattern = "^import pdb$"
+action = "forbid"
+in_tests = "allow"
+advice = "Remove pdb import before committing."
+"##
+    .to_string()
+}
+
+/// Python-specific Landing the Plane checklist items.
+///
+/// Returns default items assuming common tooling (ruff, mypy, pytest).
+pub fn python_landing_items() -> &'static [&'static str] {
+    &["ruff check .", "ruff format --check .", "mypy .", "pytest"]
+}
+
+/// Python-specific Landing the Plane checklist items with tooling detection.
+///
+/// Detects the configured tools and returns appropriate commands.
+/// Only includes items for tools that are actually configured.
+pub fn python_landing_items_for(root: &Path) -> Vec<String> {
+    let tooling = PythonTooling::detect(root);
+    let mut items = Vec::new();
+
+    // Helper to prepend run prefix if needed
+    let cmd = |tool: &str| -> String {
+        if let Some(prefix) = tooling.package_manager.run_prefix() {
+            format!("{} {}", prefix.join(" "), tool)
+        } else {
+            tool.to_string()
+        }
+    };
+
+    // Linting: prefer ruff, fall back to flake8/pylint
+    if tooling.has_ruff {
+        items.push(cmd("ruff check ."));
+    } else if tooling.has_flake8 {
+        items.push(cmd("flake8"));
+    }
+    if tooling.has_pylint && !tooling.has_ruff {
+        // Only add pylint if not using ruff (ruff replaces most pylint checks)
+        items.push(cmd("pylint **/*.py"));
+    }
+
+    // Formatting: prefer ruff format, fall back to black
+    if tooling.has_ruff {
+        items.push(cmd("ruff format --check ."));
+    } else if tooling.has_black {
+        items.push(cmd("black --check ."));
+    }
+
+    // Type checking
+    if tooling.has_mypy {
+        items.push(cmd("mypy ."));
+    }
+
+    // Testing
+    if tooling.has_pytest {
+        items.push(cmd("pytest"));
+    }
+
+    // Building (only if build system is configured)
+    if tooling.has_build {
+        items.push(cmd("python -m build"));
+    }
+
+    // If nothing detected, return sensible defaults
+    if items.is_empty() {
+        return vec![
+            cmd("ruff check ."),
+            cmd("ruff format --check ."),
+            cmd("pytest"),
+        ];
+    }
+
+    items
+}
+
 // =============================================================================
 // PROFILE REGISTRY
 // =============================================================================
@@ -350,6 +481,7 @@ impl ProfileRegistry {
             "golang",
             "javascript",
             "ruby",
+            "python",
             "shell",
             "claude",
             "cursor",
@@ -367,6 +499,7 @@ impl ProfileRegistry {
             "golang" | "go" => Some(golang_profile_defaults()),
             "javascript" | "js" | "typescript" | "ts" => Some(javascript_profile_defaults()),
             "ruby" | "rb" => Some(ruby_profile_defaults()),
+            "python" | "py" => Some(python_profile_defaults()),
             "claude" => Some(claude_profile_defaults().to_string()),
             "cursor" => Some(cursor_profile_defaults().to_string()),
             _ => None,
@@ -402,6 +535,7 @@ impl ProfileRegistry {
             "go" => Some("golang"),
             "bash" | "zsh" | "sh" => Some("shell"),
             "rb" | "rails" | "rake" => Some("ruby"),
+            "py" | "pip" | "poetry" | "uv" | "django" | "flask" | "fastapi" => Some("python"),
             _ => None,
         }
     }
@@ -487,6 +621,15 @@ pub fn ruby_detected_section() -> &'static str {
 ruby.cloc.check = "error"
 ruby.policy.check = "error"
 ruby.suppress.check = "comment"
+"#
+}
+
+/// Minimal Python section for auto-detection output.
+pub fn python_detected_section() -> &'static str {
+    r#"[python]
+python.cloc.check = "error"
+python.policy.check = "error"
+python.suppress.check = "comment"
 "#
 }
 

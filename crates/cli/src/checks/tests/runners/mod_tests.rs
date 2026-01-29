@@ -7,8 +7,8 @@ use tempfile::tempdir;
 #[test]
 fn all_runners_returns_expected_count() {
     let runners = all_runners();
-    // cargo, bats, go, pytest, vitest, bun, jest, rspec, minitest, cucumber, custom = 11 runners
-    assert_eq!(runners.len(), 11);
+    // cargo, bats, go, pytest, unittest, vitest, bun, jest, rspec, minitest, cucumber, custom = 12 runners
+    assert_eq!(runners.len(), 12);
 }
 
 #[test]
@@ -23,6 +23,13 @@ fn get_runner_finds_bats() {
     let runner = get_runner("bats");
     assert!(runner.is_some());
     assert_eq!(runner.unwrap().name(), "bats");
+}
+
+#[test]
+fn get_runner_finds_unittest() {
+    let runner = get_runner("unittest");
+    assert!(runner.is_some());
+    assert_eq!(runner.unwrap().name(), "unittest");
 }
 
 #[test]
@@ -132,6 +139,7 @@ fn runner_names_contains_expected_entries() {
     assert!(RUNNER_NAMES.contains(&"cargo"));
     assert!(RUNNER_NAMES.contains(&"bats"));
     assert!(RUNNER_NAMES.contains(&"pytest"));
+    assert!(RUNNER_NAMES.contains(&"unittest"));
     assert!(RUNNER_NAMES.contains(&"custom"));
 }
 
@@ -299,6 +307,7 @@ fn aggregated_coverage_to_coverage_map() {
         go: None,
         javascript: None,
         ruby: None,
+        python: None,
     };
 
     let map = agg.to_coverage_map();
