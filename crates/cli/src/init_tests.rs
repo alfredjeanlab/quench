@@ -132,6 +132,50 @@ fn detect_ruby_from_rails() {
 }
 
 // =============================================================================
+// Python Detection Tests
+// =============================================================================
+
+#[test]
+fn detect_python_from_pyproject_toml() {
+    let temp = TempDir::new().unwrap();
+    fs::write(
+        temp.path().join("pyproject.toml"),
+        "[project]\nname = \"test\"",
+    )
+    .unwrap();
+
+    let detected = detect_languages(temp.path());
+    assert!(detected.contains(&DetectedLanguage::Python));
+}
+
+#[test]
+fn detect_python_from_setup_py() {
+    let temp = TempDir::new().unwrap();
+    fs::write(temp.path().join("setup.py"), "from setuptools import setup").unwrap();
+
+    let detected = detect_languages(temp.path());
+    assert!(detected.contains(&DetectedLanguage::Python));
+}
+
+#[test]
+fn detect_python_from_setup_cfg() {
+    let temp = TempDir::new().unwrap();
+    fs::write(temp.path().join("setup.cfg"), "[metadata]\nname = test").unwrap();
+
+    let detected = detect_languages(temp.path());
+    assert!(detected.contains(&DetectedLanguage::Python));
+}
+
+#[test]
+fn detect_python_from_requirements_txt() {
+    let temp = TempDir::new().unwrap();
+    fs::write(temp.path().join("requirements.txt"), "requests==2.28.0").unwrap();
+
+    let detected = detect_languages(temp.path());
+    assert!(detected.contains(&DetectedLanguage::Python));
+}
+
+// =============================================================================
 // Agent Detection Tests
 // =============================================================================
 

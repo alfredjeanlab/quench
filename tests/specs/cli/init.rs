@@ -196,7 +196,7 @@ fn init_warns_on_unknown_profile() {
     let temp = Project::empty();
 
     quench_cmd()
-        .args(["init", "--with", "python"])
+        .args(["init", "--with", "cobol"])
         .current_dir(temp.path())
         .assert()
         .success()
@@ -738,5 +738,129 @@ fn init_ruby_profile_includes_debugger_patterns() {
     assert!(
         config.contains("# METAPROGRAMMING:"),
         "config should have # METAPROGRAMMING: comment marker"
+    );
+}
+
+// =============================================================================
+// Python Profile and Detection Specs
+// =============================================================================
+
+/// Spec: docs/specs/langs/python.md#profile-defaults
+///
+/// > --with python configures Python defaults
+#[test]
+fn init_with_python_configures_python_defaults() {
+    let temp = Project::empty();
+
+    quench_cmd()
+        .args(["init", "--with", "python"])
+        .current_dir(temp.path())
+        .assert()
+        .success()
+        .stdout(predicates::str::contains("python"));
+
+    let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
+    assert!(config.contains("[python]"));
+    assert!(config.contains("[python.suppress]"));
+    assert!(config.contains("[python.policy]"));
+    assert!(config.contains("eval"), "should have eval escape pattern");
+}
+
+/// Spec: docs/specs/langs/python.md#detection
+///
+/// > Auto-detects Python from pyproject.toml
+#[test]
+fn init_auto_detects_python_from_pyproject_toml() {
+    let temp = Project::empty();
+    temp.file("pyproject.toml", "[project]\nname = \"test\"\n");
+
+    quench_cmd()
+        .args(["init"])
+        .current_dir(temp.path())
+        .assert()
+        .success();
+
+    let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
+    assert!(config.contains("[python]"));
+}
+
+/// Spec: docs/specs/langs/python.md#detection
+///
+/// > Auto-detects Python from setup.py
+#[test]
+fn init_auto_detects_python_from_setup_py() {
+    let temp = Project::empty();
+    temp.file("setup.py", "from setuptools import setup\n");
+
+    quench_cmd()
+        .args(["init"])
+        .current_dir(temp.path())
+        .assert()
+        .success();
+
+    let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
+    assert!(config.contains("[python]"));
+}
+
+/// Spec: docs/specs/langs/python.md#detection
+///
+/// > Auto-detects Python from requirements.txt
+#[test]
+fn init_auto_detects_python_from_requirements_txt() {
+    let temp = Project::empty();
+    temp.file("requirements.txt", "requests>=2.28.0\n");
+
+    quench_cmd()
+        .args(["init"])
+        .current_dir(temp.path())
+        .assert()
+        .success();
+
+    let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
+    assert!(config.contains("[python]"));
+}
+
+/// Spec: docs/specs/01-cli.md#explicit-profiles
+///
+/// > --with py is an alias for python
+#[test]
+fn init_with_py_alias() {
+    let temp = Project::empty();
+
+    quench_cmd()
+        .args(["init", "--with", "py"])
+        .current_dir(temp.path())
+        .assert()
+        .success();
+
+    let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
+    assert!(config.contains("[python]"));
+}
+
+/// Spec: docs/specs/langs/python.md#profile-defaults
+///
+/// > Python profile includes escape patterns for debuggers
+#[test]
+fn init_python_profile_includes_debugger_patterns() {
+    let temp = Project::empty();
+
+    quench_cmd()
+        .args(["init", "--with", "python"])
+        .current_dir(temp.path())
+        .assert()
+        .success();
+
+    let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
+    assert!(
+        config.contains("breakpoint"),
+        "config should have breakpoint escape pattern"
+    );
+    assert!(
+        config.contains("pdb"),
+        "config should have pdb escape pattern"
+    );
+    assert!(
+        config.contains("# EVAL:"),
+        "config should have # EVAL: comment marker"
     );
 }

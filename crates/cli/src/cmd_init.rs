@@ -12,8 +12,8 @@ use crate::error::ExitCode;
 use crate::init::{DetectedAgent, DetectedLanguage, detect_agents, detect_languages};
 use crate::profiles::{
     ProfileRegistry, agents_section, default_template_base, default_template_suffix,
-    golang_detected_section, javascript_detected_section, ruby_detected_section,
-    rust_detected_section, shell_detected_section,
+    golang_detected_section, javascript_detected_section, python_detected_section,
+    ruby_detected_section, rust_detected_section, shell_detected_section,
 };
 
 /// Default entries to add to .gitignore.
@@ -150,6 +150,7 @@ pub fn run(args: &InitArgs) -> Result<ExitCode> {
                 DetectedLanguage::JavaScript => cfg.push_str(javascript_detected_section()),
                 DetectedLanguage::Shell => cfg.push_str(shell_detected_section()),
                 DetectedLanguage::Ruby => cfg.push_str(ruby_detected_section()),
+                DetectedLanguage::Python => cfg.push_str(python_detected_section()),
             }
         }
 
@@ -162,6 +163,7 @@ pub fn run(args: &InitArgs) -> Result<ExitCode> {
                 DetectedLanguage::JavaScript => "javascript",
                 DetectedLanguage::Shell => "shell",
                 DetectedLanguage::Ruby => "ruby",
+                DetectedLanguage::Python => "python",
             });
         }
         for agent in &detected_agents {

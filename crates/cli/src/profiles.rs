@@ -333,6 +333,72 @@ pub fn ruby_landing_items() -> &'static [&'static str] {
     ]
 }
 
+/// Python profile configuration for quench init.
+pub fn python_profile_defaults() -> String {
+    r##"[python]
+source = ["**/*.py"]
+tests = ["tests/**/*.py", "test/**/*.py", "test_*.py", "*_test.py", "conftest.py"]
+
+[python.suppress]
+check = "comment"
+
+[python.suppress.test]
+check = "allow"
+
+[python.policy]
+lint_changes = "standalone"
+lint_config = ["pyproject.toml", "ruff.toml", ".ruff.toml", ".flake8", ".pylintrc", "pylintrc", "mypy.ini", ".mypy.ini", "setup.cfg"]
+
+[[check.escapes.patterns]]
+name = "eval"
+pattern = "\\beval\\("
+action = "comment"
+comment = "# EVAL:"
+advice = "Add a # EVAL: comment explaining why eval is necessary."
+
+[[check.escapes.patterns]]
+name = "exec"
+pattern = "\\bexec\\("
+action = "comment"
+comment = "# EXEC:"
+advice = "Add a # EXEC: comment explaining why exec is necessary."
+
+[[check.escapes.patterns]]
+name = "dynamic_import"
+pattern = "__import__\\("
+action = "comment"
+comment = "# DYNAMIC:"
+advice = "Add a # DYNAMIC: comment explaining the dynamic import."
+
+[[check.escapes.patterns]]
+name = "breakpoint"
+pattern = "\\bbreakpoint\\("
+action = "forbid"
+in_tests = "allow"
+advice = "Remove breakpoint() before committing."
+
+[[check.escapes.patterns]]
+name = "pdb_trace"
+pattern = "pdb\\.set_trace\\("
+action = "forbid"
+in_tests = "allow"
+advice = "Remove pdb.set_trace() before committing."
+
+[[check.escapes.patterns]]
+name = "import_pdb"
+pattern = "^import pdb$"
+action = "forbid"
+in_tests = "allow"
+advice = "Remove pdb import before committing."
+"##
+    .to_string()
+}
+
+/// Python-specific Landing the Plane checklist items.
+pub fn python_landing_items() -> &'static [&'static str] {
+    &["ruff check .", "ruff format --check .", "mypy .", "pytest"]
+}
+
 // =============================================================================
 // PROFILE REGISTRY
 // =============================================================================
@@ -350,6 +416,7 @@ impl ProfileRegistry {
             "golang",
             "javascript",
             "ruby",
+            "python",
             "shell",
             "claude",
             "cursor",
@@ -367,6 +434,7 @@ impl ProfileRegistry {
             "golang" | "go" => Some(golang_profile_defaults()),
             "javascript" | "js" | "typescript" | "ts" => Some(javascript_profile_defaults()),
             "ruby" | "rb" => Some(ruby_profile_defaults()),
+            "python" | "py" => Some(python_profile_defaults()),
             "claude" => Some(claude_profile_defaults().to_string()),
             "cursor" => Some(cursor_profile_defaults().to_string()),
             _ => None,
@@ -402,6 +470,7 @@ impl ProfileRegistry {
             "go" => Some("golang"),
             "bash" | "zsh" | "sh" => Some("shell"),
             "rb" | "rails" | "rake" => Some("ruby"),
+            "py" | "pip" | "poetry" | "uv" | "django" | "flask" | "fastapi" => Some("python"),
             _ => None,
         }
     }
@@ -487,6 +556,15 @@ pub fn ruby_detected_section() -> &'static str {
 ruby.cloc.check = "error"
 ruby.policy.check = "error"
 ruby.suppress.check = "comment"
+"#
+}
+
+/// Minimal Python section for auto-detection output.
+pub fn python_detected_section() -> &'static str {
+    r#"[python]
+python.cloc.check = "error"
+python.policy.check = "error"
+python.suppress.check = "comment"
 "#
 }
 
