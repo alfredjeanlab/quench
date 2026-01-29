@@ -5,9 +5,11 @@
 //!
 //! See docs/specs/10-language-adapters.md for specification.
 //!
-//! # Language Adapter Pattern
+//! # Language Adapter Development Guide
 //!
-//! Each language adapter follows this structure:
+//! ## Standard Adapter Pattern
+//!
+//! All language adapters should follow this structure:
 //!
 //! ```text
 //! adapter/{lang}/
@@ -18,18 +20,50 @@
 //! └── policy.rs        # (optional) Re-export or customize common policy
 //! ```
 //!
-//! ## Required methods
+//! ## Required Fields
 //!
-//! - `new()` - Default patterns
-//! - `with_patterns(ResolvedPatterns)` - Config-resolved patterns
-//! - `should_exclude(&Path) -> bool` - Check exclude patterns (if applicable)
+//! ```ignore
+//! pub struct LanguageAdapter {
+//!     source_patterns: GlobSet,   // Required (or use fast extension check)
+//!     test_patterns: GlobSet,     // Required
+//!     exclude_patterns: GlobSet,  // Required
+//! }
+//! ```
 //!
-//! ## Adapter trait
+//! ## Required Methods
+//!
+//! - `new()` - Create adapter with language defaults
+//! - `with_patterns(ResolvedPatterns)` - Create adapter from config-resolved patterns
+//! - `should_exclude(&Path) -> bool` - MUST use `common::patterns::check_exclude_patterns()`
+//!
+//! ## Adapter Trait
 //!
 //! - `name() -> &'static str`
 //! - `extensions() -> &'static [&'static str]`
 //! - `classify(&Path) -> FileKind`
 //! - `default_escapes() -> &'static [EscapePattern]`
+//!
+//! ## Optimization: Fast Prefixes
+//!
+//! For languages with common exclude directories, use the `fast_prefixes`
+//! parameter of `check_exclude_patterns()` for better performance:
+//!
+//! ```ignore
+//! Some(&["node_modules", "dist", "build"])  // JavaScript
+//! Some(&["vendor"])                          // Go
+//! None                                       // Languages without common excludes
+//! ```
+//!
+//! ## Checklist for New Adapters
+//!
+//! - Add language config in `config/<lang>.rs` with `source`, `tests`, `exclude` fields
+//! - Implement `LanguageDefaults` trait with default patterns
+//! - Create adapter struct with all three pattern fields
+//! - Implement `new()`, `with_patterns()`, `should_exclude()`
+//! - Use `check_exclude_patterns()` in `should_exclude()`
+//! - Add pattern resolution in this file
+//! - Write unit tests for config parsing and adapter behavior
+//! - Add integration test fixture with custom exclude patterns
 
 use std::collections::HashMap;
 use std::path::Path;
@@ -387,7 +421,6 @@ pub use patterns::ResolvedPatterns;
 /// Generates a function that resolves patterns from config with the standard
 /// fallback hierarchy: language config -> project config -> language defaults.
 macro_rules! define_resolve_patterns {
-    // For configs WITH an exclude field
     ($fn_name:ident, $config_field:ident, $config_type:ty) => {
         fn $fn_name(config: &crate::config::Config, fallback_test: &[String]) -> ResolvedPatterns {
             patterns::resolve_patterns::<$config_type>(
@@ -398,40 +431,18 @@ macro_rules! define_resolve_patterns {
             )
         }
     };
-    // For configs WITHOUT an exclude field
-    ($fn_name:ident, $config_field:ident, $config_type:ty, no_exclude) => {
-        fn $fn_name(config: &crate::config::Config, fallback_test: &[String]) -> ResolvedPatterns {
-            patterns::resolve_patterns::<$config_type>(
-                &config.$config_field.source,
-                &config.$config_field.tests,
-                &[],
-                fallback_test,
-            )
-        }
-    };
 }
 
 define_resolve_patterns!(resolve_rust_patterns, rust, crate::config::RustConfig);
-define_resolve_patterns!(
-    resolve_go_patterns,
-    golang,
-    crate::config::GoConfig,
-    no_exclude
-);
+define_resolve_patterns!(resolve_go_patterns, golang, crate::config::GoConfig);
 define_resolve_patterns!(
     resolve_javascript_patterns,
     javascript,
-    crate::config::JavaScriptConfig,
-    no_exclude
+    crate::config::JavaScriptConfig
 );
 define_resolve_patterns!(resolve_python_patterns, python, crate::config::PythonConfig);
 define_resolve_patterns!(resolve_ruby_patterns, ruby, crate::config::RubyConfig);
-define_resolve_patterns!(
-    resolve_shell_patterns,
-    shell,
-    crate::config::ShellConfig,
-    no_exclude
-);
+define_resolve_patterns!(resolve_shell_patterns, shell, crate::config::ShellConfig);
 
 #[cfg(test)]
 #[path = "mod_tests.rs"]

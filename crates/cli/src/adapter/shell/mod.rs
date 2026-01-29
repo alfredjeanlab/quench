@@ -20,6 +20,7 @@ mod suppress;
 pub use crate::adapter::common::policy::PolicyCheckResult;
 pub use suppress::{ShellcheckSuppress, parse_shellcheck_suppresses};
 
+use super::common;
 use super::glob::build_glob_set;
 use super::{Adapter, EscapeAction, EscapePattern, FileKind};
 use crate::config::ShellPolicyConfig;
@@ -51,6 +52,7 @@ const SHELL_ESCAPE_PATTERNS: &[EscapePattern] = &[
 pub struct ShellAdapter {
     source_patterns: GlobSet,
     test_patterns: GlobSet,
+    exclude_patterns: GlobSet,
 }
 
 impl ShellAdapter {
@@ -67,6 +69,7 @@ impl ShellAdapter {
                 "**/test/**/*.bats".to_string(),
                 "**/*_test.sh".to_string(),
             ]),
+            exclude_patterns: build_glob_set(&[]),
         }
     }
 
@@ -75,7 +78,13 @@ impl ShellAdapter {
         Self {
             source_patterns: build_glob_set(&patterns.source),
             test_patterns: build_glob_set(&patterns.test),
+            exclude_patterns: build_glob_set(&patterns.exclude),
         }
+    }
+
+    /// Check if a path should be excluded.
+    pub fn should_exclude(&self, path: &Path) -> bool {
+        common::patterns::check_exclude_patterns(path, &self.exclude_patterns, None)
     }
 }
 
@@ -95,6 +104,11 @@ impl Adapter for ShellAdapter {
     }
 
     fn classify(&self, path: &Path) -> FileKind {
+        // Check exclusions first
+        if self.should_exclude(path) {
+            return FileKind::Other;
+        }
+
         // Test patterns take precedence
         if self.test_patterns.is_match(path) {
             return FileKind::Test;

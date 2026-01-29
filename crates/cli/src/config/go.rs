@@ -20,6 +20,10 @@ pub struct GoConfig {
     #[serde(default = "GoDefaults::default_tests")]
     pub tests: Vec<String>,
 
+    /// Exclude patterns (walker-level: prevents I/O on subtrees).
+    #[serde(default = "GoDefaults::default_exclude", alias = "ignore")]
+    pub exclude: Vec<String>,
+
     /// Lint suppression settings.
     #[serde(default)]
     pub suppress: GoSuppressConfig,
@@ -43,6 +47,7 @@ impl Default for GoConfig {
         Self {
             source: GoDefaults::default_source(),
             tests: GoDefaults::default_tests(),
+            exclude: GoDefaults::default_exclude(),
             suppress: GoSuppressConfig::default(),
             policy: GoPolicyConfig::default(),
             cloc: None,

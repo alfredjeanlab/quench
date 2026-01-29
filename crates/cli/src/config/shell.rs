@@ -20,6 +20,10 @@ pub struct ShellConfig {
     #[serde(default = "ShellDefaults::default_tests")]
     pub tests: Vec<String>,
 
+    /// Exclude patterns (walker-level: prevents I/O on subtrees).
+    #[serde(default = "ShellDefaults::default_exclude", alias = "ignore")]
+    pub exclude: Vec<String>,
+
     /// Lint suppression settings.
     #[serde(default)]
     pub suppress: ShellSuppressConfig,
@@ -43,6 +47,7 @@ impl Default for ShellConfig {
         Self {
             source: ShellDefaults::default_source(),
             tests: ShellDefaults::default_tests(),
+            exclude: ShellDefaults::default_exclude(),
             suppress: ShellSuppressConfig::default(),
             policy: ShellPolicyConfig::default(),
             cloc: None,

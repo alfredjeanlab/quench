@@ -59,6 +59,56 @@ fn extensions_include_sh_bash_bats() {
 }
 
 // =============================================================================
+// EXCLUDE PATTERN TESTS
+// =============================================================================
+
+#[test]
+fn should_exclude_returns_false_by_default() {
+    let adapter = ShellAdapter::new();
+    assert!(
+        !adapter.should_exclude(Path::new("scripts/build.sh")),
+        "default adapter should not exclude anything"
+    );
+}
+
+#[test]
+fn should_exclude_with_custom_patterns() {
+    use crate::adapter::patterns::ResolvedPatterns;
+
+    let patterns = ResolvedPatterns {
+        source: vec!["**/*.sh".to_string()],
+        test: vec!["**/*_test.sh".to_string()],
+        exclude: vec!["tmp/**".to_string()],
+    };
+    let adapter = ShellAdapter::with_patterns(patterns);
+    assert!(
+        adapter.should_exclude(Path::new("tmp/test.sh")),
+        "tmp/ should be excluded"
+    );
+    assert!(
+        !adapter.should_exclude(Path::new("scripts/build.sh")),
+        "scripts/ should not be excluded"
+    );
+}
+
+#[test]
+fn classify_excludes_paths_matching_exclude_patterns() {
+    use crate::adapter::patterns::ResolvedPatterns;
+
+    let patterns = ResolvedPatterns {
+        source: vec!["**/*.sh".to_string()],
+        test: vec!["**/*_test.sh".to_string()],
+        exclude: vec!["tmp/**".to_string()],
+    };
+    let adapter = ShellAdapter::with_patterns(patterns);
+    assert_eq!(
+        adapter.classify(Path::new("tmp/script.sh")),
+        FileKind::Other,
+        "excluded paths should classify as Other"
+    );
+}
+
+// =============================================================================
 // DEFAULT ESCAPE PATTERNS
 // =============================================================================
 

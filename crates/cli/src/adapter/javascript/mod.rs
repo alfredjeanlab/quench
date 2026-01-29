@@ -27,6 +27,7 @@ pub use workspace::JsWorkspace;
 
 use crate::config::JavaScriptPolicyConfig;
 
+use super::common;
 use super::glob::build_glob_set;
 use super::{Adapter, EscapeAction, EscapePattern, FileKind};
 
@@ -110,20 +111,11 @@ impl JavaScriptAdapter {
     ///
     /// Uses fast prefix check for common directories before falling back to GlobSet.
     pub fn should_exclude(&self, path: &Path) -> bool {
-        // Fast path: check common prefixes in first path component
-        if let Some(first_component) = path.components().next()
-            && let std::path::Component::Normal(name) = first_component
-            && let Some(name_str) = name.to_str()
-        {
-            for prefix in EXCLUDE_PREFIXES {
-                if name_str == *prefix {
-                    return true;
-                }
-            }
-        }
-
-        // Fallback: GlobSet for edge cases (patterns in subdirectories)
-        self.exclude_patterns.is_match(path)
+        common::patterns::check_exclude_patterns(
+            path,
+            &self.exclude_patterns,
+            Some(EXCLUDE_PREFIXES),
+        )
     }
 
     /// Check lint policy against changed files.

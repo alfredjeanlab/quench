@@ -91,6 +91,26 @@ fn default_ignores_vendor_directory() {
     assert!(source_lines < 20, "vendor/ should be ignored");
 }
 
+/// Spec: docs/specs/langs/golang.md#exclude
+///
+/// > Custom exclude patterns are respected via [golang].exclude config.
+#[test]
+fn custom_exclude_patterns_respected() {
+    let cloc = check("cloc").on("golang/custom-exclude").json().passes();
+    let metrics = cloc.require("metrics");
+
+    // Only main.go should be counted (not vendor/dep.go)
+    let source_lines = metrics
+        .get("source_lines")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(0);
+    assert!(
+        source_lines < 20,
+        "vendor/ should be excluded via config, got {} source lines",
+        source_lines
+    );
+}
+
 // =============================================================================
 // MODULE AND PACKAGE DETECTION SPECS
 // =============================================================================

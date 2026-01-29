@@ -1,0 +1,7 @@
+version = 1
+
+[check.agents]
+required = []
+
+[javascript]
+exclude = ["node_modules/", ".next/"]

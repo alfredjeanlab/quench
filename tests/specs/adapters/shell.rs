@@ -155,6 +155,30 @@ fn shell_adapter_default_test_pattern_matches_test_sh_files() {
 }
 
 // =============================================================================
+// EXCLUDE PATTERN SPECS
+// =============================================================================
+
+/// Spec: docs/specs/langs/shell.md#exclude
+///
+/// > Custom exclude patterns are respected via [shell].exclude config.
+#[test]
+fn shell_adapter_custom_exclude_patterns_respected() {
+    let cloc = check("cloc").on("shell/custom-exclude").json().passes();
+    let metrics = cloc.require("metrics");
+
+    // Only script.sh should be counted (not tmp/excluded.sh)
+    let source_lines = metrics
+        .get("source_lines")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(0);
+    assert!(
+        source_lines < 10,
+        "tmp/ should be excluded via config, got {} source lines",
+        source_lines
+    );
+}
+
+// =============================================================================
 // ESCAPE PATTERN SPECS
 // =============================================================================
 

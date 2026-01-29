@@ -136,6 +136,29 @@ fn default_ignores_node_modules_directory() {
     );
 }
 
+/// Spec: docs/specs/langs/javascript.md#exclude
+///
+/// > Custom exclude patterns are respected via [javascript].exclude config.
+#[test]
+fn custom_exclude_patterns_respected() {
+    let cloc = check("cloc")
+        .on("javascript/custom-exclude")
+        .json()
+        .passes();
+    let metrics = cloc.require("metrics");
+
+    // Only index.js should be counted (not node_modules/pkg.js)
+    let source_lines = metrics
+        .get("source_lines")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(0);
+    assert!(
+        source_lines < 20,
+        "node_modules/ should be excluded via config, got {} source lines",
+        source_lines
+    );
+}
+
 // =============================================================================
 // WORKSPACE DETECTION SPECS
 // =============================================================================

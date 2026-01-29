@@ -20,6 +20,7 @@ mod suppress;
 pub use crate::adapter::common::policy::PolicyCheckResult;
 pub use suppress::{RubySuppress, RubySuppressKind, parse_ruby_suppresses};
 
+use super::common;
 use super::common::patterns::normalize_exclude_patterns;
 use super::glob::build_glob_set;
 use super::{Adapter, EscapeAction, EscapePattern, FileKind};
@@ -125,24 +126,11 @@ impl RubyAdapter {
 
     /// Check if a path matches exclude patterns.
     pub fn should_exclude(&self, path: &Path) -> bool {
-        let path_str = path.to_string_lossy();
-
-        // Check explicit exclude patterns
-        if self.exclude_patterns.is_match(path) {
-            return true;
-        }
-
-        // Also check for common excluded directories by path prefix
-        // This handles cases where the path starts with these directories
-        let parts: Vec<&str> = path_str.split('/').collect();
-        if !parts.is_empty() {
-            let first = parts[0];
-            if first == "vendor" || first == "tmp" || first == "log" || first == "coverage" {
-                return true;
-            }
-        }
-
-        false
+        common::patterns::check_exclude_patterns(
+            path,
+            &self.exclude_patterns,
+            Some(&["vendor", "tmp", "log", "coverage"]),
+        )
     }
 }
 
