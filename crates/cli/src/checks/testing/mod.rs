@@ -80,7 +80,7 @@ impl TestTimingMetrics {
 /// Run tests and collect timing metrics.
 fn run_tests_with_timing(root: &Path, language: ProjectLanguage) -> Option<TestTimingMetrics> {
     let test_cmd = match language {
-        ProjectLanguage::Rust => vec!["cargo", "test", "--release"],
+        ProjectLanguage::Rust => vec!["cargo", "test", "--all"],
         ProjectLanguage::Go => vec!["go", "test", "-v", "./..."],
         ProjectLanguage::JavaScript => {
             // Try npm test or yarn test

@@ -34,7 +34,7 @@ impl TestRunner for CargoRunner {
 
         // Build command - use standard cargo test output (stable Rust compatible)
         let mut cmd = Command::new("cargo");
-        cmd.args(["test", "--release"]);
+        cmd.args(["test", "--all"]);
 
         // Set working directory
         let work_dir = config

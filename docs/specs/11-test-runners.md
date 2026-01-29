@@ -156,10 +156,10 @@ tests: time
 ### cargo
 
 ```bash
-cargo test --release -- --format json
+cargo test --all
 ```
 
-Parses Rust's JSON test output for per-test timing. Coverage via `cargo llvm-cov`.
+Parses cargo test output for per-test results. Coverage via `cargo llvm-cov`.
 
 ### bats
 

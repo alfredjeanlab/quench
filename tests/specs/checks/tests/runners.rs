@@ -15,7 +15,7 @@ use crate::prelude::*;
 
 /// Spec: docs/specs/11-test-runners.md#cargo
 ///
-/// > cargo test --release -- --format json
+/// > cargo test --all
 #[test]
 fn cargo_runner_executes_cargo_test() {
     let temp = Project::cargo("test_project");
@@ -29,7 +29,7 @@ fn cargo_runner_executes_cargo_test() {
 
 /// Spec: docs/specs/11-test-runners.md#cargo
 ///
-/// > Parses Rust's JSON test output for per-test timing.
+/// > Parses cargo test output for per-test results.
 #[test]
 fn cargo_runner_reports_test_count() {
     let temp = Project::empty();
