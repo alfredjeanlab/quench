@@ -21,12 +21,14 @@ advice = "Custom advice for oversized Ruby files."
 
 ## Suppress Directives
 
+Controls how `# rubocop:disable` and `# standard:disable` comments are handled:
+
+- `"forbid"` — never allowed
+- `"comment"` — requires justification comment (default for source)
+- `"allow"` — always allowed (default for tests)
+
 ```toml
 [ruby.suppress]
-# How to handle # rubocop:disable and # standard:disable comments:
-# "forbid" - never allowed
-# "comment" - requires justification comment (default for source)
-# "allow" - always allowed (default for tests)
 check = "comment"
 
 [ruby.suppress.test]
@@ -34,6 +36,8 @@ check = "allow"
 ```
 
 ## Suppress with Allowlist/Denylist
+
+Require specific comment for method length suppressions.
 
 ```toml
 [ruby.suppress]
@@ -43,7 +47,6 @@ check = "comment"
 allow = ["Style/FrozenStringLiteralComment"]  # No comment needed
 forbid = ["Security/Eval"]                     # Never suppress
 
-# Require specific comment for method length suppressions
 [ruby.suppress.source."Metrics/MethodLength"]
 comment = "# TODO(refactor):"
 
@@ -53,18 +56,20 @@ check = "allow"
 
 ## Lint Config Policy
 
+Require RuboCop/Standard config changes in standalone PRs.
+
 ```toml
 [ruby.policy]
 check = "error"
-# Require RuboCop/Standard config changes in standalone PRs
 lint_changes = "standalone"
 lint_config = [".rubocop.yml", ".rubocop_todo.yml", ".standard.yml"]
 ```
 
 ## Escape Patterns
 
+Ruby-specific escape hatches:
+
 ```toml
-# Ruby-specific escape hatches
 [[check.escapes.patterns]]
 pattern = "binding\\.pry"
 action = "forbid"
@@ -104,12 +109,16 @@ advice = "Add a # METAPROGRAMMING: comment explaining the metaprogramming use ca
 
 ## Coverage
 
+RSpec or Minitest with SimpleCov:
+
 ```toml
-# RSpec or Minitest with SimpleCov
 [[check.tests.suite]]
 runner = "rspec"
+```
 
-# Or for Minitest
+Or for Minitest:
+
+```toml
 [[check.tests.suite]]
 runner = "minitest"
 ```

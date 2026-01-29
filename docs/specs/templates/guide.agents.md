@@ -14,23 +14,25 @@ sync_from = "CLAUDE.md"
 
 ## Content Rules
 
+Control token-inefficient content in agent files.
+
 ```toml
 [check.agents]
 check = "error"
-# Control token-inefficient content:
-tables = "forbid"       # "allow" | "forbid" (default: allow)
-box_diagrams = "allow"  # ASCII box diagrams (default: allow)
-mermaid = "allow"       # Mermaid code blocks (default: allow)
+tables = "forbid"
+box_diagrams = "allow"  # ASCII box diagrams
+mermaid = "allow"       # Mermaid code blocks
 max_lines = 500         # Or false to disable
 max_tokens = 20000      # Or false to disable
 ```
 
 ## Required Sections (Simple)
 
+Section names are matched case-insensitively.
+
 ```toml
 [check.agents]
 check = "error"
-# Case-insensitive matching
 sections.required = ["Directory Structure", "Landing the Plane"]
 ```
 
@@ -51,20 +53,24 @@ advice = "Checklist for AI agents before completing work"
 
 ## Forbid Sections
 
+Section names are matched case-insensitively and support globs.
+
 ```toml
 [check.agents]
 check = "error"
-# Case-insensitive, supports globs
 sections.forbid = ["API Keys", "Secrets", "Test*"]
 ```
 
 ## Scope-Based Configuration
 
+Configure agent files differently at the project root, package, and module levels.
+
+Project root:
+
 ```toml
 [check.agents]
 check = "error"
 
-# Project root
 [check.agents.root]
 required = ["CLAUDE.md"]
 optional = [".cursorrules"]
@@ -72,15 +78,21 @@ forbid = []
 max_lines = 500
 max_tokens = 20000
 sections.required = ["Directory Structure", "Landing the Plane"]
+```
 
-# Each package directory
+Each package directory:
+
+```toml
 [check.agents.package]
 required = []
 optional = ["CLAUDE.md"]
 max_lines = 200
 max_tokens = 800
+```
 
-# Subdirectories
+Subdirectories:
+
+```toml
 [check.agents.module]
 required = []
 max_lines = 100
@@ -89,23 +101,25 @@ max_tokens = 400
 
 ## Sync Behavior
 
+Keep agent files in sync. When `--fix` is used, content is synced from the
+source of truth (default: first in `files` list).
+
 ```toml
 [check.agents]
 check = "error"
 files = ["CLAUDE.md", ".cursorrules"]
-# Keep files in sync (default: true)
 sync = true
-# Source of truth for --fix (default: first in files list)
 sync_from = "CLAUDE.md"
 ```
 
 ## Disable Sync
 
+Allow agent files to have different content.
+
 ```toml
 [check.agents]
 check = "error"
 files = ["CLAUDE.md", ".cursorrules"]
-# Allow files to have different content
 sync = false
 ```
 
@@ -132,6 +146,8 @@ advice = "Checklist for AI agents before completing work"
 ```
 
 ## Combined Claude and Cursor
+
+`CLAUDE.md` is required; `.cursorrules` is optional. Content syncs from `CLAUDE.md`.
 
 ```toml
 [check.agents]

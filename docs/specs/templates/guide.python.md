@@ -21,12 +21,14 @@ advice = "Custom advice for oversized Python files."
 
 ## Suppress Directives
 
+Controls how `# noqa`, `# type: ignore`, and `# pylint: disable` comments are handled:
+
+- `"forbid"` — never allowed
+- `"comment"` — requires justification comment
+- `"allow"` — always allowed (default)
+
 ```toml
 [python.suppress]
-# How to handle # noqa, # type: ignore, and # pylint: disable comments:
-# "forbid" - never allowed
-# "comment" - requires justification comment
-# "allow" - always allowed (default)
 check = "comment"
 
 [python.suppress.test]
@@ -49,18 +51,20 @@ check = "allow"
 
 ## Lint Config Policy
 
+Require ruff/flake8/pylint config changes in standalone PRs.
+
 ```toml
 [python.policy]
 check = "error"
-# Require ruff/flake8/pylint config changes in standalone PRs
 lint_changes = "standalone"
 lint_config = ["pyproject.toml", "ruff.toml", ".flake8", ".pylintrc"]
 ```
 
 ## Escape Patterns
 
+Python-specific escape hatches:
+
 ```toml
-# Python-specific escape hatches
 [[check.escapes.patterns]]
 pattern = "breakpoint\\(\\)"
 action = "forbid"
@@ -94,8 +98,9 @@ advice = "Add a # DYNAMIC: comment explaining why dynamic import is needed."
 
 ## Coverage
 
+pytest provides built-in coverage via coverage.py:
+
 ```toml
-# pytest provides built-in coverage via coverage.py
 [[check.tests.suite]]
 runner = "pytest"
 ```

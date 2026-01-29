@@ -38,7 +38,7 @@ pub enum Command {
     Report(ReportArgs),
     /// Initialize quench configuration
     Init(InitArgs),
-    /// Show configuration examples
+    /// Read configuration reference documentation
     Config(ConfigArgs),
     /// Generate shell completions
     Completions(CompletionsArgs),

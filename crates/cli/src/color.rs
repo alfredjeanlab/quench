@@ -158,6 +158,86 @@ pub fn examples(text: &str) -> String {
     result
 }
 
+/// Colorize a markdown guide block (used by `quench config <feature>`).
+///
+/// Applies ANSI 256-color to markdown elements:
+/// - `# Heading` / `## Heading` → header color
+/// - Fence markers (`` ``` ``) → context color
+/// - TOML code lines → literal color
+/// - TOML `# comments` inside code blocks → context color
+/// - Plain prose outside code blocks → uncolored
+pub fn guide(text: &str) -> String {
+    format_guide(text, should_colorize())
+}
+
+/// Inner implementation of [`guide`] that accepts an explicit colorize flag
+/// so tests can exercise both paths without depending on TTY state.
+fn format_guide(text: &str, colorize: bool) -> String {
+    if !colorize {
+        return text.to_string();
+    }
+
+    let mut result = String::with_capacity(text.len() + 256);
+    let mut in_code_block = false;
+
+    for line in text.lines() {
+        if !result.is_empty() {
+            result.push('\n');
+        }
+
+        let trimmed = line.trim_start();
+
+        // Fence lines toggle code block state
+        if trimmed.starts_with("```") {
+            in_code_block = !in_code_block;
+            result.push_str(&format!("{}{}{}", fg256(codes::CONTEXT), line, RESET));
+            continue;
+        }
+
+        if in_code_block {
+            if trimmed.starts_with('[') {
+                // TOML table headers: [section] or [[array]] — context color (dark)
+                result.push_str(&format!("{}{}{}", fg256(codes::CONTEXT), line, RESET));
+            } else if trimmed.starts_with('#') {
+                // TOML full-line comments
+                result.push_str(&format!("{}{}{}", fg256(codes::CONTEXT), line, RESET));
+            } else if let Some(pos) = find_toml_comment(line) {
+                // Code with trailing comment: split into literal + context
+                let code_part = &line[..pos];
+                let comment_part = &line[pos..];
+                result.push_str(&format!(
+                    "{}{}{}{}{}{}",
+                    fg256(codes::LITERAL),
+                    code_part,
+                    RESET,
+                    fg256(codes::CONTEXT),
+                    comment_part,
+                    RESET
+                ));
+            } else {
+                result.push_str(&format!("{}{}{}", fg256(codes::LITERAL), line, RESET));
+            }
+            continue;
+        }
+
+        // Headings outside code blocks
+        if trimmed.starts_with("# ") || trimmed.starts_with("## ") {
+            result.push_str(&format!("{}{}{}", fg256(codes::HEADER), line, RESET));
+            continue;
+        }
+
+        // Plain prose — pass through uncolored
+        result.push_str(line);
+    }
+
+    // Preserve trailing newline if present
+    if text.ends_with('\n') {
+        result.push('\n');
+    }
+
+    result
+}
+
 /// Colorize a command string, highlighting quoted content, placeholders, and flag values as context.
 fn colorize_command(cmd: &str) -> String {
     let mut result = String::with_capacity(cmd.len() + 128);
@@ -269,6 +349,37 @@ fn find_description_start(line: &str) -> Option<usize> {
                 return Some(space_start);
             }
             in_spaces = false;
+        }
+        i += 1;
+    }
+
+    None
+}
+
+/// Find the start of a trailing TOML comment (`# ...`) in a code line,
+/// skipping `#` characters inside quoted strings.
+///
+/// Returns the byte offset of the space before `#`, or `None` if no
+/// trailing comment is found.
+fn find_toml_comment(line: &str) -> Option<usize> {
+    let bytes = line.as_bytes();
+    let mut in_quote = false;
+    let mut i = 0;
+
+    while i < bytes.len() {
+        match bytes[i] {
+            b'"' if !in_quote || (i > 0 && bytes[i - 1] != b'\\') => {
+                in_quote = !in_quote;
+            }
+            b'#' if !in_quote && i > 0 && bytes[i - 1] == b' ' => {
+                // Return position including leading whitespace run
+                let mut start = i - 1;
+                while start > 0 && bytes[start - 1] == b' ' {
+                    start -= 1;
+                }
+                return Some(start);
+            }
+            _ => {}
         }
         i += 1;
     }

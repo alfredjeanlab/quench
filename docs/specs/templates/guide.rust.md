@@ -13,22 +13,27 @@ ignore = ["target/", "examples/"]
 
 ## CFG Test Split
 
+Controls how `#[cfg(test)]` blocks are counted for LOC:
+
+- `"count"` — split into test LOC (default)
+- `"require"` — fail if inline tests found (enforce sibling `_tests.rs` files)
+- `"off"` — count all as source LOC
+
 ```toml
 [rust]
-# How to handle #[cfg(test)] blocks for LOC counting:
-# "count" - split into test LOC (default)
-# "require" - fail if inline tests found (enforce sibling _tests.rs files)
-# "off" - count all as source LOC
 cfg_test_split = "count"
 ```
 
 ## Build Metrics
 
+Track release binary sizes and build times. Override target auto-detection
+from `Cargo.toml` with an explicit list.
+
 ```toml
 [rust]
-binary_size = true              # Track release binary sizes
-build_time = true               # Track build times (cold and hot)
-targets = ["myapp", "myserver"] # Override auto-detection from Cargo.toml
+binary_size = true
+build_time = true
+targets = ["myapp", "myserver"]
 ```
 
 ## CLOC Advice
@@ -41,12 +46,14 @@ advice = "Custom advice for oversized Rust files."
 
 ## Suppress Directives
 
+Controls how `#[allow(...)]` and `#[expect(...)]` attributes are handled:
+
+- `"forbid"` — never allowed
+- `"comment"` — requires justification comment (default for source)
+- `"allow"` — always allowed (default for tests)
+
 ```toml
 [rust.suppress]
-# How to handle #[allow(...)] and #[expect(...)] attributes:
-# "forbid" - never allowed
-# "comment" - requires justification comment (default for source)
-# "allow" - always allowed (default for tests)
 check = "comment"
 
 [rust.suppress.test]
@@ -54,6 +61,8 @@ check = "allow"
 ```
 
 ## Suppress with Allowlist/Denylist
+
+Exempt specific lints from the comment requirement, or forbid suppressing them entirely.
 
 ```toml
 [rust.suppress]
@@ -69,16 +78,15 @@ check = "allow"
 
 ## Suppress with Per-Lint Comment Patterns
 
+Require a specific comment pattern for individual lint suppressions.
+Can also use inline array syntax: `dead_code = ["// KEEP UNTIL:", "// NOTE(compat):"]`
+
 ```toml
 [rust.suppress]
 check = "comment"
 
-# Require specific comment pattern for dead_code suppressions
 [rust.suppress.source.dead_code]
 comment = "// LEGACY:"
-
-# Can also use inline array syntax:
-# dead_code = ["// KEEP UNTIL:", "// NOTE(compat):"]
 
 [rust.suppress.test]
 check = "allow"
@@ -86,18 +94,20 @@ check = "allow"
 
 ## Lint Config Policy
 
+Require lint config changes (`rustfmt.toml`, `clippy.toml`) in standalone PRs.
+
 ```toml
 [rust.policy]
 check = "error"
-# Require lint config changes (rustfmt.toml, clippy.toml) in standalone PRs
 lint_changes = "standalone"
 lint_config = ["rustfmt.toml", "clippy.toml"]
 ```
 
 ## Escape Patterns
 
+Rust-specific escape hatches:
+
 ```toml
-# Rust-specific escape hatches
 [[check.escapes.patterns]]
 pattern = "unsafe {"
 action = "comment"

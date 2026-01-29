@@ -7,36 +7,39 @@ Configuration reference for git integration.
 ```toml
 [git.commit]
 check = "error"
-format = "conventional"  # Or "none" (default: conventional)
-skip_merge = true        # Skip merge commits (default: true)
-agents = true            # Check format is documented (default: true)
-template = true          # Create .gitmessage (default: true)
+format = "conventional"
+skip_merge = true
+agents = true
+template = true
 ```
 
 ## Restrict Commit Types
 
+Only allow these types (default: common conventional types).
+
 ```toml
 [git.commit]
 check = "error"
-# Only allow these types (default: common conventional types)
 types = ["feat", "fix", "chore", "docs", "test", "refactor"]
 ```
 
 ## Restrict Commit Scopes
 
+Only allow these scopes (default: any scope allowed).
+
 ```toml
 [git.commit]
 check = "error"
-# Only allow these scopes (default: any scope allowed)
 scopes = ["api", "cli", "core"]
 ```
 
 ## Allow Any Type (Structure Only)
 
+An empty array accepts any type but still checks the structure.
+
 ```toml
 [git.commit]
 check = "error"
-# Empty array = accept any type, just check structure
 types = []
 ```
 
@@ -51,21 +54,25 @@ template = false  # Don't create .gitmessage
 
 ## Allow Merge Commits
 
+By default, merge commits are skipped. Set `skip_merge = false` to validate
+merge commits against the format.
+
 ```toml
 [git.commit]
 check = "error"
-# Validate merge commits against format
 skip_merge = false
 ```
 
 ## Git Configuration
 
+Baseline storage modes:
+
+- `"notes"` — use git notes (`refs/notes/quench`)
+- `"<path>"` — use file at path (e.g., `".quench/baseline.json"`)
+
 ```toml
 [git]
-base = "main"       # Default for --base (auto: main > master > develop)
-# Baseline storage:
-# "notes" - use git notes (refs/notes/quench)
-# "<path>" - use file at path (e.g., ".quench/baseline.json")
+base = "main"
 baseline = "notes"
 ```
 

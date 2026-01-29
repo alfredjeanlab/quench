@@ -261,3 +261,150 @@ fn examples_indentation_preserved() {
     let stripped = strip_ansi(&result);
     assert!(stripped.starts_with("    "));
 }
+
+// =============================================================================
+// Guide colorization (markdown with TOML code blocks)
+// =============================================================================
+
+#[test]
+fn guide_colorizes_headings() {
+    let input = "# Top Heading\n\n## Sub Heading\n\nSome prose.";
+    let result = format_guide(input, true);
+    let lines: Vec<&str> = result.lines().collect();
+
+    // Headings use HEADER color
+    assert!(lines[0].contains(&fg256(codes::HEADER)));
+    assert!(lines[0].contains("# Top Heading"));
+    assert!(lines[2].contains(&fg256(codes::HEADER)));
+    assert!(lines[2].contains("## Sub Heading"));
+
+    // Prose is uncolored
+    assert_eq!(lines[4], "Some prose.");
+}
+
+#[test]
+fn guide_colorizes_code_blocks() {
+    let input = "\
+```toml
+[section]
+key = \"value\"
+# A comment
+[[array.table]]
+flag = true  # trailing comment
+```";
+    let result = format_guide(input, true);
+    let lines: Vec<&str> = result.lines().collect();
+
+    // Fence lines get CONTEXT color
+    assert!(lines[0].contains(&fg256(codes::CONTEXT)));
+    assert!(lines[6].contains(&fg256(codes::CONTEXT)));
+
+    // TOML table headers use CONTEXT color (dark)
+    assert!(lines[1].contains(&fg256(codes::CONTEXT)));
+    assert!(lines[1].contains("[section]"));
+    assert!(lines[4].contains(&fg256(codes::CONTEXT)));
+    assert!(lines[4].contains("[[array.table]]"));
+
+    // TOML key-value lines get LITERAL color
+    assert!(lines[2].contains(&fg256(codes::LITERAL)));
+
+    // TOML full-line comment gets CONTEXT color
+    assert!(lines[3].contains(&fg256(codes::CONTEXT)));
+
+    // Trailing comment: code part is LITERAL, comment part is CONTEXT
+    let trailing = lines[5];
+    assert!(trailing.contains(&fg256(codes::LITERAL)));
+    assert!(trailing.contains(&fg256(codes::CONTEXT)));
+    assert_eq!(strip_ansi(trailing), "flag = true  # trailing comment");
+}
+
+#[test]
+fn guide_passes_through_prose() {
+    let input = "This is plain prose.\nAnother line of text.";
+    let result = format_guide(input, true);
+    let lines: Vec<&str> = result.lines().collect();
+
+    // Prose has no ANSI escapes even when colorize=true
+    assert_eq!(lines[0], "This is plain prose.");
+    assert_eq!(lines[1], "Another line of text.");
+}
+
+#[test]
+fn guide_no_color_passthrough() {
+    let input = "\
+# Heading
+
+Some prose.
+
+```toml
+key = \"value\"
+# comment
+```
+
+More prose.";
+    let result = format_guide(input, false);
+    assert_eq!(
+        result, input,
+        "colorize=false should return input unchanged"
+    );
+}
+
+#[test]
+fn guide_preserves_structure() {
+    let input = "\
+# Heading
+
+Some prose.
+
+```toml
+key = \"value\"
+# comment
+```
+
+More prose.";
+    let result = format_guide(input, true);
+    let stripped = strip_ansi(&result);
+    assert_eq!(stripped, input);
+    assert_eq!(result.lines().count(), input.lines().count());
+}
+
+#[test]
+fn guide_preserves_trailing_newline() {
+    let input = "# Heading\n\nSome text.\n";
+    let result = format_guide(input, true);
+    assert!(result.ends_with('\n'));
+    assert_eq!(strip_ansi(&result), input);
+}
+
+#[test]
+fn guide_empty_input() {
+    let result = format_guide("", true);
+    assert_eq!(result, "");
+}
+
+#[test]
+fn find_toml_comment_trailing() {
+    assert_eq!(find_toml_comment("flag = true  # comment"), Some(11));
+    assert_eq!(
+        find_toml_comment(r#"allow = ["dead_code"]     # No comment needed"#),
+        Some(21)
+    );
+}
+
+#[test]
+fn find_toml_comment_inside_string() {
+    // # inside a quoted string is not a comment
+    assert_eq!(find_toml_comment(r##"pattern = "# heading""##), None);
+}
+
+#[test]
+fn find_toml_comment_none() {
+    assert_eq!(find_toml_comment("key = \"value\""), None);
+    assert_eq!(find_toml_comment(""), None);
+}
+
+#[test]
+fn find_toml_comment_full_line() {
+    // Full-line comments don't have a preceding space at position 0
+    assert_eq!(find_toml_comment("# full line comment"), None);
+}

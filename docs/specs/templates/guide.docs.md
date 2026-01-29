@@ -22,16 +22,18 @@ exclude = ["plans/**", "plan.md", "*_plan.md", "plan_*"]
 
 ## Specs Validation
 
+Index validation modes:
+
+- `"auto"` — try TOC first, fall back to linked (default)
+- `"toc"` — parse directory tree in index file
+- `"linked"` — all specs reachable via markdown links
+- `"exists"` — index file must exist, no reachability check
+
 ```toml
 [check.docs.specs]
 check = "error"
 path = "docs/specs"
 extension = ".md"
-# How to validate index:
-# "auto" - try toc first, fall back to linked (default)
-# "toc" - parse directory tree in index file
-# "linked" - all specs reachable via markdown links
-# "exists" - index file must exist, no reachability check
 index = "auto"
 ```
 
@@ -41,17 +43,18 @@ index = "auto"
 [check.docs.specs]
 check = "error"
 path = "docs/specs"
-index_file = "docs/specs/CLAUDE.md"  # Or auto-detect
+index_file = "docs/specs/CLAUDE.md"
 index = "auto"
 ```
 
 ## Specs with Required Sections
 
+Section names are matched case-insensitively.
+
 ```toml
 [check.docs.specs]
 check = "error"
 path = "docs/specs"
-# Case-insensitive matching
 sections.required = ["Purpose", "Configuration"]
 sections.forbid = ["TODO", "Draft*"]
 ```
@@ -76,30 +79,32 @@ advice = "How to configure this feature"
 ```toml
 [check.docs.specs]
 check = "error"
-tables = "allow"       # Allow markdown tables (default)
-box_diagrams = "allow" # Allow ASCII diagrams (default)
-mermaid = "allow"      # Allow mermaid blocks (default)
-max_lines = 1000       # Or false to disable
-max_tokens = 20000     # Or false to disable
+tables = "allow"
+box_diagrams = "allow"
+mermaid = "allow"
+max_lines = 1000
+max_tokens = 20000
 ```
 
 ## Commit Checking (CI Mode)
 
+Disabled by default; enable explicitly. Only runs in `--ci` mode.
+
 ```toml
 [check.docs.commit]
-# Disabled by default, enable explicitly
 check = "error"
-# Which commit types require doc changes (default shown)
 types = ["feat", "feature", "story", "breaking"]
 ```
 
 ## Area Mappings
 
+Define areas for scoped commits. When source files in a mapped area change,
+corresponding documentation must also be updated.
+
 ```toml
-# Define areas for scoped commits
 [check.docs.area.api]
 docs = "docs/api/**"
-source = "src/api/**"  # Changes here also require docs in docs/api/**
+source = "src/api/**"  # Changes here require docs in docs/api/**
 
 [check.docs.area.cli]
 docs = "docs/usage/**"

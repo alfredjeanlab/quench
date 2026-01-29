@@ -1,5 +1,5 @@
 # Quench configuration
-# https://github.com/alfredjeanlab/quench
+# Run `quench config` for reference documentation
 version = 1
 
 # Baseline source for ratcheting (default: git notes)
@@ -8,7 +8,7 @@ version = 1
 baseline = "notes"    # e.g.  ".quench/baseline.json"
 
 # Validates conventional commit format: type(scope): description
-# See: https://github.com/alfredjeanlab/quench/blob/main/docs/specs/checks/git.md
+# See: `quench config git`
 [git.commit]
 check = "error"
 
@@ -30,12 +30,12 @@ check = "error"
 check = "error"
 
 # Verify source changes have corresponding test changes, tracks test coverage and timing for ratcheting
-# See: https://github.com/alfredjeanlab/quench/blob/main/docs/specs/checks/tests.md
+# See: `quench config tests`
 [check.tests]
 check = "off"
 
 # Validate SPDX license headers and copyright
-# See: https://github.com/alfredjeanlab/quench/blob/main/docs/specs/checks/license-headers.md
+# See: `quench config license`
 [check.license]
 check = "off"
 

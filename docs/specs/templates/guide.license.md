@@ -4,9 +4,10 @@ Configuration reference for the `license` check.
 
 ## Basic Configuration
 
+Disabled by default; opt in by setting `check = "error"`.
+
 ```toml
 [check.license]
-# Disabled by default, opt-in check
 check = "error"
 license = "MIT"
 copyright = "Your Organization"
@@ -14,32 +15,36 @@ copyright = "Your Organization"
 
 ## Common Licenses
 
+MIT License:
+
 ```toml
-# MIT License
 [check.license]
 check = "error"
 license = "MIT"
 copyright = "Your Organization"
 ```
 
+Apache 2.0:
+
 ```toml
-# Apache 2.0
 [check.license]
 check = "error"
 license = "Apache-2.0"
 copyright = "Your Organization"
 ```
 
+Business Source License:
+
 ```toml
-# Business Source License
 [check.license]
 check = "error"
 license = "BUSL-1.1"
 copyright = "Your Organization"
 ```
 
+GPL v3:
+
 ```toml
-# GPL v3
 [check.license]
 check = "error"
 license = "GPL-3.0-only"

@@ -9,6 +9,7 @@ use anyhow::{Context, Result, bail};
 use clap::CommandFactory;
 
 use quench::cli::{Cli, ConfigArgs};
+use quench::color;
 use quench::error::ExitCode;
 use quench::help::format_help;
 
@@ -117,6 +118,10 @@ pub fn run(args: &ConfigArgs) -> Result<ExitCode> {
                 print!("{}", format_help(subcmd));
                 println!();
             }
+            println!("Available features:");
+            println!("  Checks:    agents, build, cloc, docs, escapes, git, license, tests");
+            println!("  Languages: golang (go), javascript (js/ts), python (py), ruby (rb),");
+            println!("             rust (rs), shell (sh/bash)");
             return Ok(ExitCode::Success);
         }
     };
@@ -131,8 +136,9 @@ pub fn run(args: &ConfigArgs) -> Result<ExitCode> {
         Some(content) => {
             let stdout = std::io::stdout();
             let mut handle = stdout.lock();
+            let colored = color::guide(content);
             handle
-                .write_all(content.as_bytes())
+                .write_all(colored.as_bytes())
                 .context("Failed to write template to stdout")?;
             Ok(ExitCode::Success)
         }

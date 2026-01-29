@@ -7,7 +7,7 @@ Configuration reference for the `build` check.
 ```toml
 [check.build]
 check = "error"
-size_max = "10 MB"  # Default for all targets
+size_max = "10 MB"
 ```
 
 ## Per-Target Size Thresholds
@@ -35,10 +35,11 @@ time_hot_max = "5s"    # Incremental build time limit
 
 ## Explicit Targets
 
+Override auto-detection with an explicit target list.
+
 ```toml
 [check.build]
 check = "error"
-# Override auto-detection
 targets = ["myapp", "myserver"]
 size_max = "10 MB"
 ```
@@ -50,9 +51,9 @@ size_max = "10 MB"
 check = "error"
 
 [check.build.bundle]
-dep_size_max = "500 KB"           # Warn on large dependencies
-forbid = ["moment", "lodash"]     # Prefer lighter alternatives
-chunk_max = "250 KB"              # Chunk size limit
+dep_size_max = "500 KB"
+forbid = ["moment", "lodash"]
+chunk_max = "250 KB"
 ```
 
 ## Complete Example

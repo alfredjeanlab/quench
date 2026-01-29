@@ -13,10 +13,11 @@ ignore = ["node_modules/", "dist/", "build/", ".next/", "coverage/"]
 
 ## Bundler
 
+Auto-detected from `vite.config.ts`, `webpack.config.js`, etc.
+Or specify explicitly: `"vite"`, `"webpack"`, `"esbuild"`, `"rollup"`, `"next"`.
+
 ```toml
 [javascript]
-# Auto-detect from vite.config.ts, webpack.config.js, etc.
-# Or specify: "vite" | "webpack" | "esbuild" | "rollup" | "next"
 bundler = "auto"
 ```
 
@@ -40,12 +41,14 @@ advice = "Custom advice for oversized JS/TS files."
 
 ## Suppress Directives
 
+Controls how `eslint-disable` and `biome-ignore` comments are handled:
+
+- `"forbid"` — never allowed
+- `"comment"` — requires justification comment (default for source)
+- `"allow"` — always allowed (default for tests)
+
 ```toml
 [javascript.suppress]
-# How to handle eslint-disable and biome-ignore comments:
-# "forbid" - never allowed
-# "comment" - requires justification comment (default for source)
-# "allow" - always allowed (default for tests)
 check = "comment"
 
 [javascript.suppress.test]
@@ -68,18 +71,20 @@ check = "allow"
 
 ## Lint Config Policy
 
+Require ESLint/Biome config changes in standalone PRs.
+
 ```toml
 [javascript.policy]
 check = "error"
-# Require ESLint/Biome config changes in standalone PRs
 lint_changes = "standalone"
 lint_config = [".eslintrc", "eslint.config.js", "biome.json"]
 ```
 
 ## Escape Patterns
 
+TypeScript-specific escape hatches:
+
 ```toml
-# TypeScript-specific escape hatches
 [[check.escapes.patterns]]
 pattern = "as unknown"
 action = "comment"
@@ -94,8 +99,9 @@ advice = "@ts-ignore is forbidden. Use @ts-expect-error instead."
 
 ## Coverage
 
+Test runners provide built-in coverage:
+
 ```toml
-# Test runners provide built-in coverage
 [[check.tests.suite]]
 runner = "vitest"  # or "jest" or "bun"
 ```

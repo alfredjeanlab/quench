@@ -14,23 +14,26 @@ max_tokens = 20000     # Or false to disable
 
 ## Metric Selection
 
+Controls which metric is checked against `max_lines`:
+
+- `"lines"` — total lines, matches `wc -l` (default)
+- `"nonblank"` — non-blank lines only
+
 ```toml
 [check.cloc]
 check = "error"
-# Which metric to check against max_lines:
-# "lines" - total lines (default, matches wc -l)
-# "nonblank" - non-blank lines only
 metric = "lines"
 max_lines = 750
 ```
 
 ## Custom Advice
 
+Override the advice shown when source or test files exceed their limits.
+
 ```toml
 [check.cloc]
 check = "error"
 max_lines = 750
-# Advice shown when source files exceed limit
 advice = """
 Can the code be made more concise?
 
@@ -40,17 +43,17 @@ consider refactoring to be more unit testable.
 Avoid picking and removing individual lines to satisfy the linter,
 prefer properly refactoring out testable code blocks."""
 
-# Advice shown when test files exceed limit
 advice_test = "Can tests be parameterized or use shared fixtures to be more concise? If not, split large test files into a folder."
 ```
 
 ## Exclude Patterns
 
+Skip files matching these patterns from size checks.
+
 ```toml
 [check.cloc]
 check = "error"
 max_lines = 750
-# Skip these patterns from size checks
 exclude = ["**/generated/**", "**/migrations/**", "**/vendor/**"]
 ```
 

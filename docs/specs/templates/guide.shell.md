@@ -20,12 +20,14 @@ advice = "Custom advice for oversized shell scripts."
 
 ## Suppress Directives
 
+Controls how `# shellcheck disable=` comments are handled:
+
+- `"forbid"` — never allowed (default for source)
+- `"comment"` — requires justification comment
+- `"allow"` — always allowed (default for tests)
+
 ```toml
 [shell.suppress]
-# How to handle # shellcheck disable= comments:
-# "forbid" - never allowed (default for source)
-# "comment" - requires justification comment
-# "allow" - always allowed (default for tests)
 check = "forbid"
 
 [shell.suppress.test]
@@ -34,6 +36,8 @@ check = "allow"
 
 ## Suppress with Comment Requirement
 
+Require specific comment for word splitting suppressions.
+
 ```toml
 [shell.suppress]
 check = "comment"
@@ -41,7 +45,6 @@ check = "comment"
 [shell.suppress.source]
 allow = ["SC2034"]  # Unused variable OK without comment
 
-# Require specific comment for word splitting suppressions
 [shell.suppress.source.SC2086]
 comment = "# INTENTIONAL:"
 
@@ -51,18 +54,20 @@ check = "allow"
 
 ## Lint Config Policy
 
+Require `.shellcheckrc` changes in standalone PRs.
+
 ```toml
 [shell.policy]
 check = "error"
-# Require .shellcheckrc changes in standalone PRs
 lint_changes = "standalone"
 lint_config = [".shellcheckrc"]
 ```
 
 ## Escape Patterns
 
+Shell-specific escape hatches:
+
 ```toml
-# Shell-specific escape hatches
 [[check.escapes.patterns]]
 pattern = "set \\+e"
 action = "comment"
@@ -84,8 +89,9 @@ advice = "Fix the shellcheck warning instead of disabling it."
 
 ## Coverage via kcov
 
+Shell coverage requires kcov and explicit targets.
+
 ```toml
-# Shell coverage requires kcov and explicit targets
 [[check.tests.suite]]
 runner = "bats"
 path = "tests/"

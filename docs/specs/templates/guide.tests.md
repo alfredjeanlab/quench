@@ -4,42 +4,48 @@ Configuration reference for the `tests` check.
 
 ## Commit Checking
 
+Scope of checking:
+
+- `"branch"` — all changes on branch together (default)
+- `"commit"` — per-commit with asymmetric rules (tests-first OK)
+
+Placeholder tests (`#[ignore]`, `test.todo()`) can be allowed or forbidden.
+
 ```toml
 [check.tests.commit]
 check = "error"
-# Scope of checking:
-# "branch" - all changes on branch together (default)
-# "commit" - per-commit with asymmetric rules (tests-first OK)
 scope = "branch"
-# Whether placeholder tests (#[ignore], test.todo()) count
-placeholders = "allow"  # "allow" | "forbid" (default: allow)
+placeholders = "allow"
 ```
 
 ## Commit Types
 
+Only these commit types require test changes (default shown).
+
 ```toml
 [check.tests.commit]
 check = "error"
-# Only these commit types require test changes (default shown)
 types = ["feat", "feature", "story", "breaking"]
 ```
 
 ## Exclude from Commit Checking
 
+Never require tests for these files.
+
 ```toml
 [check.tests.commit]
 check = "error"
 scope = "branch"
-# Never require tests for these files
 exclude = ["**/mod.rs", "**/main.rs", "**/generated/**"]
 ```
 
 ## Custom Test Patterns
 
+Patterns to identify test and source files.
+
 ```toml
 [check.tests]
 check = "error"
-# Patterns to identify test files
 test_patterns = [
   "tests/**/*",
   "test/**/*",
@@ -55,53 +61,62 @@ source_patterns = ["src/**/*.rs"]
 ```toml
 [[check.tests.suite]]
 runner = "cargo"
-max_total = "30s"  # Maximum total suite time
-max_test = "1s"    # Maximum per-test time
+max_total = "30s"
+max_test = "1s"
 ```
 
 ## Multiple Test Suites
 
+Unit tests:
+
 ```toml
-# Unit tests
 [[check.tests.suite]]
 runner = "cargo"
 max_total = "30s"
 max_test = "1s"
+```
 
-# CLI integration tests
+CLI integration tests:
+
+```toml
 [[check.tests.suite]]
 runner = "bats"
 path = "tests/cli/"
 setup = "cargo build"
-targets = ["myapp"]  # Instrument Rust binary
+targets = ["myapp"]
 max_total = "10s"
 max_test = "500ms"
 ```
 
 ## CI-Only Suites
 
+Fast unit tests run in all modes:
+
 ```toml
-# Fast unit tests
 [[check.tests.suite]]
 runner = "cargo"
 max_total = "30s"
+```
 
-# Slow integration tests (CI only)
+Slow integration tests run only in `--ci` mode:
+
+```toml
 [[check.tests.suite]]
 runner = "pytest"
 path = "tests/integration/"
-ci = true          # Only run in --ci mode
+ci = true
 targets = ["myserver"]
 max_total = "60s"
 ```
 
 ## Shell Script Coverage
 
+Instrument shell scripts via `kcov` by specifying targets.
+
 ```toml
 [[check.tests.suite]]
 runner = "bats"
 path = "tests/"
-# Instrument shell scripts via kcov
 targets = ["scripts/*.sh", "bin/*"]
 ```
 
@@ -110,7 +125,7 @@ targets = ["scripts/*.sh", "bin/*"]
 ```toml
 [check.tests.coverage]
 check = "error"
-min = 75  # Minimum coverage percentage
+min = 75
 ```
 
 ## Per-Package Coverage
@@ -118,7 +133,7 @@ min = 75  # Minimum coverage percentage
 ```toml
 [check.tests.coverage]
 check = "error"
-min = 75  # Default for all packages
+min = 75
 
 [check.tests.coverage.package.core]
 min = 90  # Stricter for core
@@ -130,12 +145,14 @@ exclude = ["src/main.rs"]  # Skip entry points
 
 ## Test Time Check
 
+Controls how test time violations are handled:
+
+- `"error"` — fail if thresholds exceeded
+- `"warn"` — report but don't fail (default)
+- `"off"` — don't check
+
 ```toml
 [check.tests.time]
-# How to handle test time violations:
-# "error" - fail if thresholds exceeded
-# "warn" - report but don't fail (default)
-# "off" - don't check
 check = "warn"
 ```
 

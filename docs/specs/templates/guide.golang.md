@@ -13,10 +13,13 @@ ignore = ["vendor/", "tools/"]
 
 ## Build Metrics
 
+Track release binary sizes and build times. Override target auto-detection
+with an explicit list.
+
 ```toml
 [golang]
-binary_size = true                     # Track release binary sizes
-build_time = true                      # Track build times (cold and hot)
+binary_size = true                      # Track release binary sizes
+build_time = true                       # Track build times (cold and hot)
 targets = ["cmd/myapp", "cmd/myserver"] # Override auto-detection
 ```
 
@@ -30,12 +33,14 @@ advice = "Custom advice for oversized Go files."
 
 ## Suppress Directives
 
+Controls how `//nolint` directives are handled:
+
+- `"forbid"` — never allowed
+- `"comment"` — requires justification comment (default for source)
+- `"allow"` — always allowed (default for tests)
+
 ```toml
 [golang.suppress]
-# How to handle //nolint directives:
-# "forbid" - never allowed
-# "comment" - requires justification comment (default for source)
-# "allow" - always allowed (default for tests)
 check = "comment"
 
 [golang.suppress.test]
@@ -43,6 +48,9 @@ check = "allow"
 ```
 
 ## Suppress with Allowlist/Denylist
+
+Exempt specific linters from the comment requirement, or forbid suppressing them entirely.
+Require specific comments for certain linters.
 
 ```toml
 [golang.suppress]
@@ -52,7 +60,6 @@ check = "comment"
 allow = ["unused"]     # No comment needed
 forbid = ["govet"]     # Never suppress go vet
 
-# Require specific comments for certain linters
 [golang.suppress.source.errcheck]
 comment = "// OK:"
 
@@ -65,18 +72,20 @@ check = "allow"
 
 ## Lint Config Policy
 
+Require golangci-lint config changes in standalone PRs.
+
 ```toml
 [golang.policy]
 check = "error"
-# Require golangci-lint config changes in standalone PRs
 lint_changes = "standalone"
 lint_config = [".golangci.yml", ".golangci.yaml", ".golangci.toml"]
 ```
 
 ## Escape Patterns
 
+Go-specific escape hatches:
+
 ```toml
-# Go-specific escape hatches
 [[check.escapes.patterns]]
 pattern = "unsafe\\.Pointer"
 action = "comment"
@@ -98,12 +107,16 @@ advice = "Add a // NOESCAPE: comment explaining why escape analysis should be by
 
 ## Coverage
 
+Go test runner provides built-in coverage:
+
 ```toml
-# Go test runner provides built-in coverage
 [[check.tests.suite]]
 runner = "go"
+```
 
-# Integration tests can also instrument Go binaries
+Integration tests can also instrument Go binaries:
+
+```toml
 [[check.tests.suite]]
 runner = "bats"
 path = "tests/cli/"
