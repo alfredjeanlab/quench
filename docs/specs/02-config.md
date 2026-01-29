@@ -158,18 +158,6 @@ Rust language configuration. Auto-detected when `Cargo.toml` exists.
 cfg_test_split = "count"               # count | require | off (default: "count")
                                        # Boolean still works: true="count", false="off"
 
-# Build targets for coverage + binary size (default: all [[bin]] entries)
-# targets = ["myapp", "myserver"]
-
-# Build metrics (CI mode)
-binary_size = true
-build_time = true
-
-# Thresholds (optional) - see [check.build] for details
-binary_size_max = "5 MB"
-build_time_cold_max = "60s"
-build_time_hot_max = "2s"
-
 # Lint suppression (#[allow(...)])
 [rust.suppress]
 check = "comment"                      # forbid | comment | allow
@@ -227,7 +215,6 @@ Go language configuration. Auto-detected when `go.mod` exists.
 # Source/test patterns
 # source = ["**/*.go"]
 # tests = ["**/*_test.go"]
-# exclude = ["vendor/**"]  # Walker-level: prevents I/O on subtrees
 
 # Lint suppression (//nolint:)
 [golang.suppress]
@@ -257,9 +244,8 @@ JavaScript/TypeScript language configuration. Auto-detected when `package.json` 
 # Source/test patterns
 # source = ["**/*.js", "**/*.jsx", "**/*.ts", "**/*.tsx", "**/*.mjs", "**/*.mts"]
 # tests = ["**/tests/**", "**/__tests__/**", "**/*.test.*", "**/*.spec.*"]
-# exclude = ["node_modules/**", "dist/**", "build/**"]  # Walker-level: prevents I/O on subtrees
 
-# Lint suppression (eslint-disable)
+# Lint suppression (eslint-disable, biome-ignore)
 [javascript.suppress]
 check = "comment"                      # forbid | comment | allow
 
@@ -275,7 +261,7 @@ advice = "Custom advice for JS/TS files."
 [javascript.policy]
 check = "error"                        # error | warn | off (default: error)
 lint_changes = "standalone"
-lint_config = [".eslintrc", ".eslintrc.js", ".eslintrc.json", "eslint.config.js", "tsconfig.json", "biome.json"]
+lint_config = [".eslintrc", ".eslintrc.js", ".eslintrc.json", ".eslintrc.yml", "eslint.config.js", "eslint.config.mjs", "tsconfig.json", ".prettierrc", ".prettierrc.json", "prettier.config.js", "biome.json", "biome.jsonc"]
 ```
 
 ### [python]
@@ -405,18 +391,23 @@ Agent file validation (CLAUDE.md, .cursorrules). Supports scope hierarchy.
 ```toml
 [check.agents]
 check = "error"                        # error | warn | off
-files = ["CLAUDE.md", ".cursorrules"]
-sync = true
-sync_source = "CLAUDE.md"
+files = ["CLAUDE.md", "AGENTS.md", ".cursorrules", ".cursor/rules/*.md"]  # Files to check
+sync = true                            # Enable file synchronization checking
+sync_source = "CLAUDE.md"              # Source file for sync
+
+# Content rules (global defaults)
+tables = "allow"                       # allow | forbid
+box_diagrams = "allow"                 # allow | forbid
+mermaid = "allow"                      # allow | forbid
 
 # Root scope (project root)
 [check.agents.root]
-required = ["CLAUDE.md"]
-optional = [".cursorrules"]
-sections.required = ["Project Structure", "Development"]
-max_lines = 500
+required = ["*"]                       # Files that must exist (["*"] = at least one)
+optional = []                          # Files checked if present
+forbid = []                            # Files that must not exist
+sections.required = ["Directory Structure", "Landing the Plane"]
+max_lines = 500                        # Use false to disable
 max_tokens = 20000                     # Use false to disable
-tables = "forbid"
 
 # Package scope (each package directory)
 [check.agents.package]
