@@ -6,7 +6,7 @@ check:
 	cargo clippy --all-targets --all-features -- -D warnings
 	cargo test --all
 	cargo build --all
-	./target/debug/quench check --ci
+	./target/debug/quench check
 	cargo audit
 	cargo deny check licenses bans sources
 	@if [ -d tests/fixtures/bench-rust ] && [ -f target/release/quench ]; then \

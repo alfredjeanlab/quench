@@ -39,7 +39,9 @@ use crate::check::Violation;
 /// v26: Added CI mode threshold checking (coverage and time violations).
 /// v27: Added license check --fix functionality.
 /// v28: Added Python coverage collection and parsing.
-pub(crate) const CACHE_VERSION: u32 = 28;
+/// v29: Changed default coverage check level from "off" to "warn".
+/// v30: Made test execution CI-only by default for all languages; added Rust/Go auto-detection.
+pub(crate) const CACHE_VERSION: u32 = 30;
 
 /// Cache file name within .quench directory.
 pub const CACHE_FILE_NAME: &str = "cache.bin";

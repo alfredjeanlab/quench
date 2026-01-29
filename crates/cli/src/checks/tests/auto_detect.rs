@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Alfred Jean LLC
 
-//! Auto-detection for JavaScript and Python test runners.
+//! Auto-detection for test runners.
 
 use std::path::Path;
 
@@ -10,7 +10,9 @@ use serde_json::json;
 use crate::check::{CheckResult, Violation};
 use crate::config::TestSuiteConfig;
 
-use super::runners::{RunnerContext, detect_js_runner, detect_py_runner};
+use super::runners::{
+    RunnerContext, detect_go_runner, detect_js_runner, detect_py_runner, detect_rust_runner,
+};
 use super::suite::run_single_suite;
 
 /// Auto-detect JavaScript test runner.
@@ -46,6 +48,52 @@ pub fn auto_detect_js_suite(root: &Path) -> Option<(TestSuiteConfig, String)> {
 /// Returns None if no runner can be detected.
 pub fn auto_detect_py_suite(root: &Path) -> Option<(TestSuiteConfig, String)> {
     let detection = detect_py_runner(root)?;
+
+    let suite = TestSuiteConfig {
+        runner: detection.runner.name().to_string(),
+        name: Some(format!("{} (auto-detected)", detection.runner.name())),
+        path: None,
+        setup: None,
+        command: None,
+        targets: vec![],
+        ci: false,
+        max_total: None,
+        max_avg: None,
+        max_test: None,
+        timeout: None,
+    };
+
+    Some((suite, detection.source.to_metric_string()))
+}
+
+/// Auto-detect Rust test runner.
+///
+/// Returns None if no Cargo.toml exists.
+pub fn auto_detect_rust_suite(root: &Path) -> Option<(TestSuiteConfig, String)> {
+    let detection = detect_rust_runner(root)?;
+
+    let suite = TestSuiteConfig {
+        runner: detection.runner.name().to_string(),
+        name: Some(format!("{} (auto-detected)", detection.runner.name())),
+        path: None,
+        setup: None,
+        command: None,
+        targets: vec![],
+        ci: false,
+        max_total: None,
+        max_avg: None,
+        max_test: None,
+        timeout: None,
+    };
+
+    Some((suite, detection.source.to_metric_string()))
+}
+
+/// Auto-detect Go test runner.
+///
+/// Returns None if no go.mod exists or go is not installed.
+pub fn auto_detect_go_suite(root: &Path) -> Option<(TestSuiteConfig, String)> {
+    let detection = detect_go_runner(root)?;
 
     let suite = TestSuiteConfig {
         runner: detection.runner.name().to_string(),

@@ -30,7 +30,10 @@ use crate::checks::placeholders::{
 };
 use crate::config::TestsCommitConfig;
 
-use self::auto_detect::{auto_detect_js_suite, auto_detect_py_suite, run_auto_detected_suite};
+use self::auto_detect::{
+    auto_detect_go_suite, auto_detect_js_suite, auto_detect_py_suite, auto_detect_rust_suite,
+    run_auto_detected_suite,
+};
 use self::correlation::{
     CorrelationConfig, DiffRange, analyze_commit, analyze_correlation, has_inline_test_changes,
 };
@@ -90,24 +93,47 @@ impl Check for TestsCheck {
             return self.run_test_suites(ctx);
         }
 
-        // Auto-detect JavaScript test runner if package.json exists
-        if let Some((suite, source)) = auto_detect_js_suite(ctx.root) {
-            let runner_ctx = RunnerContext {
-                root: ctx.root,
-                ci_mode: ctx.ci_mode,
-                collect_coverage: ctx.ci_mode,
-            };
-            return run_auto_detected_suite(self.name(), suite, Some(source), &runner_ctx);
-        }
+        // Auto-detect test runners in CI mode only
+        if ctx.ci_mode {
+            // Try JavaScript
+            if let Some((suite, source)) = auto_detect_js_suite(ctx.root) {
+                let runner_ctx = RunnerContext {
+                    root: ctx.root,
+                    ci_mode: ctx.ci_mode,
+                    collect_coverage: true,
+                };
+                return run_auto_detected_suite(self.name(), suite, Some(source), &runner_ctx);
+            }
 
-        // Auto-detect Python test runner if Python project markers exist
-        if let Some((suite, source)) = auto_detect_py_suite(ctx.root) {
-            let runner_ctx = RunnerContext {
-                root: ctx.root,
-                ci_mode: ctx.ci_mode,
-                collect_coverage: ctx.ci_mode,
-            };
-            return run_auto_detected_suite(self.name(), suite, Some(source), &runner_ctx);
+            // Try Python
+            if let Some((suite, source)) = auto_detect_py_suite(ctx.root) {
+                let runner_ctx = RunnerContext {
+                    root: ctx.root,
+                    ci_mode: ctx.ci_mode,
+                    collect_coverage: true,
+                };
+                return run_auto_detected_suite(self.name(), suite, Some(source), &runner_ctx);
+            }
+
+            // Try Rust
+            if let Some((suite, source)) = auto_detect_rust_suite(ctx.root) {
+                let runner_ctx = RunnerContext {
+                    root: ctx.root,
+                    ci_mode: ctx.ci_mode,
+                    collect_coverage: true,
+                };
+                return run_auto_detected_suite(self.name(), suite, Some(source), &runner_ctx);
+            }
+
+            // Try Go
+            if let Some((suite, source)) = auto_detect_go_suite(ctx.root) {
+                let runner_ctx = RunnerContext {
+                    root: ctx.root,
+                    ci_mode: ctx.ci_mode,
+                    collect_coverage: true,
+                };
+                return run_auto_detected_suite(self.name(), suite, Some(source), &runner_ctx);
+            }
         }
 
         let config = &ctx.config.check.tests.commit;

@@ -13,6 +13,7 @@ mod cucumber;
 mod custom;
 mod go;
 mod go_coverage;
+mod go_detect;
 mod instrumented;
 mod jest;
 mod js_coverage;
@@ -26,6 +27,7 @@ mod python_coverage;
 mod result;
 mod rspec;
 mod ruby_coverage;
+mod rust_detect;
 mod targets;
 mod unittest;
 mod vitest;
@@ -38,6 +40,9 @@ pub use cucumber::CucumberRunner;
 pub use custom::CustomRunner;
 pub use go::GoRunner;
 pub use go_coverage::{collect_go_coverage, go_available};
+pub use go_detect::{
+    GoDetectionResult, GoDetectionSource, GoRunner as GoDetectRunner, detect_go_runner,
+};
 pub use instrumented::{
     InstrumentedBuild, build_instrumented, collect_instrumented_coverage, coverage_env,
 };
@@ -52,6 +57,7 @@ pub use python_coverage::collect_python_coverage;
 pub use result::{TestResult, TestRunResult};
 pub use rspec::RspecRunner;
 pub use ruby_coverage::collect_ruby_coverage;
+pub use rust_detect::{RustDetectionResult, RustDetectionSource, RustRunner, detect_rust_runner};
 pub use targets::{
     ResolvedTarget, TargetResolutionError, is_glob_pattern, resolve_target, resolve_targets,
     rust_binary_names, shell_script_files,

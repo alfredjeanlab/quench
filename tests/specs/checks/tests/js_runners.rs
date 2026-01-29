@@ -20,7 +20,11 @@ fn auto_detects_vitest_from_config_file() {
     temp.file("package.json", r#"{"name": "test"}"#);
     temp.file("vitest.config.ts", "export default {}");
 
-    let result = check("tests").pwd(temp.path()).json().passes();
+    let result = check("tests")
+        .pwd(temp.path())
+        .args(&["--ci"])
+        .json()
+        .passes();
     let metrics = result.require("metrics");
 
     assert_eq!(metrics.get("auto_detected"), Some(&serde_json::json!(true)));
@@ -33,14 +37,18 @@ fn auto_detects_vitest_from_config_file() {
     );
 }
 
-/// Spec: Auto-detect jest from jest.config.js
+/// Spec: Auto-detect jest from jest.config.js (CI mode only)
 #[test]
 fn auto_detects_jest_from_config_file() {
     let temp = Project::empty();
     temp.file("package.json", r#"{"name": "test"}"#);
     temp.file("jest.config.js", "module.exports = {}");
 
-    let result = check("tests").pwd(temp.path()).json().passes();
+    let result = check("tests")
+        .pwd(temp.path())
+        .args(&["--ci"])
+        .json()
+        .passes();
     let metrics = result.require("metrics");
 
     assert_eq!(metrics.get("auto_detected"), Some(&serde_json::json!(true)));
@@ -51,7 +59,7 @@ fn auto_detects_jest_from_config_file() {
 // AUTO-DETECTION FROM DEVDEPENDENCIES
 // =============================================================================
 
-/// Spec: Auto-detect vitest from devDependencies
+/// Spec: Auto-detect vitest from devDependencies (CI mode only)
 #[test]
 fn auto_detects_vitest_from_dev_dependencies() {
     let temp = Project::empty();
@@ -60,7 +68,11 @@ fn auto_detects_vitest_from_dev_dependencies() {
         r#"{"name": "test", "devDependencies": {"vitest": "^2.0.0"}}"#,
     );
 
-    let result = check("tests").pwd(temp.path()).json().passes();
+    let result = check("tests")
+        .pwd(temp.path())
+        .args(&["--ci"])
+        .json()
+        .passes();
     let metrics = result.require("metrics");
 
     assert_eq!(metrics.get("auto_detected"), Some(&serde_json::json!(true)));
@@ -73,7 +85,7 @@ fn auto_detects_vitest_from_dev_dependencies() {
     );
 }
 
-/// Spec: Auto-detect jest from devDependencies
+/// Spec: Auto-detect jest from devDependencies (CI mode only)
 #[test]
 fn auto_detects_jest_from_dev_dependencies() {
     let temp = Project::empty();
@@ -82,7 +94,11 @@ fn auto_detects_jest_from_dev_dependencies() {
         r#"{"name": "test", "devDependencies": {"jest": "^29.0.0"}}"#,
     );
 
-    let result = check("tests").pwd(temp.path()).json().passes();
+    let result = check("tests")
+        .pwd(temp.path())
+        .args(&["--ci"])
+        .json()
+        .passes();
     let metrics = result.require("metrics");
 
     assert_eq!(metrics.get("auto_detected"), Some(&serde_json::json!(true)));
@@ -93,7 +109,7 @@ fn auto_detects_jest_from_dev_dependencies() {
 // AUTO-DETECTION FROM TEST SCRIPTS
 // =============================================================================
 
-/// Spec: Auto-detect vitest from scripts.test
+/// Spec: Auto-detect vitest from scripts.test (CI mode only)
 #[test]
 fn auto_detects_vitest_from_test_script() {
     let temp = Project::empty();
@@ -102,7 +118,11 @@ fn auto_detects_vitest_from_test_script() {
         r#"{"name": "test", "scripts": {"test": "vitest run"}}"#,
     );
 
-    let result = check("tests").pwd(temp.path()).json().passes();
+    let result = check("tests")
+        .pwd(temp.path())
+        .args(&["--ci"])
+        .json()
+        .passes();
     let metrics = result.require("metrics");
 
     assert_eq!(metrics.get("auto_detected"), Some(&serde_json::json!(true)));
@@ -197,7 +217,11 @@ fn config_file_priority_over_dependencies() {
     // vitest config file should win over jest devDependency
     temp.file("vitest.config.ts", "export default {}");
 
-    let result = check("tests").pwd(temp.path()).json().passes();
+    let result = check("tests")
+        .pwd(temp.path())
+        .args(&["--ci"])
+        .json()
+        .passes();
     let metrics = result.require("metrics");
 
     assert_eq!(metrics.get("runner"), Some(&serde_json::json!("vitest")));

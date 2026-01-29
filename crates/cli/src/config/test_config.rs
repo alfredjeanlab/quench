@@ -141,7 +141,7 @@ impl Default for TestsCoverageConfig {
 
 impl TestsCoverageConfig {
     fn default_check() -> String {
-        "off".to_string()
+        "warn".to_string()
     }
 }
 
