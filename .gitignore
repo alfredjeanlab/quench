@@ -1,3 +1,5 @@
+CLAUDE.local.md
+
 # Build
 /target/
 
@@ -19,9 +21,7 @@ lcov.info
 coverage/
 .wok/
 .v0/
-
-# Git worktrees
-.worktrees/
+.v0.profile.rc
 
 # Quench cache directories
 .quench/
@@ -44,4 +44,3 @@ coverage/
 /tests/fixtures/*/target/
 /tests/fixtures/*/Cargo.lock
 /tests/fixtures/*/node_modules/
-.v0.profile.rc
