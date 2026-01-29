@@ -13,6 +13,9 @@ Test fixtures for quench behavioral specs. Each fixture is a self-contained mini
 | `go-multi/` | Multi-package Go project | Package metrics |
 | `js-simple/` | Small JS/TS project | cloc, tests |
 | `js-monorepo/` | Multi-package pnpm workspace | Package metrics |
+| `python-simple/` | Basic Python project (pip) | cloc, tests |
+| `python-poetry/` | Poetry-managed project | cloc, tests |
+| `python-uv/` | uv-managed project | cloc, tests |
 | `shell-scripts/` | Shell scripts with bats | Shell escapes |
 | `mixed/` | Rust CLI + shell scripts | Multi-language |
 | `violations/` | Intentional violations | All checks |
@@ -110,6 +113,36 @@ Multi-package JavaScript/TypeScript monorepo for testing workspace detection and
 - Each package has `src/` and `tests/` directories
 - Tests pnpm workspace detection path
 
+### python-simple/
+
+A minimal Python project using src-layout with `pyproject.toml`. Good baseline for testing Python detection and pip-based projects.
+
+- `pyproject.toml` with `[project]` section (PEP 621)
+- `src/example/` with package module
+- `tests/test_math.py` with pytest tests
+- Uses setuptools build backend
+- Under 750 lines (passes cloc)
+
+### python-poetry/
+
+A Poetry-managed Python project for testing Poetry package manager detection.
+
+- `pyproject.toml` with `[tool.poetry]` section
+- `poetry.lock` file (indicates Poetry)
+- `src/poetryapp/` with package module
+- `tests/test_utils.py` with pytest tests
+- Uses poetry-core build backend
+
+### python-uv/
+
+A uv-managed Python project for testing uv package manager detection.
+
+- `pyproject.toml` with `[project]` section (PEP 621)
+- `uv.lock` file (indicates uv)
+- `src/uvapp/` with package module
+- `tests/test_core.py` with pytest tests
+- Uses hatchling build backend
+
 ### shell-scripts/
 
 Shell-only project for testing shell-specific checks.
@@ -149,6 +182,11 @@ Project with intentional violations for every check type. Essential for testing 
 | escapes | `js/as-unknown.ts` | `as unknown` without CAST comment |
 | escapes | `js/ts-ignore.ts` | `@ts-ignore` (forbidden in source) |
 | suppress | `js/eslint-disable.ts` | `eslint-disable` without justification |
+| suppress | `py/noqa.py` | `# noqa` without justification |
+| suppress | `py/type_ignore.py` | `# type: ignore` without justification |
+| escapes | `py/eval_escape.py` | `eval()` without EVAL comment |
+| escapes | `py/exec_escape.py` | `exec()` without EXEC comment |
+| escapes | `py/breakpoint.py` | `breakpoint()` forbidden in source |
 
 ### docs-project/
 
