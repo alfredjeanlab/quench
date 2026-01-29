@@ -159,30 +159,35 @@ comment = "// FALSE_POSITIVE:" # require specific pattern for gosec
 
 ### Violation Messages
 
-When a suppression is missing a required comment, the error message provides:
-1. A general statement that justification is required
-2. Lint-specific guidance (future: will be tailored per common nolint codes)
-3. The list of acceptable comment patterns (when configured)
+When a suppression is missing a required comment, the error message encourages fixing first:
+1. Primary instruction to fix the issue (imperative, actionable)
+2. Context and guidance on how to fix it properly
+3. Suppression as last resort with acceptable comment patterns
 
 **Example outputs:**
 
 ```
 pkg/client/client.go:45: suppress_missing_comment: //nolint:errcheck
-  Lint suppression requires justification.
-  Is this error handling necessary to skip?
-  Add a comment above the directive or inline (//nolint:code // reason).
+  Handle this error properly.
+  Add error handling or explicitly check and handle the error case.
+  Only if the lint is a false positive, add a comment above the directive or inline (//nolint:code // reason).
 
 pkg/client/client.go:67: suppress_missing_comment: //nolint:gosec
-  Lint suppression requires justification.
-  Is this security finding a false positive?
-  If so, add:
+  Address the security issue identified by gosec.
+  Review the security finding and apply the recommended fix.
+  Only if fixing is not feasible, add:
     // FALSE_POSITIVE: ...
 ```
 
 The first example shows the default behavior (no specific pattern required).
 The second example shows when a specific pattern is configured.
 
-**Note**: Per-lint guidance for common nolint codes (errcheck, gosec, etc.) will be added in a future update.
+**Default per-lint guidance** for common nolint codes:
+
+| Code | Primary Fix Instruction | Context |
+|------|------------------------|---------|
+| errcheck | Handle this error properly. | Add error handling or explicitly check and handle the error case. |
+| gosec | Address the security issue identified by gosec. | Review the security finding and apply the recommended fix. |
 
 ### Supported Patterns
 

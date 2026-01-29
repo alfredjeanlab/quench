@@ -103,18 +103,18 @@ comment = "# INTENTIONAL:"     # require specific pattern for word splitting
 
 ### Violation Messages
 
-When a shellcheck suppression is missing a required comment (when `check = "comment"`), the error message provides:
-1. A general statement that justification is required
-2. Lint-specific guidance tailored to common ShellCheck codes
-3. The list of acceptable comment patterns (when configured)
+When a shellcheck suppression is missing a required comment (when `check = "comment"`), the error message encourages fixing first:
+1. Primary instruction to fix the issue (imperative, actionable)
+2. Context and guidance on how to fix it properly
+3. Suppression as last resort with acceptable comment patterns
 
 **Example (no specific pattern):**
 
 ```
 scripts/deploy.sh:23: shellcheck_missing_comment: # shellcheck disable=SC2086
-  Lint suppression requires justification.
-  Is unquoted expansion intentional here?
-  Add a comment above the directive.
+  Quote the variable expansion to prevent word splitting.
+  Use "$var" instead of $var unless word splitting is intentionally needed.
+  Only if the lint is a false positive, add a comment above the directive.
 ```
 
 **Example (with configured patterns):**
@@ -123,14 +123,14 @@ See the configuration example above showing `[shell.suppress.source.SC2086]` wit
 
 **Default per-lint guidance** (for common ShellCheck codes):
 
-| Code | Guidance Question |
-|------|-------------------|
-| SC2086 | Is unquoted expansion intentional here? |
-| SC2154 | Is this variable defined externally? |
-| SC2034 | Is this unused variable needed? |
-| SC2155 | Should declaration and assignment be split? |
+| Code | Primary Fix Instruction | Context |
+|------|------------------------|---------|
+| SC2086 | Quote the variable expansion to prevent word splitting. | Use "$var" instead of $var unless word splitting is intentionally needed. |
+| SC2154 | Define this variable before use or document its external source. | If set by the shell environment, add a comment explaining where it comes from. |
+| SC2034 | Remove this unused variable. | If the variable is used externally, export it or add a comment explaining its purpose. |
+| SC2155 | Split the declaration and assignment into separate statements. | This allows error checking on the command substitution. |
 
-Other codes use: "Is this ShellCheck finding a false positive?"
+Other codes use: "Fix the ShellCheck warning instead of suppressing it." with context "ShellCheck warnings usually indicate real issues or portability problems."
 
 ## Policy
 

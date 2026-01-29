@@ -251,48 +251,45 @@ These defaults ensure suppressions have meaningful justifications. Override per-
 
 ### Default Per-Lint Guidance
 
-Each built-in lint code has thoughtful guidance to help developers evaluate the suppression:
+Each built-in lint code has fix-first guidance to encourage addressing the root cause:
 
-| Lint Code | Guidance Question |
-|-----------|-------------------|
-| `dead_code` | Is this code still needed? It is usually best to remove dead code. |
-| `clippy::too_many_arguments` | Can this function be refactored? |
-| `clippy::cast_possible_truncation` | Is this cast safe? |
-| `deprecated` | Can this deprecated API be replaced? |
+| Lint Code | Primary Fix Instruction | Context |
+|-----------|------------------------|---------|
+| `dead_code` | Remove this dead code. | Dead code should be deleted to keep the codebase clean and maintainable. |
+| `clippy::too_many_arguments` | Refactor this function to use fewer arguments. | Consider grouping related parameters into a struct or using the builder pattern. |
+| `clippy::cast_possible_truncation` | Verify this cast is safe and won't truncate data. | Add explicit bounds checking or use safe conversion methods (e.g., try_into). |
+| `deprecated` | Replace this deprecated API with the recommended alternative. | Check the deprecation notice for the replacement API. |
 
-For custom lint codes without built-in guidance, a generic message is used: "Is this suppression necessary?"
+For custom lint codes without built-in guidance, a generic message is used: "Fix the underlying issue instead of suppressing the lint."
 
 ### Violation Messages
 
-When a suppression is missing a required comment, the error message provides:
-1. A general statement that justification is required
-2. A lint-specific question or guidance
-3. The list of acceptable comment patterns (when multiple options exist)
+When a suppression is missing a required comment, the error message encourages fixing first:
+1. Primary instruction to fix the issue (imperative, actionable)
+2. Context and guidance on how to fix it properly
+3. Suppression as last resort with acceptable comment patterns
 
 **Example outputs:**
 
 ```
 crates/cli/src/git_hooks.rs:109: suppress_missing_comment: #[allow(dead_code)]
-  Lint suppression requires justification.
-
-  Is this code still needed?
-  It is usually best to remove dead code.
-
-  If it should be kept, add one of:
+  Remove this dead code.
+  Dead code should be deleted to keep the codebase clean and maintainable.
+  Only if fixing is not feasible, add one of:
     // KEEP UNTIL: ...
     // NOTE(compat): ...
     // NOTE(compatibility): ...
 
 crates/cli/src/display.rs:106: suppress_missing_comment: #[allow(clippy::too_many_arguments)]
-  Lint suppression requires justification.
-  Can this function be refactored?
-  If not, add:
+  Refactor this function to use fewer arguments.
+  Consider grouping related parameters into a struct or using the builder pattern.
+  Only if fixing is not feasible, add:
     // TODO(refactor): ...
 
 crates/cli/src/daemon/runner.rs:598: suppress_missing_comment: #[allow(clippy::cast_possible_truncation)]
-  Lint suppression requires justification.
-  Is this cast safe?
-  If so, add one of:
+  Verify this cast is safe and won't truncate data.
+  Add explicit bounds checking or use safe conversion methods (e.g., try_into).
+  Only if fixing is not feasible, add one of:
     // CORRECTNESS: ...
     // SAFETY: ...
 ```

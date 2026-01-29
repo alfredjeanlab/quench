@@ -723,9 +723,9 @@ fn rust_suppress_detects_module_level_allow() {
 /// Spec: docs/specs/checks/escape-hatches.md#lint-suppression-messages
 ///
 /// > Suppress missing comment messages provide:
-/// > 1. General statement that justification is required
-/// > 2. Lint-specific guidance tailored to the suppressed lint
-/// > 3. List of acceptable comment patterns
+/// > 1. Primary instruction to fix the issue
+/// > 2. Context and guidance on how to fix
+/// > 3. Suppression as last resort with acceptable patterns
 #[test]
 fn suppress_missing_comment_message_format() {
     let temp = Project::empty();
@@ -745,12 +745,9 @@ check = "comment"
     check("escapes").pwd(temp.path()).fails().stdout_eq(
         r#"escapes: FAIL
   src/lib.rs:1: suppress_missing_comment: #[allow(dead_code)]
-    Lint suppression requires justification.
-
-    Is this code still needed?
-    It is usually best to remove dead code.
-
-    If it should be kept, add one of:
+    Remove this dead code.
+    Dead code should be deleted to keep the codebase clean and maintainable.
+    Only if fixing is not feasible, add one of:
       // KEEP UNTIL: ...
       // NOTE(compat): ...
       // NOTE(compatibility): ...
@@ -785,9 +782,9 @@ check = "comment"
     check("escapes").pwd(temp.path()).fails().stdout_eq(
         r#"escapes: FAIL
   src/lib.rs:1: suppress_missing_comment: #[allow(clippy::too_many_arguments)]
-    Lint suppression requires justification.
-    Can this function be refactored?
-    If not, add:
+    Refactor this function to use fewer arguments.
+    Consider grouping related parameters into a struct or using the builder pattern.
+    Only if fixing is not feasible, add:
       // TODO(refactor): ...
 
 FAIL: escapes
@@ -819,9 +816,9 @@ check = "comment"
     check("escapes").pwd(temp.path()).fails().stdout_eq(
         r#"escapes: FAIL
   src/lib.rs:1: suppress_missing_comment: #[allow(clippy::cast_possible_truncation)]
-    Lint suppression requires justification.
-    Is this cast safe?
-    If so, add one of:
+    Verify this cast is safe and won't truncate data.
+    Add explicit bounds checking or use safe conversion methods (e.g., try_into).
+    Only if fixing is not feasible, add one of:
       // CORRECTNESS: ...
       // SAFETY: ...
 
@@ -855,9 +852,9 @@ check = "comment"
     check("escapes").pwd(temp.path()).fails().stdout_eq(
         r#"escapes: FAIL
   src/lib.rs:1: suppress_missing_comment: #[allow(unused_variables)]
-    Lint suppression requires justification.
-    Is this suppression necessary?
-    Add a comment above the attribute.
+    Fix the underlying issue instead of suppressing the lint.
+    Suppressions should only be used when the lint is a false positive.
+    Only if the lint is a false positive, add a comment above the attribute.
 
 FAIL: escapes
 "#,
@@ -888,9 +885,9 @@ check = "comment"
     check("escapes").pwd(temp.path()).fails().stdout_eq(
         r#"escapes: FAIL
   script.sh:2: shellcheck_missing_comment: # shellcheck disable=SC2086
-    Lint suppression requires justification.
-    Is unquoted expansion intentional here?
-    Add a comment above the directive.
+    Quote the variable expansion to prevent word splitting.
+    Use "$var" instead of $var unless word splitting is intentionally needed.
+    Only if the lint is a false positive, add a comment above the directive.
 
 FAIL: escapes
 "#,
@@ -920,9 +917,9 @@ comment = "# EXTERNAL:"
     check("escapes").pwd(temp.path()).fails().stdout_eq(
         r##"escapes: FAIL
   script.sh:2: shellcheck_missing_comment: # shellcheck disable=SC2154
-    Lint suppression requires justification.
-    Is this variable defined externally?
-    If so, add:
+    Define this variable before use or document its external source.
+    If set by the shell environment, add a comment explaining where it comes from.
+    Only if fixing is not feasible, add:
       # EXTERNAL: ...
 
 FAIL: escapes
@@ -950,9 +947,9 @@ check = "comment"
     check("escapes").pwd(temp.path()).fails().stdout_eq(
         r#"escapes: FAIL
   script.sh:2: shellcheck_missing_comment: # shellcheck disable=SC2034
-    Lint suppression requires justification.
-    Is this unused variable needed?
-    Add a comment above the directive.
+    Remove this unused variable.
+    If the variable is used externally, export it or add a comment explaining its purpose.
+    Only if the lint is a false positive, add a comment above the directive.
 
 FAIL: escapes
 "#,
@@ -979,9 +976,9 @@ check = "comment"
     check("escapes").pwd(temp.path()).fails().stdout_eq(
         r#"escapes: FAIL
   script.sh:2: shellcheck_missing_comment: # shellcheck disable=SC9999
-    Lint suppression requires justification.
-    Is this ShellCheck finding a false positive?
-    Add a comment above the directive.
+    Fix the ShellCheck warning instead of suppressing it.
+    ShellCheck warnings usually indicate real issues or portability problems.
+    Only if the lint is a false positive, add a comment above the directive.
 
 FAIL: escapes
 "#,
@@ -1013,9 +1010,9 @@ check = "comment"
     check("escapes").pwd(temp.path()).fails().stdout_eq(
         r#"escapes: FAIL
   main.go:2: suppress_missing_comment: //nolint:errcheck
-    Lint suppression requires justification.
-    Is this error handling necessary to skip?
-    Add a comment above the directive or inline (//nolint:code // reason).
+    Handle this error properly.
+    Add error handling or explicitly check and handle the error case.
+    Only if the lint is a false positive, add a comment above the directive or inline (//nolint:code // reason).
 
 FAIL: escapes
 "#,
@@ -1043,9 +1040,9 @@ comment = "// FALSE_POSITIVE:"
     check("escapes").pwd(temp.path()).fails().stdout_eq(
         r#"escapes: FAIL
   main.go:2: suppress_missing_comment: //nolint:gosec
-    Lint suppression requires justification.
-    Is this security finding a false positive?
-    If so, add:
+    Address the security issue identified by gosec.
+    Review the security finding and apply the recommended fix.
+    Only if fixing is not feasible, add:
       // FALSE_POSITIVE: ...
 
 FAIL: escapes

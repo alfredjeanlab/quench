@@ -260,74 +260,116 @@ pub enum SuppressViolationKind {
     AllForbidden,
 }
 
-/// Get lint-specific guidance for Rust lints.
-fn get_rust_lint_guidance(lint_code: &str) -> &'static str {
+/// Lint-specific fix guidance.
+/// Returns (primary_fix_instruction, context_guidance).
+fn get_rust_fix_guidance(lint_code: &str) -> (&'static str, &'static str) {
     match lint_code {
-        "dead_code" => "\nIs this code still needed?\nIt is usually best to remove dead code.\n",
-        "clippy::too_many_arguments" => "Can this function be refactored?",
-        "clippy::cast_possible_truncation" => "Is this cast safe?",
-        "deprecated" => "Can this deprecated API be replaced?",
-        _ => "Is this suppression necessary?",
+        "dead_code" => (
+            "Remove this dead code.",
+            "Dead code should be deleted to keep the codebase clean and maintainable.",
+        ),
+        "clippy::too_many_arguments" => (
+            "Refactor this function to use fewer arguments.",
+            "Consider grouping related parameters into a struct or using the builder pattern.",
+        ),
+        "clippy::cast_possible_truncation" => (
+            "Verify this cast is safe and won't truncate data.",
+            "Add explicit bounds checking or use safe conversion methods (e.g., try_into).",
+        ),
+        "deprecated" => (
+            "Replace this deprecated API with the recommended alternative.",
+            "Check the deprecation notice for the replacement API.",
+        ),
+        _ => (
+            "Fix the underlying issue instead of suppressing the lint.",
+            "Suppressions should only be used when the lint is a false positive.",
+        ),
     }
 }
 
-/// Get lint-specific guidance for Shell lints.
-fn get_shell_lint_guidance(lint_code: &str) -> &'static str {
+/// Lint-specific fix guidance for Shell lints.
+fn get_shell_fix_guidance(lint_code: &str) -> (&'static str, &'static str) {
     match lint_code {
-        "SC2034" => "Is this unused variable needed?",
-        "SC2086" => "Is unquoted expansion intentional here?",
-        "SC2154" => "Is this variable defined externally?",
-        _ => "Is this ShellCheck finding a false positive?",
+        "SC2034" => (
+            "Remove this unused variable.",
+            "If the variable is used externally, export it or add a comment explaining its purpose.",
+        ),
+        "SC2086" => (
+            "Quote the variable expansion to prevent word splitting.",
+            "Use \"$var\" instead of $var unless word splitting is intentionally needed.",
+        ),
+        "SC2154" => (
+            "Define this variable before use or document its external source.",
+            "If set by the shell environment, add a comment explaining where it comes from.",
+        ),
+        "SC2155" => (
+            "Split the declaration and assignment into separate statements.",
+            "This allows error checking on the command substitution.",
+        ),
+        _ => (
+            "Fix the ShellCheck warning instead of suppressing it.",
+            "ShellCheck warnings usually indicate real issues or portability problems.",
+        ),
     }
 }
 
-/// Get lint-specific guidance for Go lints.
-fn get_go_lint_guidance(lint_code: &str) -> &'static str {
+/// Lint-specific fix guidance for Go lints.
+fn get_go_fix_guidance(lint_code: &str) -> (&'static str, &'static str) {
     match lint_code {
-        "errcheck" => "Is this error handling necessary to skip?",
-        "gosec" => "Is this security finding a false positive?",
-        _ => "Is this suppression necessary?",
+        "errcheck" => (
+            "Handle this error properly.",
+            "Add error handling or explicitly check and handle the error case.",
+        ),
+        "gosec" => (
+            "Address the security issue identified by gosec.",
+            "Review the security finding and apply the recommended fix.",
+        ),
+        _ => (
+            "Fix the underlying issue instead of suppressing the lint.",
+            "Suppressions should only be used when the lint is a false positive.",
+        ),
     }
 }
 
-/// Get lint-specific guidance for JavaScript/TypeScript lints.
-fn get_js_lint_guidance(lint_code: &str) -> &'static str {
+/// Lint-specific fix guidance for JavaScript/TypeScript lints.
+fn get_js_fix_guidance(lint_code: &str) -> (&'static str, &'static str) {
     match lint_code {
-        "no-console" => "Is this console output needed in production?",
+        "no-console" => (
+            "Remove console.log statements from production code.",
+            "Use a proper logging library or remove debugging statements.",
+        ),
         "no-explicit-any"
         | "@typescript-eslint/no-explicit-any"
-        | "lint/suspicious/noExplicitAny" => "Can this be properly typed instead?",
-        "no-unused-vars" | "@typescript-eslint/no-unused-vars" => "Is this variable still needed?",
-        _ => "Is this suppression necessary?",
+        | "lint/suspicious/noExplicitAny" => (
+            "Replace 'any' with a proper type.",
+            "Use specific types, generics, or 'unknown' for better type safety.",
+        ),
+        "no-unused-vars" | "@typescript-eslint/no-unused-vars" => (
+            "Remove this unused variable.",
+            "If needed for future use, prefix with underscore or remove until actually needed.",
+        ),
+        _ => (
+            "Fix the underlying issue instead of suppressing the lint.",
+            "Suppressions should only be used when the lint is a false positive.",
+        ),
     }
 }
 
-/// Format pattern instructions based on number of patterns and lint guidance.
+/// Format suppression instructions as a last resort.
 ///
-/// The conditional phrase ("If so", "If not", "If it should be kept") is determined
-/// by the lint guidance question type.
-fn format_pattern_instructions(patterns: &[String], guidance: &str) -> String {
+/// Always presents suppression with justification as the fallback option
+/// after attempting to fix the underlying issue.
+fn format_suppression_fallback(patterns: &[String]) -> String {
     if patterns.is_empty() {
         return String::new();
     }
 
-    // Determine conditional phrase from the guidance question
-    let condition = if guidance.starts_with("Can this function be refactored") {
-        "not"
-    } else if guidance.contains("still needed") || guidance.contains("unused variable needed") {
-        // "Is this code still needed?\nIt is usually best to remove dead code.", "Is this unused variable needed?"
-        "it should be kept"
-    } else if guidance.starts_with("Is this") || guidance.starts_with("Is unquoted") {
-        // Questions like "Is this cast safe?", "Is this variable defined externally?"
-        "so"
-    } else {
-        // Default
-        "it should be kept"
-    };
-
     if patterns.len() == 1 {
         // Single pattern
-        format!("If {}, add:\n  {} ...", condition, patterns[0])
+        format!(
+            "Only if fixing is not feasible, add:\n  {} ...",
+            patterns[0]
+        )
     } else {
         // Multiple patterns
         let formatted_patterns = patterns
@@ -335,16 +377,16 @@ fn format_pattern_instructions(patterns: &[String], guidance: &str) -> String {
             .map(|p| format!("  {} ...", p))
             .collect::<Vec<_>>()
             .join("\n");
-        format!("If {}, add one of:\n{}", condition, formatted_patterns)
+        format!("Only if fixing is not feasible, add one of:\n{}", formatted_patterns)
     }
 }
 
-/// Build the three-part suppress missing comment advice message.
+/// Build the fix-first suppress missing comment advice message.
 ///
-/// Format:
-/// 1. General statement: "Lint suppression requires justification."
-/// 2. Lint-specific guidance: A question tailored to the specific lint
-/// 3. Pattern instructions: How to add the required comment
+/// New format encourages fixing the underlying issue first:
+/// 1. Primary instruction: Fix the issue (imperative, actionable)
+/// 2. Context/guidance: Why and how to fix it
+/// 3. Last resort: Only if fixing is not feasible, add justification comment
 pub fn build_suppress_missing_comment_advice(
     language: &str,
     lint_code: Option<&str>,
@@ -352,34 +394,42 @@ pub fn build_suppress_missing_comment_advice(
 ) -> String {
     let mut parts = Vec::new();
 
-    // Part 1: General statement
-    parts.push("Lint suppression requires justification.".to_string());
-
-    // Part 2: Lint-specific guidance
-    let guidance = if let Some(code) = lint_code {
+    // Get fix-first guidance
+    let (primary_fix, context) = if let Some(code) = lint_code {
         match language {
-            "rust" => get_rust_lint_guidance(code),
-            "shell" => get_shell_lint_guidance(code),
-            "go" => get_go_lint_guidance(code),
-            "javascript" => get_js_lint_guidance(code),
-            _ => "Is this suppression necessary?",
+            "rust" => get_rust_fix_guidance(code),
+            "shell" => get_shell_fix_guidance(code),
+            "go" => get_go_fix_guidance(code),
+            "javascript" => get_js_fix_guidance(code),
+            _ => (
+                "Fix the underlying issue instead of suppressing the lint.",
+                "Suppressions should only be used when the lint is a false positive.",
+            ),
         }
     } else {
-        "Is this suppression necessary?"
+        (
+            "Fix the underlying issue instead of suppressing the lint.",
+            "Suppressions should only be used when the lint is a false positive.",
+        )
     };
-    parts.push(guidance.to_string());
 
-    // Part 3: Pattern instructions
+    // Part 1: Primary fix instruction
+    parts.push(primary_fix.to_string());
+
+    // Part 2: Context and guidance
+    parts.push(context.to_string());
+
+    // Part 3: Suppression as last resort
     if !required_patterns.is_empty() {
-        parts.push(format_pattern_instructions(required_patterns, guidance));
+        parts.push(format_suppression_fallback(required_patterns));
     } else {
-        // No specific patterns - generic guidance
+        // No specific patterns - generic fallback
         let msg = match language {
-            "rust" => "Add a comment above the attribute.",
-            "shell" => "Add a comment above the directive.",
-            "go" => "Add a comment above the directive or inline (//nolint:code // reason).",
-            "javascript" => "Add a comment above the directive or use inline reason (-- reason).",
-            _ => "Add a comment above the directive.",
+            "rust" => "Only if the lint is a false positive, add a comment above the attribute.",
+            "shell" => "Only if the lint is a false positive, add a comment above the directive.",
+            "go" => "Only if the lint is a false positive, add a comment above the directive or inline (//nolint:code // reason).",
+            "javascript" => "Only if the lint is a false positive, add a comment above the directive or use inline reason (-- reason).",
+            _ => "Only if the lint is a false positive, add a comment above the directive.",
         };
         parts.push(msg.to_string());
     }

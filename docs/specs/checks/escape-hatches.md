@@ -115,28 +115,28 @@ unsafe {                    // ✗ No comment (search stopped at `fn other_code`
 
 ## Lint Suppression Messages
 
-When a lint suppression is missing a required comment, the error message includes:
+When a lint suppression is missing a required comment, the error message encourages fixing the underlying issue first, with suppression as a last resort:
 
-1. **General statement**: "Lint suppression requires justification."
-2. **Lint-specific guidance**: A thoughtful question or statement about the specific lint
-3. **Required patterns**: The list of acceptable comment patterns (if configured)
+1. **Primary instruction**: Direct, actionable instruction to fix the issue
+2. **Context/guidance**: Why and how to fix it properly
+3. **Last resort**: Only if fixing is not feasible, add justification comment
 
-The lint-specific guidance is tailored to each built-in pattern to help developers think critically about whether the suppression is necessary.
+This format encourages developers (especially AI agents) to address the root cause rather than immediately adding justification comments.
 
 **Message format:**
 ```
 <file>:<line>: suppress_missing_comment: <directive>
-  Lint suppression requires justification.
-  <lint-specific guidance>
-  <pattern instructions>
+  <primary fix instruction>
+  <context and guidance>
+  <suppression as last resort>
 ```
 
-**Pattern instructions format:**
-- Single pattern: `If so, add:\n  <pattern>`
-- Multiple patterns: `If it should be kept, add one of:\n  <pattern1>\n  <pattern2>\n  ...`
-- No specific pattern: `Add a comment above the directive or inline (<example>).`
+**Suppression instruction format:**
+- Single pattern: `Only if fixing is not feasible, add:\n  <pattern> ...`
+- Multiple patterns: `Only if fixing is not feasible, add one of:\n  <pattern1> ...\n  <pattern2> ...\n  ...`
+- No specific pattern: `Only if the lint is a false positive, add a comment above the directive.`
 
-See language-specific documentation for built-in lint-specific guidance:
+See language-specific documentation for built-in fix-first guidance:
 - [Rust suppress guidance](../langs/rust.md#default-per-lint-guidance)
 - [Go suppress guidance](../langs/golang.md#suppress)
 - [Shell suppress guidance](../langs/shell.md#suppress)
@@ -175,26 +175,23 @@ When a lint suppression is missing a required comment, the message provides:
 ```
 escapes: FAIL
   src/git_hooks.rs:109: suppress_missing_comment: #[allow(dead_code)]
-    Lint suppression requires justification.
-
-    Is this code still needed?
-    It is usually best to remove dead code.
-
-    If it should be kept, add one of:
+    Remove this dead code.
+    Dead code should be deleted to keep the codebase clean and maintainable.
+    Only if fixing is not feasible, add one of:
       // KEEP UNTIL: ...
       // NOTE(compat): ...
       // NOTE(compatibility): ...
 
   src/display.rs:106: suppress_missing_comment: #[allow(clippy::too_many_arguments)]
-    Lint suppression requires justification.
-    Can this function be refactored?
-    If not, add:
+    Refactor this function to use fewer arguments.
+    Consider grouping related parameters into a struct or using the builder pattern.
+    Only if fixing is not feasible, add:
       // TODO(refactor): ...
 
   src/daemon/runner.rs:598: suppress_missing_comment: #[allow(clippy::cast_possible_truncation)]
-    Lint suppression requires justification.
-    Is this cast safe?
-    If so, add one of:
+    Verify this cast is safe and won't truncate data.
+    Add explicit bounds checking or use safe conversion methods (e.g., try_into).
+    Only if fixing is not feasible, add one of:
       // CORRECTNESS: ...
       // SAFETY: ...
 ```
@@ -204,9 +201,9 @@ escapes: FAIL
 ```
 escapes: FAIL
   scripts/deploy.sh:23: shellcheck_missing_comment: # shellcheck disable=SC2086
-    Lint suppression requires justification.
-    Is unquoted expansion intentional here?
-    Add a comment above the directive.
+    Quote the variable expansion to prevent word splitting.
+    Use "$var" instead of $var unless word splitting is intentionally needed.
+    Only if the lint is a false positive, add a comment above the directive.
 ```
 
 See language-specific documentation for complete per-lint guidance:

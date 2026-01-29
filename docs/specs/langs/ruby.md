@@ -219,39 +219,39 @@ end
 
 ### Violation Messages
 
-When a RuboCop suppression is missing a required comment, the error message provides:
-1. A general statement that justification is required
-2. Cop-specific guidance tailored to common cops
-3. The list of acceptable comment patterns (when configured)
+When a RuboCop suppression is missing a required comment, the error message encourages fixing first:
+1. Primary instruction to fix the issue (imperative, actionable)
+2. Context and guidance on how to fix it properly
+3. Suppression as last resort with acceptable comment patterns
 
 **Example outputs:**
 
 ```
 lib/parser.rb:45: suppress_missing_comment: # rubocop:disable Metrics/MethodLength
-  Lint suppression requires justification.
-  Can this method be refactored into smaller pieces?
-  If not, add:
+  Refactor this method into smaller pieces.
+  Extract logical sections into separate methods with clear names.
+  Only if fixing is not feasible, add:
     # TODO(refactor): ...
 
 lib/client.rb:23: suppress_missing_comment: # rubocop:disable Security/Open
-  Lint suppression requires justification.
-  Is this URL/path from a trusted source?
-  Add a comment above the directive.
+  Verify the URL/path comes from a trusted source.
+  Validate and sanitize the input before passing to open().
+  Only if the lint is a false positive, add a comment above the directive.
 ```
 
 **Default per-cop guidance** (for common RuboCop cops):
 
-| Cop | Guidance Question |
-|-----|-------------------|
-| `Metrics/MethodLength` | Can this method be refactored into smaller pieces? |
-| `Metrics/AbcSize` | Can this method's complexity be reduced? |
-| `Metrics/CyclomaticComplexity` | Can conditional logic be simplified? |
-| `Security/Open` | Is this URL/path from a trusted source? |
-| `Security/Eval` | Is there a safer alternative to eval? |
-| `Style/Documentation` | Should this class have documentation? |
-| `Lint/UselessAssignment` | Is this variable used elsewhere? |
+| Cop | Primary Fix Instruction | Context |
+|-----|------------------------|---------|
+| `Metrics/MethodLength` | Refactor this method into smaller pieces. | Extract logical sections into separate methods with clear names. |
+| `Metrics/AbcSize` | Reduce this method's complexity. | Break down complex logic into smaller, focused methods. |
+| `Metrics/CyclomaticComplexity` | Simplify the conditional logic. | Consider using guard clauses or extracting conditions into methods. |
+| `Security/Open` | Verify the URL/path comes from a trusted source. | Validate and sanitize the input before passing to open(). |
+| `Security/Eval` | Replace eval with a safer alternative. | Use send, public_send, or a dispatch table instead. |
+| `Style/Documentation` | Add documentation for this class. | Document the class purpose, responsibilities, and usage. |
+| `Lint/UselessAssignment` | Remove this unused assignment. | Delete the variable or use it in the method logic. |
 
-Other cops use: "Is this suppression necessary?"
+Other cops use: "Fix the underlying issue instead of suppressing the lint."
 
 ## Policy
 
