@@ -29,7 +29,6 @@ use crate::check::{Check, CheckContext, CheckResult, Violation};
 use crate::checks::placeholders::{
     PlaceholderMetrics, collect_placeholder_metrics, default_js_patterns, default_rust_patterns,
 };
-use crate::config::TestsCommitConfig;
 
 use self::auto_detect::{
     auto_detect_go_suite, auto_detect_js_suite, auto_detect_py_suite, auto_detect_rust_suite,
@@ -132,7 +131,11 @@ impl Check for TestsCheck {
         }
 
         // Build correlation config from user settings
-        let correlation_config = build_correlation_config(config);
+        let correlation_config = CorrelationConfig {
+            test_patterns: config.test_patterns.clone(),
+            source_patterns: config.source_patterns.clone(),
+            exclude_patterns: config.exclude.clone(),
+        };
 
         // Commit scope: check each commit individually
         // Branch scope: aggregate all changes (existing behavior)
@@ -165,8 +168,8 @@ impl TestsCheck {
         let agg = suite_results.aggregated_metrics();
 
         // Aggregate coverage from all suites
-        let (aggregated_coverage, packages_coverage) =
-            aggregate_suite_coverage(&suite_results.suites);
+        let suite_refs: Vec<&SuiteResult> = suite_results.suites.iter().collect();
+        let (aggregated_coverage, packages_coverage) = aggregate_suite_coverage(&suite_refs);
 
         // Build metrics JSON with top-level aggregates
         let mut metrics = json!({
@@ -265,7 +268,8 @@ impl TestsCheck {
             CheckResult::passed(self.name()).with_metrics(metrics)
         } else if !suite_results.passed {
             // Build violations for failed suites
-            let mut violations = build_suite_violations(&suite_results.suites);
+            let suite_refs: Vec<&SuiteResult> = suite_results.suites.iter().collect();
+            let mut violations = build_suite_violations(&suite_refs);
             // Add threshold violations to suite failure violations
             violations.extend(threshold_violations);
             CheckResult::failed(self.name(), violations).with_metrics(metrics)
@@ -335,27 +339,9 @@ impl TestsCheck {
             .map(|(ms, name)| (Some(ms), name))
             .unwrap_or((None, None));
 
-        // Aggregate coverage from all suites (inline since we have tuples)
-        let mut aggregated_coverage: HashMap<String, f64> = HashMap::new();
-        let mut packages_coverage: HashMap<String, f64> = HashMap::new();
-        for (result, _) in &suite_results {
-            if let Some(ref cov) = result.coverage {
-                for (lang, pct) in cov {
-                    aggregated_coverage
-                        .entry(lang.clone())
-                        .and_modify(|existing: &mut f64| *existing = existing.max(*pct))
-                        .or_insert(*pct);
-                }
-            }
-            if let Some(ref cov) = result.coverage_by_package {
-                for (pkg, pct) in cov {
-                    packages_coverage
-                        .entry(pkg.clone())
-                        .and_modify(|existing: &mut f64| *existing = existing.max(*pct))
-                        .or_insert(*pct);
-                }
-            }
-        }
+        // Aggregate coverage from all suites
+        let suites_only: Vec<&SuiteResult> = suite_results.iter().map(|(r, _)| r).collect();
+        let (aggregated_coverage, packages_coverage) = aggregate_suite_coverage(&suites_only);
 
         // Build metrics JSON
         let mut metrics = json!({
@@ -411,17 +397,7 @@ impl TestsCheck {
         if all_passed {
             CheckResult::passed(self.name()).with_metrics(metrics)
         } else {
-            let violations: Vec<Violation> = suite_results
-                .iter()
-                .filter(|(s, _)| !s.passed && !s.skipped)
-                .map(|(s, _)| {
-                    let advice = s
-                        .error
-                        .clone()
-                        .unwrap_or_else(|| "test suite failed".to_string());
-                    Violation::file_only(format!("<suite:{}>", s.name), "test_suite_failed", advice)
-                })
-                .collect();
+            let violations = build_suite_violations(&suites_only);
             CheckResult::failed(self.name(), violations).with_metrics(metrics)
         }
     }
@@ -561,9 +537,14 @@ impl TestsCheck {
                 let file_stem = path.file_stem().and_then(|s| s.to_str()).unwrap_or("file");
                 let lang = detect_language(path);
                 let test_advice = missing_tests_advice(file_stem, lang);
+                let short_hash = if analysis.hash.len() >= SHORT_HASH_LEN {
+                    &analysis.hash[..SHORT_HASH_LEN]
+                } else {
+                    &analysis.hash
+                };
                 let advice = format!(
                     "Commit {} modifies {} without test changes. {}",
-                    short_hash(&analysis.hash),
+                    short_hash,
                     path.display(),
                     test_advice
                 );
@@ -621,12 +602,12 @@ impl TestsCheck {
 
 /// Aggregate coverage data from suite results by language.
 fn aggregate_suite_coverage(
-    suites: &[SuiteResult],
+    suites: &[&SuiteResult],
 ) -> (HashMap<String, f64>, HashMap<String, f64>) {
     let mut by_language = HashMap::new();
     let mut by_package = HashMap::new();
 
-    for suite in suites {
+    for &suite in suites {
         if let Some(ref cov) = suite.coverage {
             for (lang, pct) in cov {
                 by_language
@@ -649,11 +630,11 @@ fn aggregate_suite_coverage(
 }
 
 /// Build violations from failed suites.
-fn build_suite_violations(suites: &[SuiteResult]) -> Vec<Violation> {
+fn build_suite_violations(suites: &[&SuiteResult]) -> Vec<Violation> {
     suites
         .iter()
-        .filter(|s| !s.passed && !s.skipped)
-        .map(|s| {
+        .filter(|&&s| !s.passed && !s.skipped)
+        .map(|&s| {
             let advice = s
                 .error
                 .clone()
@@ -745,26 +726,9 @@ fn default_test_patterns() -> Vec<String> {
     ]
 }
 
-fn build_correlation_config(config: &TestsCommitConfig) -> CorrelationConfig {
-    CorrelationConfig {
-        test_patterns: config.test_patterns.clone(),
-        source_patterns: config.source_patterns.clone(),
-        exclude_patterns: config.exclude.clone(),
-    }
-}
-
 /// Normalize a path relative to root, returning the original if not under root.
 fn relative_to_root<'a>(path: &'a Path, root: &Path) -> &'a Path {
     path.strip_prefix(root).unwrap_or(path)
-}
-
-/// Truncate a git hash to short form for display.
-fn short_hash(hash: &str) -> &str {
-    if hash.len() >= SHORT_HASH_LEN {
-        &hash[..SHORT_HASH_LEN]
-    } else {
-        hash
-    }
 }
 
 /// Check if any placeholder test satisfies the test requirement for a source file.

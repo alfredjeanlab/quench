@@ -25,24 +25,6 @@ fn tests_check_default_enabled() {
 }
 
 #[test]
-fn build_correlation_config_uses_user_settings() {
-    let config = TestsCommitConfig {
-        check: "error".to_string(),
-        scope: "branch".to_string(),
-        placeholders: "allow".to_string(),
-        test_patterns: vec!["custom/tests/**".to_string()],
-        source_patterns: vec!["custom/src/**".to_string()],
-        exclude: vec!["**/ignore_me.rs".to_string()],
-    };
-
-    let correlation = build_correlation_config(&config);
-
-    assert_eq!(correlation.test_patterns, vec!["custom/tests/**"]);
-    assert_eq!(correlation.source_patterns, vec!["custom/src/**"]);
-    assert_eq!(correlation.exclude_patterns, vec!["**/ignore_me.rs"]);
-}
-
-#[test]
 fn tests_commit_config_defaults() {
     let config = TestsCommitConfig::default();
 
