@@ -3,6 +3,8 @@
 
 //! Unit tests for Python lint policy checking.
 
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+
 use std::path::Path;
 
 use crate::adapter::FileKind;
@@ -13,8 +15,10 @@ use super::*;
 fn classify_mock(path: &Path) -> FileKind {
     let path_str = path.to_string_lossy();
     if path_str.contains("tests/")
+        || path_str.contains("test/")
         || path_str.starts_with("test_")
         || path_str.ends_with("_test.py")
+        || path_str.ends_with("conftest.py")
     {
         FileKind::Test
     } else if path_str.ends_with(".py") {

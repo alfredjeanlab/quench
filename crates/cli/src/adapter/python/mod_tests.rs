@@ -3,7 +3,7 @@
 
 //! Unit tests for the Python adapter.
 
-#![allow(clippy::unwrap_used, clippy::expect_used)]
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
 use std::path::Path;
 
@@ -80,93 +80,110 @@ fn classifies_test_files() {
         adapter.classify(Path::new("tests/conftest.py")),
         FileKind::Test
     );
+    assert_eq!(
+        adapter.classify(Path::new("tests/unit/conftest.py")),
+        FileKind::Test
+    );
+}
+
+// =============================================================================
+// IGNORE PATTERN TESTS
+// =============================================================================
+
+#[test]
+fn ignores_venv_directory() {
+    let adapter = PythonAdapter::new();
+    assert_eq!(
+        adapter.classify(Path::new(".venv/lib/python3.11/site-packages/foo.py")),
+        FileKind::Other
+    );
+    assert_eq!(
+        adapter.classify(Path::new("venv/lib/python3.11/site-packages/foo.py")),
+        FileKind::Other
+    );
 }
 
 #[test]
-fn classifies_ignored_files() {
+fn ignores_pycache_directory() {
     let adapter = PythonAdapter::new();
-
-    // Virtual environments
-    assert_eq!(
-        adapter.classify(Path::new(".venv/lib/python3.11/site.py")),
-        FileKind::Other
-    );
-    assert_eq!(
-        adapter.classify(Path::new(".venv/lib/site-packages/foo.py")),
-        FileKind::Other
-    );
-    assert_eq!(
-        adapter.classify(Path::new("venv/lib/python3.11/site.py")),
-        FileKind::Other
-    );
-    assert_eq!(
-        adapter.classify(Path::new("venv/lib/site-packages/bar.py")),
-        FileKind::Other
-    );
-
-    // Cache directories
-    assert_eq!(
-        adapter.classify(Path::new("__pycache__/app.cpython-311.pyc")),
-        FileKind::Other
-    );
     assert_eq!(
         adapter.classify(Path::new("__pycache__/module.cpython-311.pyc")),
         FileKind::Other
     );
     assert_eq!(
-        adapter.classify(Path::new("src/__pycache__/main.cpython-311.pyc")),
+        adapter.classify(Path::new("src/__pycache__/module.py")),
         FileKind::Other
     );
-    assert_eq!(
-        adapter.classify(Path::new("src/__pycache__/app.cpython-311.pyc")),
-        FileKind::Other
-    );
-    assert_eq!(
-        adapter.classify(Path::new(".mypy_cache/3.11/mypackage.py")),
-        FileKind::Other
-    );
+}
+
+#[test]
+fn ignores_mypy_cache() {
+    let adapter = PythonAdapter::new();
     assert_eq!(
         adapter.classify(Path::new(".mypy_cache/3.11/module.py")),
         FileKind::Other
     );
+}
+
+#[test]
+fn ignores_pytest_cache() {
+    let adapter = PythonAdapter::new();
     assert_eq!(
-        adapter.classify(Path::new(".pytest_cache/v/cache/stepwise")),
+        adapter.classify(Path::new(".pytest_cache/v/cache/foo.py")),
         FileKind::Other
     );
-    assert_eq!(
-        adapter.classify(Path::new(".pytest_cache/foo.py")),
-        FileKind::Other
-    );
+}
+
+#[test]
+fn ignores_ruff_cache() {
+    let adapter = PythonAdapter::new();
     assert_eq!(
         adapter.classify(Path::new(".ruff_cache/foo.py")),
         FileKind::Other
     );
+}
 
-    // Build directories
+#[test]
+fn ignores_dist_directory() {
+    let adapter = PythonAdapter::new();
     assert_eq!(
-        adapter.classify(Path::new("dist/mypackage-1.0.0/main.py")),
+        adapter.classify(Path::new("dist/mypackage-1.0.0/mypackage/module.py")),
         FileKind::Other
     );
-    assert_eq!(
-        adapter.classify(Path::new("dist/package/module.py")),
-        FileKind::Other
-    );
-    assert_eq!(
-        adapter.classify(Path::new("build/lib/mypackage/main.py")),
-        FileKind::Other
-    );
-    assert_eq!(
-        adapter.classify(Path::new("build/lib/module.py")),
-        FileKind::Other
-    );
+}
 
-    // Tox and nox directories
+#[test]
+fn ignores_build_directory() {
+    let adapter = PythonAdapter::new();
     assert_eq!(
-        adapter.classify(Path::new(".tox/py311/lib/python3.11/site.py")),
+        adapter.classify(Path::new("build/lib/mypackage/module.py")),
         FileKind::Other
     );
+}
+
+#[test]
+fn ignores_egg_info_directory() {
+    let adapter = PythonAdapter::new();
     assert_eq!(
-        adapter.classify(Path::new(".nox/tests/lib/python3.11/site.py")),
+        adapter.classify(Path::new("mypackage.egg-info/PKG-INFO")),
+        FileKind::Other
+    );
+}
+
+#[test]
+fn ignores_tox_directory() {
+    let adapter = PythonAdapter::new();
+    assert_eq!(
+        adapter.classify(Path::new(".tox/py311/lib/python3.11/site-packages/foo.py")),
+        FileKind::Other
+    );
+}
+
+#[test]
+fn ignores_nox_directory() {
+    let adapter = PythonAdapter::new();
+    assert_eq!(
+        adapter.classify(Path::new(".nox/tests/lib/python3.11/site-packages/foo.py")),
         FileKind::Other
     );
 }
@@ -210,6 +227,8 @@ fn should_ignore_common_directories() {
     // Virtual environments
     assert!(adapter.should_ignore(Path::new(".venv/lib/site-packages/foo.py")));
     assert!(adapter.should_ignore(Path::new("venv/bin/python")));
+    assert!(adapter.should_ignore(Path::new(".env/lib/site-packages/foo.py")));
+    assert!(adapter.should_ignore(Path::new("env/bin/python")));
 
     // Cache directories
     assert!(adapter.should_ignore(Path::new("__pycache__/module.cpython-311.pyc")));
@@ -230,6 +249,10 @@ fn should_ignore_common_directories() {
     assert!(!adapter.should_ignore(Path::new("mypackage/module.py")));
 }
 
+// =============================================================================
+// ADAPTER TRAIT TESTS
+// =============================================================================
+
 #[test]
 fn adapter_name() {
     let adapter = PythonAdapter::new();
@@ -242,20 +265,134 @@ fn adapter_extensions() {
     assert_eq!(adapter.extensions(), &["py"]);
 }
 
+// =============================================================================
+// ESCAPE PATTERN TESTS
+// =============================================================================
+
 #[test]
-fn default_escapes_defined() {
+fn default_escapes_include_debuggers() {
     let adapter = PythonAdapter::new();
     let escapes = adapter.default_escapes();
 
-    // Should have debugger patterns
     assert!(escapes.iter().any(|e| e.name == "breakpoint"));
     assert!(escapes.iter().any(|e| e.name == "pdb_set_trace"));
     assert!(escapes.iter().any(|e| e.name == "import_pdb"));
+    assert!(escapes.iter().any(|e| e.name == "from_pdb"));
+}
 
-    // Should have eval/exec patterns
+#[test]
+fn default_escapes_include_dynamic_execution() {
+    let adapter = PythonAdapter::new();
+    let escapes = adapter.default_escapes();
+
     assert!(escapes.iter().any(|e| e.name == "eval"));
     assert!(escapes.iter().any(|e| e.name == "exec"));
-    assert!(escapes.iter().any(|e| e.name == "dynamic_import"));
+    assert!(escapes.iter().any(|e| e.name == "__import__"));
+    assert!(escapes.iter().any(|e| e.name == "compile"));
+}
+
+#[test]
+fn debugger_escapes_are_forbid() {
+    let adapter = PythonAdapter::new();
+    let escapes = adapter.default_escapes();
+
+    let debugger_names = ["breakpoint", "pdb_set_trace", "import_pdb", "from_pdb"];
+    for escape in escapes.iter().filter(|e| debugger_names.contains(&e.name)) {
+        assert_eq!(
+            escape.action,
+            EscapeAction::Forbid,
+            "debugger {} should be Forbid",
+            escape.name
+        );
+    }
+}
+
+#[test]
+fn debugger_escapes_forbid_in_tests() {
+    let adapter = PythonAdapter::new();
+    let escapes = adapter.default_escapes();
+
+    let debugger_names = ["breakpoint", "pdb_set_trace", "import_pdb", "from_pdb"];
+    for escape in escapes.iter().filter(|e| debugger_names.contains(&e.name)) {
+        assert_eq!(
+            escape.in_tests,
+            Some("forbid"),
+            "debugger {} should be forbidden in tests",
+            escape.name
+        );
+    }
+}
+
+#[test]
+fn dynamic_execution_escapes_require_comment() {
+    let adapter = PythonAdapter::new();
+    let escapes = adapter.default_escapes();
+
+    let dynamic_names = ["eval", "exec", "__import__", "compile"];
+    for escape in escapes.iter().filter(|e| dynamic_names.contains(&e.name)) {
+        assert_eq!(
+            escape.action,
+            EscapeAction::Comment,
+            "dynamic {} should be Comment",
+            escape.name
+        );
+        assert!(
+            escape.comment.is_some(),
+            "dynamic {} should have comment pattern",
+            escape.name
+        );
+    }
+}
+
+#[test]
+fn dynamic_execution_escapes_allowed_in_tests() {
+    let adapter = PythonAdapter::new();
+    let escapes = adapter.default_escapes();
+
+    let dynamic_names = ["eval", "exec", "__import__", "compile"];
+    for escape in escapes.iter().filter(|e| dynamic_names.contains(&e.name)) {
+        assert_eq!(
+            escape.in_tests, None,
+            "dynamic {} should be allowed in tests by default",
+            escape.name
+        );
+    }
+}
+
+#[test]
+fn eval_requires_eval_comment() {
+    let adapter = PythonAdapter::new();
+    let escapes = adapter.default_escapes();
+
+    let eval_escape = escapes.iter().find(|e| e.name == "eval").unwrap();
+    assert_eq!(eval_escape.comment, Some("# EVAL:"));
+}
+
+#[test]
+fn exec_requires_exec_comment() {
+    let adapter = PythonAdapter::new();
+    let escapes = adapter.default_escapes();
+
+    let exec_escape = escapes.iter().find(|e| e.name == "exec").unwrap();
+    assert_eq!(exec_escape.comment, Some("# EXEC:"));
+}
+
+#[test]
+fn dunder_import_requires_dynamic_comment() {
+    let adapter = PythonAdapter::new();
+    let escapes = adapter.default_escapes();
+
+    let import_escape = escapes.iter().find(|e| e.name == "__import__").unwrap();
+    assert_eq!(import_escape.comment, Some("# DYNAMIC:"));
+}
+
+#[test]
+fn compile_requires_dynamic_comment() {
+    let adapter = PythonAdapter::new();
+    let escapes = adapter.default_escapes();
+
+    let compile_escape = escapes.iter().find(|e| e.name == "compile").unwrap();
+    assert_eq!(compile_escape.comment, Some("# DYNAMIC:"));
 }
 
 #[test]

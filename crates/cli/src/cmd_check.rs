@@ -199,10 +199,12 @@ pub fn run(_cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
             }
         }
         ProjectLanguage::Python => {
-            // Ignore common Python directories
+            // Ignore common Python cache and build directories
             for pattern in [
                 ".venv",
                 "venv",
+                ".env",
+                "env",
                 "__pycache__",
                 ".mypy_cache",
                 ".pytest_cache",

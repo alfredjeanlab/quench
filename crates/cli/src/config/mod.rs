@@ -87,13 +87,13 @@ pub struct Config {
     #[serde(default)]
     pub javascript: JavaScriptConfig,
 
-    /// Ruby-specific configuration.
-    #[serde(default)]
-    pub ruby: RubyConfig,
-
     /// Python-specific configuration.
     #[serde(default)]
     pub python: PythonConfig,
+
+    /// Ruby-specific configuration.
+    #[serde(default)]
+    pub ruby: RubyConfig,
 
     /// Shell-specific configuration.
     #[serde(default)]
@@ -208,11 +208,11 @@ impl Config {
             "javascript" | "js" | "jsx" | "ts" | "tsx" | "mjs" | "mts" | "cjs" | "cts" => {
                 self.javascript.cloc.as_ref().and_then(|c| c.check)
             }
+            "python" | "py" => self.python.cloc.as_ref().and_then(|c| c.check),
             "shell" | "sh" | "bash" | "zsh" | "fish" | "bats" => {
                 self.shell.cloc.as_ref().and_then(|c| c.check)
             }
             "ruby" | "rb" | "rake" => self.ruby.cloc.as_ref().and_then(|c| c.check),
-            "python" | "py" => self.python.cloc.as_ref().and_then(|c| c.check),
             _ => None,
         };
         lang_level.unwrap_or(self.check.cloc.check)
@@ -248,18 +248,18 @@ impl Config {
                 .as_ref()
                 .and_then(|c| c.advice.as_deref())
                 .or(self.javascript.cloc_advice.as_deref()),
-            "ruby" | "rb" | "rake" => self
-                .ruby
-                .cloc
-                .as_ref()
-                .and_then(|c| c.advice.as_deref())
-                .or(self.ruby.cloc_advice.as_deref()),
             "python" | "py" => self
                 .python
                 .cloc
                 .as_ref()
                 .and_then(|c| c.advice.as_deref())
                 .or(self.python.cloc_advice.as_deref()),
+            "ruby" | "rb" | "rake" => self
+                .ruby
+                .cloc
+                .as_ref()
+                .and_then(|c| c.advice.as_deref())
+                .or(self.ruby.cloc_advice.as_deref()),
             "shell" | "sh" | "bash" | "zsh" | "fish" | "bats" => self
                 .shell
                 .cloc
@@ -284,8 +284,8 @@ impl Config {
         match language {
             "rust" | "rs" => RustConfig::default_cloc_advice(),
             "go" => GoConfig::default_cloc_advice(),
-            "ruby" | "rb" | "rake" => RubyConfig::default_cloc_advice(),
             "python" | "py" => PythonConfig::default_cloc_advice(),
+            "ruby" | "rb" | "rake" => RubyConfig::default_cloc_advice(),
             "shell" | "sh" | "bash" | "zsh" | "fish" | "bats" => ShellConfig::default_cloc_advice(),
             _ => &self.check.cloc.advice,
         }
@@ -303,8 +303,8 @@ impl Config {
             "rust" => self.rust.policy.check,
             "go" | "golang" => self.golang.policy.check,
             "javascript" | "js" => self.javascript.policy.check,
-            "ruby" | "rb" => self.ruby.policy.check,
             "python" | "py" => self.python.policy.check,
+            "ruby" | "rb" => self.ruby.policy.check,
             "shell" | "sh" => self.shell.policy.check,
             _ => None,
         };

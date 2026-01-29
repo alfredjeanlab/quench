@@ -67,6 +67,9 @@ impl LanguageDefaults for PythonDefaults {
     fn default_tests() -> Vec<String> {
         vec![
             "tests/**/*.py".to_string(),
+            "**/tests/**/*.py".to_string(),
+            "test/**/*.py".to_string(),
+            "**/test/**/*.py".to_string(),
             "**/test_*.py".to_string(),
             "**/*_test.py".to_string(),
             "**/conftest.py".to_string(),
@@ -77,6 +80,8 @@ impl LanguageDefaults for PythonDefaults {
         vec![
             ".venv/**".to_string(),
             "venv/**".to_string(),
+            ".env/**".to_string(),
+            "env/**".to_string(),
             "__pycache__/**".to_string(),
             ".mypy_cache/**".to_string(),
             ".pytest_cache/**".to_string(),
