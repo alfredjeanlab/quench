@@ -20,7 +20,7 @@ mod suppress;
 pub use crate::adapter::common::policy::PolicyCheckResult;
 pub use suppress::{RubySuppress, RubySuppressKind, parse_ruby_suppresses};
 
-use super::common::patterns::normalize_ignore_patterns;
+use super::common::patterns::normalize_exclude_patterns;
 use super::glob::build_glob_set;
 use super::{Adapter, EscapeAction, EscapePattern, FileKind};
 use crate::config::RubyPolicyConfig;
@@ -83,7 +83,7 @@ const RUBY_ESCAPE_PATTERNS: &[EscapePattern] = &[
 pub struct RubyAdapter {
     source_patterns: GlobSet,
     test_patterns: GlobSet,
-    ignore_patterns: GlobSet,
+    exclude_patterns: GlobSet,
 }
 
 impl RubyAdapter {
@@ -103,7 +103,7 @@ impl RubyAdapter {
                 "test/**/test_*.rb".to_string(),
                 "features/**/*.rb".to_string(),
             ]),
-            ignore_patterns: build_glob_set(&[
+            exclude_patterns: build_glob_set(&[
                 "vendor/**".to_string(),
                 "tmp/**".to_string(),
                 "log/**".to_string(),
@@ -114,25 +114,25 @@ impl RubyAdapter {
 
     /// Create a Ruby adapter with resolved patterns from config.
     pub fn with_patterns(patterns: super::ResolvedPatterns) -> Self {
-        let ignore_globs = normalize_ignore_patterns(&patterns.ignore);
+        let exclude_globs = normalize_exclude_patterns(&patterns.exclude);
 
         Self {
             source_patterns: build_glob_set(&patterns.source),
             test_patterns: build_glob_set(&patterns.test),
-            ignore_patterns: build_glob_set(&ignore_globs),
+            exclude_patterns: build_glob_set(&exclude_globs),
         }
     }
 
-    /// Check if a path matches ignore patterns.
-    pub fn should_ignore(&self, path: &Path) -> bool {
+    /// Check if a path matches exclude patterns.
+    pub fn should_exclude(&self, path: &Path) -> bool {
         let path_str = path.to_string_lossy();
 
-        // Check explicit ignore patterns
-        if self.ignore_patterns.is_match(path) {
+        // Check explicit exclude patterns
+        if self.exclude_patterns.is_match(path) {
             return true;
         }
 
-        // Also check for common ignored directories by path prefix
+        // Also check for common excluded directories by path prefix
         // This handles cases where the path starts with these directories
         let parts: Vec<&str> = path_str.split('/').collect();
         if !parts.is_empty() {
@@ -162,8 +162,8 @@ impl Adapter for RubyAdapter {
     }
 
     fn classify(&self, path: &Path) -> FileKind {
-        // Check ignore patterns first
-        if self.should_ignore(path) {
+        // Check exclude patterns first
+        if self.should_exclude(path) {
             return FileKind::Other;
         }
 

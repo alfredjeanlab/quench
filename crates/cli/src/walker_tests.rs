@@ -87,7 +87,7 @@ fn respects_depth_limit() {
 }
 
 #[test]
-fn custom_ignore_patterns() {
+fn custom_exclude_patterns() {
     let tmp = TempDir::new().unwrap();
     create_tree(
         tmp.path(),
@@ -98,12 +98,12 @@ fn custom_ignore_patterns() {
     );
 
     let walker = FileWalker::new(WalkerConfig {
-        ignore_patterns: vec!["*.snapshot".to_string()],
+        exclude_patterns: vec!["*.snapshot".to_string()],
         ..test_config()
     });
     let (files, _) = walker.walk_collect(tmp.path());
 
-    // snapshot should be ignored
+    // snapshot should be excluded
     assert!(
         files
             .iter()
@@ -165,13 +165,13 @@ fn handles_empty_directory() {
 }
 
 #[test]
-fn from_ignore_config() {
-    let ignore = IgnoreConfig {
+fn from_exclude_config() {
+    let exclude = ExcludeConfig {
         patterns: vec!["*.log".to_string(), "tmp/".to_string()],
     };
 
-    let walker = FileWalker::from_ignore_config(&ignore);
-    assert_eq!(walker.config.ignore_patterns, ignore.patterns);
+    let walker = FileWalker::from_exclude_config(&exclude);
+    assert_eq!(walker.config.exclude_patterns, exclude.patterns);
 }
 
 // Adaptive parallel/sequential tests

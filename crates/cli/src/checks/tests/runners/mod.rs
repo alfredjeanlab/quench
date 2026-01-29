@@ -114,6 +114,8 @@ pub struct RunnerContext<'a> {
     pub ci_mode: bool,
     /// Whether to collect coverage.
     pub collect_coverage: bool,
+    /// Project configuration (for target resolution).
+    pub config: &'a crate::config::Config,
 }
 
 /// Trait for pluggable test runners.

@@ -3,7 +3,7 @@
 
 //! Common pattern utilities shared between language adapters.
 
-/// Normalize ignore patterns to glob patterns.
+/// Normalize exclude patterns to glob patterns.
 ///
 /// Converts user-friendly directory patterns to proper glob patterns:
 /// - `dir/` → `dir/**` (trailing slash means "everything in this directory")
@@ -14,10 +14,10 @@
 ///
 /// ```ignore
 /// let patterns = vec!["vendor/".to_string(), "build".to_string(), "**/*.pyc".to_string()];
-/// let normalized = normalize_ignore_patterns(&patterns);
+/// let normalized = normalize_exclude_patterns(&patterns);
 /// assert_eq!(normalized, vec!["vendor/**", "build/**", "**/*.pyc"]);
 /// ```
-pub fn normalize_ignore_patterns(patterns: &[String]) -> Vec<String> {
+pub fn normalize_exclude_patterns(patterns: &[String]) -> Vec<String> {
     patterns
         .iter()
         .map(|p| {

@@ -8,6 +8,7 @@ use std::path::Path;
 use anyhow::Result;
 
 use crate::cli::InitArgs;
+use crate::completions;
 use crate::error::ExitCode;
 use crate::init::{DetectedAgent, DetectedLanguage, detect_agents, detect_languages};
 use crate::profiles::{
@@ -189,6 +190,14 @@ pub fn run(args: &InitArgs) -> Result<ExitCode> {
     // Ensure .quench/ is in .gitignore
     if let Err(e) = ensure_gitignored(&cwd) {
         eprintln!("quench: warning: failed to update .gitignore: {}", e);
+    }
+
+    // Install shell completions
+    if let Err(e) = completions::install_all() {
+        eprintln!(
+            "quench: warning: failed to install shell completions: {}",
+            e
+        );
     }
 
     println!("{}", message);

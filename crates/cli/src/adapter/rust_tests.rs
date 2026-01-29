@@ -37,12 +37,12 @@ fn classify_path(path: &str, expected: FileKind) {
     src_lib = { "src/lib.rs", false },
     tests_test = { "tests/test.rs", false },
 )]
-fn should_ignore_path(path: &str, expected: bool) {
+fn should_exclude_path(path: &str, expected: bool) {
     let adapter = RustAdapter::new();
     assert_eq!(
-        adapter.should_ignore(Path::new(path)),
+        adapter.should_exclude(Path::new(path)),
         expected,
-        "path {:?} should_ignore = {}",
+        "path {:?} should_exclude = {}",
         path,
         expected
     );

@@ -530,32 +530,32 @@ cloc_advice = "Custom Shell advice here"
 // Ignore config tests
 
 #[test]
-fn ignore_shorthand_array() {
+fn exclude_shorthand_array() {
     let path = PathBuf::from("quench.toml");
     let content = r#"
 version = 1
 
 [project]
-ignore = ["*.snapshot", "testdata/**"]
+exclude = ["*.snapshot", "testdata/**"]
 "#;
     let config = parse(content, &path).unwrap();
     assert_eq!(
-        config.project.ignore.patterns,
+        config.project.exclude.patterns,
         vec!["*.snapshot", "testdata/**"]
     );
 }
 
 #[test]
-fn ignore_full_table() {
+fn exclude_full_table() {
     let path = PathBuf::from("quench.toml");
     let content = r#"
 version = 1
 
-[project.ignore]
+[project.exclude]
 patterns = ["*.snapshot"]
 "#;
     let config = parse(content, &path).unwrap();
-    assert_eq!(config.project.ignore.patterns, vec!["*.snapshot"]);
+    assert_eq!(config.project.exclude.patterns, vec!["*.snapshot"]);
 }
 
 // Specs content validation config tests

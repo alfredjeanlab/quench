@@ -126,7 +126,7 @@ pub fn collect_bun_coverage(root: &Path, test_path: Option<&str>) -> CoverageRes
     let start = Instant::now();
 
     let mut cmd = Command::new("bun");
-    cmd.args(["test", "--coverage"]);
+    cmd.args(["test", "--coverage", "--coverage-reporter=lcov"]);
     if let Some(path) = test_path {
         cmd.arg(path);
     }

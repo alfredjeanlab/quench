@@ -16,8 +16,8 @@ pub trait LanguageDefaults {
     /// Default test file patterns for this language.
     fn default_tests() -> Vec<String>;
 
-    /// Default ignore patterns for this language.
-    fn default_ignore() -> Vec<String> {
+    /// Default exclude patterns for this language (walker-level: prevents I/O on subtrees).
+    fn default_exclude() -> Vec<String> {
         vec![]
     }
 }
@@ -27,7 +27,7 @@ pub trait LanguageDefaults {
 pub struct ResolvedPatterns {
     pub source: Vec<String>,
     pub test: Vec<String>,
-    pub ignore: Vec<String>,
+    pub exclude: Vec<String>,
 }
 
 // =============================================================================
@@ -47,8 +47,8 @@ macro_rules! impl_language_defaults {
                     <$config>::default_tests()
                 }
 
-                fn default_ignore() -> Vec<String> {
-                    <$config>::default_ignore()
+                fn default_exclude() -> Vec<String> {
+                    <$config>::default_exclude()
                 }
             }
         )*
@@ -77,7 +77,7 @@ impl_language_defaults!(
 pub fn resolve_patterns<C: LanguageDefaults>(
     lang_source: &[String],
     lang_tests: &[String],
-    lang_ignore: &[String],
+    lang_exclude: &[String],
     fallback_test: &[String],
 ) -> ResolvedPatterns {
     let test = if !lang_tests.is_empty() {
@@ -94,16 +94,16 @@ pub fn resolve_patterns<C: LanguageDefaults>(
         C::default_source()
     };
 
-    let ignore = if !lang_ignore.is_empty() {
-        lang_ignore.to_vec()
+    let exclude = if !lang_exclude.is_empty() {
+        lang_exclude.to_vec()
     } else {
-        C::default_ignore()
+        C::default_exclude()
     };
 
     ResolvedPatterns {
         source,
         test,
-        ignore,
+        exclude,
     }
 }
 

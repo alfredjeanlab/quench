@@ -7,7 +7,29 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
+use std::process::{Command, Stdio};
+
 use crate::prelude::*;
+
+/// Check if kcov is available for shell coverage tests.
+fn kcov_available() -> bool {
+    Command::new("kcov")
+        .arg("--version")
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .is_ok_and(|s| s.success())
+}
+
+/// Check if llvm-profdata is available for instrumented binary coverage.
+fn llvm_profdata_available() -> bool {
+    Command::new("llvm-profdata")
+        .arg("--version")
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .is_ok_and(|s| s.success())
+}
 
 // =============================================================================
 // RUST COVERAGE (llvm-cov)
@@ -64,8 +86,12 @@ fn test_covered() { assert_eq!(test_project::covered(), 42); }
 ///
 /// > Shell scripts via kcov: targets = ["scripts/*.sh"]
 #[test]
-#[ignore = "TODO: Phase 940 - Requires runner integration"]
 fn bats_runner_collects_shell_coverage_via_kcov() {
+    if !kcov_available() {
+        eprintln!("Skipping test: kcov not available");
+        return;
+    }
+
     let temp = Project::empty();
     temp.config(
         r#"
@@ -113,8 +139,12 @@ setup() { source scripts/helper.sh; }
 ///
 /// > targets = ["myapp"] - Instrument Rust binary for coverage
 #[test]
-#[ignore = "TODO: Phase 940 - Requires runner integration"]
 fn bats_runner_collects_rust_binary_coverage() {
+    if !llvm_profdata_available() {
+        eprintln!("Skipping test: llvm-profdata not available");
+        return;
+    }
+
     let temp = Project::empty();
     temp.config(
         r#"
@@ -180,8 +210,12 @@ fn main() {
 ///
 /// > Coverage: Merged across suites covering the same language
 #[test]
-#[ignore = "TODO: Phase 940 - Requires runner integration"]
 fn multiple_suite_coverages_merged() {
+    if !llvm_profdata_available() {
+        eprintln!("Skipping test: llvm-profdata not available");
+        return;
+    }
+
     let temp = Project::empty();
     temp.config(
         r#"
@@ -264,7 +298,6 @@ fn test_other() { assert_eq!(myapp::other(), 0); }
 ///
 /// > For suites that only contribute timing: targets = []
 #[test]
-#[ignore = "TODO: Phase 940 - Requires runner integration"]
 fn suite_with_empty_targets_skips_coverage() {
     let temp = Project::empty();
     temp.config(
@@ -298,41 +331,9 @@ targets = []  # Explicit: timing only
 ///
 /// > Jest runner provides implicit JavaScript coverage via --coverage.
 #[test]
-#[ignore = "TODO: Phase 4981 - Requires npm install"]
 fn jest_runner_collects_javascript_coverage() {
-    let temp = Project::empty();
-    temp.config(
-        r#"
-[[check.tests.suite]]
-runner = "jest"
-"#,
-    );
-    temp.file(
-        "package.json",
-        r#"{
-  "name": "test-project",
-  "devDependencies": {
-    "jest": "^29.0.0"
-  }
-}"#,
-    );
-    temp.file(
-        "src/lib.js",
-        r#"
-export function covered() { return 42; }
-export function uncovered() { return 0; }
-"#,
-    );
-    temp.file(
-        "tests/lib.test.js",
-        r#"
-const { covered } = require('../src/lib');
-test('covered function', () => { expect(covered()).toBe(42); });
-"#,
-    );
-
     let result = check("tests")
-        .pwd(temp.path())
+        .on("javascript/jest-coverage")
         .args(&["--ci"])
         .json()
         .passes();
@@ -340,10 +341,11 @@ test('covered function', () => { expect(covered()).toBe(42); });
 
     // Should report JavaScript coverage percentage
     let coverage = metrics.get("coverage").and_then(|v| v.as_object());
-    assert!(coverage.is_some());
+    assert!(coverage.is_some(), "Expected coverage metrics");
 
     let js_coverage = coverage.unwrap().get("javascript").and_then(|v| v.as_f64());
-    assert!(js_coverage.is_some());
+    assert!(js_coverage.is_some(), "Expected javascript coverage");
+
     // Coverage should be ~50% (one function covered, one not)
     let pct = js_coverage.unwrap();
     assert!(
@@ -356,45 +358,13 @@ test('covered function', () => { expect(covered()).toBe(42); });
 /// Spec: docs/specs/11-test-runners.md#implicit-coverage
 ///
 /// > Vitest runner provides implicit JavaScript/TypeScript coverage.
+///
+/// Note: Uses temp project which requires npm install - not currently supported.
+/// See vitest_coverage_on_fixture() for fixture-based test.
 #[test]
-#[ignore = "TODO: Phase 4981 - Requires npm install"]
 fn vitest_runner_collects_javascript_coverage() {
-    let temp = Project::empty();
-    temp.config(
-        r#"
-[[check.tests.suite]]
-runner = "vitest"
-"#,
-    );
-    temp.file(
-        "package.json",
-        r#"{
-  "name": "test-project",
-  "devDependencies": {
-    "vitest": "^2.0.0"
-  }
-}"#,
-    );
-    temp.file("vitest.config.ts", "export default {}");
-    temp.file(
-        "src/lib.ts",
-        r#"
-export function covered(): number { return 42; }
-export function uncovered(): number { return 0; }
-"#,
-    );
-    temp.file(
-        "tests/lib.test.ts",
-        r#"
-import { covered } from '../src/lib';
-import { test, expect } from 'vitest';
-
-test('covered function', () => { expect(covered()).toBe(42); });
-"#,
-    );
-
     let result = check("tests")
-        .pwd(temp.path())
+        .on("javascript/vitest-coverage")
         .args(&["--ci"])
         .json()
         .passes();
@@ -402,10 +372,11 @@ test('covered function', () => { expect(covered()).toBe(42); });
 
     // Should report JavaScript coverage percentage
     let coverage = metrics.get("coverage").and_then(|v| v.as_object());
-    assert!(coverage.is_some());
+    assert!(coverage.is_some(), "Expected coverage metrics");
 
     let js_coverage = coverage.unwrap().get("javascript").and_then(|v| v.as_f64());
-    assert!(js_coverage.is_some());
+    assert!(js_coverage.is_some(), "Expected javascript coverage");
+
     let pct = js_coverage.unwrap();
     assert!(
         pct > 40.0 && pct < 60.0,
@@ -416,9 +387,41 @@ test('covered function', () => { expect(covered()).toBe(42); });
 
 /// Spec: docs/specs/11-test-runners.md#implicit-coverage
 ///
+/// > Vitest runner collects coverage on js-simple fixture.
+///
+/// Requires npm install on fixture: ./scripts/fixtures/setup-js-fixtures.sh
+#[test]
+fn vitest_coverage_on_fixture() {
+    let result = check("tests")
+        .on("js-simple")
+        .args(&["--ci"])
+        .json()
+        .passes();
+    let metrics = result.require("metrics");
+
+    // Should report JavaScript coverage
+    let coverage = metrics.get("coverage").and_then(|v| v.as_object());
+    assert!(coverage.is_some(), "Expected coverage metrics");
+
+    let js_coverage = coverage.unwrap().get("javascript").and_then(|v| v.as_f64());
+    assert!(
+        js_coverage.is_some(),
+        "Expected javascript coverage percentage"
+    );
+
+    // js-simple fixture has good test coverage (near 100%)
+    let pct = js_coverage.unwrap();
+    assert!(
+        pct > 80.0,
+        "Expected >80% coverage on js-simple fixture, got {}",
+        pct
+    );
+}
+
+/// Spec: docs/specs/11-test-runners.md#implicit-coverage
+///
 /// > Bun runner provides implicit JavaScript/TypeScript coverage.
 #[test]
-#[ignore = "TODO: Phase 4981 - Requires bun install"]
 fn bun_runner_collects_javascript_coverage() {
     let temp = Project::empty();
     temp.config(
@@ -433,11 +436,20 @@ runner = "bun"
   "name": "test-project"
 }"#,
     );
+    // Multi-line functions required for Bun to track uncovered code paths.
+    // Single-line functions are marked as "loaded" on module import.
     temp.file(
         "src/lib.ts",
         r#"
-export function covered(): number { return 42; }
-export function uncovered(): number { return 0; }
+export function covered(): number {
+  const x = 21;
+  return x * 2;
+}
+
+export function uncovered(): number {
+  const y = 99;
+  return y + 1;
+}
 "#,
     );
     temp.file(
@@ -463,10 +475,11 @@ test('covered function', () => { expect(covered()).toBe(42); });
 
     let js_coverage = coverage.unwrap().get("javascript").and_then(|v| v.as_f64());
     assert!(js_coverage.is_some());
+    // Coverage should be ~60% (3 lines covered out of 5: function lines + body of covered)
     let pct = js_coverage.unwrap();
     assert!(
-        pct > 40.0 && pct < 60.0,
-        "Expected ~50% coverage, got {}",
+        pct > 50.0 && pct < 70.0,
+        "Expected ~60% coverage, got {}",
         pct
     );
 }
@@ -475,55 +488,9 @@ test('covered function', () => { expect(covered()).toBe(42); });
 ///
 /// > JavaScript coverage is merged across suites.
 #[test]
-#[ignore = "TODO: Phase 4981 - Requires npm install"]
 fn multiple_js_suite_coverages_merged() {
-    let temp = Project::empty();
-    temp.config(
-        r#"
-# Suite 1: Unit tests with Jest
-[[check.tests.suite]]
-runner = "jest"
-path = "tests/unit/"
-
-# Suite 2: Integration tests with Jest
-[[check.tests.suite]]
-runner = "jest"
-path = "tests/integration/"
-"#,
-    );
-    temp.file(
-        "package.json",
-        r#"{
-  "name": "test-project",
-  "devDependencies": {
-    "jest": "^29.0.0"
-  }
-}"#,
-    );
-    temp.file(
-        "src/math.js",
-        r#"
-export function add(a, b) { return a + b; }
-export function subtract(a, b) { return a - b; }
-"#,
-    );
-    temp.file(
-        "tests/unit/add.test.js",
-        r#"
-const { add } = require('../../src/math');
-test('add', () => { expect(add(1, 2)).toBe(3); });
-"#,
-    );
-    temp.file(
-        "tests/integration/subtract.test.js",
-        r#"
-const { subtract } = require('../../src/math');
-test('subtract', () => { expect(subtract(3, 1)).toBe(2); });
-"#,
-    );
-
     let result = check("tests")
-        .pwd(temp.path())
+        .on("javascript/jest-merged-coverage")
         .args(&["--ci"])
         .json()
         .passes();
@@ -531,7 +498,10 @@ test('subtract', () => { expect(subtract(3, 1)).toBe(2); });
 
     // Coverage should be merged from both suites
     let coverage = metrics.get("coverage").and_then(|v| v.as_object());
+    assert!(coverage.is_some(), "Expected coverage metrics");
+
     let js_coverage = coverage.unwrap().get("javascript").and_then(|v| v.as_f64());
+    assert!(js_coverage.is_some(), "Expected javascript coverage");
 
     // Both add() and subtract() should be covered (~100%)
     assert!(

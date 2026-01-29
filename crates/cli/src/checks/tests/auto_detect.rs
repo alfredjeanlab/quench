@@ -151,6 +151,11 @@ pub fn run_auto_detected_suite(
         metrics["detection_source"] = json!(source);
     }
 
+    // Add coverage if collected
+    if let Some(ref coverage) = result.coverage {
+        metrics["coverage"] = json!(coverage);
+    }
+
     if result.passed || result.skipped {
         CheckResult::passed(check_name).with_metrics(metrics)
     } else {

@@ -289,3 +289,27 @@ end_of_record
         "Expected 100%, got {coverage}"
     );
 }
+
+#[test]
+fn parses_bun_style_lcov() {
+    // Bun's LCOV output format (similar to other JS tools)
+    let lcov = r#"TN:
+SF:/project/src/lib.ts
+FN:1,foo
+FN:2,bar
+FNDA:5,foo
+FNDA:0,bar
+FNF:2
+FNH:1
+DA:1,5
+DA:2,0
+LH:1
+LF:2
+end_of_record
+"#;
+    let result = parse_lcov_report(lcov, Duration::from_millis(100));
+    assert!(result.success);
+    assert!(result.line_coverage.is_some());
+    let pct = result.line_coverage.unwrap();
+    assert!((pct - 50.0).abs() < 0.1, "Expected 50%, got {}", pct);
+}

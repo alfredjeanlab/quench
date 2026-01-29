@@ -133,6 +133,7 @@ pub fn run_suites(ctx: &CheckContext) -> Option<SuiteResults> {
         root: ctx.root,
         ci_mode: ctx.ci_mode,
         collect_coverage: ctx.ci_mode, // Coverage only in CI
+        config: ctx.config,
     };
 
     // Filter suites for current mode

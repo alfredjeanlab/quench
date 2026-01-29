@@ -88,15 +88,15 @@ pub fn run(_cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
 
     tracing::trace!("check command starting");
 
-    // Configure walker with language-specific ignore patterns
-    let mut ignore_patterns = config.project.ignore.patterns.clone();
+    // Configure walker with language-specific exclude patterns
+    let mut exclude_patterns = config.project.exclude.patterns.clone();
 
     // Add language-specific patterns and auto-detect workspace packages
     match detect_language(&root) {
         ProjectLanguage::Rust => {
-            // Ignore target/ directory for Rust projects
-            if !ignore_patterns.iter().any(|p| p.contains("target")) {
-                ignore_patterns.push("target".to_string());
+            // Exclude target/ directory for Rust projects
+            if !exclude_patterns.iter().any(|p| p.contains("target")) {
+                exclude_patterns.push("target".to_string());
             }
 
             // Auto-detect workspace packages if not configured
@@ -166,19 +166,19 @@ pub fn run(_cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
             }
         }
         ProjectLanguage::Go => {
-            // Ignore vendor/ directory for Go projects
-            if !ignore_patterns.iter().any(|p| p.contains("vendor")) {
-                ignore_patterns.push("vendor".to_string());
+            // Exclude vendor/ directory for Go projects
+            if !exclude_patterns.iter().any(|p| p.contains("vendor")) {
+                exclude_patterns.push("vendor".to_string());
             }
         }
         ProjectLanguage::Shell => {
-            // No special ignore patterns for Shell projects
+            // No special exclude patterns for Shell projects
         }
         ProjectLanguage::JavaScript => {
-            // Ignore node_modules, dist, build for JS projects
+            // Exclude node_modules, dist, build for JS projects
             for pattern in ["node_modules", "dist", "build", ".next", "coverage"] {
-                if !ignore_patterns.iter().any(|p| p.contains(pattern)) {
-                    ignore_patterns.push(pattern.to_string());
+                if !exclude_patterns.iter().any(|p| p.contains(pattern)) {
+                    exclude_patterns.push(pattern.to_string());
                 }
             }
 
@@ -199,7 +199,7 @@ pub fn run(_cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
             }
         }
         ProjectLanguage::Python => {
-            // Ignore common Python cache and build directories
+            // Exclude common Python cache and build directories
             for pattern in [
                 ".venv",
                 "venv",
@@ -215,16 +215,16 @@ pub fn run(_cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
                 ".tox",
                 ".nox",
             ] {
-                if !ignore_patterns.iter().any(|p| p.contains(pattern)) {
-                    ignore_patterns.push(pattern.to_string());
+                if !exclude_patterns.iter().any(|p| p.contains(pattern)) {
+                    exclude_patterns.push(pattern.to_string());
                 }
             }
         }
         ProjectLanguage::Ruby => {
-            // Ignore vendor, tmp, log, coverage for Ruby projects
+            // Exclude vendor, tmp, log, coverage for Ruby projects
             for pattern in ["vendor", "tmp", "log", "coverage"] {
-                if !ignore_patterns.iter().any(|p| p.contains(pattern)) {
-                    ignore_patterns.push(pattern.to_string());
+                if !exclude_patterns.iter().any(|p| p.contains(pattern)) {
+                    exclude_patterns.push(pattern.to_string());
                 }
             }
         }
@@ -233,7 +233,7 @@ pub fn run(_cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
 
     let walker_config = WalkerConfig {
         max_depth: Some(args.max_depth),
-        ignore_patterns,
+        exclude_patterns,
         ..Default::default()
     };
 

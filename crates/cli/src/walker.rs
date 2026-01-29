@@ -15,7 +15,7 @@ use crossbeam_channel::{Receiver, bounded};
 use ignore::overrides::OverrideBuilder;
 use ignore::{WalkBuilder, WalkState};
 
-use crate::config::IgnoreConfig;
+use crate::config::ExcludeConfig;
 use crate::file_size::{self, FileSizeClass};
 
 /// Helper to check if an ignore::Error is a symlink loop error.
@@ -69,8 +69,8 @@ pub struct WalkerConfig {
     /// Maximum directory depth (default: 100).
     pub max_depth: Option<usize>,
 
-    /// Custom ignore patterns from config.
-    pub ignore_patterns: Vec<String>,
+    /// Custom exclude patterns from config (walker-level: prevents I/O on subtrees).
+    pub exclude_patterns: Vec<String>,
 
     /// Whether to respect gitignore files.
     pub git_ignore: bool,
@@ -100,7 +100,7 @@ impl Default for WalkerConfig {
     fn default() -> Self {
         Self {
             max_depth: Some(DEFAULT_MAX_DEPTH),
-            ignore_patterns: Vec::new(),
+            exclude_patterns: Vec::new(),
             git_ignore: true,
             hidden: true, // Skip hidden files by default
             threads: 0,   // Auto-detect
@@ -181,10 +181,10 @@ impl FileWalker {
         Self { config }
     }
 
-    /// Create a walker from project ignore config.
-    pub fn from_ignore_config(ignore: &IgnoreConfig) -> Self {
+    /// Create a walker from project exclude config.
+    pub fn from_exclude_config(exclude: &ExcludeConfig) -> Self {
         Self::new(WalkerConfig {
-            ignore_patterns: ignore.patterns.clone(),
+            exclude_patterns: exclude.patterns.clone(),
             ..Default::default()
         })
     }
@@ -240,14 +240,14 @@ impl FileWalker {
             builder.threads(self.config.threads);
         }
 
-        // Add custom ignore patterns using overrides
+        // Add custom exclude patterns using overrides
         // In ignore crate's override system:
         // - Without `!`: INCLUDE matching files (whitelist)
         // - With `!`: EXCLUDE matching files (blacklist)
-        // To ignore files matching our patterns, we need `!` prefix
-        if !self.config.ignore_patterns.is_empty() {
+        // To exclude files matching our patterns, we need `!` prefix
+        if !self.config.exclude_patterns.is_empty() {
             let mut override_builder = OverrideBuilder::new(root);
-            for pattern in &self.config.ignore_patterns {
+            for pattern in &self.config.exclude_patterns {
                 let _ = override_builder.add(&format!("!{}", pattern));
             }
             if let Ok(overrides) = override_builder.build() {

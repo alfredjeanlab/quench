@@ -100,7 +100,7 @@ name = "my-project"                    # Optional, inferred from directory
 # File patterns (applies to all languages unless overridden by [<lang>].tests)
 source = ["**/*.rs", "**/*.sh"]
 tests = ["**/tests/**", "**/*_test.*", "**/*.spec.*"]
-ignore = ["target/", "node_modules/", "dist/", ".git/"]
+exclude = ["target/", "node_modules/", "dist/", ".git/"]  # Walker-level: prevents I/O on subtrees
 
 # Packages (auto-detected for cargo workspaces)
 [[project.packages]]
@@ -151,7 +151,7 @@ Rust language configuration. Auto-detected when `Cargo.toml` exists.
 # Source/test patterns (falls back to [project].tests if not set)
 # source = ["**/*.rs"]
 # tests = ["**/tests/**", "**/test/**/*.rs", "**/benches/**", "**/*_test.rs", "**/*_tests.rs"]
-# ignore = ["target/"]
+# exclude = ["target/"]  # Walker-level: prevents I/O on subtrees
 
 cfg_test_split = "count"               # count | require | off (default: "count")
                                        # Boolean still works: true="count", false="off"
@@ -225,7 +225,7 @@ Go language configuration. Auto-detected when `go.mod` exists.
 # Source/test patterns
 # source = ["**/*.go"]
 # tests = ["**/*_test.go"]
-# ignore = ["vendor/**"]
+# exclude = ["vendor/**"]  # Walker-level: prevents I/O on subtrees
 
 # Lint suppression (//nolint:)
 [golang.suppress]
@@ -255,7 +255,7 @@ JavaScript/TypeScript language configuration. Auto-detected when `package.json` 
 # Source/test patterns
 # source = ["**/*.js", "**/*.jsx", "**/*.ts", "**/*.tsx", "**/*.mjs", "**/*.mts"]
 # tests = ["**/tests/**", "**/__tests__/**", "**/*.test.*", "**/*.spec.*"]
-# ignore = ["node_modules/**", "dist/**", "build/**"]
+# exclude = ["node_modules/**", "dist/**", "build/**"]  # Walker-level: prevents I/O on subtrees
 
 # Lint suppression (eslint-disable)
 [javascript.suppress]
@@ -517,7 +517,7 @@ Quench auto-detects project languages:
 
 | Detection | Language | Default Patterns |
 |-----------|----------|------------------|
-| `Cargo.toml` | Rust | `**/*.rs`, ignore `target/` |
+| `Cargo.toml` | Rust | `**/*.rs`, exclude `target/` |
 | `*.sh` in root/bin/ | Shell | `**/*.sh`, `**/*.bash` |
 | `package.json` | JS/TS | Future |
 
@@ -539,7 +539,7 @@ QUENCH_DEBUG_FILES=1           # List scanned files (for debugging file walking)
 - Cache hit/miss statistics
 - Warnings about skipped files
 
-**QUENCH_DEBUG_FILES**: When set, quench lists all scanned files to stdout instead of running checks. Useful for debugging file walking and ignore patterns.
+**QUENCH_DEBUG_FILES**: When set, quench lists all scanned files to stdout instead of running checks. Useful for debugging file walking and exclude patterns.
 
 Log/debug output goes to stderr and doesn't affect stdout (safe to use with `-o json`).
 

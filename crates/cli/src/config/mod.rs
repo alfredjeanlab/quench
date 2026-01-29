@@ -338,9 +338,9 @@ pub struct RustConfig {
     #[serde(default = "RustDefaults::default_tests")]
     pub tests: Vec<String>,
 
-    /// Ignore patterns.
-    #[serde(default = "RustDefaults::default_ignore")]
-    pub ignore: Vec<String>,
+    /// Exclude patterns (walker-level: prevents I/O on subtrees).
+    #[serde(default = "RustDefaults::default_exclude", alias = "ignore")]
+    pub exclude: Vec<String>,
 
     /// How to handle #[cfg(test)] blocks (default: "count").
     #[serde(default)]
@@ -369,7 +369,7 @@ impl Default for RustConfig {
         Self {
             source: RustDefaults::default_source(),
             tests: RustDefaults::default_tests(),
-            ignore: RustDefaults::default_ignore(),
+            exclude: RustDefaults::default_exclude(),
             cfg_test_split: CfgTestSplitMode::default(),
             suppress: SuppressConfig::default(),
             policy: RustPolicyConfig::default(),
@@ -397,7 +397,7 @@ impl LanguageDefaults for RustDefaults {
         ]
     }
 
-    fn default_ignore() -> Vec<String> {
+    fn default_exclude() -> Vec<String> {
         vec!["target/**".to_string()]
     }
 
@@ -420,8 +420,8 @@ impl RustConfig {
         RustDefaults::default_tests()
     }
 
-    pub(crate) fn default_ignore() -> Vec<String> {
-        RustDefaults::default_ignore()
+    pub(crate) fn default_exclude() -> Vec<String> {
+        RustDefaults::default_exclude()
     }
 
     pub(crate) fn default_cloc_advice() -> &'static str {
@@ -558,9 +558,9 @@ pub struct ProjectConfig {
     #[serde(default)]
     pub packages: Vec<String>,
 
-    /// Custom ignore patterns.
-    #[serde(default)]
-    pub ignore: IgnoreConfig,
+    /// Custom exclude patterns (walker-level: prevents I/O on subtrees).
+    #[serde(default, alias = "ignore")]
+    pub exclude: ExcludeConfig,
 
     /// Package name lookup (path -> name).
     /// Auto-populated when detecting workspaces; not user-configurable.
@@ -584,30 +584,30 @@ impl ProjectConfig {
     }
 }
 
-/// Ignore pattern configuration.
+/// Exclude pattern configuration (walker-level: prevents I/O on subtrees).
 ///
 /// Accepts either shorthand or full form:
-/// - `ignore = ["pattern1", "pattern2"]`
-/// - `ignore = { patterns = ["pattern1", "pattern2"] }`
+/// - `exclude = ["pattern1", "pattern2"]`
+/// - `exclude = { patterns = ["pattern1", "pattern2"] }`
 #[derive(Debug, Default, Clone)]
-pub struct IgnoreConfig {
+pub struct ExcludeConfig {
     pub patterns: Vec<String>,
 }
 
 #[derive(Deserialize)]
 #[serde(untagged)]
-enum IgnoreConfigHelper {
+enum ExcludeConfigHelper {
     Short(Vec<String>),
     Full { patterns: Vec<String> },
 }
 
-impl<'de> serde::Deserialize<'de> for IgnoreConfig {
+impl<'de> serde::Deserialize<'de> for ExcludeConfig {
     fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
-        Ok(match IgnoreConfigHelper::deserialize(deserializer)? {
-            IgnoreConfigHelper::Short(patterns) | IgnoreConfigHelper::Full { patterns } => {
+        Ok(match ExcludeConfigHelper::deserialize(deserializer)? {
+            ExcludeConfigHelper::Short(patterns) | ExcludeConfigHelper::Full { patterns } => {
                 Self { patterns }
             }
         })

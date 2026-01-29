@@ -1,7 +1,11 @@
-.PHONY: check build test install clean bench bench-ci bench-baseline bench-check license
+.PHONY: check build test install clean bench bench-ci bench-baseline bench-check license setup-js-fixtures
+
+# Install npm dependencies for JavaScript test fixtures
+setup-js-fixtures:
+	@./scripts/setup-js-fixtures
 
 # Run all CI checks
-check:
+check: setup-js-fixtures
 	cargo fmt --all
 	cargo clippy --all-targets --all-features -- -D warnings
 	cargo test --all

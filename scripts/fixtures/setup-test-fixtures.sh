@@ -24,4 +24,10 @@ if [ -x "./scripts/fixtures/setup-symlink-fixtures.sh" ]; then
     ./scripts/fixtures/setup-symlink-fixtures.sh
 fi
 
+# Install JS fixture dependencies
+if [ -x "./scripts/fixtures/setup-js-fixtures.sh" ]; then
+    echo "  Setting up JS fixtures..."
+    ./scripts/fixtures/setup-js-fixtures.sh
+fi
+
 echo "Test fixtures ready."

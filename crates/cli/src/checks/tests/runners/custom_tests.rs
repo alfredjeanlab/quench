@@ -20,11 +20,12 @@ fn make_config(command: Option<&str>) -> TestSuiteConfig {
     }
 }
 
-fn make_ctx(root: &std::path::Path) -> RunnerContext<'_> {
+fn make_ctx<'a>(root: &'a std::path::Path, config: &'a crate::config::Config) -> RunnerContext<'a> {
     RunnerContext {
         root,
         ci_mode: false,
         collect_coverage: false,
+        config,
     }
 }
 
@@ -32,7 +33,8 @@ fn make_ctx(root: &std::path::Path) -> RunnerContext<'_> {
 fn runner_is_always_available() {
     let runner = CustomRunner;
     let temp = tempdir().unwrap();
-    let ctx = make_ctx(temp.path());
+    let project_config = crate::config::Config::default();
+    let ctx = make_ctx(temp.path(), &project_config);
     assert!(runner.available(&ctx));
 }
 
@@ -40,7 +42,8 @@ fn runner_is_always_available() {
 fn fails_without_command() {
     let runner = CustomRunner;
     let temp = tempdir().unwrap();
-    let ctx = make_ctx(temp.path());
+    let project_config = crate::config::Config::default();
+    let ctx = make_ctx(temp.path(), &project_config);
     let config = make_config(None);
 
     let result = runner.run(&config, &ctx);
@@ -52,7 +55,8 @@ fn fails_without_command() {
 fn passes_on_success() {
     let runner = CustomRunner;
     let temp = tempdir().unwrap();
-    let ctx = make_ctx(temp.path());
+    let project_config = crate::config::Config::default();
+    let ctx = make_ctx(temp.path(), &project_config);
     let config = make_config(Some("true"));
 
     let result = runner.run(&config, &ctx);
@@ -64,7 +68,8 @@ fn passes_on_success() {
 fn fails_on_nonzero_exit() {
     let runner = CustomRunner;
     let temp = tempdir().unwrap();
-    let ctx = make_ctx(temp.path());
+    let project_config = crate::config::Config::default();
+    let ctx = make_ctx(temp.path(), &project_config);
     let config = make_config(Some("exit 1"));
 
     let result = runner.run(&config, &ctx);
@@ -75,7 +80,8 @@ fn fails_on_nonzero_exit() {
 fn captures_stderr_on_failure() {
     let runner = CustomRunner;
     let temp = tempdir().unwrap();
-    let ctx = make_ctx(temp.path());
+    let project_config = crate::config::Config::default();
+    let ctx = make_ctx(temp.path(), &project_config);
     let config = make_config(Some("echo 'error message' >&2 && exit 1"));
 
     let result = runner.run(&config, &ctx);
@@ -87,7 +93,8 @@ fn captures_stderr_on_failure() {
 fn no_per_test_timing() {
     let runner = CustomRunner;
     let temp = tempdir().unwrap();
-    let ctx = make_ctx(temp.path());
+    let project_config = crate::config::Config::default();
+    let ctx = make_ctx(temp.path(), &project_config);
     let config = make_config(Some("echo test"));
 
     let result = runner.run(&config, &ctx);
@@ -99,7 +106,8 @@ fn no_per_test_timing() {
 fn runs_complex_command() {
     let runner = CustomRunner;
     let temp = tempdir().unwrap();
-    let ctx = make_ctx(temp.path());
+    let project_config = crate::config::Config::default();
+    let ctx = make_ctx(temp.path(), &project_config);
     // Test that complex shell commands work
     let config = make_config(Some("echo hello && echo world"));
 
@@ -111,7 +119,8 @@ fn runs_complex_command() {
 fn runs_setup_before_command() {
     let runner = CustomRunner;
     let temp = tempdir().unwrap();
-    let ctx = make_ctx(temp.path());
+    let project_config = crate::config::Config::default();
+    let ctx = make_ctx(temp.path(), &project_config);
 
     // Create a config with setup that creates a file, then command checks for it
     let mut config = make_config(Some("test -f marker.txt"));
@@ -125,7 +134,8 @@ fn runs_setup_before_command() {
 fn fails_if_setup_fails() {
     let runner = CustomRunner;
     let temp = tempdir().unwrap();
-    let ctx = make_ctx(temp.path());
+    let project_config = crate::config::Config::default();
+    let ctx = make_ctx(temp.path(), &project_config);
 
     let mut config = make_config(Some("true"));
     config.setup = Some("exit 1".to_string());
@@ -139,7 +149,8 @@ fn fails_if_setup_fails() {
 fn reports_exit_code_when_no_stderr() {
     let runner = CustomRunner;
     let temp = tempdir().unwrap();
-    let ctx = make_ctx(temp.path());
+    let project_config = crate::config::Config::default();
+    let ctx = make_ctx(temp.path(), &project_config);
     // Command that fails without stderr output
     let config = make_config(Some("exit 42"));
 

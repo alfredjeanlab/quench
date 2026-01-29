@@ -63,7 +63,7 @@ impl LanguageDefaults for GoDefaults {
         vec!["**/*_test.go".to_string()]
     }
 
-    fn default_ignore() -> Vec<String> {
+    fn default_exclude() -> Vec<String> {
         vec!["vendor/**".to_string()]
     }
 
@@ -86,8 +86,8 @@ impl GoConfig {
         GoDefaults::default_tests()
     }
 
-    pub(crate) fn default_ignore() -> Vec<String> {
-        GoDefaults::default_ignore()
+    pub(crate) fn default_exclude() -> Vec<String> {
+        GoDefaults::default_exclude()
     }
 
     pub(crate) fn default_cloc_advice() -> &'static str {

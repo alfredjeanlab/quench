@@ -58,7 +58,7 @@ const GO_ESCAPE_PATTERNS: &[EscapePattern] = &[
 pub struct GoAdapter {
     source_patterns: GlobSet,
     test_patterns: GlobSet,
-    ignore_patterns: GlobSet,
+    exclude_patterns: GlobSet,
 }
 
 impl GoAdapter {
@@ -67,7 +67,7 @@ impl GoAdapter {
         Self {
             source_patterns: build_glob_set(&["**/*.go".to_string()]),
             test_patterns: build_glob_set(&["**/*_test.go".to_string()]),
-            ignore_patterns: build_glob_set(&["vendor/**".to_string()]),
+            exclude_patterns: build_glob_set(&["vendor/**".to_string()]),
         }
     }
 
@@ -76,13 +76,13 @@ impl GoAdapter {
         Self {
             source_patterns: build_glob_set(&patterns.source),
             test_patterns: build_glob_set(&patterns.test),
-            ignore_patterns: build_glob_set(&patterns.ignore),
+            exclude_patterns: build_glob_set(&patterns.exclude),
         }
     }
 
-    /// Check if a path should be ignored (e.g., vendor/).
-    pub fn should_ignore(&self, path: &Path) -> bool {
-        self.ignore_patterns.is_match(path)
+    /// Check if a path should be excluded (e.g., vendor/).
+    pub fn should_exclude(&self, path: &Path) -> bool {
+        self.exclude_patterns.is_match(path)
     }
 }
 
@@ -102,8 +102,8 @@ impl Adapter for GoAdapter {
     }
 
     fn classify(&self, path: &Path) -> FileKind {
-        // Ignored paths are "Other"
-        if self.should_ignore(path) {
+        // Excluded paths are "Other"
+        if self.should_exclude(path) {
             return FileKind::Other;
         }
 

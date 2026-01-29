@@ -68,7 +68,7 @@ pub(crate) use define_policy_config;
 /// Trait for language-specific configuration defaults.
 ///
 /// Languages implement this to provide their default patterns for source,
-/// test, and ignore file matching.
+/// test, and exclude file matching.
 pub trait LanguageDefaults {
     /// Default source file patterns.
     fn default_source() -> Vec<String>;
@@ -76,8 +76,8 @@ pub trait LanguageDefaults {
     /// Default test file patterns.
     fn default_tests() -> Vec<String>;
 
-    /// Default ignore patterns.
-    fn default_ignore() -> Vec<String> {
+    /// Default exclude patterns (walker-level: prevents I/O on subtrees).
+    fn default_exclude() -> Vec<String> {
         vec![]
     }
 

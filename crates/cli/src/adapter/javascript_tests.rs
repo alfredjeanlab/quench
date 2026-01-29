@@ -54,7 +54,7 @@ fn classify_path(path: &str, expected: FileKind) {
 }
 
 // =============================================================================
-// IGNORE PATTERN TESTS
+// EXCLUDE PATTERN TESTS
 // =============================================================================
 
 #[parameterized(
@@ -66,12 +66,12 @@ fn classify_path(path: &str, expected: FileKind) {
     src = { "src/index.js", false },
     packages = { "packages/core/lib.ts", false },
 )]
-fn should_ignore_path(path: &str, expected: bool) {
+fn should_exclude_path(path: &str, expected: bool) {
     let adapter = JavaScriptAdapter::new();
     assert_eq!(
-        adapter.should_ignore(Path::new(path)),
+        adapter.should_exclude(Path::new(path)),
         expected,
-        "path {:?} should_ignore = {}",
+        "path {:?} should_exclude = {}",
         path,
         expected
     );

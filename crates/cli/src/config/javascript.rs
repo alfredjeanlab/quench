@@ -81,7 +81,7 @@ impl LanguageDefaults for JavaScriptDefaults {
         ]
     }
 
-    fn default_ignore() -> Vec<String> {
+    fn default_exclude() -> Vec<String> {
         vec![
             "node_modules/**".to_string(),
             "dist/**".to_string(),
@@ -101,8 +101,8 @@ impl JavaScriptConfig {
         JavaScriptDefaults::default_tests()
     }
 
-    pub(crate) fn default_ignore() -> Vec<String> {
-        JavaScriptDefaults::default_ignore()
+    pub(crate) fn default_exclude() -> Vec<String> {
+        JavaScriptDefaults::default_exclude()
     }
 }
 

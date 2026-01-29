@@ -30,9 +30,9 @@ use crate::config::JavaScriptPolicyConfig;
 use super::glob::build_glob_set;
 use super::{Adapter, EscapeAction, EscapePattern, FileKind};
 
-/// Common ignore directory prefixes to check before GlobSet.
+/// Common exclude directory prefixes to check before GlobSet.
 /// Order: most common first for early exit.
-const IGNORE_PREFIXES: &[&str] = &["node_modules", "dist", "build", ".next", "coverage"];
+const EXCLUDE_PREFIXES: &[&str] = &["node_modules", "dist", "build", ".next", "coverage"];
 
 /// Default escape patterns for JavaScript/TypeScript.
 ///
@@ -59,7 +59,7 @@ const JS_ESCAPE_PATTERNS: &[EscapePattern] = &[
 /// JavaScript/TypeScript language adapter.
 pub struct JavaScriptAdapter {
     test_patterns: GlobSet,
-    ignore_patterns: GlobSet,
+    exclude_patterns: GlobSet,
 }
 
 impl JavaScriptAdapter {
@@ -88,7 +88,7 @@ impl JavaScriptAdapter {
                 "**/test/**".to_string(),
                 "**/tests/**".to_string(),
             ]),
-            ignore_patterns: build_glob_set(&[
+            exclude_patterns: build_glob_set(&[
                 "node_modules/**".to_string(),
                 "dist/**".to_string(),
                 "build/**".to_string(),
@@ -102,20 +102,20 @@ impl JavaScriptAdapter {
     pub fn with_patterns(patterns: super::ResolvedPatterns) -> Self {
         Self {
             test_patterns: build_glob_set(&patterns.test),
-            ignore_patterns: build_glob_set(&patterns.ignore),
+            exclude_patterns: build_glob_set(&patterns.exclude),
         }
     }
 
-    /// Check if a path should be ignored (e.g., node_modules/).
+    /// Check if a path should be excluded (e.g., node_modules/).
     ///
     /// Uses fast prefix check for common directories before falling back to GlobSet.
-    pub fn should_ignore(&self, path: &Path) -> bool {
+    pub fn should_exclude(&self, path: &Path) -> bool {
         // Fast path: check common prefixes in first path component
         if let Some(first_component) = path.components().next()
             && let std::path::Component::Normal(name) = first_component
             && let Some(name_str) = name.to_str()
         {
-            for prefix in IGNORE_PREFIXES {
+            for prefix in EXCLUDE_PREFIXES {
                 if name_str == *prefix {
                     return true;
                 }
@@ -123,7 +123,7 @@ impl JavaScriptAdapter {
         }
 
         // Fallback: GlobSet for edge cases (patterns in subdirectories)
-        self.ignore_patterns.is_match(path)
+        self.exclude_patterns.is_match(path)
     }
 
     /// Check lint policy against changed files.
@@ -156,8 +156,8 @@ impl Adapter for JavaScriptAdapter {
     }
 
     fn classify(&self, path: &Path) -> FileKind {
-        // Ignored paths are "Other"
-        if self.should_ignore(path) {
+        // Excluded paths are "Other"
+        if self.should_exclude(path) {
             return FileKind::Other;
         }
 

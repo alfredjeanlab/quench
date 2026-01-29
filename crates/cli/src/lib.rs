@@ -9,6 +9,7 @@ pub mod checks;
 pub mod cli;
 pub mod cmd_init;
 pub mod color;
+pub mod completions;
 pub mod config;
 pub mod discovery;
 pub mod error;

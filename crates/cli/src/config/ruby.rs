@@ -20,9 +20,9 @@ pub struct RubyConfig {
     #[serde(default = "RubyDefaults::default_tests")]
     pub tests: Vec<String>,
 
-    /// Ignore patterns.
-    #[serde(default = "RubyDefaults::default_ignore")]
-    pub ignore: Vec<String>,
+    /// Exclude patterns (walker-level: prevents I/O on subtrees).
+    #[serde(default = "RubyDefaults::default_exclude", alias = "ignore")]
+    pub exclude: Vec<String>,
 
     /// Lint suppression settings.
     #[serde(default)]
@@ -47,7 +47,7 @@ impl Default for RubyConfig {
         Self {
             source: RubyDefaults::default_source(),
             tests: RubyDefaults::default_tests(),
-            ignore: RubyDefaults::default_ignore(),
+            exclude: RubyDefaults::default_exclude(),
             suppress: RubySuppressConfig::default(),
             policy: RubyPolicyConfig::default(),
             cloc: None,
@@ -79,7 +79,7 @@ impl LanguageDefaults for RubyDefaults {
         ]
     }
 
-    fn default_ignore() -> Vec<String> {
+    fn default_exclude() -> Vec<String> {
         vec![
             "vendor/".to_string(),
             "tmp/".to_string(),
@@ -105,8 +105,8 @@ impl RubyConfig {
         RubyDefaults::default_tests()
     }
 
-    pub(crate) fn default_ignore() -> Vec<String> {
-        RubyDefaults::default_ignore()
+    pub(crate) fn default_exclude() -> Vec<String> {
+        RubyDefaults::default_exclude()
     }
 
     pub(crate) fn default_cloc_advice() -> &'static str {

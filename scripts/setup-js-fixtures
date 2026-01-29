@@ -1,0 +1,24 @@
+#!/bin/bash
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Alfred Jean LLC
+#
+# Install npm dependencies for JavaScript test fixtures.
+# Run this before executing specs that test Jest/Vitest coverage.
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+FIXTURES_DIR="$SCRIPT_DIR/../tests/fixtures/javascript"
+
+for fixture in jest-coverage vitest-coverage jest-merged-coverage; do
+    if [ -d "$FIXTURES_DIR/$fixture" ]; then
+        if [ ! -d "$FIXTURES_DIR/$fixture/node_modules" ]; then
+            echo "Installing dependencies in $fixture..."
+            (cd "$FIXTURES_DIR/$fixture" && npm install --silent)
+        else
+            echo "Dependencies already installed in $fixture"
+        fi
+    fi
+done
+
+echo "JavaScript fixtures ready."

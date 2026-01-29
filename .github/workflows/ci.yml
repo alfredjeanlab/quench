@@ -61,6 +61,13 @@ jobs:
             brew install bats-core
           fi
         shell: bash
+      # node: Required for tests/specs/checks/tests/js_runners.rs vitest tests
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      # Setup JS test fixtures (install npm modules)
+      - name: Setup JS fixtures
+        run: ./scripts/fixtures/setup-js-fixtures.sh
       - run: cargo test --all
 
   build:

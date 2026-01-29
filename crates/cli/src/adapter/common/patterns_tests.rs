@@ -7,21 +7,21 @@ use super::*;
 #[test]
 fn normalizes_trailing_slash() {
     let patterns = vec!["vendor/".to_string()];
-    let normalized = normalize_ignore_patterns(&patterns);
+    let normalized = normalize_exclude_patterns(&patterns);
     assert_eq!(normalized, vec!["vendor/**"]);
 }
 
 #[test]
 fn normalizes_bare_directory() {
     let patterns = vec!["build".to_string()];
-    let normalized = normalize_ignore_patterns(&patterns);
+    let normalized = normalize_exclude_patterns(&patterns);
     assert_eq!(normalized, vec!["build/**"]);
 }
 
 #[test]
 fn preserves_existing_globs() {
     let patterns = vec!["**/*.pyc".to_string(), "dist/**".to_string()];
-    let normalized = normalize_ignore_patterns(&patterns);
+    let normalized = normalize_exclude_patterns(&patterns);
     assert_eq!(normalized, vec!["**/*.pyc", "dist/**"]);
 }
 
@@ -33,7 +33,7 @@ fn normalizes_mixed_patterns() {
         "**/*.pyc".to_string(),
         ".venv".to_string(),
     ];
-    let normalized = normalize_ignore_patterns(&patterns);
+    let normalized = normalize_exclude_patterns(&patterns);
     assert_eq!(
         normalized,
         vec!["vendor/**", "build/**", "**/*.pyc", ".venv/**"]
@@ -43,6 +43,6 @@ fn normalizes_mixed_patterns() {
 #[test]
 fn handles_empty_input() {
     let patterns: Vec<String> = vec![];
-    let normalized = normalize_ignore_patterns(&patterns);
+    let normalized = normalize_exclude_patterns(&patterns);
     assert!(normalized.is_empty());
 }

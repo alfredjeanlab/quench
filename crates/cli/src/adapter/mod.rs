@@ -22,7 +22,7 @@
 //!
 //! - `new()` - Default patterns
 //! - `with_patterns(ResolvedPatterns)` - Config-resolved patterns
-//! - `should_ignore(&Path) -> bool` - Check ignore patterns (if applicable)
+//! - `should_exclude(&Path) -> bool` - Check exclude patterns (if applicable)
 //!
 //! ## Adapter trait
 //!
@@ -387,19 +387,19 @@ pub use patterns::ResolvedPatterns;
 /// Generates a function that resolves patterns from config with the standard
 /// fallback hierarchy: language config -> project config -> language defaults.
 macro_rules! define_resolve_patterns {
-    // For configs WITH an ignore field
+    // For configs WITH an exclude field
     ($fn_name:ident, $config_field:ident, $config_type:ty) => {
         fn $fn_name(config: &crate::config::Config, fallback_test: &[String]) -> ResolvedPatterns {
             patterns::resolve_patterns::<$config_type>(
                 &config.$config_field.source,
                 &config.$config_field.tests,
-                &config.$config_field.ignore,
+                &config.$config_field.exclude,
                 fallback_test,
             )
         }
     };
-    // For configs WITHOUT an ignore field
-    ($fn_name:ident, $config_field:ident, $config_type:ty, no_ignore) => {
+    // For configs WITHOUT an exclude field
+    ($fn_name:ident, $config_field:ident, $config_type:ty, no_exclude) => {
         fn $fn_name(config: &crate::config::Config, fallback_test: &[String]) -> ResolvedPatterns {
             patterns::resolve_patterns::<$config_type>(
                 &config.$config_field.source,
@@ -416,13 +416,13 @@ define_resolve_patterns!(
     resolve_go_patterns,
     golang,
     crate::config::GoConfig,
-    no_ignore
+    no_exclude
 );
 define_resolve_patterns!(
     resolve_javascript_patterns,
     javascript,
     crate::config::JavaScriptConfig,
-    no_ignore
+    no_exclude
 );
 define_resolve_patterns!(resolve_python_patterns, python, crate::config::PythonConfig);
 define_resolve_patterns!(resolve_ruby_patterns, ruby, crate::config::RubyConfig);
@@ -430,7 +430,7 @@ define_resolve_patterns!(
     resolve_shell_patterns,
     shell,
     crate::config::ShellConfig,
-    no_ignore
+    no_exclude
 );
 
 #[cfg(test)]

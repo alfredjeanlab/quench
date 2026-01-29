@@ -20,9 +20,9 @@ pub struct PythonConfig {
     #[serde(default = "PythonDefaults::default_tests")]
     pub tests: Vec<String>,
 
-    /// Ignore patterns.
-    #[serde(default = "PythonDefaults::default_ignore")]
-    pub ignore: Vec<String>,
+    /// Exclude patterns (walker-level: prevents I/O on subtrees).
+    #[serde(default = "PythonDefaults::default_exclude", alias = "ignore")]
+    pub exclude: Vec<String>,
 
     /// Lint suppression settings.
     #[serde(default)]
@@ -47,7 +47,7 @@ impl Default for PythonConfig {
         Self {
             source: PythonDefaults::default_source(),
             tests: PythonDefaults::default_tests(),
-            ignore: PythonDefaults::default_ignore(),
+            exclude: PythonDefaults::default_exclude(),
             suppress: PythonSuppressConfig::default(),
             policy: PythonPolicyConfig::default(),
             cloc: None,
@@ -76,7 +76,7 @@ impl LanguageDefaults for PythonDefaults {
         ]
     }
 
-    fn default_ignore() -> Vec<String> {
+    fn default_exclude() -> Vec<String> {
         vec![
             ".venv/**".to_string(),
             "venv/**".to_string(),
@@ -113,8 +113,8 @@ impl PythonConfig {
         PythonDefaults::default_tests()
     }
 
-    pub(crate) fn default_ignore() -> Vec<String> {
-        PythonDefaults::default_ignore()
+    pub(crate) fn default_exclude() -> Vec<String> {
+        PythonDefaults::default_exclude()
     }
 
     pub(crate) fn default_cloc_advice() -> &'static str {

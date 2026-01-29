@@ -87,7 +87,7 @@ fn classifies_test_files() {
 }
 
 // =============================================================================
-// IGNORE PATTERN TESTS
+// EXCLUDE PATTERN TESTS
 // =============================================================================
 
 #[test]
@@ -221,32 +221,32 @@ fn test_patterns_take_precedence_over_source() {
 }
 
 #[test]
-fn should_ignore_common_directories() {
+fn should_exclude_common_directories() {
     let adapter = PythonAdapter::new();
 
     // Virtual environments
-    assert!(adapter.should_ignore(Path::new(".venv/lib/site-packages/foo.py")));
-    assert!(adapter.should_ignore(Path::new("venv/bin/python")));
-    assert!(adapter.should_ignore(Path::new(".env/lib/site-packages/foo.py")));
-    assert!(adapter.should_ignore(Path::new("env/bin/python")));
+    assert!(adapter.should_exclude(Path::new(".venv/lib/site-packages/foo.py")));
+    assert!(adapter.should_exclude(Path::new("venv/bin/python")));
+    assert!(adapter.should_exclude(Path::new(".env/lib/site-packages/foo.py")));
+    assert!(adapter.should_exclude(Path::new("env/bin/python")));
 
     // Cache directories
-    assert!(adapter.should_ignore(Path::new("__pycache__/module.cpython-311.pyc")));
-    assert!(adapter.should_ignore(Path::new(".mypy_cache/3.11/module.py")));
-    assert!(adapter.should_ignore(Path::new(".pytest_cache/v/cache/lastfailed")));
-    assert!(adapter.should_ignore(Path::new(".ruff_cache/0.1.0/foo")));
+    assert!(adapter.should_exclude(Path::new("__pycache__/module.cpython-311.pyc")));
+    assert!(adapter.should_exclude(Path::new(".mypy_cache/3.11/module.py")));
+    assert!(adapter.should_exclude(Path::new(".pytest_cache/v/cache/lastfailed")));
+    assert!(adapter.should_exclude(Path::new(".ruff_cache/0.1.0/foo")));
 
     // Build directories
-    assert!(adapter.should_ignore(Path::new("dist/mypackage-1.0.0.tar.gz")));
-    assert!(adapter.should_ignore(Path::new("build/lib/mypackage/module.py")));
+    assert!(adapter.should_exclude(Path::new("dist/mypackage-1.0.0.tar.gz")));
+    assert!(adapter.should_exclude(Path::new("build/lib/mypackage/module.py")));
 
     // Tox and nox
-    assert!(adapter.should_ignore(Path::new(".tox/py311/lib/python3.11/site.py")));
-    assert!(adapter.should_ignore(Path::new(".nox/tests/lib/python3.11/site.py")));
+    assert!(adapter.should_exclude(Path::new(".tox/py311/lib/python3.11/site.py")));
+    assert!(adapter.should_exclude(Path::new(".nox/tests/lib/python3.11/site.py")));
 
-    // Normal source should not be ignored
-    assert!(!adapter.should_ignore(Path::new("src/app.py")));
-    assert!(!adapter.should_ignore(Path::new("mypackage/module.py")));
+    // Normal source should not be excluded
+    assert!(!adapter.should_exclude(Path::new("src/app.py")));
+    assert!(!adapter.should_exclude(Path::new("mypackage/module.py")));
 }
 
 // =============================================================================
@@ -400,7 +400,7 @@ fn with_patterns_uses_custom_patterns() {
     let patterns = super::super::ResolvedPatterns {
         source: vec!["src/**/*.py".to_string()],
         test: vec!["test/**/*.py".to_string()],
-        ignore: vec!["vendor/".to_string()],
+        exclude: vec!["vendor/".to_string()],
     };
 
     let adapter = PythonAdapter::with_patterns(patterns);

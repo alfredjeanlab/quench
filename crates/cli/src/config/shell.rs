@@ -67,7 +67,7 @@ impl LanguageDefaults for ShellDefaults {
         ]
     }
 
-    fn default_ignore() -> Vec<String> {
+    fn default_exclude() -> Vec<String> {
         vec![]
     }
 
@@ -87,8 +87,8 @@ impl ShellConfig {
         ShellDefaults::default_tests()
     }
 
-    pub(crate) fn default_ignore() -> Vec<String> {
-        ShellDefaults::default_ignore()
+    pub(crate) fn default_exclude() -> Vec<String> {
+        ShellDefaults::default_exclude()
     }
 
     pub(crate) fn default_cloc_advice() -> &'static str {

@@ -78,10 +78,10 @@ impl Check for ClocCheck {
                     } else {
                         fallback_test
                     },
-                    ignore: if !rust_config.ignore.is_empty() {
-                        rust_config.ignore.clone()
+                    exclude: if !rust_config.exclude.is_empty() {
+                        rust_config.exclude.clone()
                     } else {
-                        RustConfig::default_ignore()
+                        RustConfig::default_exclude()
                     },
                 };
                 Some(RustAdapter::with_patterns(patterns))

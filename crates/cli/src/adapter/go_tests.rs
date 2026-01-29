@@ -33,12 +33,12 @@ fn classify_path(path: &str, expected: FileKind) {
     src_main = { "main.go", false },
     pkg = { "pkg/lib.go", false },
 )]
-fn should_ignore_path(path: &str, expected: bool) {
+fn should_exclude_path(path: &str, expected: bool) {
     let adapter = GoAdapter::new();
     assert_eq!(
-        adapter.should_ignore(Path::new(path)),
+        adapter.should_exclude(Path::new(path)),
         expected,
-        "path {:?} should_ignore = {}",
+        "path {:?} should_exclude = {}",
         path,
         expected
     );
