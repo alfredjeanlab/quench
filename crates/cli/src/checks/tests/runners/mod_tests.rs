@@ -307,6 +307,7 @@ fn aggregated_coverage_to_coverage_map() {
         go: None,
         javascript: None,
         ruby: None,
+        python: None,
     };
 
     let map = agg.to_coverage_map();

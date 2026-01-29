@@ -22,6 +22,7 @@ mod kcov;
 mod minitest;
 mod py_detect;
 mod pytest;
+mod python_coverage;
 mod result;
 mod rspec;
 mod ruby_coverage;
@@ -47,6 +48,7 @@ pub use kcov::{collect_shell_coverage, kcov_available};
 pub use minitest::MinitestRunner;
 pub use py_detect::{PyDetectionResult, PyDetectionSource, PyRunner, detect_py_runner};
 pub use pytest::PytestRunner;
+pub use python_coverage::collect_python_coverage;
 pub use result::{TestResult, TestRunResult};
 pub use rspec::RspecRunner;
 pub use ruby_coverage::collect_ruby_coverage;
@@ -204,6 +206,8 @@ pub struct AggregatedCoverage {
     pub javascript: Option<CoverageResult>,
     /// Ruby coverage result (merged from all Ruby sources).
     pub ruby: Option<CoverageResult>,
+    /// Python coverage result (merged from all Python sources).
+    pub python: Option<CoverageResult>,
 }
 
 impl AggregatedCoverage {
@@ -247,6 +251,14 @@ impl AggregatedCoverage {
         });
     }
 
+    /// Merge Python coverage from a suite into the aggregate.
+    pub fn merge_python(&mut self, result: CoverageResult) {
+        self.python = Some(match self.python.take() {
+            Some(existing) => merge_coverage_results(existing, result),
+            None => result,
+        });
+    }
+
     /// Convert to a language -> percentage map for metrics.
     pub fn to_coverage_map(&self) -> HashMap<String, f64> {
         let mut map = HashMap::new();
@@ -275,6 +287,11 @@ impl AggregatedCoverage {
         {
             map.insert("ruby".to_string(), pct);
         }
+        if let Some(ref python) = self.python
+            && let Some(pct) = python.line_coverage
+        {
+            map.insert("python".to_string(), pct);
+        }
         map
     }
 
@@ -294,6 +311,10 @@ impl AggregatedCoverage {
                 .is_some_and(|r| r.line_coverage.is_some())
             || self
                 .ruby
+                .as_ref()
+                .is_some_and(|r| r.line_coverage.is_some())
+            || self
+                .python
                 .as_ref()
                 .is_some_and(|r| r.line_coverage.is_some())
     }
