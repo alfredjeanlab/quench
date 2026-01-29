@@ -20,11 +20,13 @@ mod js_detect;
 mod json_utils;
 mod kcov;
 mod minitest;
+mod py_detect;
 mod pytest;
 mod result;
 mod rspec;
 mod ruby_coverage;
 mod targets;
+mod unittest;
 mod vitest;
 
 pub use bats::BatsRunner;
@@ -43,6 +45,7 @@ pub use js_coverage::{collect_bun_coverage, collect_jest_coverage, collect_vites
 pub use js_detect::{DetectionResult, DetectionSource, JsRunner, detect_js_runner};
 pub use kcov::{collect_shell_coverage, kcov_available};
 pub use minitest::MinitestRunner;
+pub use py_detect::{PyDetectionResult, PyDetectionSource, PyRunner, detect_py_runner};
 pub use pytest::PytestRunner;
 pub use result::{TestResult, TestRunResult};
 pub use rspec::RspecRunner;
@@ -51,6 +54,7 @@ pub use targets::{
     ResolvedTarget, TargetResolutionError, is_glob_pattern, resolve_target, resolve_targets,
     rust_binary_names, shell_script_files,
 };
+pub use unittest::UnittestRunner;
 pub use vitest::VitestRunner;
 
 use std::collections::HashMap;
@@ -90,8 +94,8 @@ pub use run_setup_or_fail;
 
 /// List of known runner names.
 pub const RUNNER_NAMES: &[&str] = &[
-    "cargo", "go", "pytest", "vitest", "bun", "jest", "bats", "rspec", "minitest", "cucumber",
-    "custom",
+    "cargo", "go", "pytest", "unittest", "vitest", "bun", "jest", "bats", "rspec", "minitest",
+    "cucumber", "custom",
 ];
 
 /// Context passed to test runners during execution.
@@ -127,6 +131,7 @@ pub fn all_runners() -> Vec<Arc<dyn TestRunner>> {
         Arc::new(BatsRunner),
         Arc::new(GoRunner),
         Arc::new(PytestRunner),
+        Arc::new(UnittestRunner),
         Arc::new(VitestRunner),
         Arc::new(BunRunner),
         Arc::new(JestRunner),
