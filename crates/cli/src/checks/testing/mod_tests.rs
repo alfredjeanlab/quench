@@ -3,6 +3,12 @@
 
 //! Unit tests for the tests check module.
 
+use std::path::Path;
+
+use crate::config::TestsCommitConfig;
+
+use super::correlation::missing_tests_advice;
+use super::patterns::{Language, detect_language};
 use super::suite::{SuiteResult, SuiteResults};
 use super::*;
 
