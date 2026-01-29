@@ -3,7 +3,7 @@
 
 //! Unit tests for the tests check module.
 
-use super::suite::{AggregatedMetrics, SuiteResult, SuiteResults};
+use super::suite::{SuiteResult, SuiteResults};
 use super::*;
 
 #[test]

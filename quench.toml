@@ -28,3 +28,19 @@ exclude = [
 
 [check.agents]
 required = ["CLAUDE.md"]
+
+[check.license]
+check = "error"              # Enable in CI mode
+license = "MIT"              # SPDX identifier
+copyright = "Alfred Jean LLC"  # Copyright holder
+
+[check.license.patterns]
+rust = ["**/*.rs"]           # All Rust files
+shell = ["scripts/**"]       # All scripts in scripts/ directory
+
+# Exclude test fixtures and build artifacts
+exclude = [
+    "tests/fixtures/**",     # Test fixture data (intentional violations)
+    "target/**",             # Build artifacts
+    ".v0/**",                # V0 artifacts
+]

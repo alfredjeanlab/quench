@@ -9,6 +9,10 @@ Ensure all source files have proper license headers:
 - Copyright notice with current year
 - Consistent formatting across the codebase
 
+Additionally checks `LICENSE` and `README.md` files at the project root:
+- Validates copyright year is current
+- Auto-fixes outdated years with `--fix`
+
 **Disabled by default.** Enable explicitly when your project requires license headers.
 
 **CI-only.** This check only runs in `--ci` mode. It is skipped in fast mode.
@@ -64,18 +68,32 @@ license: FAIL
     Expected: 2026, found: 2025
 ```
 
+### LICENSE and README.md Files
+
+Also checks copyright year in root `LICENSE` and `README.md` files:
+
+```
+license: FAIL
+  LICENSE:3: outdated copyright year
+    Expected: 2026, found: 2025
+  README.md:71: outdated copyright year
+    Expected: 2026, found: 2025
+```
+
 ## Auto-Fix (`--fix`)
 
 When running `quench --ci --fix`:
 
 1. **Add missing headers**: Insert header at file start (after shebang if present)
-2. **Update copyright year**: Change year to current year
-3. **Preserve content**: Only modify header lines, not file content
+2. **Update copyright year**: Extend year range to include current year (2025 → 2025-2026, 2020-2025 → 2020-2026)
+3. **Update LICENSE/README.md**: Update copyright year in root LICENSE and README.md files
+4. **Preserve content**: Only modify header/copyright lines, not file content
 
 ```
 license: FIXED
   src/parser.rs: added license header
-  src/lexer.rs: updated copyright year (2025 → 2026)
+  src/lexer.rs: updated copyright year (2025 → 2025-2026)
+  LICENSE: updated copyright year (2025 → 2025-2026)
   3 files unchanged
 ```
 
@@ -115,16 +133,6 @@ Automatically determined by file extension:
 |------------|---------------|
 | `.rs`, `.ts`, `.tsx`, `.js`, `.go`, `.c`, `.cpp`, `.h` | `// ` |
 | `.sh`, `.bash`, `.py`, `.rb`, `.yaml`, `.yml` | `# ` |
-| `.html`, `.xml` | `<!-- -->` |
-
-Override with explicit config:
-
-```toml
-[check.license.syntax]
-# Custom comment syntax for specific patterns
-"scripts/*" = "#"
-"*.config.js" = "//"
-```
 
 ## Output
 

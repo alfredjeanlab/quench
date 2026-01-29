@@ -206,6 +206,37 @@ impl Check for LicenseCheck {
             }
         }
 
+        // Check LICENSE and README.md files for copyright year (unless limit reached)
+        if ctx.limit.map_or(true, |limit| violations.len() < limit) {
+            check_root_file(
+                &ctx.root.join("LICENSE"),
+                ctx.root,
+                expected_copyright,
+                current_year,
+                ctx.fix,
+                ctx.dry_run,
+                &mut violations,
+                &mut fixes,
+                &mut files_checked,
+                &mut files_outdated_year,
+            );
+        }
+
+        if ctx.limit.map_or(true, |limit| violations.len() < limit) {
+            check_root_file(
+                &ctx.root.join("README.md"),
+                ctx.root,
+                expected_copyright,
+                current_year,
+                ctx.fix,
+                ctx.dry_run,
+                &mut violations,
+                &mut fixes,
+                &mut files_checked,
+                &mut files_outdated_year,
+            );
+        }
+
         let metrics = json!({
             "files_checked": files_checked,
             "files_with_headers": files_with_headers,
@@ -419,6 +450,80 @@ fn update_copyright_year(content: &str, current_year: i32) -> String {
         result.pop();
     }
     result
+}
+
+/// Check LICENSE or README.md file for outdated copyright year.
+#[allow(clippy::too_many_arguments)]
+fn check_root_file(
+    file_path: &Path,
+    root: &Path,
+    expected_copyright: &str,
+    current_year: i32,
+    fix: bool,
+    dry_run: bool,
+    violations: &mut Vec<Violation>,
+    fixes: &mut LicenseFixes,
+    files_checked: &mut usize,
+    files_outdated_year: &mut usize,
+) {
+    // Check if file exists
+    if !file_path.exists() {
+        return;
+    }
+
+    // Read file content
+    let Ok(content) = std::fs::read_to_string(file_path) else {
+        return;
+    };
+
+    *files_checked += 1;
+
+    let relative_path = file_path.strip_prefix(root).unwrap_or(file_path);
+
+    // Check if copyright line exists and includes current year
+    if let Some(caps) = COPYRIGHT_PATTERN.captures(&content) {
+        let found_year = caps.get(1).map(|m| m.as_str()).unwrap_or("");
+        let found_holder = caps.get(2).map(|m| m.as_str()).unwrap_or("");
+
+        // Check if copyright year includes current year
+        if !year_includes_current(found_year, current_year) {
+            *files_outdated_year += 1;
+
+            if fix {
+                // Update year in content
+                let new_content = update_copyright_year(&content, current_year);
+
+                if !dry_run {
+                    let _ = std::fs::write(file_path, &new_content);
+                }
+                fixes
+                    .years_updated
+                    .push(relative_path.display().to_string());
+            } else {
+                violations.push(
+                    Violation::file(
+                        relative_path,
+                        find_line_number(&content, "Copyright"),
+                        "outdated_year",
+                        format!(
+                            "Expected: {}, found: {}. Update copyright year or run --fix.",
+                            current_year, found_year
+                        ),
+                    )
+                    .with_expected_found(current_year.to_string(), found_year),
+                );
+            }
+        }
+
+        // Optionally check copyright holder matches expected
+        if found_holder != expected_copyright {
+            // Note: Not reporting this as a violation, just updating if in fix mode
+            if fix {
+                // Could add logic to update copyright holder, but that's more invasive
+                // For now, we only update the year
+            }
+        }
+    }
 }
 
 /// Track fixes applied during check execution.

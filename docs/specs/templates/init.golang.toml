@@ -6,4 +6,4 @@
 check = "comment"
 
 [golang.policy]
-check = "standalone"
+lint_changes = "standalone"

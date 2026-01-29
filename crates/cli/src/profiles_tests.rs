@@ -141,12 +141,12 @@ fn profile_registry_python_aliases_work() {
 }
 
 #[test]
-fn python_profile_has_escape_patterns() {
+fn python_profile_has_suppress_and_policy() {
     let profile = python_profile_defaults();
-    assert!(profile.contains("eval"));
-    assert!(profile.contains("exec"));
-    assert!(profile.contains("breakpoint"));
-    assert!(profile.contains("# EVAL:"));
+    assert!(profile.contains("[python.suppress]"));
+    assert!(profile.contains("check = \"comment\""));
+    assert!(profile.contains("[python.policy]"));
+    assert!(profile.contains("lint_changes = \"standalone\""));
 }
 
 // =============================================================================

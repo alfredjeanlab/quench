@@ -81,8 +81,9 @@ fn default_template_has_explicit_check_levels() {
     assert!(template.contains("[check.escapes]\ncheck = \"error\""));
     assert!(template.contains("[check.agents]\ncheck = \"error\""));
     assert!(template.contains("[check.docs]\ncheck = \"error\""));
-    // Disabled checks with stub comments
-    assert!(template.contains("check = \"off\"  # stub in quench v0.3.0"));
+    // Disabled checks
+    assert!(template.contains("[check.tests]\ncheck = \"off\""));
+    assert!(template.contains("[check.license]\ncheck = \"off\""));
 }
 
 // =============================================================================

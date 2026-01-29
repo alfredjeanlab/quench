@@ -142,7 +142,7 @@ pub fn golang_profile_defaults() -> String {
 check = "comment"
 
 [golang.policy]
-check = "standalone"
+lint_changes = "standalone"
 "#
     .to_string()
 }

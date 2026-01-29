@@ -72,7 +72,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo build --all
       - name: Self Check
-        run: ./target/debug/quench check
+        run: ./target/debug/quench check --ci
 
   audit:
     name: Security Audit
