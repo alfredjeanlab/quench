@@ -523,7 +523,7 @@ check = "off"  # stub in quench v0.3.0
 check = "off"  # stub in quench v0.3.0
 
 [git]
-baseline = ".quench/baseline.json"
+# baseline = "notes" | "path/to/baseline.json"  # default: notes
 
 [git.commit]
 check = "off"  # stub in quench v0.3.0

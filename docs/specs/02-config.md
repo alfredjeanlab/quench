@@ -126,7 +126,7 @@ base = "main"                          # Default for --base (auto: main > master
 baseline = "notes"
 
 [git.commit]
-check = "off"                          # error | warn | off (disabled by default)
+check = "error"                        # error | warn | off (enabled by default)
 # format = "conventional"              # conventional | none (default: conventional)
 
 # Optional: restrict to specific types (default: common conventional types)
