@@ -318,6 +318,16 @@ impl TestsCheck {
         ctx: &CheckContext,
         auto_detected: Vec<(crate::config::TestSuiteConfig, String)>,
     ) -> CheckResult {
+        // === Verbose: Auto-detected test suites ===
+        if ctx.verbose {
+            eprintln!("=== Test Suites ===");
+            eprintln!("Auto-detected suites:");
+            for (suite, source) in &auto_detected {
+                let name = suite.name.clone().unwrap_or_else(|| suite.runner.clone());
+                eprintln!("  {} (detected: {})", name, source);
+            }
+        }
+
         let runner_ctx = RunnerContext {
             root: ctx.root,
             ci_mode: ctx.ci_mode,

@@ -1,5 +1,15 @@
 # Plan: Verbose Output in CI Mode
 
+## Status
+
+**IMPLEMENTED** ✅ (Commit: 46503d5)
+
+**Enhancements** ✅ (Follow-up):
+- Added auto-detected suite detection source logging
+- Added comprehensive unit tests (6 tests)
+- Added behavioral/integration tests (9 tests in tests/specs/verbose.rs)
+- Removed `[verbose]` prefix for cleaner output
+
 ## Overview
 
 Add comprehensive verbose output to quench that activates **automatically in `--ci` mode** (always, not configurable) or when `--verbose` is explicitly passed. The verbose output surfaces diagnostic information about configuration resolution, file discovery, test suite execution, ratchet baselines, git commit ranges, and total wall time — giving CI operators and developers full visibility into what quench is doing and why.
@@ -238,9 +248,11 @@ Or when ratchet is off:
 
 All verbose output uses `eprintln!` (stderr), consistent with existing timing and debug output. This ensures stdout remains clean for machine-parseable output (JSON mode).
 
-### Prefix format: `[verbose]`
+### Output format
 
-Using `[verbose]` prefix makes it easy to grep for verbose lines in CI logs, and clearly distinguishes diagnostic output from check results.
+~~Using `[verbose]` prefix makes it easy to grep for verbose lines in CI logs, and clearly distinguishes diagnostic output from check results.~~
+
+**IMPLEMENTED:** No prefix is used. Verbose output is distinguished by section headers (`=== Section Name ===`) and is only output when verbose mode is enabled. This avoids redundancy since all output in verbose mode is diagnostic.
 
 ### VerboseLogger propagation
 

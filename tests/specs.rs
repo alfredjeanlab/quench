@@ -97,3 +97,7 @@ mod modes_large_files;
 // adapters/
 #[path = "specs/adapters/mod.rs"]
 mod adapters;
+
+// verbose output/
+#[path = "specs/verbose.rs"]
+mod verbose;

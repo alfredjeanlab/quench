@@ -3,10 +3,10 @@
 
 //! Verbose output logger for diagnostic information.
 //!
-//! Writes `[verbose]` prefixed lines to stderr. Enabled automatically
+//! Writes diagnostic output to stderr. Enabled automatically
 //! in `--ci` mode, or explicitly with `--verbose` or `QUENCH_DEBUG=1`.
 
-/// Verbose output logger. Writes to stderr with a `[verbose]` prefix.
+/// Verbose output logger. Writes to stderr when enabled.
 /// All output is conditional on verbose mode being enabled.
 pub struct VerboseLogger {
     enabled: bool,
@@ -24,14 +24,14 @@ impl VerboseLogger {
     /// Print a verbose line to stderr.
     pub fn log(&self, msg: &str) {
         if self.enabled {
-            eprintln!("[verbose] {}", msg);
+            eprintln!("{}", msg);
         }
     }
 
     /// Print a verbose section header.
     pub fn section(&self, title: &str) {
         if self.enabled {
-            eprintln!("[verbose] === {} ===", title);
+            eprintln!("=== {} ===", title);
         }
     }
 }
