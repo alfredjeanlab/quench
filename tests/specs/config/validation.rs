@@ -120,22 +120,29 @@ fn all_template_files_parse_correctly() {
                     .unwrap_or_else(|e| panic!("Failed to read {}: {}", file_name, e))
             };
 
-            // Try to parse it with quench
+            // Try to parse it with quench - disable all checks to only test parsing
             let temp = Project::empty();
             temp.config(&content);
-            // Add CLAUDE.md to satisfy agents check
-            temp.file("CLAUDE.md", "# Test Project\n");
 
             let output = quench_cmd()
-                .arg("check")
+                .args([
+                    "check",
+                    "--no-cloc",
+                    "--no-escapes",
+                    "--no-agents",
+                    "--no-docs",
+                    "--no-tests",
+                    "--no-license",
+                    "--no-git",
+                ])
                 .current_dir(temp.path())
                 .output()
                 .unwrap_or_else(|e| panic!("Failed to run quench for {}: {}", file_name, e));
 
-            // Only treat as parse error if stderr contains config/parse error messages
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            if stderr.contains("Failed to parse") || stderr.contains("Invalid configuration") {
-                errors.push(format!("{}: Parse failed\n{}", file_name, stderr));
+            // With all checks disabled, any failure is a config parse error
+            if !output.status.success() {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                errors.push(format!("{}: Config parse error\n{}", file_name, stderr));
             }
         }
     }
