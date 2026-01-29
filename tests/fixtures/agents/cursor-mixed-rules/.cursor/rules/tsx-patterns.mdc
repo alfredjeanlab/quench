@@ -1,0 +1,8 @@
+---
+globs: "**/*.tsx"
+alwaysApply: false
+---
+
+## TSX Rules
+
+Use functional components.

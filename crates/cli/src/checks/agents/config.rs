@@ -133,6 +133,14 @@ pub struct AgentsConfig {
     /// Module scope settings.
     #[serde(default)]
     pub module: Option<AgentsScopeConfig>,
+
+    /// Enable cursor rule reconciliation (default: true when .cursor/rules in files).
+    #[serde(default = "AgentsConfig::default_reconcile_cursor")]
+    pub reconcile_cursor: bool,
+
+    /// Reconciliation direction: "bidirectional" (default), "cursor_to_claude", "claude_to_cursor".
+    #[serde(default)]
+    pub reconcile_direction: Option<String>,
 }
 
 impl Default for AgentsConfig {
@@ -154,6 +162,8 @@ impl Default for AgentsConfig {
             root: None,
             package: None,
             module: None,
+            reconcile_cursor: Self::default_reconcile_cursor(),
+            reconcile_direction: None,
         }
     }
 }
@@ -189,6 +199,11 @@ impl AgentsConfig {
     /// Default max tokens per file (20000).
     fn default_max_tokens() -> Option<usize> {
         Some(20000)
+    }
+
+    /// Default cursor reconciliation setting (true - reconcile .mdc with agent files).
+    fn default_reconcile_cursor() -> bool {
+        true
     }
 }
 

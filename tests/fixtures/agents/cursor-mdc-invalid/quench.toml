@@ -1,0 +1,9 @@
+version = 1
+
+[check.agents]
+required = []
+sync = false
+sections.required = []
+max_lines = false
+max_tokens = false
+reconcile_cursor = true
