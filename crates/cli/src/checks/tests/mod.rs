@@ -320,11 +320,11 @@ impl TestsCheck {
     ) -> CheckResult {
         // === Verbose: Auto-detected test suites ===
         if ctx.verbose {
-            eprintln!("=== Test Suites ===");
-            eprintln!("Auto-detected suites:");
+            eprintln!("\nTest Suites:");
+            eprintln!("  Auto-detected suites:");
             for (suite, source) in &auto_detected {
                 let name = suite.name.clone().unwrap_or_else(|| suite.runner.clone());
-                eprintln!("  {} (detected: {})", name, source);
+                eprintln!("    {} (detected: {})", name, source);
             }
         }
 

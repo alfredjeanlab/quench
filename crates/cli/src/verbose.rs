@@ -21,17 +21,17 @@ impl VerboseLogger {
         self.enabled
     }
 
-    /// Print a verbose line to stderr.
+    /// Print a verbose line to stderr (indented as content under a section).
     pub fn log(&self, msg: &str) {
         if self.enabled {
-            eprintln!("{}", msg);
+            eprintln!("  {}", msg);
         }
     }
 
     /// Print a verbose section header.
     pub fn section(&self, title: &str) {
         if self.enabled {
-            eprintln!("=== {} ===", title);
+            eprintln!("\n{}:", title);
         }
     }
 }

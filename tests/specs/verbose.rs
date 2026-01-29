@@ -25,9 +25,9 @@ fn verbose_flag_produces_verbose_output() {
         .pwd(temp.path())
         .args(&["--verbose"])
         .passes()
-        .stderr_has("=== Configuration ===")
-        .stderr_has("=== Discovery ===")
-        .stderr_has("=== Summary ===");
+        .stderr_has("\nConfiguration:")
+        .stderr_has("\nDiscovery:")
+        .stderr_has("\nSummary:");
 }
 
 /// Spec: plans/verbose-in-ci-mode.md - Verification Plan
@@ -42,9 +42,9 @@ fn ci_mode_implicitly_enables_verbose() {
         .pwd(temp.path())
         .args(&["--ci"])
         .passes()
-        .stderr_has("=== Configuration ===")
-        .stderr_has("=== Discovery ===")
-        .stderr_has("=== Summary ===");
+        .stderr_has("\nConfiguration:")
+        .stderr_has("\nDiscovery:")
+        .stderr_has("\nSummary:");
 }
 
 /// Spec: plans/verbose-in-ci-mode.md - Verification Plan
@@ -61,9 +61,9 @@ fn normal_mode_has_no_verbose_output() {
 
     // Normal mode should not have verbose section headers
     let stderr = result.stderr();
-    assert!(!stderr.contains("=== Configuration ==="));
-    assert!(!stderr.contains("=== Discovery ==="));
-    assert!(!stderr.contains("=== Summary ==="));
+    assert!(!stderr.contains("\nConfiguration:"));
+    assert!(!stderr.contains("\nDiscovery:"));
+    assert!(!stderr.contains("\nSummary:"));
 }
 
 /// Spec: plans/verbose-in-ci-mode.md - Verification Plan
@@ -113,10 +113,10 @@ exclude = ["target/**"]
         .pwd(temp.path())
         .args(&["--verbose"])
         .passes()
-        .stderr_has("=== Configuration ===")
-        .stderr_has("project.source:")
-        .stderr_has("project.tests:")
-        .stderr_has("project.exclude:");
+        .stderr_has("\nConfiguration:")
+        .stderr_has("  project.source:")
+        .stderr_has("  project.tests:")
+        .stderr_has("  project.exclude:");
 }
 
 /// Spec: plans/verbose-in-ci-mode.md - Phase 2
@@ -132,8 +132,8 @@ fn file_count_is_logged() {
         .pwd(temp.path())
         .args(&["--verbose"])
         .passes()
-        .stderr_has("=== Discovery ===")
-        .stderr_has("Scanned");
+        .stderr_has("\nDiscovery:")
+        .stderr_has("  Scanned");
 }
 
 /// Spec: plans/verbose-in-ci-mode.md - Phase 3
@@ -151,9 +151,9 @@ fn suite_execution_is_logged() {
         .pwd(temp.path())
         .args(&["--verbose"])
         .passes()
-        .stderr_has("=== Test Suites ===")
-        .stderr_has("Running suite:")
-        .stderr_has("Suite");
+        .stderr_has("\nTest Suites:")
+        .stderr_has("  Running suite:")
+        .stderr_has("  Suite");
 }
 
 /// Spec: plans/verbose-in-ci-mode.md - Phase 6
@@ -168,15 +168,90 @@ fn wall_time_is_logged() {
         .pwd(temp.path())
         .args(&["--verbose"])
         .passes()
-        .stderr_has("=== Summary ===")
-        .stderr_has("Total wall time:");
+        .stderr_has("\nSummary:")
+        .stderr_has("  Total wall time:");
 }
 
 // =============================================================================
 // AUTO-DETECTED SUITES VERBOSE OUTPUT
 // =============================================================================
 
-/// Spec: plans/verbose-in-ci-mode.md - Phase 3 (item c)
+// =============================================================================
+// EXACT OUTPUT TESTS
+// =============================================================================
+
+/// Spec: plans/verbose-in-ci-mode.md - Exact format verification
+///
+/// > Section headers use clean "Section:" format with indented content
+#[test]
+fn section_header_format_is_clean() {
+    let temp = default_project();
+    temp.file("src/lib.rs", "fn main() {}");
+
+    let result = cli()
+        .pwd(temp.path())
+        .args(&["--verbose"])
+        .passes();
+
+    let stderr = result.stderr();
+
+    // Verify section header format: "\nSectionName:"
+    assert!(stderr.contains("\nConfiguration:"));
+    assert!(stderr.contains("\nDiscovery:"));
+    assert!(stderr.contains("\nSummary:"));
+
+    // Verify content is indented with 2 spaces
+    assert!(stderr.contains("  Config:"));
+    assert!(stderr.contains("  Language:"));
+    assert!(stderr.contains("  Scanned"));
+    assert!(stderr.contains("  Total wall time:"));
+
+    // Verify NO banners are present
+    assert!(!stderr.contains("==="));
+    assert!(!stderr.contains("---"));
+    assert!(!stderr.contains("[verbose]"));
+}
+
+/// Spec: plans/verbose-in-ci-mode - Phase 2 exact format
+///
+/// > Configuration section has exact format
+#[test]
+fn configuration_section_exact_format() {
+    let temp = default_project();
+    temp.file("src/lib.rs", "fn main() {}");
+
+    let result = cli()
+        .pwd(temp.path())
+        .args(&["--verbose"])
+        .passes();
+
+    let stderr = result.stderr();
+
+    // Extract just the Configuration section
+    if let Some(start) = stderr.find("Configuration:") {
+        if let Some(end) = stderr[start..].find("\nDiscovery:") {
+            let config_section = &stderr[start..start + end];
+
+            // Verify indentation is consistent (2 spaces)
+            let lines: Vec<&str> = config_section.lines().collect();
+            for (i, line) in lines.iter().enumerate() {
+                if i == 0 {
+                    // First line is the header, should end with ":"
+                    assert!(line.ends_with(':'), "Header should end with colon: {:?}", line);
+                } else if !line.is_empty() {
+                    // Content lines should be indented with 2 spaces
+                    assert!(
+                        line.starts_with("  "),
+                        "Line should be indented with 2 spaces: {:?}",
+                        line
+                    );
+                }
+            }
+        }
+    }
+}
+
+/// Spec: plans/verbose-in-ci-mode - Phase 3 (item c)
 ///
 /// > Auto-detected suites show detection source
 #[test]
@@ -210,7 +285,8 @@ fn test_add() { assert_eq!(test_project::add(1, 2), 3); }
         .pwd(temp.path())
         .args(&["--ci", "--verbose"])
         .passes()
-        .stderr_has("=== Test Suites ===")
-        .stderr_has("Auto-detected suites:")
+        .stderr_has("\nTest Suites:")
+        .stderr_has("  Auto-detected suites:")
+        .stderr_has("    cargo")
         .stderr_has("(detected:");
 }

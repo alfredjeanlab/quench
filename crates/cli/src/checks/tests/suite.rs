@@ -178,11 +178,11 @@ pub fn run_single_suite(suite: &TestSuiteConfig, runner_ctx: &RunnerContext) -> 
 
     // Verbose: show which suite is starting
     if runner_ctx.verbose {
-        eprintln!("Running suite: {} ...", suite_name);
+        eprintln!("  Running suite: {} ...", suite_name);
         if let Some(ref cmd) = suite.command {
-            eprintln!("  command: {}", cmd);
+            eprintln!("    command: {}", cmd);
         } else {
-            eprintln!("  runner: {}", suite.runner);
+            eprintln!("    runner: {}", suite.runner);
         }
     }
 
@@ -192,7 +192,7 @@ pub fn run_single_suite(suite: &TestSuiteConfig, runner_ctx: &RunnerContext) -> 
     {
         // Setup failure skips the suite
         if runner_ctx.verbose {
-            eprintln!("Suite {:?} skipped: setup failed", suite_name);
+            eprintln!("  Suite {:?} skipped: setup failed", suite_name);
         }
         return SuiteResult {
             name: suite_name,
@@ -208,7 +208,7 @@ pub fn run_single_suite(suite: &TestSuiteConfig, runner_ctx: &RunnerContext) -> 
         Some(r) => r,
         None => {
             if runner_ctx.verbose {
-                eprintln!("Suite {:?} skipped: unknown runner", suite_name);
+                eprintln!("  Suite {:?} skipped: unknown runner", suite_name);
             }
             return SuiteResult {
                 name: suite_name,
@@ -224,7 +224,7 @@ pub fn run_single_suite(suite: &TestSuiteConfig, runner_ctx: &RunnerContext) -> 
     if !runner.available(runner_ctx) {
         if runner_ctx.verbose {
             eprintln!(
-                "Suite {:?} skipped: runner not available",
+                "  Suite {:?} skipped: runner not available",
                 suite_name
             );
         }
@@ -270,14 +270,14 @@ pub fn run_single_suite(suite: &TestSuiteConfig, runner_ctx: &RunnerContext) -> 
         };
         if run_result.passed {
             eprintln!(
-                "Suite {:?} completed: {}, {} tests, {}ms",
+                "  Suite {:?} completed: {}, {} tests, {}ms",
                 suite_name, exit_status, test_count, total_ms,
             );
         } else {
             let failing =
                 test_count.saturating_sub(run_result.tests.iter().filter(|t| t.passed).count());
             eprintln!(
-                "Suite {:?} completed: {}, {} tests ({} failing), {}ms",
+                "  Suite {:?} completed: {}, {} tests ({} failing), {}ms",
                 suite_name, exit_status, test_count, failing, total_ms,
             );
         }
