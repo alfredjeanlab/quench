@@ -4,8 +4,8 @@
 check:
 	cargo fmt --all
 	cargo clippy --all-targets --all-features -- -D warnings
-	cargo test --all
 	cargo build --all
+	cargo test --all
 	./target/debug/quench check
 	cargo audit
 	cargo deny check licenses bans sources
