@@ -11,12 +11,11 @@ mod classify;
 mod diff;
 mod matching;
 
-use std::borrow::Cow;
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
 use super::diff::{CommitChanges, FileChange};
-use classify::{CompiledPatterns, classify_changes, default_patterns};
+use classify::{CompiledPatterns, classify_changes};
 use matching::{correlation_base_name, extract_base_name, is_test_only};
 
 #[cfg(test)]
@@ -44,17 +43,6 @@ pub struct CorrelationConfig {
     pub source_patterns: Vec<String>,
     /// Files excluded from requiring tests.
     pub exclude_patterns: Vec<String>,
-}
-
-impl Default for CorrelationConfig {
-    #[rustfmt::skip]
-    fn default() -> Self {
-        Self {
-            test_patterns: vec!["tests/**/*".to_string(), "test/**/*".to_string(), "spec/**/*".to_string(), "**/__tests__/**".to_string(), "**/*_test.*".to_string(), "**/*_tests.*".to_string(), "**/*.test.*".to_string(), "**/*.spec.*".to_string(), "**/test_*.*".to_string()],
-            source_patterns: vec!["src/**/*".to_string()],
-            exclude_patterns: vec!["**/mod.rs".to_string(), "**/lib.rs".to_string(), "**/main.rs".to_string(), "**/generated/**".to_string()],
-        }
-    }
 }
 
 /// Result of correlation analysis.
@@ -121,17 +109,11 @@ pub fn analyze_correlation(
         };
     }
 
-    // Use cached patterns for default config, otherwise compile
-    let patterns: Cow<'_, CompiledPatterns> = if *config == CorrelationConfig::default() {
-        Cow::Borrowed(default_patterns())
-    } else {
-        Cow::Owned(
-            CompiledPatterns::from_config(config).unwrap_or_else(|_| CompiledPatterns::empty()),
-        )
-    };
+    let patterns =
+        CompiledPatterns::from_config(config).unwrap_or_else(|_| CompiledPatterns::empty());
 
     // Classify changes (parallel for large sets)
-    let (source_changes, test_changes) = classify_changes(changes, patterns.as_ref(), root);
+    let (source_changes, test_changes) = classify_changes(changes, &patterns, root);
 
     // Early termination: no source changes
     if source_changes.is_empty() {

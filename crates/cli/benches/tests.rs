@@ -24,6 +24,30 @@ use quench::checks::testing::correlation::{
 };
 use quench::checks::testing::diff::{ChangeType, FileChange};
 
+/// Create a Rust-like CorrelationConfig for benchmarking.
+fn rust_correlation_config() -> CorrelationConfig {
+    CorrelationConfig {
+        test_patterns: vec![
+            "tests/**/*".to_string(),
+            "test/**/*".to_string(),
+            "spec/**/*".to_string(),
+            "**/__tests__/**".to_string(),
+            "**/*_test.*".to_string(),
+            "**/*_tests.*".to_string(),
+            "**/*.test.*".to_string(),
+            "**/*.spec.*".to_string(),
+            "**/test_*.*".to_string(),
+        ],
+        source_patterns: vec!["src/**/*".to_string()],
+        exclude_patterns: vec![
+            "**/generated/**".to_string(),
+            "**/mod.rs".to_string(),
+            "**/lib.rs".to_string(),
+            "**/main.rs".to_string(),
+        ],
+    }
+}
+
 /// Build a GlobSet from pattern strings for benchmarking.
 fn build_glob_set(patterns: &[String]) -> Result<GlobSet, String> {
     let mut builder = GlobSetBuilder::new();
@@ -86,7 +110,7 @@ fn bench_correlation_detection(c: &mut Criterion) {
 
         // Create simulated file changes for the entire fixture
         let changes = generate_changes_for_fixture(&path);
-        let config = CorrelationConfig::default();
+        let config = rust_correlation_config();
 
         group.bench_with_input(BenchmarkId::new("detect", name), &changes, |b, changes| {
             b.iter(|| {
@@ -176,7 +200,7 @@ fn bench_find_test_locations(c: &mut Criterion) {
 fn bench_glob_matching(c: &mut Criterion) {
     let mut group = c.benchmark_group("tests-glob-matching");
 
-    // Test patterns from CorrelationConfig::default()
+    // Test patterns from rust_correlation_config()
     let test_patterns = vec![
         "tests/**/*".to_string(),
         "test/**/*".to_string(),
@@ -481,7 +505,7 @@ fn bench_optimization_comparison(c: &mut Criterion) {
 /// Benchmark early termination paths.
 fn bench_early_termination(c: &mut Criterion) {
     let mut group = c.benchmark_group("tests-early-termination");
-    let config = CorrelationConfig::default();
+    let config = rust_correlation_config();
     let root = Path::new("/project");
 
     // Empty changes (should be very fast)

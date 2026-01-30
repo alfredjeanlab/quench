@@ -107,6 +107,41 @@ pub fn resolve_patterns<C: LanguageDefaults>(
     }
 }
 
+// =============================================================================
+// CORRELATION EXCLUDE DEFAULTS
+// =============================================================================
+
+/// Language-aware default exclude patterns for correlation checks.
+///
+/// These exclude files that typically don't need dedicated tests
+/// (entry points, module declarations, generated code).
+pub fn correlation_exclude_defaults(lang: super::ProjectLanguage) -> Vec<String> {
+    // Common excludes for all languages: generated code and common entry/declaration files
+    let mut patterns = vec![
+        "**/generated/**".to_string(),
+        "**/mod.rs".to_string(),
+        "**/lib.rs".to_string(),
+        "**/main.rs".to_string(),
+    ];
+    // Language-specific excludes
+    match lang {
+        super::ProjectLanguage::Go => {
+            patterns.push("**/main.go".to_string());
+        }
+        super::ProjectLanguage::Python => {
+            patterns.push("**/__init__.py".to_string());
+        }
+        super::ProjectLanguage::JavaScript => {
+            patterns.extend(["**/index.js", "**/index.ts"].map(String::from));
+        }
+        super::ProjectLanguage::Rust
+        | super::ProjectLanguage::Ruby
+        | super::ProjectLanguage::Shell
+        | super::ProjectLanguage::Generic => {}
+    }
+    patterns
+}
+
 #[cfg(test)]
 #[path = "patterns_tests.rs"]
 mod tests;

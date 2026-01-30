@@ -23,6 +23,9 @@ use std::sync::Arc;
 
 use serde_json::json;
 
+use crate::adapter::{
+    detect_language, patterns::correlation_exclude_defaults, resolve_project_patterns,
+};
 use crate::check::{Check, CheckContext, CheckResult, Violation};
 
 use self::auto_detect::{
@@ -94,11 +97,31 @@ impl Check for TestsCheck {
             return CheckResult::passed(self.name());
         }
 
-        // Build correlation config from user settings
+        // Resolve inherited patterns: empty config = inherit from project/language
+        let resolved = resolve_project_patterns(ctx.root, ctx.config);
+        let lang = detect_language(ctx.root);
+
+        let source_patterns = if !config.source_patterns.is_empty() {
+            config.source_patterns.clone()
+        } else if !resolved.source.is_empty() {
+            resolved.source
+        } else {
+            // Fallback: src/**/* is the universal convention
+            vec!["src/**/*".to_string()]
+        };
+
         let correlation_config = CorrelationConfig {
-            test_patterns: config.test_patterns.clone(),
-            source_patterns: config.source_patterns.clone(),
-            exclude_patterns: config.exclude.clone(),
+            source_patterns,
+            test_patterns: if config.test_patterns.is_empty() {
+                resolved.test
+            } else {
+                config.test_patterns.clone()
+            },
+            exclude_patterns: if config.exclude.is_empty() {
+                correlation_exclude_defaults(lang)
+            } else {
+                config.exclude.clone()
+            },
         };
 
         // Commit scope: check each commit individually

@@ -108,6 +108,7 @@ exclude = ["target/**"]
         .args(&["--verbose"])
         .passes()
         .stderr_has("\nConfiguration:")
+        .stderr_has("  Language(s):")
         .stderr_has("  project.source:")
         .stderr_has("  project.tests:")
         .stderr_has("  project.exclude:");
@@ -195,13 +196,11 @@ fn minimal_project_verbose_output_exact() {
     let expected = r#"
 Configuration:
   Config: quench.toml
-  Language: Generic
-  project.source: (default)
-  project.tests:
+  Language(s): Generic
+  project.source:
+  project.tests: **/tests/**, **/test/**, **/spec/**, **/__tests__/**, **/*_test.*, **/*_tests.*, **/*.test.*, **/*.spec.*, **/test_*.*
   project.exclude:
-  check.tests.commit.source_patterns: src/**/*
-  check.tests.commit.test_patterns: tests/**/*, test/**/*, spec/**/*, **/__tests__/**, **/*_test.*, **/*_tests.*, **/*.test.*, **/*.spec.*, **/test_*.*
-  check.tests.commit.exclude: **/mod.rs, **/lib.rs, **/main.rs, **/generated/**
+  check.tests.commit.exclude: **/generated/**, **/mod.rs, **/lib.rs, **/main.rs
 
 Discovery:
   Max depth limit: 100
@@ -216,7 +215,7 @@ Summary:
 
     assert!(
         stderr.starts_with(expected),
-        "Verbose output format mismatch"
+        "Verbose output format mismatch.\nActual:\n{stderr}"
     );
 
     // Verify timing line ends correctly
@@ -251,13 +250,11 @@ exclude = ["target", "build"]
     let expected = r#"
 Configuration:
   Config: quench.toml
-  Language: Generic
+  Language(s): Generic
   project.source: lib/**/*.rs
   project.tests: spec/**/*.rs
   project.exclude: target, build
-  check.tests.commit.source_patterns: src/**/*
-  check.tests.commit.test_patterns: tests/**/*, test/**/*, spec/**/*, **/__tests__/**, **/*_test.*, **/*_tests.*, **/*.test.*, **/*.spec.*, **/test_*.*
-  check.tests.commit.exclude: **/mod.rs, **/lib.rs, **/main.rs, **/generated/**
+  check.tests.commit.exclude: **/generated/**, **/mod.rs, **/lib.rs, **/main.rs
 
 Discovery:
   Max depth limit: 100
@@ -272,7 +269,7 @@ Summary:
 
     assert!(
         stderr.starts_with(expected),
-        "Verbose output format mismatch"
+        "Verbose output format mismatch.\nActual:\n{stderr}"
     );
 
     // Verify timing line ends correctly

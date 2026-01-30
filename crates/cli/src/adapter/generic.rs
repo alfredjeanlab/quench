@@ -39,12 +39,19 @@ impl GenericAdapter {
     /// Default test patterns for generic adapter.
     pub fn default_test_patterns() -> Vec<String> {
         vec![
+            // Directory-based patterns
             "**/tests/**".to_string(),
             "**/test/**".to_string(),
+            "**/spec/**".to_string(),
+            "**/__tests__/**".to_string(),
+            // Suffix patterns (underscore)
             "**/*_test.*".to_string(),
             "**/*_tests.*".to_string(),
+            // Suffix patterns (dot)
             "**/*.test.*".to_string(),
             "**/*.spec.*".to_string(),
+            // Prefix patterns
+            "**/test_*.*".to_string(),
         ]
     }
 }

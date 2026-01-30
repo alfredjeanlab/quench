@@ -18,6 +18,30 @@ fn make_change(path: &str, change_type: ChangeType) -> FileChange {
     }
 }
 
+/// A Rust-like correlation config for unit tests (replaces former Default).
+fn rust_correlation_config() -> CorrelationConfig {
+    CorrelationConfig {
+        test_patterns: vec![
+            "tests/**/*".to_string(),
+            "test/**/*".to_string(),
+            "spec/**/*".to_string(),
+            "**/__tests__/**".to_string(),
+            "**/*_test.*".to_string(),
+            "**/*_tests.*".to_string(),
+            "**/*.test.*".to_string(),
+            "**/*.spec.*".to_string(),
+            "**/test_*.*".to_string(),
+        ],
+        source_patterns: vec!["src/**/*".to_string()],
+        exclude_patterns: vec![
+            "**/generated/**".to_string(),
+            "**/mod.rs".to_string(),
+            "**/lib.rs".to_string(),
+            "**/main.rs".to_string(),
+        ],
+    }
+}
+
 // =============================================================================
 // CORRELATION ANALYSIS TESTS
 // =============================================================================
@@ -30,7 +54,7 @@ fn analyze_correlation_source_with_test() {
         make_change("/project/tests/parser_tests.rs", ChangeType::Modified),
     ];
 
-    let config = CorrelationConfig::default();
+    let config = rust_correlation_config();
     let result = analyze_correlation(&changes, &config, root);
 
     assert_eq!(result.with_tests.len(), 1);
@@ -48,7 +72,7 @@ fn analyze_correlation_source_without_test() {
     let root = Path::new("/project");
     let changes = vec![make_change("/project/src/parser.rs", ChangeType::Modified)];
 
-    let config = CorrelationConfig::default();
+    let config = rust_correlation_config();
     let result = analyze_correlation(&changes, &config, root);
 
     assert_eq!(result.with_tests.len(), 0);
@@ -69,7 +93,7 @@ fn analyze_correlation_test_only_tdd() {
         ChangeType::Added,
     )];
 
-    let config = CorrelationConfig::default();
+    let config = rust_correlation_config();
     let result = analyze_correlation(&changes, &config, root);
 
     assert_eq!(result.with_tests.len(), 0);
@@ -82,7 +106,7 @@ fn analyze_correlation_excludes_mod_rs() {
     let root = Path::new("/project");
     let changes = vec![make_change("/project/src/mod.rs", ChangeType::Modified)];
 
-    let config = CorrelationConfig::default();
+    let config = rust_correlation_config();
     let result = analyze_correlation(&changes, &config, root);
 
     // mod.rs should be excluded - no violations
@@ -94,7 +118,7 @@ fn analyze_correlation_excludes_lib_rs() {
     let root = Path::new("/project");
     let changes = vec![make_change("/project/src/lib.rs", ChangeType::Modified)];
 
-    let config = CorrelationConfig::default();
+    let config = rust_correlation_config();
     let result = analyze_correlation(&changes, &config, root);
 
     assert_eq!(result.without_tests.len(), 0);
@@ -105,7 +129,7 @@ fn analyze_correlation_excludes_main_rs() {
     let root = Path::new("/project");
     let changes = vec![make_change("/project/src/main.rs", ChangeType::Modified)];
 
-    let config = CorrelationConfig::default();
+    let config = rust_correlation_config();
     let result = analyze_correlation(&changes, &config, root);
 
     assert_eq!(result.without_tests.len(), 0);
@@ -116,7 +140,7 @@ fn analyze_correlation_skips_deleted_files() {
     let root = Path::new("/project");
     let changes = vec![make_change("/project/src/parser.rs", ChangeType::Deleted)];
 
-    let config = CorrelationConfig::default();
+    let config = rust_correlation_config();
     let result = analyze_correlation(&changes, &config, root);
 
     // Deleted files don't require tests
@@ -131,7 +155,7 @@ fn analyze_correlation_matches_test_in_test_dir() {
         make_change("/project/test/parser.rs", ChangeType::Modified),
     ];
 
-    let config = CorrelationConfig::default();
+    let config = rust_correlation_config();
     let result = analyze_correlation(&changes, &config, root);
 
     assert_eq!(result.with_tests.len(), 1);
@@ -146,7 +170,7 @@ fn analyze_correlation_sibling_test_file() {
         make_change("/project/src/parser_tests.rs", ChangeType::Modified),
     ];
 
-    let config = CorrelationConfig::default();
+    let config = rust_correlation_config();
     let result = analyze_correlation(&changes, &config, root);
 
     // Sibling test file should satisfy the requirement
@@ -167,7 +191,7 @@ fn analyze_commit_detects_source_without_tests() {
         changes: vec![make_change("/project/src/parser.rs", ChangeType::Added)],
     };
 
-    let config = CorrelationConfig::default();
+    let config = rust_correlation_config();
     let analysis = analyze_commit(&commit, &config, root);
 
     assert_eq!(analysis.hash, "abc123def456");
@@ -188,7 +212,7 @@ fn analyze_commit_detects_test_only_tdd() {
         )],
     };
 
-    let config = CorrelationConfig::default();
+    let config = rust_correlation_config();
     let analysis = analyze_commit(&commit, &config, root);
 
     assert_eq!(analysis.source_without_tests.len(), 0);
@@ -207,7 +231,7 @@ fn analyze_commit_source_with_tests_passes() {
         ],
     };
 
-    let config = CorrelationConfig::default();
+    let config = rust_correlation_config();
     let analysis = analyze_commit(&commit, &config, root);
 
     assert_eq!(analysis.source_without_tests.len(), 0);
@@ -223,7 +247,7 @@ fn analyze_correlation_empty_changes_fast_path() {
     let root = Path::new("/project");
     let changes: Vec<FileChange> = vec![];
 
-    let config = CorrelationConfig::default();
+    let config = rust_correlation_config();
     let result = analyze_correlation(&changes, &config, root);
 
     assert!(result.with_tests.is_empty());
@@ -239,7 +263,7 @@ fn analyze_correlation_single_source_fast_path() {
         make_change("/project/tests/parser_tests.rs", ChangeType::Modified),
     ];
 
-    let config = CorrelationConfig::default();
+    let config = rust_correlation_config();
     let result = analyze_correlation(&changes, &config, root);
 
     // Should use single source optimization
@@ -255,7 +279,7 @@ fn analyze_correlation_source_only_no_tests_fast_path() {
         make_change("/project/src/lexer.rs", ChangeType::Modified),
     ];
 
-    let config = CorrelationConfig::default();
+    let config = rust_correlation_config();
     let result = analyze_correlation(&changes, &config, root);
 
     assert!(result.with_tests.is_empty());
@@ -271,7 +295,7 @@ fn analyze_correlation_test_only_fast_path() {
         make_change("/project/tests/lexer_tests.rs", ChangeType::Modified),
     ];
 
-    let config = CorrelationConfig::default();
+    let config = rust_correlation_config();
     let result = analyze_correlation(&changes, &config, root);
 
     assert!(result.with_tests.is_empty());
@@ -299,7 +323,7 @@ fn analyze_correlation_many_sources_uses_index() {
         ));
     }
 
-    let config = CorrelationConfig::default();
+    let config = rust_correlation_config();
     let result = analyze_correlation(&changes, &config, root);
 
     assert_eq!(result.with_tests.len(), 10);
@@ -318,7 +342,7 @@ fn default_patterns_include_jest_conventions() {
         make_change("/project/__tests__/parser.test.ts", ChangeType::Modified),
     ];
 
-    let config = CorrelationConfig::default();
+    let config = rust_correlation_config();
     let result = analyze_correlation(&changes, &config, root);
 
     assert_eq!(result.with_tests.len(), 1);
@@ -333,7 +357,7 @@ fn default_patterns_include_dot_test_suffix() {
         make_change("/project/src/parser.test.ts", ChangeType::Modified),
     ];
 
-    let config = CorrelationConfig::default();
+    let config = rust_correlation_config();
     let result = analyze_correlation(&changes, &config, root);
 
     assert_eq!(result.with_tests.len(), 1);
@@ -348,7 +372,7 @@ fn default_patterns_include_spec_directory() {
         make_change("/project/spec/parser_spec.rb", ChangeType::Modified),
     ];
 
-    let config = CorrelationConfig::default();
+    let config = rust_correlation_config();
     let result = analyze_correlation(&changes, &config, root);
 
     assert_eq!(result.with_tests.len(), 1);
@@ -363,7 +387,7 @@ fn default_patterns_include_test_prefix() {
         make_change("/project/tests/test_parser.py", ChangeType::Modified),
     ];
 
-    let config = CorrelationConfig::default();
+    let config = rust_correlation_config();
     let result = analyze_correlation(&changes, &config, root);
 
     assert_eq!(result.with_tests.len(), 1);
@@ -389,7 +413,7 @@ fn test_only_filter_single_source_matches_multi_source() {
         make_change("/project/tests/other_tests.rs", ChangeType::Modified),
     ];
 
-    let config = CorrelationConfig::default();
+    let config = rust_correlation_config();
     let single_result = analyze_correlation(&single_changes, &config, root);
     let multi_result = analyze_correlation(&multi_changes, &config, root);
 
@@ -417,7 +441,7 @@ fn source_with_normal_name_correlates_correctly() {
         make_change("/project/tests/parser_tests.rs", ChangeType::Modified),
     ];
 
-    let config = CorrelationConfig::default();
+    let config = rust_correlation_config();
     let result = analyze_correlation(&changes, &config, root);
 
     assert_eq!(result.with_tests.len(), 1);
@@ -432,7 +456,7 @@ fn source_file_without_matching_test_detected() {
         make_change("/project/tests/lexer_tests.rs", ChangeType::Modified),
     ];
 
-    let config = CorrelationConfig::default();
+    let config = rust_correlation_config();
     let result = analyze_correlation(&changes, &config, root);
 
     assert_eq!(result.with_tests.len(), 0);

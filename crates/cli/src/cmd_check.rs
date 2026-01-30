@@ -6,7 +6,10 @@
 use std::sync::Arc;
 use std::time::Instant;
 
-use quench::adapter::{detect_language, project::apply_language_defaults};
+use quench::adapter::{
+    detect_all_languages, detect_language, patterns::correlation_exclude_defaults,
+    project::apply_language_defaults, resolve_project_patterns,
+};
 use quench::baseline::Baseline;
 use quench::cache::{self, CACHE_FILE_NAME, FileCache};
 use quench::checks;
@@ -103,52 +106,37 @@ pub fn run(_cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
             }
             None => verbose.log("Config: (defaults)"),
         }
-        let lang = detect_language(&root);
-        verbose.log(&format!("Language: {:?}", lang));
-        if config.project.source.is_empty() {
-            verbose.log("project.source: (default)");
-        } else {
-            verbose.log(&format!(
-                "project.source: {}",
-                config.project.source.join(", ")
-            ));
-        }
-        let tests_val = config.project.tests.join(", ");
-        verbose.log(&format!(
-            "project.tests:{}",
-            if tests_val.is_empty() {
-                String::new()
-            } else {
-                format!(" {}", tests_val)
-            }
-        ));
-        let exclude_val = exclude_patterns.join(", ");
-        verbose.log(&format!(
-            "project.exclude:{}",
-            if exclude_val.is_empty() {
-                String::new()
-            } else {
-                format!(" {}", exclude_val)
-            }
-        ));
+        let langs = detect_all_languages(&root);
+        let lang_display: Vec<String> = langs.iter().map(|l| l.to_string()).collect();
+        verbose.log(&format!("Language(s): {}", lang_display.join(", ")));
+
+        let resolved = resolve_project_patterns(&root, &config);
+        verbose_patterns(&verbose, "project.source", &resolved.source);
+        verbose_patterns(&verbose, "project.tests", &resolved.test);
+        verbose_patterns(&verbose, "project.exclude", &exclude_patterns);
+
+        // Correlation config: only show source/test if user explicitly set them
         if !config.check.tests.commit.source_patterns.is_empty() {
-            verbose.log(&format!(
-                "check.tests.commit.source_patterns: {}",
-                config.check.tests.commit.source_patterns.join(", ")
-            ));
+            verbose_patterns(
+                &verbose,
+                "check.tests.commit.source_patterns",
+                &config.check.tests.commit.source_patterns,
+            );
         }
         if !config.check.tests.commit.test_patterns.is_empty() {
-            verbose.log(&format!(
-                "check.tests.commit.test_patterns: {}",
-                config.check.tests.commit.test_patterns.join(", ")
-            ));
+            verbose_patterns(
+                &verbose,
+                "check.tests.commit.test_patterns",
+                &config.check.tests.commit.test_patterns,
+            );
         }
-        if !config.check.tests.commit.exclude.is_empty() {
-            verbose.log(&format!(
-                "check.tests.commit.exclude: {}",
-                config.check.tests.commit.exclude.join(", ")
-            ));
-        }
+        let lang = detect_language(&root);
+        let corr_exclude = if config.check.tests.commit.exclude.is_empty() {
+            correlation_exclude_defaults(lang)
+        } else {
+            config.check.tests.commit.exclude.clone()
+        };
+        verbose_patterns(&verbose, "check.tests.commit.exclude", &corr_exclude);
     }
 
     let walker_config = WalkerConfig {
@@ -731,5 +719,15 @@ fn report_baseline_update_file(
         }
     } else {
         eprintln!("ratchet: baseline synced");
+    }
+}
+
+/// Log a pattern list in verbose output (e.g. `project.source: a, b, c`).
+fn verbose_patterns(verbose: &VerboseLogger, label: &str, patterns: &[String]) {
+    let val = patterns.join(", ");
+    if val.is_empty() {
+        verbose.log(&format!("{label}:"));
+    } else {
+        verbose.log(&format!("{label}: {val}"));
     }
 }

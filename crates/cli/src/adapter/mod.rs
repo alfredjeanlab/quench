@@ -221,6 +221,20 @@ pub enum ProjectLanguage {
     Generic,
 }
 
+impl std::fmt::Display for ProjectLanguage {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ProjectLanguage::Rust => write!(f, "Rust"),
+            ProjectLanguage::Go => write!(f, "Go"),
+            ProjectLanguage::JavaScript => write!(f, "JavaScript"),
+            ProjectLanguage::Python => write!(f, "Python"),
+            ProjectLanguage::Ruby => write!(f, "Ruby"),
+            ProjectLanguage::Shell => write!(f, "Shell"),
+            ProjectLanguage::Generic => write!(f, "Generic"),
+        }
+    }
+}
+
 /// Detect project language by checking for marker files.
 pub fn detect_language(root: &Path) -> ProjectLanguage {
     if root.join("Cargo.toml").exists() {
@@ -311,6 +325,36 @@ fn has_shell_markers(root: &Path) -> bool {
     false
 }
 
+/// Detect all project languages present (returns multiple if markers exist for several).
+pub fn detect_all_languages(root: &Path) -> Vec<ProjectLanguage> {
+    let mut langs = Vec::new();
+    if root.join("Cargo.toml").exists() {
+        langs.push(ProjectLanguage::Rust);
+    }
+    if root.join("go.mod").exists() {
+        langs.push(ProjectLanguage::Go);
+    }
+    if root.join("package.json").exists()
+        || root.join("tsconfig.json").exists()
+        || root.join("jsconfig.json").exists()
+    {
+        langs.push(ProjectLanguage::JavaScript);
+    }
+    if has_python_markers(root) {
+        langs.push(ProjectLanguage::Python);
+    }
+    if has_ruby_markers(root) {
+        langs.push(ProjectLanguage::Ruby);
+    }
+    if has_shell_markers(root) {
+        langs.push(ProjectLanguage::Shell);
+    }
+    if langs.is_empty() {
+        langs.push(ProjectLanguage::Generic);
+    }
+    langs
+}
+
 /// Check if a directory contains *.sh files.
 fn has_sh_files(dir: &Path) -> bool {
     dir.read_dir()
@@ -364,12 +408,7 @@ impl AdapterRegistry {
     /// 2. `[project].tests` - Project-wide patterns
     /// 3. Adapter defaults - Built-in convention (zero-config)
     pub fn for_project_with_config(root: &Path, config: &crate::config::Config) -> Self {
-        // Resolve fallback patterns: project config or generic defaults
-        let fallback_test_patterns = if !config.project.tests.is_empty() {
-            config.project.tests.clone()
-        } else {
-            GenericAdapter::default_test_patterns()
-        };
+        let resolved = resolve_project_patterns(root, config);
 
         let fallback_source_patterns = if !config.project.source.is_empty() {
             config.project.source.clone()
@@ -379,33 +418,27 @@ impl AdapterRegistry {
 
         let mut registry = Self::new(Arc::new(GenericAdapter::new(
             &fallback_source_patterns,
-            &fallback_test_patterns,
+            &resolved.test,
         )));
 
         match detect_language(root) {
             ProjectLanguage::Rust => {
-                let patterns = resolve_rust_patterns(config, &fallback_test_patterns);
-                registry.register(Arc::new(RustAdapter::with_patterns(patterns)));
+                registry.register(Arc::new(RustAdapter::with_patterns(resolved)));
             }
             ProjectLanguage::Go => {
-                let patterns = resolve_go_patterns(config, &fallback_test_patterns);
-                registry.register(Arc::new(GoAdapter::with_patterns(patterns)));
+                registry.register(Arc::new(GoAdapter::with_patterns(resolved)));
             }
             ProjectLanguage::JavaScript => {
-                let patterns = resolve_javascript_patterns(config, &fallback_test_patterns);
-                registry.register(Arc::new(JavaScriptAdapter::with_patterns(patterns)));
+                registry.register(Arc::new(JavaScriptAdapter::with_patterns(resolved)));
             }
             ProjectLanguage::Python => {
-                let patterns = resolve_python_patterns(config, &fallback_test_patterns);
-                registry.register(Arc::new(PythonAdapter::with_patterns(patterns)));
+                registry.register(Arc::new(PythonAdapter::with_patterns(resolved)));
             }
             ProjectLanguage::Ruby => {
-                let patterns = resolve_ruby_patterns(config, &fallback_test_patterns);
-                registry.register(Arc::new(RubyAdapter::with_patterns(patterns)));
+                registry.register(Arc::new(RubyAdapter::with_patterns(resolved)));
             }
             ProjectLanguage::Shell => {
-                let patterns = resolve_shell_patterns(config, &fallback_test_patterns);
-                registry.register(Arc::new(ShellAdapter::with_patterns(patterns)));
+                registry.register(Arc::new(ShellAdapter::with_patterns(resolved)));
             }
             ProjectLanguage::Generic => {}
         }
@@ -417,13 +450,43 @@ impl AdapterRegistry {
 // Re-export ResolvedPatterns from the patterns module.
 pub use patterns::ResolvedPatterns;
 
+/// Resolve the effective project patterns (source, test, exclude) based on
+/// the detected language and config hierarchy.
+///
+/// This is the same resolution used by `for_project_with_config()`, exposed
+/// for use by other subsystems (e.g., correlation checks, verbose output).
+pub fn resolve_project_patterns(root: &Path, config: &crate::config::Config) -> ResolvedPatterns {
+    let fallback_test_patterns = if !config.project.tests.is_empty() {
+        config.project.tests.clone()
+    } else {
+        GenericAdapter::default_test_patterns()
+    };
+
+    match detect_language(root) {
+        ProjectLanguage::Rust => resolve_rust_patterns(config, &fallback_test_patterns),
+        ProjectLanguage::Go => resolve_go_patterns(config, &fallback_test_patterns),
+        ProjectLanguage::JavaScript => resolve_javascript_patterns(config, &fallback_test_patterns),
+        ProjectLanguage::Python => resolve_python_patterns(config, &fallback_test_patterns),
+        ProjectLanguage::Ruby => resolve_ruby_patterns(config, &fallback_test_patterns),
+        ProjectLanguage::Shell => resolve_shell_patterns(config, &fallback_test_patterns),
+        ProjectLanguage::Generic => ResolvedPatterns {
+            source: config.project.source.clone(),
+            test: fallback_test_patterns,
+            exclude: vec![],
+        },
+    }
+}
+
 /// Macro to define a resolve_*_patterns function.
 ///
 /// Generates a function that resolves patterns from config with the standard
 /// fallback hierarchy: language config -> project config -> language defaults.
 macro_rules! define_resolve_patterns {
     ($fn_name:ident, $config_field:ident, $config_type:ty) => {
-        fn $fn_name(config: &crate::config::Config, fallback_test: &[String]) -> ResolvedPatterns {
+        pub(crate) fn $fn_name(
+            config: &crate::config::Config,
+            fallback_test: &[String],
+        ) -> ResolvedPatterns {
             patterns::resolve_patterns::<$config_type>(
                 &config.$config_field.source,
                 &config.$config_field.tests,

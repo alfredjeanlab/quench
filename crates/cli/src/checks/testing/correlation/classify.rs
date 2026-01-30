@@ -7,7 +7,6 @@
 //! or excluded, using configurable glob patterns.
 
 use std::path::{Path, PathBuf};
-use std::sync::OnceLock;
 
 use globset::{Glob, GlobSet, GlobSetBuilder};
 use rayon::prelude::*;
@@ -47,17 +46,6 @@ impl CompiledPatterns {
             exclude_patterns: GlobSet::empty(),
         }
     }
-}
-
-/// Get cached patterns for the default configuration.
-pub(super) fn default_patterns() -> &'static CompiledPatterns {
-    static PATTERNS: OnceLock<CompiledPatterns> = OnceLock::new();
-    PATTERNS.get_or_init(|| {
-        // Default patterns are hardcoded and known to be valid, but we handle
-        // the error case defensively by returning empty patterns.
-        CompiledPatterns::from_config(&CorrelationConfig::default())
-            .unwrap_or_else(|_| CompiledPatterns::empty())
-    })
 }
 
 /// Classify changes into source and test files.

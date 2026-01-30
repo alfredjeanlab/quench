@@ -201,33 +201,14 @@ impl TestsCommitConfig {
     }
 
     fn default_test_patterns() -> Vec<String> {
-        vec![
-            // Directory-based patterns
-            "tests/**/*".to_string(),
-            "test/**/*".to_string(),
-            "spec/**/*".to_string(),
-            "**/__tests__/**".to_string(),
-            // Suffix patterns (underscore)
-            "**/*_test.*".to_string(),
-            "**/*_tests.*".to_string(),
-            // Suffix patterns (dot)
-            "**/*.test.*".to_string(),
-            "**/*.spec.*".to_string(),
-            // Prefix patterns
-            "**/test_*.*".to_string(),
-        ]
+        vec![] // Empty = inherit from project/language config
     }
 
     fn default_source_patterns() -> Vec<String> {
-        vec!["src/**/*".to_string()]
+        vec![] // Empty = inherit from project/language config
     }
 
     fn default_exclude() -> Vec<String> {
-        vec![
-            "**/mod.rs".to_string(),
-            "**/lib.rs".to_string(),
-            "**/main.rs".to_string(),
-            "**/generated/**".to_string(),
-        ]
+        vec![] // Empty = inherit language-aware defaults
     }
 }

@@ -66,3 +66,49 @@ fn for_project_generic_fallback() {
         "generic"
     );
 }
+
+#[test]
+fn detect_all_languages_single() {
+    let dir = TempDir::new().unwrap();
+    std::fs::write(
+        dir.path().join("Cargo.toml"),
+        "[package]\nname = \"test\"\nversion = \"0.1.0\"\n",
+    )
+    .unwrap();
+
+    let langs = detect_all_languages(dir.path());
+    assert_eq!(langs, vec![ProjectLanguage::Rust]);
+}
+
+#[test]
+fn detect_all_languages_multiple() {
+    let dir = TempDir::new().unwrap();
+    std::fs::write(
+        dir.path().join("Cargo.toml"),
+        "[package]\nname = \"test\"\nversion = \"0.1.0\"\n",
+    )
+    .unwrap();
+    // Add shell scripts
+    std::fs::write(dir.path().join("build.sh"), "#!/bin/bash\necho hi\n").unwrap();
+
+    let langs = detect_all_languages(dir.path());
+    assert_eq!(langs, vec![ProjectLanguage::Rust, ProjectLanguage::Shell]);
+}
+
+#[test]
+fn detect_all_languages_empty_is_generic() {
+    let dir = TempDir::new().unwrap();
+    let langs = detect_all_languages(dir.path());
+    assert_eq!(langs, vec![ProjectLanguage::Generic]);
+}
+
+#[test]
+fn project_language_display() {
+    assert_eq!(ProjectLanguage::Rust.to_string(), "Rust");
+    assert_eq!(ProjectLanguage::Go.to_string(), "Go");
+    assert_eq!(ProjectLanguage::JavaScript.to_string(), "JavaScript");
+    assert_eq!(ProjectLanguage::Python.to_string(), "Python");
+    assert_eq!(ProjectLanguage::Ruby.to_string(), "Ruby");
+    assert_eq!(ProjectLanguage::Shell.to_string(), "Shell");
+    assert_eq!(ProjectLanguage::Generic.to_string(), "Generic");
+}
