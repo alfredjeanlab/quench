@@ -116,15 +116,14 @@ pub fn resolve_patterns<C: LanguageDefaults>(
 /// These exclude files that typically don't need dedicated tests
 /// (entry points, module declarations, generated code).
 pub fn correlation_exclude_defaults(lang: super::ProjectLanguage) -> Vec<String> {
-    // Common excludes for all languages: generated code and common entry/declaration files
-    let mut patterns = vec![
-        "**/generated/**".to_string(),
-        "**/mod.rs".to_string(),
-        "**/lib.rs".to_string(),
-        "**/main.rs".to_string(),
-    ];
-    // Language-specific excludes
+    // Universal: generated code is never test-required
+    let mut patterns = vec!["**/generated/**".to_string()];
+
+    // Language-specific entry points and declarations
     match lang {
+        super::ProjectLanguage::Rust => {
+            patterns.extend(["**/mod.rs", "**/lib.rs", "**/main.rs"].map(String::from));
+        }
         super::ProjectLanguage::Go => {
             patterns.push("**/main.go".to_string());
         }
@@ -132,12 +131,13 @@ pub fn correlation_exclude_defaults(lang: super::ProjectLanguage) -> Vec<String>
             patterns.push("**/__init__.py".to_string());
         }
         super::ProjectLanguage::JavaScript => {
-            patterns.extend(["**/index.js", "**/index.ts"].map(String::from));
+            patterns.extend(
+                ["**/index.js", "**/index.ts", "**/index.jsx", "**/index.tsx"].map(String::from),
+            );
         }
-        super::ProjectLanguage::Rust
-        | super::ProjectLanguage::Ruby
-        | super::ProjectLanguage::Shell
-        | super::ProjectLanguage::Generic => {}
+        super::ProjectLanguage::Ruby => {}
+        super::ProjectLanguage::Shell => {}
+        super::ProjectLanguage::Generic => {}
     }
     patterns
 }

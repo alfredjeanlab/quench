@@ -93,3 +93,74 @@ fn resolve_lang_config_takes_precedence_over_fallback() {
     assert_eq!(patterns.test, vec!["lang_tests/**"]);
     assert_eq!(patterns.exclude, vec!["lang_exclude/**"]);
 }
+
+// =============================================================================
+// CORRELATION EXCLUDE DEFAULTS TESTS
+// =============================================================================
+
+use crate::adapter::ProjectLanguage;
+
+#[test]
+fn correlation_defaults_rust_includes_rs_patterns() {
+    let patterns = correlation_exclude_defaults(ProjectLanguage::Rust);
+    assert!(patterns.contains(&"**/mod.rs".to_string()));
+    assert!(patterns.contains(&"**/lib.rs".to_string()));
+    assert!(patterns.contains(&"**/main.rs".to_string()));
+    assert!(patterns.contains(&"**/generated/**".to_string()));
+}
+
+#[test]
+fn correlation_defaults_go_includes_main_go() {
+    let patterns = correlation_exclude_defaults(ProjectLanguage::Go);
+    assert!(patterns.contains(&"**/main.go".to_string()));
+    assert!(!patterns.contains(&"**/mod.rs".to_string()));
+    assert!(!patterns.contains(&"**/lib.rs".to_string()));
+    assert!(!patterns.contains(&"**/main.rs".to_string()));
+}
+
+#[test]
+fn correlation_defaults_python_includes_init() {
+    let patterns = correlation_exclude_defaults(ProjectLanguage::Python);
+    assert!(patterns.contains(&"**/__init__.py".to_string()));
+    assert!(!patterns.contains(&"**/mod.rs".to_string()));
+    assert!(!patterns.contains(&"**/lib.rs".to_string()));
+    assert!(!patterns.contains(&"**/main.rs".to_string()));
+}
+
+#[test]
+fn correlation_defaults_js_includes_index() {
+    let patterns = correlation_exclude_defaults(ProjectLanguage::JavaScript);
+    assert!(patterns.contains(&"**/index.js".to_string()));
+    assert!(patterns.contains(&"**/index.ts".to_string()));
+    assert!(patterns.contains(&"**/index.jsx".to_string()));
+    assert!(patterns.contains(&"**/index.tsx".to_string()));
+    assert!(!patterns.contains(&"**/mod.rs".to_string()));
+    assert!(!patterns.contains(&"**/lib.rs".to_string()));
+    assert!(!patterns.contains(&"**/main.rs".to_string()));
+}
+
+#[test]
+fn correlation_defaults_generic_only_generated() {
+    let patterns = correlation_exclude_defaults(ProjectLanguage::Generic);
+    assert_eq!(patterns, vec!["**/generated/**"]);
+}
+
+#[test]
+fn correlation_defaults_all_include_generated() {
+    let languages = [
+        ProjectLanguage::Rust,
+        ProjectLanguage::Go,
+        ProjectLanguage::Python,
+        ProjectLanguage::JavaScript,
+        ProjectLanguage::Ruby,
+        ProjectLanguage::Shell,
+        ProjectLanguage::Generic,
+    ];
+    for lang in languages {
+        let patterns = correlation_exclude_defaults(lang);
+        assert!(
+            patterns.contains(&"**/generated/**".to_string()),
+            "{lang:?} should include **/generated/**"
+        );
+    }
+}

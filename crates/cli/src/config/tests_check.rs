@@ -174,11 +174,6 @@ impl TestsCommitConfig {
     }
 
     fn default_exclude() -> Vec<String> {
-        vec![
-            "**/mod.rs".to_string(),
-            "**/lib.rs".to_string(),
-            "**/main.rs".to_string(),
-            "**/generated/**".to_string(),
-        ]
+        vec![]
     }
 }

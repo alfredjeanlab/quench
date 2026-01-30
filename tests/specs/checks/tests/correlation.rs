@@ -318,12 +318,23 @@ fn test_parse() {
 /// >   "**/lib.rs",           # Library roots
 /// >   "**/main.rs",          # Binary entry points
 /// > ]
+///
+/// Uses a Cargo.toml marker so the project is detected as Rust,
+/// which is the correct context for Rust-specific exclude defaults.
 #[test]
 fn excluded_files_dont_require_tests() {
     let temp = Project::empty();
     temp.config(
         r#"[check.tests.commit]
 check = "error"
+"#,
+    );
+    temp.file(
+        "Cargo.toml",
+        r#"[package]
+name = "test_project"
+version = "0.1.0"
+edition = "2021"
 "#,
     );
 
@@ -336,11 +347,39 @@ check = "error"
     temp.file("src/lib.rs", "pub mod api;");
     git_commit(temp.path(), "feat: add module files");
 
-    // Should pass - these files are excluded by default
+    // Should pass - these files are excluded by default for Rust projects
     check("tests")
         .pwd(temp.path())
         .args(&["--base", "main"])
         .passes();
+}
+
+/// Spec: Non-Rust projects don't exclude Rust entry points
+///
+/// In a non-Rust (Generic) project, mod.rs/lib.rs/main.rs are treated
+/// as normal source files that require tests.
+#[test]
+fn non_rust_project_does_not_exclude_rs_entry_points() {
+    let temp = Project::empty();
+    temp.config(
+        r#"[check.tests.commit]
+check = "error"
+"#,
+    );
+
+    init_git_repo(temp.path());
+    git_branch(temp.path(), "feature/no-rust-exclude");
+
+    // Add .rs files in a non-Rust project (no Cargo.toml)
+    temp.file("src/lib.rs", "pub mod api;");
+    git_commit(temp.path(), "feat: add lib.rs");
+
+    // Should fail - lib.rs is not excluded in a Generic project
+    check("tests")
+        .pwd(temp.path())
+        .args(&["--base", "main"])
+        .fails()
+        .stdout_has("lib.rs");
 }
 
 // =============================================================================

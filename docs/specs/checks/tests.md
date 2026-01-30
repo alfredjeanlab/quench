@@ -299,11 +299,12 @@ test_patterns = [
 source_patterns = ["src/**/*.rs"]
 
 # Exclude patterns (never require tests)
+# Defaults are language-dependent. For Rust:
 exclude = [
   "**/mod.rs",           # Module declarations
   "**/lib.rs",           # Library roots
   "**/main.rs",          # Binary entry points
-  "**/generated/**",     # Generated code
+  "**/generated/**",     # Generated code (all languages)
 ]
 
 # Test suites (time thresholds per-suite)

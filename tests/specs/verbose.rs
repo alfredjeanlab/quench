@@ -200,7 +200,7 @@ Configuration:
   project.source:
   project.tests: **/tests/**, **/test/**, **/spec/**, **/__tests__/**, **/*_test.*, **/*_tests.*, **/*.test.*, **/*.spec.*, **/test_*.*
   project.exclude:
-  check.tests.commit.exclude: **/generated/**, **/mod.rs, **/lib.rs, **/main.rs
+  check.tests.commit.exclude: **/generated/**
 
 Discovery:
   Max depth limit: 100
@@ -254,7 +254,7 @@ Configuration:
   project.source: lib/**/*.rs
   project.tests: spec/**/*.rs
   project.exclude: target, build
-  check.tests.commit.exclude: **/generated/**, **/mod.rs, **/lib.rs, **/main.rs
+  check.tests.commit.exclude: **/generated/**
 
 Discovery:
   Max depth limit: 100
