@@ -591,7 +591,11 @@ fn js_monorepo_produces_by_package_metrics() {
 /// violations fixture's js/ subdirectory.
 #[test]
 fn violations_js_escapes_detected() {
-    let result = check("escapes").on("violations").json().fails();
+    let result = check("escapes")
+        .on("violations")
+        .args(&["--no-limit"])
+        .json()
+        .fails();
 
     // Verify JS-specific files are detected
     assert!(
