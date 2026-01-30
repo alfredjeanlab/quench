@@ -13,6 +13,7 @@ use quench::adapter::project::apply_language_defaults;
 use quench::adapter::{AdapterRegistry, FileKind, RustAdapter, patterns::LanguageDefaults};
 use quench::cli::{ClocArgs, OutputFormat};
 use quench::cloc;
+use quench::color::{self, codes};
 use quench::config::{self, CfgTestSplitMode, RustConfig};
 use quench::discovery;
 use quench::error::ExitCode;
@@ -220,10 +221,14 @@ pub fn run(args: &ClocArgs) -> anyhow::Result<ExitCode> {
     let _walk_stats = handle.join();
 
     let package_names = &config.project.package_names;
+    let use_color = matches!(
+        color::resolve_color(),
+        termcolor::ColorChoice::Always | termcolor::ColorChoice::Auto
+    );
 
     match args.output {
         OutputFormat::Json => print_json(&stats, &package_lang_stats, package_names)?,
-        _ => print_text(&stats, &package_lang_stats, package_names),
+        _ => print_text(&stats, &package_lang_stats, package_names, use_color),
     }
 
     Ok(ExitCode::Success)
@@ -234,6 +239,7 @@ fn print_text(
     stats: &HashMap<(String, FileKind), LangStats>,
     package_lang_stats: &HashMap<(String, String, FileKind), LangStats>,
     package_names: &HashMap<String, String>,
+    use_color: bool,
 ) {
     // Collect rows and sort: group by language total code desc, source before test
     let mut rows: Vec<(&String, FileKind, &LangStats)> = stats
@@ -262,15 +268,29 @@ fn print_text(
         return;
     }
 
+    // Color helper: wrap text in ANSI 256-color or pass through
+    let fg = |code: u8, text: &str| -> String {
+        if use_color {
+            format!("{}{}{}", color::fg256(code), text, color::RESET)
+        } else {
+            text.to_string()
+        }
+    };
     let separator = "\u{2500}".repeat(62);
 
     // Header
-    println!("{}", separator);
+    println!("{}", fg(codes::CONTEXT, &separator));
     println!(
-        "{:<25} {:>5}  {:>8}  {:>8}  {:>8}",
-        "Language", "files", "blank", "comment", "code"
+        "{}",
+        fg(
+            codes::HEADER,
+            &format!(
+                "{:<25} {:>5}  {:>8}  {:>8}  {:>8}",
+                "Language", "files", "blank", "comment", "code"
+            ),
+        )
     );
-    println!("{}", separator);
+    println!("{}", fg(codes::CONTEXT, &separator));
 
     // Data rows with inline package breakdown
     let mut source_totals = LangStats::default();
@@ -307,8 +327,14 @@ fn print_text(
             for (pkg_path, ps) in &pkg_rows {
                 let display_name = package_names.get(*pkg_path).unwrap_or(pkg_path);
                 println!(
-                    "  {:<23} {:>5}  {:>8}  {:>8}  {:>8}",
-                    display_name, ps.files, ps.blank, ps.comment, ps.code
+                    "{}",
+                    fg(
+                        codes::LITERAL,
+                        &format!(
+                            "  {:<23} {:>5}  {:>8}  {:>8}  {:>8}",
+                            display_name, ps.files, ps.blank, ps.comment, ps.code
+                        ),
+                    )
                 );
             }
         }
@@ -331,7 +357,7 @@ fn print_text(
     }
 
     // Summary
-    println!("{}", separator);
+    println!("{}", fg(codes::CONTEXT, &separator));
     println!(
         "{:<25} {:>5}  {:>8}  {:>8}  {:>8}",
         "Source total",
@@ -344,7 +370,7 @@ fn print_text(
         "{:<25} {:>5}  {:>8}  {:>8}  {:>8}",
         "Test total", test_totals.files, test_totals.blank, test_totals.comment, test_totals.code
     );
-    println!("{}", separator);
+    println!("{}", fg(codes::CONTEXT, &separator));
     println!(
         "{:<25} {:>5}  {:>8}  {:>8}  {:>8}",
         "Total",
@@ -353,7 +379,7 @@ fn print_text(
         source_totals.comment + test_totals.comment,
         source_totals.code + test_totals.code
     );
-    println!("{}", separator);
+    println!("{}", fg(codes::CONTEXT, &separator));
 }
 
 /// Print the cloc report in JSON format.

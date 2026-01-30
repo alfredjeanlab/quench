@@ -19,7 +19,7 @@ use std::io::IsTerminal;
 use std::sync::OnceLock;
 use termcolor::ColorChoice;
 
-/// ANSI 256-color codes for help text styling.
+/// ANSI 256-color codes for terminal styling.
 pub mod codes {
     /// Section headers: pastel cyan/steel blue
     pub const HEADER: u8 = 74;
@@ -55,12 +55,12 @@ pub fn should_colorize() -> bool {
 }
 
 /// Format a 256-color ANSI escape sequence for foreground color.
-fn fg256(code: u8) -> String {
+pub fn fg256(code: u8) -> String {
     format!("\x1b[38;5;{code}m")
 }
 
 /// ANSI reset sequence.
-const RESET: &str = "\x1b[0m";
+pub const RESET: &str = "\x1b[0m";
 
 /// Apply header color (section titles) to text.
 pub fn header(text: &str) -> String {
