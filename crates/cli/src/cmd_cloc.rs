@@ -7,12 +7,10 @@
 //! and source vs test classification.
 
 use std::collections::HashMap;
+use std::path::Path;
 
-use quench::adapter::{
-    AdapterRegistry, FileKind, ProjectLanguage, RustAdapter, detect_language,
-    patterns::LanguageDefaults, python::detect_package as detect_python_package,
-    rust::CargoWorkspace,
-};
+use quench::adapter::project::apply_language_defaults;
+use quench::adapter::{AdapterRegistry, FileKind, RustAdapter, patterns::LanguageDefaults};
 use quench::cli::{ClocArgs, OutputFormat};
 use quench::cloc;
 use quench::config::{self, CfgTestSplitMode, RustConfig};
@@ -28,6 +26,13 @@ struct LangStats {
     blank: usize,
     comment: usize,
     code: usize,
+}
+
+/// Accumulated statistics for a single package.
+#[derive(Default)]
+struct PackageStats {
+    source: LangStats,
+    test: LangStats,
 }
 
 /// Run the `quench cloc` command.
@@ -51,92 +56,11 @@ pub fn run(args: &ClocArgs) -> anyhow::Result<ExitCode> {
         None => config::Config::default(),
     };
 
-    // Build exclude patterns (same logic as cmd_check)
-    let mut exclude_patterns = config.project.exclude.patterns.clone();
-
-    match detect_language(&root) {
-        ProjectLanguage::Rust => {
-            if !exclude_patterns.iter().any(|p| p.contains("target")) {
-                exclude_patterns.push("target".to_string());
-            }
-            if config.project.packages.is_empty() {
-                let workspace = CargoWorkspace::from_root(&root);
-                if workspace.is_workspace {
-                    for pattern in &workspace.member_patterns {
-                        if pattern.contains('*') {
-                            if let Some(base) = pattern.strip_suffix("/*") {
-                                let dir = root.join(base);
-                                if let Ok(entries) = std::fs::read_dir(&dir) {
-                                    for entry in entries.flatten() {
-                                        if entry.path().is_dir() {
-                                            let rel_path = format!(
-                                                "{}/{}",
-                                                base,
-                                                entry.file_name().to_string_lossy()
-                                            );
-                                            config.project.packages.push(rel_path);
-                                        }
-                                    }
-                                }
-                            }
-                        } else {
-                            config.project.packages.push(pattern.clone());
-                        }
-                    }
-                }
-            }
-        }
-        ProjectLanguage::Go => {
-            if !exclude_patterns.iter().any(|p| p.contains("vendor")) {
-                exclude_patterns.push("vendor".to_string());
-            }
-        }
-        ProjectLanguage::JavaScript => {
-            for pattern in ["node_modules", "dist", "build", ".next", "coverage"] {
-                if !exclude_patterns.iter().any(|p| p.contains(pattern)) {
-                    exclude_patterns.push(pattern.to_string());
-                }
-            }
-        }
-        ProjectLanguage::Python => {
-            for pattern in [
-                ".venv",
-                "venv",
-                ".env",
-                "env",
-                "__pycache__",
-                ".mypy_cache",
-                ".pytest_cache",
-                ".ruff_cache",
-                "dist",
-                "build",
-                "*.egg-info",
-                ".tox",
-                ".nox",
-            ] {
-                if !exclude_patterns.iter().any(|p| p.contains(pattern)) {
-                    exclude_patterns.push(pattern.to_string());
-                }
-            }
-            if config.project.packages.is_empty()
-                && let Some((pkg_path, _)) = detect_python_package(&root)
-            {
-                config.project.packages.push(pkg_path);
-            }
-        }
-        ProjectLanguage::Ruby => {
-            for pattern in ["vendor", "tmp", "log", "coverage"] {
-                if !exclude_patterns.iter().any(|p| p.contains(pattern)) {
-                    exclude_patterns.push(pattern.to_string());
-                }
-            }
-        }
-        ProjectLanguage::Shell | ProjectLanguage::Generic => {}
-    }
+    // Apply language defaults (excludes + package auto-detection)
+    let mut exclude_patterns = apply_language_defaults(&root, &mut config);
 
     // Also add check.cloc.exclude patterns (parity with check command)
-    let cloc_config = &config.check.cloc;
-    for pattern in &cloc_config.exclude {
+    for pattern in &config.check.cloc.exclude {
         if !exclude_patterns.contains(pattern) {
             exclude_patterns.push(pattern.clone());
         }
@@ -188,6 +112,8 @@ pub fn run(args: &ClocArgs) -> anyhow::Result<ExitCode> {
 
     // Accumulate stats: (language_name, FileKind) -> LangStats
     let mut stats: HashMap<(String, FileKind), LangStats> = HashMap::new();
+    let mut package_stats: HashMap<String, PackageStats> = HashMap::new();
+    let packages = &config.project.packages;
 
     for file in rx {
         let ext = match file.path.extension().and_then(|e| e.to_str()) {
@@ -228,21 +154,61 @@ pub fn run(args: &ClocArgs) -> anyhow::Result<ExitCode> {
             // Split metrics proportionally between source and test
             let total_nonblank = metrics.nonblank.max(1);
 
+            let source_blank;
+            let source_comment;
+            let source_code;
+            let test_blank;
+            let test_comment;
+            let test_code;
+
             if classification.source_lines > 0 {
                 let ratio = classification.source_lines as f64 / total_nonblank as f64;
+                source_blank = (metrics.blank as f64 * ratio).round() as usize;
+                source_comment = (metrics.comment as f64 * ratio).round() as usize;
+                source_code = (metrics.code as f64 * ratio).round() as usize;
                 let entry = stats.entry((lang.clone(), FileKind::Source)).or_default();
                 entry.files += 1;
-                entry.blank += (metrics.blank as f64 * ratio).round() as usize;
-                entry.comment += (metrics.comment as f64 * ratio).round() as usize;
-                entry.code += (metrics.code as f64 * ratio).round() as usize;
+                entry.blank += source_blank;
+                entry.comment += source_comment;
+                entry.code += source_code;
+            } else {
+                source_blank = 0;
+                source_comment = 0;
+                source_code = 0;
             }
             if classification.test_lines > 0 {
                 let ratio = classification.test_lines as f64 / total_nonblank as f64;
+                test_blank = (metrics.blank as f64 * ratio).round() as usize;
+                test_comment = (metrics.comment as f64 * ratio).round() as usize;
+                test_code = (metrics.code as f64 * ratio).round() as usize;
                 let entry = stats.entry((lang, FileKind::Test)).or_default();
                 entry.files += 1;
-                entry.blank += (metrics.blank as f64 * ratio).round() as usize;
-                entry.comment += (metrics.comment as f64 * ratio).round() as usize;
-                entry.code += (metrics.code as f64 * ratio).round() as usize;
+                entry.blank += test_blank;
+                entry.comment += test_comment;
+                entry.code += test_code;
+            } else {
+                test_blank = 0;
+                test_comment = 0;
+                test_code = 0;
+            }
+
+            // Per-package tracking for cfg_test split files
+            if !packages.is_empty()
+                && let Some(pkg) = file_package(relative_path, packages)
+            {
+                let pkg_entry = package_stats.entry(pkg).or_default();
+                if classification.source_lines > 0 {
+                    pkg_entry.source.files += 1;
+                    pkg_entry.source.blank += source_blank;
+                    pkg_entry.source.comment += source_comment;
+                    pkg_entry.source.code += source_code;
+                }
+                if classification.test_lines > 0 {
+                    pkg_entry.test.files += 1;
+                    pkg_entry.test.blank += test_blank;
+                    pkg_entry.test.comment += test_comment;
+                    pkg_entry.test.code += test_code;
+                }
             }
         } else {
             let entry = stats.entry((lang, file_kind)).or_default();
@@ -250,22 +216,50 @@ pub fn run(args: &ClocArgs) -> anyhow::Result<ExitCode> {
             entry.blank += metrics.blank;
             entry.comment += metrics.comment;
             entry.code += metrics.code;
+
+            // Per-package tracking
+            if !packages.is_empty()
+                && let Some(pkg) = file_package(relative_path, packages)
+            {
+                let pkg_entry = package_stats.entry(pkg).or_default();
+                match file_kind {
+                    FileKind::Source => {
+                        pkg_entry.source.files += 1;
+                        pkg_entry.source.blank += metrics.blank;
+                        pkg_entry.source.comment += metrics.comment;
+                        pkg_entry.source.code += metrics.code;
+                    }
+                    FileKind::Test => {
+                        pkg_entry.test.files += 1;
+                        pkg_entry.test.blank += metrics.blank;
+                        pkg_entry.test.comment += metrics.comment;
+                        pkg_entry.test.code += metrics.code;
+                    }
+                    FileKind::Other => {}
+                }
+            }
         }
     }
 
     // Wait for walker to finish
     let _walk_stats = handle.join();
 
+    let package_names = &config.project.package_names;
+
     match args.output {
-        OutputFormat::Json => print_json(&stats)?,
-        _ => print_text(&stats),
+        OutputFormat::Json => print_json(&stats, &package_stats, package_names)?,
+        _ => print_text(&stats, &package_stats, package_names),
     }
 
     Ok(ExitCode::Success)
 }
 
 /// Print the cloc report in text table format.
-fn print_text(stats: &HashMap<(String, FileKind), LangStats>) {
+fn print_text(
+    stats: &HashMap<(String, FileKind), LangStats>,
+    package_stats: &HashMap<String, PackageStats>,
+    package_names: &HashMap<String, String>,
+) {
     // Collect rows and sort: source first per language, then test; by code descending
     let mut rows: Vec<(&String, FileKind, &LangStats)> = stats
         .iter()
@@ -359,10 +353,65 @@ fn print_text(stats: &HashMap<(String, FileKind), LangStats>) {
         source_totals.code + test_totals.code
     );
     println!("{}", separator);
+
+    // Per-package breakdown (only when packages are configured)
+    if !package_stats.is_empty() {
+        println!();
+        println!("{}", separator);
+        println!(
+            "{:<25} {:>8}  {:>8}  {:>8}",
+            "Package", "source", "test", "ratio"
+        );
+        println!("{}", separator);
+
+        // Collect and sort packages alphabetically by display name
+        let mut pkg_rows: Vec<(&String, &PackageStats)> = package_stats.iter().collect();
+        pkg_rows.sort_by(|a, b| {
+            let name_a = package_names.get(a.0).unwrap_or(a.0);
+            let name_b = package_names.get(b.0).unwrap_or(b.0);
+            name_a.cmp(name_b)
+        });
+
+        for (pkg_path, ps) in &pkg_rows {
+            let display_name = package_names.get(*pkg_path).unwrap_or(pkg_path);
+            let ratio = if ps.source.code > 0 {
+                ps.test.code as f64 / ps.source.code as f64
+            } else {
+                0.0
+            };
+            println!(
+                "{:<25} {:>8}  {:>8}  {:>7.2}x",
+                display_name, ps.source.code, ps.test.code, ratio
+            );
+        }
+
+        // Show unpackaged row if there are files not in any package
+        let packaged_source: usize = package_stats.values().map(|ps| ps.source.code).sum();
+        let packaged_test: usize = package_stats.values().map(|ps| ps.test.code).sum();
+        let unpackaged_source = source_totals.code.saturating_sub(packaged_source);
+        let unpackaged_test = test_totals.code.saturating_sub(packaged_test);
+        if unpackaged_source > 0 || unpackaged_test > 0 {
+            let ratio = if unpackaged_source > 0 {
+                unpackaged_test as f64 / unpackaged_source as f64
+            } else {
+                0.0
+            };
+            println!(
+                "{:<25} {:>8}  {:>8}  {:>7.2}x",
+                "(unpackaged)", unpackaged_source, unpackaged_test, ratio
+            );
+        }
+
+        println!("{}", separator);
+    }
 }
 
 /// Print the cloc report in JSON format.
-fn print_json(stats: &HashMap<(String, FileKind), LangStats>) -> anyhow::Result<()> {
+fn print_json(
+    stats: &HashMap<(String, FileKind), LangStats>,
+    package_stats: &HashMap<String, PackageStats>,
+    package_names: &HashMap<String, String>,
+) -> anyhow::Result<()> {
     let mut languages: Vec<serde_json::Value> = stats
         .iter()
         .filter(|(_, s)| s.files > 0)
@@ -421,7 +470,7 @@ fn print_json(stats: &HashMap<(String, FileKind), LangStats>) -> anyhow::Result<
         }
     }
 
-    let output = serde_json::json!({
+    let mut output = serde_json::json!({
         "languages": languages,
         "totals": {
             "source": {
@@ -445,6 +494,38 @@ fn print_json(stats: &HashMap<(String, FileKind), LangStats>) -> anyhow::Result<
         },
     });
 
+    // Add packages when configured/detected
+    if !package_stats.is_empty() {
+        let mut packages = serde_json::Map::new();
+        for (pkg_path, ps) in package_stats {
+            let display_name = package_names.get(pkg_path).unwrap_or(pkg_path).clone();
+            let ratio = if ps.source.code > 0 {
+                ps.test.code as f64 / ps.source.code as f64
+            } else {
+                0.0
+            };
+            packages.insert(
+                display_name,
+                serde_json::json!({
+                    "source": {
+                        "files": ps.source.files,
+                        "blank": ps.source.blank,
+                        "comment": ps.source.comment,
+                        "code": ps.source.code,
+                    },
+                    "test": {
+                        "files": ps.test.files,
+                        "blank": ps.test.blank,
+                        "comment": ps.test.comment,
+                        "code": ps.test.code,
+                    },
+                    "ratio": (ratio * 100.0).round() / 100.0,
+                }),
+            );
+        }
+        output["packages"] = serde_json::Value::Object(packages);
+    }
+
     println!("{}", serde_json::to_string_pretty(&output)?);
     Ok(())
 }
@@ -456,4 +537,17 @@ fn kind_order(kind: FileKind) -> u8 {
         FileKind::Test => 1,
         FileKind::Other => 2,
     }
+}
+
+/// Determine which package a file belongs to based on its path prefix.
+fn file_package(path: &Path, packages: &[String]) -> Option<String> {
+    for pkg in packages {
+        if pkg == "." {
+            return Some(pkg.clone());
+        }
+        if path.starts_with(pkg) {
+            return Some(pkg.clone());
+        }
+    }
+    None
 }

@@ -194,3 +194,91 @@ exclude = ["generated/**"]
     let total_files = total["files"].as_u64().unwrap();
     assert_eq!(total_files, 1, "cloc-excluded dir should not be counted");
 }
+
+// =============================================================================
+// Per-package output
+// =============================================================================
+
+/// `quench cloc` shows per-package breakdown when packages are configured
+#[test]
+fn cloc_cmd_shows_package_breakdown() {
+    let mut cmd = quench_cmd();
+    cmd.arg("cloc");
+    cmd.current_dir(fixture("cloc-cmd-packages"));
+    let output = cmd.output().expect("command should run");
+    assert!(output.status.success(), "expected cloc to succeed");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("Package"), "should have Package header");
+    assert!(stdout.contains("my-cli"), "should show cli package");
+    assert!(stdout.contains("my-core"), "should show core package");
+    assert!(stdout.contains("my-shared"), "should show shared package");
+}
+
+/// `quench cloc --output json` includes packages object
+#[test]
+fn cloc_cmd_json_includes_packages() {
+    let mut cmd = quench_cmd();
+    cmd.args(["cloc", "--output", "json"]);
+    cmd.current_dir(fixture("cloc-cmd-packages"));
+    let output = cmd.output().expect("command should run");
+    assert!(output.status.success());
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    let packages = json.get("packages").expect("should have packages object");
+    assert!(packages.get("my-cli").is_some(), "should have cli package");
+    assert!(
+        packages.get("my-core").is_some(),
+        "should have core package"
+    );
+    assert!(
+        packages.get("my-shared").is_some(),
+        "should have shared package"
+    );
+}
+
+/// Per-package JSON contains source, test, and ratio fields
+#[test]
+fn cloc_cmd_json_package_fields() {
+    let mut cmd = quench_cmd();
+    cmd.args(["cloc", "--output", "json"]);
+    cmd.current_dir(fixture("cloc-cmd-packages"));
+    let output = cmd.output().expect("command should run");
+    assert!(output.status.success());
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    let core = &json["packages"]["my-core"];
+    assert!(core.get("source").is_some(), "should have source stats");
+    assert!(core.get("test").is_some(), "should have test stats");
+    assert!(core.get("ratio").is_some(), "should have ratio");
+    // core has tests, so test files > 0
+    let test_files = core["test"]["files"].as_u64().unwrap();
+    assert!(test_files >= 1, "core should have at least 1 test file");
+}
+
+/// Packages are omitted from JSON when no packages configured
+#[test]
+fn cloc_cmd_json_omits_packages_when_unconfigured() {
+    let mut cmd = quench_cmd();
+    cmd.args(["cloc", "--output", "json"]);
+    cmd.current_dir(fixture("cloc-cmd"));
+    let output = cmd.output().expect("command should run");
+    assert!(output.status.success());
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    // cloc-cmd fixture has no packages configured and is a single crate
+    assert!(
+        json.get("packages").is_none(),
+        "should not have packages when unconfigured"
+    );
+}
+
+/// Auto-detected Rust workspace shows package breakdown
+#[test]
+fn cloc_cmd_auto_detect_workspace_packages() {
+    let mut cmd = quench_cmd();
+    cmd.args(["cloc", "--output", "json"]);
+    cmd.current_dir(fixture("cloc-cmd-auto-detect"));
+    let output = cmd.output().expect("command should run");
+    assert!(output.status.success());
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    let packages = json.get("packages").expect("should have packages object");
+    assert!(packages.get("alpha").is_some(), "should have alpha package");
+    assert!(packages.get("beta").is_some(), "should have beta package");
+}
