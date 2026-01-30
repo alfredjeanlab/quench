@@ -199,7 +199,7 @@ exclude = ["generated/**"]
 // Per-package output
 // =============================================================================
 
-/// `quench cloc` shows per-package breakdown when packages are configured
+/// `quench cloc` shows per-package breakdown inline beneath each language row
 #[test]
 fn cloc_cmd_shows_package_breakdown() {
     let mut cmd = quench_cmd();
@@ -208,13 +208,26 @@ fn cloc_cmd_shows_package_breakdown() {
     let output = cmd.output().expect("command should run");
     assert!(output.status.success(), "expected cloc to succeed");
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("Package"), "should have Package header");
-    assert!(stdout.contains("my-cli"), "should show cli package");
-    assert!(stdout.contains("my-core"), "should show core package");
-    assert!(stdout.contains("my-shared"), "should show shared package");
+    // Package rows are indented with 2 spaces, no separate Package header
+    assert!(
+        !stdout.contains("Package"),
+        "should not have Package header"
+    );
+    assert!(
+        stdout.contains("  my-cli"),
+        "should show cli package indented"
+    );
+    assert!(
+        stdout.contains("  my-core"),
+        "should show core package indented"
+    );
+    assert!(
+        stdout.contains("  my-shared"),
+        "should show shared package indented"
+    );
 }
 
-/// `quench cloc --output json` includes packages object
+/// `quench cloc --output json` includes packages array inside language entries
 #[test]
 fn cloc_cmd_json_includes_packages() {
     let mut cmd = quench_cmd();
@@ -223,19 +236,38 @@ fn cloc_cmd_json_includes_packages() {
     let output = cmd.output().expect("command should run");
     assert!(output.status.success());
     let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-    let packages = json.get("packages").expect("should have packages object");
-    assert!(packages.get("my-cli").is_some(), "should have cli package");
+    // No top-level packages object
     assert!(
-        packages.get("my-core").is_some(),
+        json.get("packages").is_none(),
+        "should not have top-level packages"
+    );
+    // Packages are nested inside language entries
+    let languages = json["languages"].as_array().unwrap();
+    let pkg_names: Vec<String> = languages
+        .iter()
+        .flat_map(|l| {
+            l.get("packages")
+                .and_then(|p| p.as_array())
+                .into_iter()
+                .flatten()
+                .filter_map(|p| p.get("name").and_then(|n| n.as_str()).map(String::from))
+        })
+        .collect();
+    assert!(
+        pkg_names.contains(&"my-cli".to_string()),
+        "should have cli package"
+    );
+    assert!(
+        pkg_names.contains(&"my-core".to_string()),
         "should have core package"
     );
     assert!(
-        packages.get("my-shared").is_some(),
+        pkg_names.contains(&"my-shared".to_string()),
         "should have shared package"
     );
 }
 
-/// Per-package JSON contains source, test, and ratio fields
+/// Per-package JSON contains name, files, blank, comment, code fields (no ratio)
 #[test]
 fn cloc_cmd_json_package_fields() {
     let mut cmd = quench_cmd();
@@ -244,16 +276,23 @@ fn cloc_cmd_json_package_fields() {
     let output = cmd.output().expect("command should run");
     assert!(output.status.success());
     let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-    let core = &json["packages"]["my-core"];
-    assert!(core.get("source").is_some(), "should have source stats");
-    assert!(core.get("test").is_some(), "should have test stats");
-    assert!(core.get("ratio").is_some(), "should have ratio");
-    // core has tests, so test files > 0
-    let test_files = core["test"]["files"].as_u64().unwrap();
-    assert!(test_files >= 1, "core should have at least 1 test file");
+    let languages = json["languages"].as_array().unwrap();
+    // Find a language entry that has packages
+    let entry_with_pkgs = languages
+        .iter()
+        .find(|l| l.get("packages").is_some())
+        .expect("should have at least one language entry with packages");
+    let pkgs = entry_with_pkgs["packages"].as_array().unwrap();
+    let pkg = &pkgs[0];
+    assert!(pkg.get("name").is_some(), "should have name field");
+    assert!(pkg.get("files").is_some(), "should have files field");
+    assert!(pkg.get("blank").is_some(), "should have blank field");
+    assert!(pkg.get("comment").is_some(), "should have comment field");
+    assert!(pkg.get("code").is_some(), "should have code field");
+    assert!(pkg.get("ratio").is_none(), "should not have ratio field");
 }
 
-/// Packages are omitted from JSON when no packages configured
+/// Packages are omitted from language entries when no packages configured
 #[test]
 fn cloc_cmd_json_omits_packages_when_unconfigured() {
     let mut cmd = quench_cmd();
@@ -265,11 +304,19 @@ fn cloc_cmd_json_omits_packages_when_unconfigured() {
     // cloc-cmd fixture has no packages configured and is a single crate
     assert!(
         json.get("packages").is_none(),
-        "should not have packages when unconfigured"
+        "should not have top-level packages"
     );
+    // No language entry should have packages either
+    let languages = json["languages"].as_array().unwrap();
+    for lang in languages {
+        assert!(
+            lang.get("packages").is_none(),
+            "language entry should not have packages when unconfigured"
+        );
+    }
 }
 
-/// Auto-detected Rust workspace shows package breakdown
+/// Auto-detected Rust workspace shows package breakdown inside language entries
 #[test]
 fn cloc_cmd_auto_detect_workspace_packages() {
     let mut cmd = quench_cmd();
@@ -278,7 +325,29 @@ fn cloc_cmd_auto_detect_workspace_packages() {
     let output = cmd.output().expect("command should run");
     assert!(output.status.success());
     let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-    let packages = json.get("packages").expect("should have packages object");
-    assert!(packages.get("alpha").is_some(), "should have alpha package");
-    assert!(packages.get("beta").is_some(), "should have beta package");
+    // No top-level packages
+    assert!(
+        json.get("packages").is_none(),
+        "should not have top-level packages"
+    );
+    // Packages are nested inside language entries
+    let languages = json["languages"].as_array().unwrap();
+    let pkg_names: Vec<String> = languages
+        .iter()
+        .flat_map(|l| {
+            l.get("packages")
+                .and_then(|p| p.as_array())
+                .into_iter()
+                .flatten()
+                .filter_map(|p| p.get("name").and_then(|n| n.as_str()).map(String::from))
+        })
+        .collect();
+    assert!(
+        pkg_names.contains(&"alpha".to_string()),
+        "should have alpha package"
+    );
+    assert!(
+        pkg_names.contains(&"beta".to_string()),
+        "should have beta package"
+    );
 }
