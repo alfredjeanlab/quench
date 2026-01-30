@@ -43,9 +43,6 @@ fn tests_commit_config_defaults() {
     assert_eq!(config.check, "off");
     assert_eq!(config.scope, "branch");
     assert_eq!(config.placeholders, "allow");
-    // Defaults are empty (patterns inherited from project/language config)
-    assert!(config.test_patterns.is_empty());
-    assert!(config.source_patterns.is_empty());
     assert!(config.exclude.is_empty());
 }
 

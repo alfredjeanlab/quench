@@ -165,14 +165,6 @@ pub struct TestsCommitConfig {
     #[serde(default = "TestsCommitConfig::default_placeholders")]
     pub placeholders: String,
 
-    /// Test file patterns (extends defaults).
-    #[serde(default = "TestsCommitConfig::default_test_patterns")]
-    pub test_patterns: Vec<String>,
-
-    /// Source file patterns.
-    #[serde(default = "TestsCommitConfig::default_source_patterns")]
-    pub source_patterns: Vec<String>,
-
     /// Excluded patterns (never require tests).
     #[serde(default = "TestsCommitConfig::default_exclude")]
     pub exclude: Vec<String>,
@@ -184,8 +176,6 @@ impl Default for TestsCommitConfig {
             check: Self::default_check(),
             scope: Self::default_scope(),
             placeholders: Self::default_placeholders(),
-            test_patterns: Self::default_test_patterns(),
-            source_patterns: Self::default_source_patterns(),
             exclude: Self::default_exclude(),
         }
     }
@@ -202,14 +192,6 @@ impl TestsCommitConfig {
 
     fn default_placeholders() -> String {
         "allow".to_string()
-    }
-
-    fn default_test_patterns() -> Vec<String> {
-        vec![] // Empty = inherit from project/language config
-    }
-
-    fn default_source_patterns() -> Vec<String> {
-        vec![] // Empty = inherit from project/language config
     }
 
     fn default_exclude() -> Vec<String> {

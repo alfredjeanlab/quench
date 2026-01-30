@@ -286,19 +286,6 @@ scope = "branch"
 # Placeholder tests
 placeholders = "allow"      # #[ignore], test.todo(), test.fixme() count
 
-# Test file patterns (extend defaults)
-test_patterns = [
-  "tests/**/*",          # Everything in tests/ directory
-  "test/**/*",           # Everything in test/ directory
-  "**/*_test.rs",        # Suffix pattern (outside test dirs)
-  "**/*_tests.rs",
-  "**/*.spec.rs",
-  "**/*.spec.ts",
-]
-
-# Source patterns to check
-source_patterns = ["src/**/*.rs"]
-
 # Exclude patterns (never require tests)
 # Defaults are language-dependent. For Rust:
 exclude = [

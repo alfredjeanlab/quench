@@ -97,26 +97,17 @@ impl Check for TestsCheck {
             return CheckResult::passed(self.name());
         }
 
-        // Resolve inherited patterns: empty config = inherit from project/language
+        // Resolve patterns from project/language config
         let resolved = resolve_project_patterns(ctx.root, ctx.config);
         let lang = detect_language(ctx.root);
 
-        let source_patterns = if !config.source_patterns.is_empty() {
-            config.source_patterns.clone()
-        } else if !resolved.source.is_empty() {
-            resolved.source
-        } else {
-            // Fallback: src/**/* is the universal convention
-            vec!["src/**/*".to_string()]
-        };
-
         let correlation_config = CorrelationConfig {
-            source_patterns,
-            test_patterns: if config.test_patterns.is_empty() {
-                resolved.test
+            source_patterns: if !resolved.source.is_empty() {
+                resolved.source
             } else {
-                config.test_patterns.clone()
+                vec!["src/**/*".to_string()]
             },
+            test_patterns: resolved.test,
             exclude_patterns: if config.exclude.is_empty() {
                 correlation_exclude_defaults(lang)
             } else {

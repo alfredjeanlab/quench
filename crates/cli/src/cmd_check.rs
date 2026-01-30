@@ -115,21 +115,6 @@ pub fn run(_cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
         verbose_patterns(&verbose, "project.tests", &resolved.test);
         verbose_patterns(&verbose, "project.exclude", &exclude_patterns);
 
-        // Correlation config: only show source/test if user explicitly set them
-        if !config.check.tests.commit.source_patterns.is_empty() {
-            verbose_patterns(
-                &verbose,
-                "check.tests.commit.source_patterns",
-                &config.check.tests.commit.source_patterns,
-            );
-        }
-        if !config.check.tests.commit.test_patterns.is_empty() {
-            verbose_patterns(
-                &verbose,
-                "check.tests.commit.test_patterns",
-                &config.check.tests.commit.test_patterns,
-            );
-        }
         let lang = detect_language(&root);
         let corr_exclude = if config.check.tests.commit.exclude.is_empty() {
             correlation_exclude_defaults(lang)
