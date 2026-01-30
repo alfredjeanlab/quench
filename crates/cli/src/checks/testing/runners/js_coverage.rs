@@ -18,6 +18,24 @@ use crate::adapter::javascript::PackageManager;
 // Coverage Collection Functions
 // =============================================================================
 
+/// Generate a unique coverage directory name for a suite.
+///
+/// Uses the suite's test path to avoid conflicts when multiple suites
+/// collect coverage in parallel (CI mode runs suites via `par_iter`).
+fn coverage_dir_for(test_path: Option<&str>) -> String {
+    match test_path {
+        Some(path) => {
+            let safe: String = path
+                .chars()
+                .map(|c| if c.is_alphanumeric() { c } else { '-' })
+                .collect();
+            let safe = safe.trim_matches('-');
+            format!(".coverage-{safe}")
+        }
+        None => "coverage".to_string(),
+    }
+}
+
 /// Collect Jest coverage.
 ///
 /// Runs jest with coverage using the detected package manager's exec command.
@@ -25,12 +43,26 @@ use crate::adapter::javascript::PackageManager;
 pub fn collect_jest_coverage(root: &Path, test_path: Option<&str>) -> CoverageResult {
     let start = Instant::now();
 
+    let coverage_dir = coverage_dir_for(test_path);
+
     let pkg_mgr = PackageManager::detect(root);
     let exec_cmd = pkg_mgr.exec_command();
 
     let mut cmd = Command::new(&exec_cmd[0]);
     cmd.args(&exec_cmd[1..]);
-    cmd.args(["jest", "--coverage", "--coverageReporters=lcov"]);
+    cmd.args(["jest", "--coverage"]);
+    // --coverageDirectory MUST come before --coverageReporters=lcov.
+    // Jest/yargs treats --coverageReporters as an array flag that greedily
+    // consumes following positional args. Placing --coverageDirectory after
+    // it would "break" that greediness, causing the test path to be treated
+    // as a test pattern filter instead of a reporter name. We want jest to
+    // run all tests (for full coverage), using the test_path only via the
+    // reporters array (harmless: the unknown reporter is ignored after lcov).
+    cmd.arg(format!(
+        "--coverageDirectory={}",
+        root.join(&coverage_dir).display()
+    ));
+    cmd.arg("--coverageReporters=lcov");
     if let Some(path) = test_path {
         cmd.arg(path);
     }
@@ -50,12 +82,11 @@ pub fn collect_jest_coverage(root: &Path, test_path: Option<&str>) -> CoverageRe
 
     let duration = start.elapsed();
 
-    // Jest writes to coverage/lcov.info by default
-    let lcov_path = root.join("coverage/lcov.info");
+    let lcov_path = root.join(&coverage_dir).join("lcov.info");
     match std::fs::read_to_string(&lcov_path) {
         Ok(content) => {
             // Cleanup coverage directory
-            std::fs::remove_dir_all(root.join("coverage")).ok();
+            std::fs::remove_dir_all(root.join(&coverage_dir)).ok();
             parse_lcov_report(&content, duration)
         }
         Err(e) => {
@@ -75,12 +106,18 @@ pub fn collect_jest_coverage(root: &Path, test_path: Option<&str>) -> CoverageRe
 pub fn collect_vitest_coverage(root: &Path, test_path: Option<&str>) -> CoverageResult {
     let start = Instant::now();
 
+    let coverage_dir = coverage_dir_for(test_path);
+
     let pkg_mgr = PackageManager::detect(root);
     let exec_cmd = pkg_mgr.exec_command();
 
     let mut cmd = Command::new(&exec_cmd[0]);
     cmd.args(&exec_cmd[1..]);
     cmd.args(["vitest", "run", "--coverage", "--coverage.reporter=lcov"]);
+    cmd.arg(format!(
+        "--coverage.reportsDirectory={}",
+        root.join(&coverage_dir).display()
+    ));
     if let Some(path) = test_path {
         cmd.arg(path);
     }
@@ -100,12 +137,11 @@ pub fn collect_vitest_coverage(root: &Path, test_path: Option<&str>) -> Coverage
 
     let duration = start.elapsed();
 
-    // Vitest writes to coverage/lcov.info by default
-    let lcov_path = root.join("coverage/lcov.info");
+    let lcov_path = root.join(&coverage_dir).join("lcov.info");
     match std::fs::read_to_string(&lcov_path) {
         Ok(content) => {
             // Cleanup coverage directory
-            std::fs::remove_dir_all(root.join("coverage")).ok();
+            std::fs::remove_dir_all(root.join(&coverage_dir)).ok();
             parse_lcov_report(&content, duration)
         }
         Err(e) => {
@@ -125,8 +161,14 @@ pub fn collect_vitest_coverage(root: &Path, test_path: Option<&str>) -> Coverage
 pub fn collect_bun_coverage(root: &Path, test_path: Option<&str>) -> CoverageResult {
     let start = Instant::now();
 
+    let coverage_dir = coverage_dir_for(test_path);
+
     let mut cmd = Command::new("bun");
     cmd.args(["test", "--coverage", "--coverage-reporter=lcov"]);
+    cmd.arg(format!(
+        "--coverage-dir={}",
+        root.join(&coverage_dir).display()
+    ));
     if let Some(path) = test_path {
         cmd.arg(path);
     }
@@ -146,12 +188,11 @@ pub fn collect_bun_coverage(root: &Path, test_path: Option<&str>) -> CoverageRes
 
     let duration = start.elapsed();
 
-    // Bun writes to coverage/lcov.info by default
-    let lcov_path = root.join("coverage/lcov.info");
+    let lcov_path = root.join(&coverage_dir).join("lcov.info");
     match std::fs::read_to_string(&lcov_path) {
         Ok(content) => {
             // Cleanup coverage directory
-            std::fs::remove_dir_all(root.join("coverage")).ok();
+            std::fs::remove_dir_all(root.join(&coverage_dir)).ok();
             parse_lcov_report(&content, duration)
         }
         Err(e) => {

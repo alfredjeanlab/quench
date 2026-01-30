@@ -229,6 +229,27 @@ end_of_record
 }
 
 // =============================================================================
+// COVERAGE DIRECTORY ISOLATION
+// =============================================================================
+
+#[parameterized(
+    unit_tests = { Some("tests/unit/"), ".coverage-tests-unit" },
+    integration = { Some("tests/integration/"), ".coverage-tests-integration" },
+    nested_path = { Some("src/tests/e2e/"), ".coverage-src-tests-e2e" },
+    no_path = { None, "coverage" },
+)]
+fn coverage_dir_for_cases(test_path: Option<&str>, expected: &str) {
+    assert_eq!(coverage_dir_for(test_path), expected);
+}
+
+#[test]
+fn coverage_dirs_are_unique_per_suite() {
+    let dir_a = coverage_dir_for(Some("tests/unit/"));
+    let dir_b = coverage_dir_for(Some("tests/integration/"));
+    assert_ne!(dir_a, dir_b);
+}
+
+// =============================================================================
 // EDGE CASES
 // =============================================================================
 
