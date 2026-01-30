@@ -90,11 +90,52 @@ pub fn apply_language_defaults(root: &Path, config: &mut Config) -> Vec<String> 
                     tracing::debug!("package names: {:?}", config.project.package_names);
                 }
             }
+
+            // Resolve display names for explicitly configured packages that lack them
+            for pkg in &config.project.packages {
+                if !config.project.package_names.contains_key(pkg) {
+                    let cargo_toml = root.join(pkg).join("Cargo.toml");
+                    if let Ok(content) = std::fs::read_to_string(&cargo_toml)
+                        && let Ok(value) = content.parse::<toml::Value>()
+                        && let Some(name) = value
+                            .get("package")
+                            .and_then(|p| p.get("name"))
+                            .and_then(|n| n.as_str())
+                    {
+                        config
+                            .project
+                            .package_names
+                            .insert(pkg.clone(), name.to_string());
+                    }
+                }
+            }
         }
         ProjectLanguage::Go => {
             // Exclude vendor/ directory for Go projects
             if !exclude_patterns.iter().any(|p| p.contains("vendor")) {
                 exclude_patterns.push("vendor".to_string());
+            }
+
+            // Auto-detect Go packages if not configured
+            if config.project.packages.is_empty() {
+                let packages = super::go::enumerate_packages(root);
+                // Only populate if there are multiple packages (single-package
+                // projects don't benefit from per-package breakdown)
+                if packages.len() > 1 {
+                    for pkg_path in packages {
+                        // Use directory name as display name
+                        let name = Path::new(&pkg_path)
+                            .file_name()
+                            .and_then(|n| n.to_str())
+                            .unwrap_or(&pkg_path)
+                            .to_string();
+                        config.project.package_names.insert(pkg_path.clone(), name);
+                        config.project.packages.push(pkg_path);
+                    }
+                    config.project.packages.sort();
+                    tracing::debug!("auto-detected Go packages: {:?}", config.project.packages);
+                    tracing::debug!("package names: {:?}", config.project.package_names);
+                }
             }
         }
         ProjectLanguage::Shell => {
