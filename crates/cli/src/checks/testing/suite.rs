@@ -12,6 +12,17 @@ use crate::config::TestSuiteConfig;
 
 use super::runners::{RunnerContext, filter_suites_for_mode, get_runner, run_setup_command};
 
+/// Format milliseconds as a human-friendly duration string.
+///
+/// Returns e.g. "450ms" for small values, "3.2s" for values over 3000ms.
+fn format_duration_ms(ms: u64) -> String {
+    if ms > 3000 {
+        format!("{:.1}s", ms as f64 / 1000.0)
+    } else {
+        format!("{}ms", ms)
+    }
+}
+
 /// Aggregated results from all test suites.
 #[derive(Debug, Default)]
 pub struct SuiteResults {
@@ -267,15 +278,22 @@ pub fn run_single_suite(suite: &TestSuiteConfig, runner_ctx: &RunnerContext) -> 
         };
         if run_result.passed {
             eprintln!(
-                "  Suite {:?} completed: {}, {} tests, {}ms",
-                suite_name, exit_status, test_count, total_ms,
+                "  Suite {:?} completed: {}, {} tests, {}",
+                suite_name,
+                exit_status,
+                test_count,
+                format_duration_ms(total_ms),
             );
         } else {
             let failing =
                 test_count.saturating_sub(run_result.tests.iter().filter(|t| t.passed).count());
             eprintln!(
-                "  Suite {:?} completed: {}, {} tests ({} failing), {}ms",
-                suite_name, exit_status, test_count, failing, total_ms,
+                "  Suite {:?} completed: {}, {} tests ({} failing), {}",
+                suite_name,
+                exit_status,
+                test_count,
+                failing,
+                format_duration_ms(total_ms),
             );
         }
     }
@@ -299,3 +317,7 @@ pub fn run_single_suite(suite: &TestSuiteConfig, runner_ctx: &RunnerContext) -> 
         coverage_by_package,
     }
 }
+
+#[cfg(test)]
+#[path = "suite_tests.rs"]
+mod tests;
