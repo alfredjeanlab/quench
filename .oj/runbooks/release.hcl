@@ -90,17 +90,19 @@ agent "prep" {
 
     ## Context
 
-    - Current Cargo.toml version: ${local.prev_version}
-    - Highest tagged version: v${local.tag_version}
+    - Highest git tag: v${local.tag_version}  (this is the source of truth)
+    - Current Cargo.toml version: ${local.prev_version}  (may already be bumped — ignore it)
     - Bump level: ${var.bump}
 
     ## Tasks
 
     1. **Bump version** in the workspace root `Cargo.toml`:
-       - "patch": increment patch (e.g. 0.4.0 → 0.4.1)
-       - "minor": increment minor, reset patch (e.g. 0.4.0 → 0.5.0)
-       - "major": increment major, reset minor+patch (e.g. 0.4.0 → 1.0.0)
-       - The new version MUST be greater than v${local.prev_version}
+       - Compute the new version by applying the bump level to the highest
+         **git tag** (v${local.tag_version}), NOT the Cargo.toml or CHANGELOG.
+       - "patch": increment patch on the tag (e.g. v0.4.0 → 0.4.1)
+       - "minor": increment minor, reset patch (e.g. v0.4.0 → 0.5.0)
+       - "major": increment major, reset minor+patch (e.g. v0.4.0 → 1.0.0)
+       - Only git tags determine the last released version.
 
     2. **Generate changelog** entry:
        - Run `git log v${local.tag_version}..HEAD --oneline` to see changes since last release
