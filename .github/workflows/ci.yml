@@ -49,7 +49,7 @@ jobs:
         with:
           tool: cargo-llvm-cov
       # go: Required for tests/specs/checks/tests/runners.rs go_runner_* tests
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version: 'stable'
       # bats: Required for tests/specs/checks/tests/runners.rs bats_runner_* tests
@@ -62,7 +62,7 @@ jobs:
           fi
         shell: bash
       # node: Required for tests/specs/checks/tests/js_runners.rs vitest tests
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: '20'
       # bun: Required for tests/specs/checks/tests/coverage.rs bun_runner_* tests
