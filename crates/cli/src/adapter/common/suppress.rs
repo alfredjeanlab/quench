@@ -8,7 +8,11 @@ pub struct CommentStyle {
     /// Comment line prefix (e.g., "//" for Rust, "#" for Shell).
     pub prefix: &'static str,
     /// Patterns that indicate a directive line, not a justification comment.
+    /// Checked with `contains`.
     pub directive_patterns: &'static [&'static str],
+    /// Line prefixes to skip when walking backward (e.g., "@" for Python decorators).
+    /// Checked with `starts_with` on the trimmed line.
+    pub skip_prefixes: &'static [&'static str],
 }
 
 impl CommentStyle {
@@ -16,30 +20,36 @@ impl CommentStyle {
     pub const RUST: Self = Self {
         prefix: "//",
         directive_patterns: &["#["],
+        skip_prefixes: &[],
     };
 
     /// Go comment style: `//` prefix, `//go:` directives.
     pub const GO: Self = Self {
         prefix: "//",
         directive_patterns: &["//go:", "//nolint"],
+        skip_prefixes: &[],
     };
 
     /// Shell comment style: `#` prefix, `shellcheck` directives.
     pub const SHELL: Self = Self {
         prefix: "#",
         directive_patterns: &["shellcheck", "!"],
+        skip_prefixes: &[],
     };
 
     /// Ruby comment style: `#` prefix, rubocop/standard directives.
     pub const RUBY: Self = Self {
         prefix: "#",
         directive_patterns: &["rubocop:", "standard:", "!"],
+        skip_prefixes: &[],
     };
 
     /// Python comment style: `#` prefix, noqa/type/pylint/pragma directives.
+    /// Skips `@decorator` lines when walking backward for justification comments.
     pub const PYTHON: Self = Self {
         prefix: "#",
         directive_patterns: &["noqa", "type:", "pylint:", "pragma:", "!"],
+        skip_prefixes: &["@"],
     };
 }
 
@@ -76,6 +86,11 @@ pub fn check_justification_comment(
         // Skip directive lines (not justification comments)
         // This includes: Rust attributes (#[...]), Shell shebangs (#!/...), etc.
         if style.directive_patterns.iter().any(|p| line.contains(p)) {
+            continue;
+        }
+
+        // Skip lines matching prefix patterns (e.g., Python @decorators)
+        if style.skip_prefixes.iter().any(|p| line.starts_with(p)) {
             continue;
         }
 

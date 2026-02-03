@@ -375,3 +375,35 @@ fn file_cache_key_from_walked_file_epoch() {
     assert_eq!(key.mtime_nanos, 0);
     assert_eq!(key.size, 100);
 }
+
+#[test]
+fn hash_config_changes_when_escapes_check_off() {
+    use crate::config::CheckLevel;
+
+    let mut config = crate::config::Config::default();
+    let hash_default = hash_config(&config);
+
+    config.check.escapes.check = CheckLevel::Off;
+    let hash_off = hash_config(&config);
+
+    assert_ne!(
+        hash_default, hash_off,
+        "config hash must change when check.escapes.check changes"
+    );
+}
+
+#[test]
+fn hash_config_changes_when_suppress_check_changes() {
+    use crate::config::SuppressLevel;
+
+    let mut config = crate::config::Config::default();
+    let hash_default = hash_config(&config);
+
+    config.javascript.suppress.check = SuppressLevel::Allow;
+    let hash_changed = hash_config(&config);
+
+    assert_ne!(
+        hash_default, hash_changed,
+        "config hash must change when javascript.suppress.check changes"
+    );
+}

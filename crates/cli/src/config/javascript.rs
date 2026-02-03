@@ -6,7 +6,7 @@
 use serde::Deserialize;
 
 use super::lang_common::{LanguageDefaults, define_policy_config};
-use super::{CheckLevel, LangClocConfig, LintChangesPolicy, SuppressConfig};
+use super::{CheckLevel, LangClocConfig, LintChangesPolicy, SuppressLevel, SuppressScopeConfig};
 
 /// JavaScript/TypeScript language-specific configuration.
 #[derive(Debug, Clone, Deserialize)]
@@ -26,7 +26,7 @@ pub struct JavaScriptConfig {
 
     /// Lint suppression settings.
     #[serde(default)]
-    pub suppress: SuppressConfig,
+    pub suppress: JavaScriptSuppressConfig,
 
     /// Lint configuration policy.
     #[serde(default)]
@@ -48,10 +48,66 @@ impl Default for JavaScriptConfig {
             source: JavaScriptDefaults::default_source(),
             tests: JavaScriptDefaults::default_tests(),
             exclude: JavaScriptDefaults::default_exclude(),
-            suppress: SuppressConfig::default(),
+            suppress: JavaScriptSuppressConfig::default(),
             policy: JavaScriptPolicyConfig::default(),
             cloc: None,
             cloc_advice: None,
+        }
+    }
+}
+
+/// JavaScript/TypeScript lint suppression configuration.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct JavaScriptSuppressConfig {
+    /// Check level: forbid, comment, or allow (default: "comment").
+    #[serde(default = "JavaScriptSuppressConfig::default_check")]
+    pub check: SuppressLevel,
+
+    /// Optional comment pattern required (default: any comment).
+    #[serde(default)]
+    pub comment: Option<String>,
+
+    /// Source-specific settings.
+    #[serde(default = "JavaScriptSuppressConfig::default_source")]
+    pub source: SuppressScopeConfig,
+
+    /// Test-specific settings (overrides base settings for test code).
+    #[serde(default = "JavaScriptSuppressConfig::default_test")]
+    pub test: SuppressScopeConfig,
+}
+
+impl Default for JavaScriptSuppressConfig {
+    fn default() -> Self {
+        Self {
+            check: Self::default_check(),
+            comment: None,
+            source: Self::default_source(),
+            test: Self::default_test(),
+        }
+    }
+}
+
+impl JavaScriptSuppressConfig {
+    pub(crate) fn default_check() -> SuppressLevel {
+        SuppressLevel::Comment
+    }
+
+    pub(crate) fn default_source() -> SuppressScopeConfig {
+        SuppressScopeConfig {
+            check: None,
+            allow: Vec::new(),
+            forbid: Vec::new(),
+            patterns: std::collections::HashMap::new(),
+        }
+    }
+
+    pub(crate) fn default_test() -> SuppressScopeConfig {
+        SuppressScopeConfig {
+            check: Some(SuppressLevel::Allow),
+            allow: Vec::new(),
+            forbid: Vec::new(),
+            patterns: std::collections::HashMap::new(),
         }
     }
 }

@@ -202,11 +202,27 @@ mod tests {
 }
 ```
 
-Violations report the location of the inline test:
+#### Violation Codes
+
+Different violation codes are used based on the item type following `#[cfg(test)]`:
+
+| Code | Item Types | Advice |
+|------|------------|--------|
+| `inline_cfg_test` | `mod` | Move tests to a sibling _tests.rs file. |
+| `cfg_test_helper` | `fn`, `impl` | Move test helper to the _tests.rs file, or use #[doc(hidden)] if needed in both. |
+| `cfg_test_item` | `struct`, `enum`, `trait` | Move test-only type to the _tests.rs file. |
+
+Example violations:
 
 ```
 src/parser.rs:150: inline_cfg_test
   Move tests to a sibling _tests.rs file.
+
+src/state.rs:42: cfg_test_helper
+  Move test helper to the _tests.rs file, or use #[doc(hidden)] if needed in both.
+
+src/fixtures.rs:10: cfg_test_item
+  Move test-only type to the _tests.rs file.
 ```
 
 This pairs with the sibling `_tests.rs` convention documented in the project's CLAUDE.md.

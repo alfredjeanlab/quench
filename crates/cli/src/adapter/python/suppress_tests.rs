@@ -256,6 +256,64 @@ fn matches_specific_pattern() {
 }
 
 // =============================================================================
+// DECORATOR SKIP TESTS
+// =============================================================================
+
+#[test]
+fn detects_comment_above_single_decorator() {
+    let content =
+        "# Legacy API requires this signature\n@override\ndef method(self):  # noqa: E501";
+    let suppresses = parse_python_suppresses(content, None);
+
+    assert_eq!(suppresses.len(), 1);
+    assert!(
+        suppresses[0].has_comment,
+        "should find comment above decorator"
+    );
+    assert_eq!(
+        suppresses[0].comment_text.as_deref(),
+        Some("Legacy API requires this signature")
+    );
+}
+
+#[test]
+fn detects_comment_above_multiple_decorators() {
+    let content = "# Framework requires both decorators\n@login_required\n@permission_required('admin')\ndef admin_view(request):  # noqa: E501";
+    let suppresses = parse_python_suppresses(content, None);
+
+    assert_eq!(suppresses.len(), 1);
+    assert!(
+        suppresses[0].has_comment,
+        "should find comment above stacked decorators"
+    );
+    assert_eq!(
+        suppresses[0].comment_text.as_deref(),
+        Some("Framework requires both decorators")
+    );
+}
+
+#[test]
+fn no_comment_when_blank_line_above_decorator() {
+    let content = "# Unrelated comment\n\n@override\ndef method(self):  # noqa: E501";
+    let suppresses = parse_python_suppresses(content, None);
+
+    assert_eq!(suppresses.len(), 1);
+    assert!(
+        !suppresses[0].has_comment,
+        "blank line should stop search even above decorators"
+    );
+}
+
+#[test]
+fn detects_comment_above_decorator_for_type_ignore() {
+    let content = "# Intentional dynamic typing\n@decorator\ndef f(x):  # type: ignore[assignment]";
+    let suppresses = parse_python_suppresses(content, None);
+
+    assert_eq!(suppresses.len(), 1);
+    assert!(suppresses[0].has_comment);
+}
+
+// =============================================================================
 // MULTIPLE SUPPRESSES TESTS
 // =============================================================================
 

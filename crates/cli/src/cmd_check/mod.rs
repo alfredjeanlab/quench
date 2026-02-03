@@ -1,0 +1,720 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Alfred Jean LLC
+
+//! Check command implementation.
+
+mod verbose;
+
+use std::sync::Arc;
+use std::time::Instant;
+
+use quench::adapter::project::apply_language_defaults;
+use quench::baseline::Baseline;
+use quench::cache::{self, CACHE_FILE_NAME, FileCache};
+use quench::checks;
+use quench::cli::{CheckArgs, CheckFilter, Cli, OutputFormat};
+use quench::color::resolve_color;
+use quench::config::{self, CheckLevel};
+use quench::discovery;
+use quench::error::ExitCode;
+use quench::git::{
+    detect_base_branch, find_ratchet_base, get_changed_files, get_staged_files, is_git_repo,
+    save_to_git_notes,
+};
+use quench::latest::{LatestMetrics, get_head_commit};
+use quench::output::FormatOptions;
+use quench::output::json::{self, JsonFormatter};
+use quench::output::text::TextFormatter;
+use quench::ratchet::{self, CurrentMetrics};
+use quench::runner::{CheckRunner, RunnerConfig};
+use quench::timing::{PhaseTiming, TimingInfo};
+use quench::verbose::VerboseLogger;
+use quench::walker::{FileWalker, WalkerConfig};
+
+/// Check if debug files mode is enabled via QUENCH_DEBUG_FILES env var.
+fn debug_files() -> bool {
+    std::env::var("QUENCH_DEBUG_FILES").is_ok_and(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+}
+
+/// Run the check command.
+pub fn run(_cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
+    let total_start = Instant::now();
+
+    // Validate flag combinations
+    if let Some(exit) = validate_flags(args) {
+        return Ok(exit);
+    }
+
+    let verbose = setup_verbose(args);
+    let cwd = std::env::current_dir()?;
+    let root = resolve_root(&cwd, args);
+
+    // === Configuration Phase ===
+    let (mut config, config_path) = load_config(&root)?;
+    let exclude_patterns = apply_language_defaults(&root, &mut config);
+    verbose::config(&verbose, &root, &config, &config_path, &exclude_patterns);
+
+    let walker_config = WalkerConfig {
+        max_depth: Some(args.max_depth),
+        exclude_patterns,
+        ..Default::default()
+    };
+
+    // === Discovery Phase ===
+    let discovery_start = Instant::now();
+    let (files, stats) = run_discovery(&root, walker_config, &verbose)?;
+    let Some(files) = files else {
+        return Ok(ExitCode::Success); // debug_files mode handled
+    };
+    let discovery_ms = discovery_start.elapsed().as_millis() as u64;
+
+    verbose::discovery(&verbose, args, &files, &stats);
+
+    // === Setup Phase ===
+    let checks_list = checks::filter_checks(&args.enabled_checks(), &args.disabled_checks());
+    let base_branch = resolve_base_branch(args, &root);
+    let changed_files = resolve_changed_files(args, &root, &base_branch, &verbose);
+
+    verbose::suites(&verbose, &config);
+    verbose::commits(&verbose, &root, &base_branch);
+
+    let limit = effective_limit(args);
+    let mut runner = CheckRunner::new(RunnerConfig {
+        limit,
+        changed_files,
+        fix: args.fix,
+        dry_run: args.dry_run,
+        ci_mode: args.ci,
+        base_branch: base_branch.clone(),
+        staged: args.staged,
+        verbose: verbose.is_enabled(),
+    });
+
+    let cache = setup_cache(args, &root, &config)?;
+    if let Some(ref cache) = cache {
+        runner = runner.with_cache(Arc::clone(cache));
+    }
+
+    // === Checking Phase ===
+    let checking_start = Instant::now();
+    let check_results = runner.run(checks_list, &files, &config, &root);
+    let checking_ms = checking_start.elapsed().as_millis() as u64;
+
+    let cache_handle = persist_cache_async(args, &cache, &root);
+    verbose::cache(&verbose, &cache);
+
+    let output = json::create_output(check_results);
+
+    // === Ratchet Phase ===
+    let use_notes = config.git.uses_notes() && is_git_repo(&root);
+    let (ratchet_result, baseline) =
+        run_ratchet_check(&config, &verbose, &output, use_notes, &root, &base_branch);
+
+    if args.fix {
+        save_baseline(
+            &config,
+            &output,
+            &ratchet_result,
+            baseline,
+            use_notes,
+            &root,
+        );
+    }
+
+    save_latest(&root, &output, &verbose);
+
+    // === Output Phase ===
+    let color_choice = resolve_color();
+    let options = FormatOptions {
+        limit: effective_limit(args),
+    };
+    let timing_info = build_timing_info(args, &cache, &output, &files, discovery_ms, checking_ms);
+
+    let output_start = Instant::now();
+    format_output(
+        args,
+        &output,
+        &ratchet_result,
+        &config,
+        color_choice,
+        options,
+        timing_info.as_ref(),
+    )?;
+
+    if let Some(ref save_path) = args.save {
+        if let Err(e) = save_metrics_to_file(save_path, &output) {
+            eprintln!("quench: warning: failed to save metrics: {}", e);
+        } else if verbose.is_enabled() {
+            verbose.log(&format!("Saved metrics to {}", save_path.display()));
+        }
+    }
+
+    let output_ms = output_start.elapsed().as_millis() as u64;
+    let total_ms = total_start.elapsed().as_millis() as u64;
+
+    print_timing(args, timing_info, &output, &cache, output_ms, total_ms);
+    verbose::summary(&verbose, total_ms);
+
+    // Wait for cache persistence
+    if let Some(handle) = cache_handle
+        && let Err(e) = handle.join().unwrap_or(Ok(()))
+    {
+        tracing::warn!("failed to persist cache: {}", e);
+    }
+
+    Ok(determine_exit_code(args, &output, &ratchet_result, &config))
+}
+
+// =============================================================================
+// Phase helpers
+// =============================================================================
+
+fn validate_flags(args: &CheckArgs) -> Option<ExitCode> {
+    if args.dry_run && !args.fix {
+        eprintln!("--dry-run only works with --fix");
+        eprintln!(
+            "  The --dry-run flag lets you preview what --fix would change without applying changes."
+        );
+        eprintln!("  Use: quench check --fix --dry-run");
+        return Some(ExitCode::ConfigError);
+    }
+    if args.staged && args.base.is_some() {
+        eprintln!("--staged and --base cannot be used together");
+        return Some(ExitCode::ConfigError);
+    }
+    None
+}
+
+fn setup_verbose(args: &CheckArgs) -> VerboseLogger {
+    let verbose_enabled = args.ci
+        || args.verbose
+        || std::env::var("QUENCH_DEBUG").is_ok_and(|v| v == "1" || v.eq_ignore_ascii_case("true"));
+    VerboseLogger::new(verbose_enabled)
+}
+
+fn resolve_root(cwd: &std::path::Path, args: &CheckArgs) -> std::path::PathBuf {
+    if args.paths.is_empty() {
+        cwd.to_path_buf()
+    } else {
+        let path = &args.paths[0];
+        if path.is_absolute() {
+            path.clone()
+        } else {
+            cwd.join(path)
+        }
+    }
+}
+
+fn load_config(
+    root: &std::path::Path,
+) -> anyhow::Result<(config::Config, Option<std::path::PathBuf>)> {
+    let config_path = discovery::find_config(root);
+    let config = match &config_path {
+        Some(path) => {
+            tracing::debug!("loading config from {}", path.display());
+            config::load_with_warnings(path)?
+        }
+        None => {
+            tracing::debug!("no config found, using defaults");
+            config::Config::default()
+        }
+    };
+    tracing::trace!("check command starting");
+    Ok((config, config_path))
+}
+
+/// Run file discovery. Returns None for files if debug_files mode handled output.
+fn run_discovery(
+    root: &std::path::Path,
+    walker_config: WalkerConfig,
+    verbose: &VerboseLogger,
+) -> anyhow::Result<(
+    Option<Vec<quench::walker::WalkedFile>>,
+    quench::walker::WalkStats,
+)> {
+    let walker = FileWalker::new(walker_config);
+    let (rx, handle) = walker.walk(root);
+
+    if debug_files() {
+        for file in rx {
+            let display_path = file.path.strip_prefix(root).unwrap_or(&file.path);
+            println!("{}", display_path.display());
+        }
+        let stats = handle.join();
+        if verbose.is_enabled() {
+            eprintln!(
+                "Scanned {} files, {} errors, {} symlink loops",
+                stats.files_found, stats.errors, stats.symlink_loops
+            );
+        }
+        return Ok((None, stats));
+    }
+
+    let files: Vec<_> = rx.iter().collect();
+    let stats = handle.join();
+    Ok((Some(files), stats))
+}
+
+fn resolve_base_branch(args: &CheckArgs, root: &std::path::Path) -> Option<String> {
+    if let Some(ref base) = args.base {
+        Some(base.clone())
+    } else if args.ci {
+        detect_base_branch(root)
+    } else {
+        None
+    }
+}
+
+fn resolve_changed_files(
+    args: &CheckArgs,
+    root: &std::path::Path,
+    base_branch: &Option<String>,
+    verbose: &VerboseLogger,
+) -> Option<Vec<std::path::PathBuf>> {
+    if args.staged {
+        match get_staged_files(root) {
+            Ok(files) => {
+                if verbose.is_enabled() {
+                    verbose.log(&format!("Checking staged files ({} files)", files.len()));
+                }
+                Some(files)
+            }
+            Err(e) => {
+                eprintln!("quench: warning: could not get staged files: {}", e);
+                None
+            }
+        }
+    } else if let Some(base) = base_branch {
+        match get_changed_files(root, base) {
+            Ok(files) => {
+                if verbose.is_enabled() {
+                    verbose.log(&format!(
+                        "Comparing against base: {} ({} files changed)",
+                        base,
+                        files.len()
+                    ));
+                }
+                Some(files)
+            }
+            Err(e) => {
+                if args.base.is_some() {
+                    eprintln!("quench: warning: could not get changed files: {}", e);
+                }
+                None
+            }
+        }
+    } else {
+        None
+    }
+}
+
+fn effective_limit(args: &CheckArgs) -> Option<usize> {
+    if args.no_limit || args.ci {
+        None
+    } else {
+        Some(args.limit)
+    }
+}
+
+fn setup_cache(
+    args: &CheckArgs,
+    root: &std::path::Path,
+    config: &config::Config,
+) -> anyhow::Result<Option<Arc<FileCache>>> {
+    if args.no_cache {
+        return Ok(None);
+    }
+    let cache_path = root.join(".quench").join(CACHE_FILE_NAME);
+    let config_hash = cache::hash_config(config);
+    match FileCache::from_persistent(&cache_path, config_hash) {
+        Ok(cache) => {
+            tracing::debug!("loaded cache from {}", cache_path.display());
+            Ok(Some(Arc::new(cache)))
+        }
+        Err(e) => {
+            tracing::debug!("cache not loaded ({}), starting fresh", e);
+            Ok(Some(Arc::new(FileCache::new(config_hash))))
+        }
+    }
+}
+
+fn persist_cache_async(
+    _args: &CheckArgs,
+    cache: &Option<Arc<FileCache>>,
+    root: &std::path::Path,
+) -> Option<std::thread::JoinHandle<Result<(), quench::cache::CacheError>>> {
+    let cache = cache.as_ref()?;
+    let cache_dir = root.join(".quench");
+    if let Err(e) = std::fs::create_dir_all(&cache_dir) {
+        tracing::warn!("failed to create cache directory: {}", e);
+        return None;
+    }
+    let cache_path = cache_dir.join(CACHE_FILE_NAME);
+    tracing::debug!("persisting cache to {} (async)", cache_path.display());
+    Some(cache.persist_async(cache_path))
+}
+
+fn run_ratchet_check(
+    config: &config::Config,
+    verbose: &VerboseLogger,
+    output: &quench::check::CheckOutput,
+    use_notes: bool,
+    root: &std::path::Path,
+    base_branch: &Option<String>,
+) -> (Option<ratchet::RatchetResult>, Option<Baseline>) {
+    if config.ratchet.check == CheckLevel::Off {
+        if verbose.is_enabled() {
+            verbose.section("Ratchet");
+            verbose.log("Ratchet check: off");
+        }
+        return (None, None);
+    }
+
+    if verbose.is_enabled() {
+        verbose.section("Ratchet");
+        verbose.log(&format!(
+            "Mode: {}",
+            if use_notes { "git notes" } else { "file" }
+        ));
+        if let Some(base) = base_branch {
+            verbose.log(&format!("Base branch: {}", base));
+        }
+    }
+
+    if use_notes {
+        ratchet_from_notes(config, verbose, output, root, base_branch)
+    } else if let Some(path) = config.git.baseline_path() {
+        ratchet_from_file(config, verbose, output, root, path)
+    } else {
+        if verbose.is_enabled() {
+            verbose.log("Ratchet check: off (not in git repo with notes mode)");
+        }
+        (None, None)
+    }
+}
+
+fn ratchet_from_notes(
+    config: &config::Config,
+    verbose: &VerboseLogger,
+    output: &quench::check::CheckOutput,
+    root: &std::path::Path,
+    base_branch: &Option<String>,
+) -> (Option<ratchet::RatchetResult>, Option<Baseline>) {
+    match find_ratchet_base(root, base_branch.as_deref()) {
+        Ok(base_commit) => {
+            if verbose.is_enabled() {
+                verbose.log(&format!(
+                    "Ratchet base: {}",
+                    &base_commit[..7.min(base_commit.len())]
+                ));
+            }
+            match Baseline::load_from_notes(root, &base_commit) {
+                Ok(Some(baseline)) => {
+                    if verbose.is_enabled() {
+                        verbose.log(&format!(
+                            "Baseline: loaded from git notes for {}",
+                            &base_commit[..7.min(base_commit.len())]
+                        ));
+                    }
+                    warn_stale_baseline(&baseline, config);
+                    let current = CurrentMetrics::from_output(output);
+                    let result = ratchet::compare(&current, &baseline.metrics, &config.ratchet);
+                    (Some(result), Some(baseline))
+                }
+                Ok(None) => {
+                    if verbose.is_enabled() {
+                        verbose.log(&format!(
+                            "Baseline: not found (searched: refs/notes/quench for {})",
+                            &base_commit[..7.min(base_commit.len())]
+                        ));
+                    }
+                    (None, None)
+                }
+                Err(e) => {
+                    eprintln!("quench: warning: failed to load baseline from notes: {}", e);
+                    (None, None)
+                }
+            }
+        }
+        Err(e) => {
+            if verbose.is_enabled() {
+                verbose.log(&format!("Ratchet base: not found ({})", e));
+            }
+            (None, None)
+        }
+    }
+}
+
+fn ratchet_from_file(
+    config: &config::Config,
+    verbose: &VerboseLogger,
+    output: &quench::check::CheckOutput,
+    root: &std::path::Path,
+    path: &str,
+) -> (Option<ratchet::RatchetResult>, Option<Baseline>) {
+    let baseline_path = root.join(path);
+    match Baseline::load(&baseline_path) {
+        Ok(Some(baseline)) => {
+            if verbose.is_enabled() {
+                verbose.log(&format!(
+                    "Baseline: loaded from {}",
+                    baseline_path.display()
+                ));
+            }
+            warn_stale_baseline(&baseline, config);
+            let current = CurrentMetrics::from_output(output);
+            let result = ratchet::compare(&current, &baseline.metrics, &config.ratchet);
+            (Some(result), Some(baseline))
+        }
+        Ok(None) => {
+            if verbose.is_enabled() {
+                verbose.log(&format!(
+                    "No baseline found at {}. Run with --fix to create.",
+                    baseline_path.display()
+                ));
+            }
+            (None, None)
+        }
+        Err(e) => {
+            eprintln!("quench: warning: failed to load baseline: {}", e);
+            (None, None)
+        }
+    }
+}
+
+fn warn_stale_baseline(baseline: &Baseline, config: &config::Config) {
+    if baseline.is_stale(config.ratchet.stale_days) {
+        eprintln!(
+            "warning: baseline is {} days old. Consider refreshing with --fix.",
+            baseline.age_days()
+        );
+    }
+}
+
+fn save_baseline(
+    config: &config::Config,
+    output: &quench::check::CheckOutput,
+    ratchet_result: &Option<ratchet::RatchetResult>,
+    baseline: Option<Baseline>,
+    use_notes: bool,
+    root: &std::path::Path,
+) {
+    let current = CurrentMetrics::from_output(output);
+    let mut baseline = baseline
+        .map(|b| b.with_commit(root))
+        .unwrap_or_else(|| Baseline::new().with_commit(root));
+
+    ratchet::update_baseline(&mut baseline, &current);
+
+    if use_notes {
+        let json = match serde_json::to_string_pretty(&baseline) {
+            Ok(j) => j,
+            Err(e) => {
+                eprintln!("quench: warning: failed to serialize baseline: {}", e);
+                return;
+            }
+        };
+        match save_to_git_notes(root, &json) {
+            Ok(()) => report_baseline_update(ratchet_result, "git notes"),
+            Err(e) => eprintln!("quench: warning: failed to save to git notes: {}", e),
+        }
+    }
+
+    if let Some(path) = config.git.baseline_path() {
+        let baseline_path = root.join(path);
+        let baseline_existed = baseline_path.exists();
+        if let Err(e) = baseline.save(&baseline_path) {
+            eprintln!("quench: warning: failed to save baseline: {}", e);
+        } else if !use_notes {
+            report_baseline_update_file(ratchet_result, &baseline_path, baseline_existed);
+        }
+    }
+}
+
+fn save_latest(
+    root: &std::path::Path,
+    output: &quench::check::CheckOutput,
+    verbose: &VerboseLogger,
+) {
+    let latest_path = root.join(".quench/latest.json");
+    let latest = LatestMetrics {
+        updated: chrono::Utc::now(),
+        commit: get_head_commit(root).ok(),
+        output: output.clone(),
+    };
+    if let Err(e) = latest.save(&latest_path)
+        && verbose.is_enabled()
+    {
+        verbose.log(&format!("Failed to write latest.json: {}", e));
+    }
+}
+
+fn build_timing_info(
+    args: &CheckArgs,
+    cache: &Option<Arc<FileCache>>,
+    output: &quench::check::CheckOutput,
+    files: &[quench::walker::WalkedFile],
+    discovery_ms: u64,
+    checking_ms: u64,
+) -> Option<TimingInfo> {
+    if !args.timing {
+        return None;
+    }
+    let stats = cache.as_ref().map(|c| c.stats());
+    Some(TimingInfo {
+        phases: PhaseTiming {
+            discovery_ms,
+            checking_ms,
+            output_ms: 0,
+            total_ms: 0,
+        },
+        files: files.len(),
+        cache_hits: stats.as_ref().map(|s| s.hits).unwrap_or(0),
+        checks: output
+            .checks
+            .iter()
+            .filter_map(|r| r.duration_ms.map(|d| (r.name.clone(), d)))
+            .collect(),
+    })
+}
+
+fn format_output(
+    args: &CheckArgs,
+    output: &quench::check::CheckOutput,
+    ratchet_result: &Option<ratchet::RatchetResult>,
+    config: &config::Config,
+    color_choice: termcolor::ColorChoice,
+    options: FormatOptions,
+    timing_info: Option<&TimingInfo>,
+) -> anyhow::Result<()> {
+    let total_violations = output.total_violations();
+    match args.output {
+        OutputFormat::Text | OutputFormat::Html | OutputFormat::Markdown => {
+            let mut formatter = TextFormatter::new(color_choice, options);
+            for result in &output.checks {
+                formatter.write_check(result)?;
+            }
+            if let Some(result) = ratchet_result {
+                formatter.write_ratchet(result, config.ratchet.check)?;
+            }
+            formatter.write_summary(output)?;
+            if formatter.was_truncated() {
+                formatter.write_truncation_message(total_violations)?;
+            }
+        }
+        OutputFormat::Json => {
+            let mut formatter = JsonFormatter::new(std::io::stdout());
+            formatter.write_with_timing(output, ratchet_result.as_ref(), timing_info)?;
+        }
+    }
+    Ok(())
+}
+
+fn print_timing(
+    args: &CheckArgs,
+    timing_info: Option<TimingInfo>,
+    output: &quench::check::CheckOutput,
+    cache: &Option<Arc<FileCache>>,
+    output_ms: u64,
+    total_ms: u64,
+) {
+    if let Some(mut info) = timing_info {
+        info.phases.output_ms = output_ms;
+        info.phases.total_ms = total_ms;
+        if !matches!(args.output, OutputFormat::Json) {
+            eprintln!("{}", info.phases.format_text());
+            for result in &output.checks {
+                if let Some(ms) = result.duration_ms {
+                    eprintln!("{}: {}ms", result.name, ms);
+                }
+            }
+            eprintln!("files: {}", info.files);
+            let misses = cache.as_ref().map(|c| c.stats().misses).unwrap_or(0);
+            eprintln!("{}", info.format_cache(misses));
+        }
+    }
+}
+
+fn determine_exit_code(
+    args: &CheckArgs,
+    output: &quench::check::CheckOutput,
+    ratchet_result: &Option<ratchet::RatchetResult>,
+    config: &config::Config,
+) -> ExitCode {
+    let ratchet_failed = ratchet_result
+        .as_ref()
+        .is_some_and(|r| !r.passed && config.ratchet.check == CheckLevel::Error);
+    if args.dry_run {
+        ExitCode::Success
+    } else if !output.passed || ratchet_failed {
+        ExitCode::CheckFailed
+    } else {
+        ExitCode::Success
+    }
+}
+
+/// Save metrics output to a JSON file.
+fn save_metrics_to_file(
+    path: &std::path::Path,
+    output: &quench::check::CheckOutput,
+) -> anyhow::Result<()> {
+    if let Some(parent) = path.parent()
+        && !parent.as_os_str().is_empty()
+    {
+        std::fs::create_dir_all(parent)?;
+    }
+    let json = serde_json::to_string_pretty(output)?;
+    std::fs::write(path, json)?;
+    Ok(())
+}
+
+/// Report baseline update to stderr (for git notes mode).
+fn report_baseline_update(ratchet_result: &Option<ratchet::RatchetResult>, target: &str) {
+    if let Some(result) = ratchet_result {
+        if result.improvements.is_empty() {
+            eprintln!("ratchet: baseline synced ({})", target);
+        } else {
+            eprintln!("ratchet: updated baseline ({})", target);
+            print_improvements(&result.improvements);
+        }
+    } else {
+        eprintln!("ratchet: created initial baseline ({})", target);
+    }
+}
+
+/// Report baseline update to stderr (for file mode).
+fn report_baseline_update_file(
+    ratchet_result: &Option<ratchet::RatchetResult>,
+    path: &std::path::Path,
+    existed: bool,
+) {
+    if !existed {
+        eprintln!("ratchet: created initial baseline at {}", path.display());
+    } else if let Some(result) = ratchet_result {
+        if result.improvements.is_empty() {
+            eprintln!("ratchet: baseline synced");
+        } else {
+            eprintln!("ratchet: updated baseline at {}", path.display());
+            print_improvements(&result.improvements);
+        }
+    } else {
+        eprintln!("ratchet: baseline synced");
+    }
+}
+
+fn print_improvements(improvements: &[ratchet::MetricImprovement]) {
+    for improvement in improvements {
+        let ratchet_label = if improvement.name.starts_with("coverage.") {
+            "new floor"
+        } else {
+            "new ceiling"
+        };
+        eprintln!(
+            "  {}: {} -> {} ({})",
+            improvement.name,
+            improvement.format_value(improvement.old_value),
+            improvement.format_value(improvement.new_value),
+            ratchet_label,
+        );
+    }
+}

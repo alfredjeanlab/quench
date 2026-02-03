@@ -22,7 +22,7 @@ mod suppress;
 mod workspace;
 
 pub use crate::adapter::common::policy::PolicyCheckResult;
-pub use cfg_test::CfgTestInfo;
+pub use cfg_test::{CfgTestBlock, CfgTestInfo, CfgTestItemKind};
 pub use suppress::{SuppressAttr, parse_suppress_attrs};
 pub use workspace::CargoWorkspace;
 

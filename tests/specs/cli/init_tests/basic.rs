@@ -288,7 +288,7 @@ fn init_detected_language_uses_dotted_keys() {
     let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
 
     assert!(config.contains("[rust]"));
-    assert!(config.contains("rust.cloc.check"));
-    assert!(config.contains("rust.policy.check"));
-    assert!(config.contains("rust.suppress.check"));
+    assert!(config.contains("cloc.check"));
+    assert!(config.contains("policy.check"));
+    assert!(config.contains("suppress.check"));
 }

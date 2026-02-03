@@ -33,4 +33,52 @@ if [[ ":${PATH}:" != *":${INSTALL_DIR}:"* ]]; then
     echo "  export PATH=\"\${HOME}/.local/bin:\${PATH}\""
 fi
 
+# Install shell completions (idempotent)
+COMPLETION_MARKER="# quench-shell-completion"
+DATA_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/quench/completions"
+
+install_completions() {
+    local quench="${INSTALL_DIR}/${BINARY_NAME}"
+
+    # Bash
+    if command -v bash &> /dev/null; then
+        local rc=""
+        if [[ -f "$HOME/.bashrc" ]]; then
+            rc="$HOME/.bashrc"
+        elif [[ -f "$HOME/.bash_profile" ]]; then
+            rc="$HOME/.bash_profile"
+        fi
+        if [[ -n "$rc" ]] && ! grep -q "$COMPLETION_MARKER" "$rc"; then
+            mkdir -p "$DATA_DIR"
+            "$quench" completions bash > "$DATA_DIR/quench.bash"
+            printf '\n%s\n[ -f "%s" ] && source "%s"\n' \
+                "$COMPLETION_MARKER" "$DATA_DIR/quench.bash" "$DATA_DIR/quench.bash" >> "$rc"
+            echo "Installed bash completions (source: $rc)"
+        fi
+    fi
+
+    # Zsh
+    if command -v zsh &> /dev/null; then
+        if [[ -f "$HOME/.zshrc" ]] && ! grep -q "$COMPLETION_MARKER" "$HOME/.zshrc"; then
+            mkdir -p "$DATA_DIR"
+            "$quench" completions zsh > "$DATA_DIR/_quench"
+            printf '\n%s\n[ -f "%s" ] && source "%s"\n' \
+                "$COMPLETION_MARKER" "$DATA_DIR/_quench" "$DATA_DIR/_quench" >> "$HOME/.zshrc"
+            echo "Installed zsh completions (source: ~/.zshrc)"
+        fi
+    fi
+
+    # Fish
+    if command -v fish &> /dev/null; then
+        local fish_dir="${XDG_CONFIG_HOME:-$HOME/.config}/fish/completions"
+        if [[ ! -f "$fish_dir/quench.fish" ]]; then
+            mkdir -p "$fish_dir"
+            "$quench" completions fish > "$fish_dir/quench.fish"
+            echo "Installed fish completions"
+        fi
+    fi
+}
+
+install_completions
+
 echo "Done"

@@ -189,6 +189,16 @@ action = "comment"
 comment = "# METAPROGRAMMING:"
 ```
 
+## Exclude Patterns
+
+Skip files matching these patterns from escape checks.
+
+```toml
+[check.escapes]
+check = "error"
+exclude = ["**/generated/**", "**/migrations/**", "**/vendor/**"]
+```
+
 ## Per-Package Overrides
 
 Stricter thresholds for specific packages.

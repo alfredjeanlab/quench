@@ -46,7 +46,9 @@ use crate::check::Violation;
 /// v33: Standardized exclude patterns across all language adapters (Go, JS, Shell).
 /// v34: Removed reconcile_cursor/reconcile_direction fields; cursor reconciliation now uses sync config.
 /// v35: Added **/*_tests/** to default test patterns (generic, Rust, JavaScript adapters).
-pub(crate) const CACHE_VERSION: u32 = 35;
+/// v36: Python suppress comments now detected above @decorator lines.
+/// v37: JavaScript suppress config no longer inherits Rust-specific lint patterns.
+pub(crate) const CACHE_VERSION: u32 = 37;
 
 /// Cache file name within .quench directory.
 pub const CACHE_FILE_NAME: &str = "cache.bin";
@@ -424,6 +426,21 @@ pub fn hash_config(config: &crate::config::Config) -> u64 {
     config.check.cloc.max_lines_test.hash(&mut hasher);
     config.check.cloc.exclude.hash(&mut hasher);
     config.project.packages.hash(&mut hasher);
+
+    // Hash escapes check level and exclude patterns.
+    // Without this, toggling [check.escapes].check = "off" won't
+    // invalidate cached violations, causing stale results.
+    config.check.escapes.check.hash(&mut hasher);
+    config.check.escapes.exclude.hash(&mut hasher);
+
+    // Hash suppress check levels for all languages.
+    // These control whether the escapes check reports suppress violations.
+    config.rust.suppress.check.hash(&mut hasher);
+    config.javascript.suppress.check.hash(&mut hasher);
+    config.golang.suppress.check.hash(&mut hasher);
+    config.shell.suppress.check.hash(&mut hasher);
+    config.ruby.suppress.check.hash(&mut hasher);
+    config.python.suppress.check.hash(&mut hasher);
 
     // Hash test/source patterns from resolution hierarchy:
     // 1. Language-specific patterns (most specific)

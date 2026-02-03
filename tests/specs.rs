@@ -57,7 +57,7 @@ mod checks_cloc;
 #[path = "specs/checks/cloc_lang.rs"]
 mod checks_cloc_lang;
 
-#[path = "specs/checks/escapes.rs"]
+#[path = "specs/checks/escapes/mod.rs"]
 mod checks_escapes;
 
 #[path = "specs/checks/policy_lang.rs"]

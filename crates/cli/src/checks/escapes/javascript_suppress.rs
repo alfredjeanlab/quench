@@ -10,7 +10,7 @@ use std::path::Path;
 
 use crate::adapter::javascript::{SuppressTool, parse_javascript_suppresses};
 use crate::check::{CheckContext, Violation};
-use crate::config::SuppressConfig;
+use crate::config::JavaScriptSuppressConfig;
 
 use super::suppress_common::{UnifiedSuppressDirective, check_suppress_violations_generic};
 
@@ -19,7 +19,7 @@ pub fn check_javascript_suppress_violations(
     ctx: &CheckContext,
     path: &Path,
     content: &str,
-    config: &SuppressConfig,
+    config: &JavaScriptSuppressConfig,
     is_test_file: bool,
     limit_reached: &mut bool,
 ) -> Vec<Violation> {

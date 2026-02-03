@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1]
+
+### Added
+
+- Exclude pattern support for escape checks
+- Distinguish `cfg(test)` item types with specific violations in Rust adapter
+- Shell completions installed automatically via install scripts
+
+### Fixed
+
+- JavaScript suppress config now independent from Rust's suppress config
+- Respect `check.escapes.check = "off"` with cached results
+- Python suppress comments detected above `@decorator` lines
+- Remove duplicate language prefix in detected section TOML keys during `quench init`
+- Remove `.cursorignore` from default agent sync files
+
+### Changed
+
+- Deduplicate lint_policy, config resolution, and cmd_check internals
+
 ## [0.4.0]
 
 ### Added
@@ -125,7 +145,8 @@ Initial public release with core linting functionality.
 
 Internal preview release.
 
-[Unreleased]: https://github.com/alfredjeanlab/quench/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/alfredjeanlab/quench/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/alfredjeanlab/quench/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/alfredjeanlab/quench/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/alfredjeanlab/quench/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/alfredjeanlab/quench/compare/v0.1.0...v0.2.0

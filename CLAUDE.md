@@ -5,7 +5,7 @@ Configured via `quench.toml`.
 
 ## Directory Structure
 
-```
+```diagram
 quench/
 ├── README.md         # Human-focused introduction
 ├── crates/           # Rust workspace

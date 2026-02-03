@@ -273,6 +273,18 @@ escapes: FAIL
 
 **Violation types**: `missing_comment`, `forbidden`, `threshold_exceeded`
 
+## Exclude Patterns
+
+Skip files matching glob patterns from escape checks.
+
+```toml
+[check.escapes]
+check = "error"
+exclude = ["**/generated/**", "**/migrations/**", "**/vendor/**"]
+```
+
+Excluded files are not scanned for violations or counted in metrics.
+
 ## Configuration
 
 ```toml

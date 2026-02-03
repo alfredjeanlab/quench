@@ -5,15 +5,13 @@
 
 use std::path::Path;
 
+use crate::adapter::common::policy::{self, PolicyConfig};
 use crate::adapter::{
     GoAdapter, JavaScriptAdapter, ProjectLanguage, PythonAdapter, RubyAdapter, RustAdapter,
     ShellAdapter, detect_language,
 };
 use crate::check::{CheckContext, Violation};
-use crate::config::{
-    CheckLevel, GoConfig, JavaScriptConfig, LintChangesPolicy, PythonConfig, RubyConfig,
-    RustConfig, ShellConfig,
-};
+use crate::config::{CheckLevel, LintChangesPolicy};
 
 /// Result of lint policy check with violations and their check level.
 pub struct PolicyCheckResult {
@@ -26,12 +24,48 @@ pub struct PolicyCheckResult {
 /// Check lint policy and return violations with their check level.
 pub fn check_lint_policy(ctx: &CheckContext) -> PolicyCheckResult {
     match detect_language(ctx.root) {
-        ProjectLanguage::Rust => check_rust_lint_policy(ctx, &ctx.config.rust),
-        ProjectLanguage::Go => check_go_lint_policy(ctx, &ctx.config.golang),
-        ProjectLanguage::Python => check_python_lint_policy(ctx, &ctx.config.python),
-        ProjectLanguage::Ruby => check_ruby_lint_policy(ctx, &ctx.config.ruby),
-        ProjectLanguage::Shell => check_shell_lint_policy(ctx, &ctx.config.shell),
-        ProjectLanguage::JavaScript => check_javascript_lint_policy(ctx, &ctx.config.javascript),
+        ProjectLanguage::Rust => check_language_lint_policy(
+            ctx,
+            "rust",
+            &ctx.config.rust.policy,
+            ctx.config.rust.policy.lint_changes,
+            RustAdapter::new,
+        ),
+        ProjectLanguage::Go => check_language_lint_policy(
+            ctx,
+            "go",
+            &ctx.config.golang.policy,
+            ctx.config.golang.policy.lint_changes,
+            GoAdapter::new,
+        ),
+        ProjectLanguage::Python => check_language_lint_policy(
+            ctx,
+            "python",
+            &ctx.config.python.policy,
+            ctx.config.python.policy.lint_changes,
+            PythonAdapter::new,
+        ),
+        ProjectLanguage::Ruby => check_language_lint_policy(
+            ctx,
+            "ruby",
+            &ctx.config.ruby.policy,
+            ctx.config.ruby.policy.lint_changes,
+            RubyAdapter::new,
+        ),
+        ProjectLanguage::Shell => check_language_lint_policy(
+            ctx,
+            "shell",
+            &ctx.config.shell.policy,
+            ctx.config.shell.policy.lint_changes,
+            ShellAdapter::new,
+        ),
+        ProjectLanguage::JavaScript => check_language_lint_policy(
+            ctx,
+            "javascript",
+            &ctx.config.javascript.policy,
+            ctx.config.javascript.policy.lint_changes,
+            JavaScriptAdapter::new,
+        ),
         ProjectLanguage::Generic => PolicyCheckResult {
             violations: Vec::new(),
             check_level: CheckLevel::Off,
@@ -39,204 +73,21 @@ pub fn check_lint_policy(ctx: &CheckContext) -> PolicyCheckResult {
     }
 }
 
-/// Check Rust lint policy and generate violations.
-fn check_rust_lint_policy(ctx: &CheckContext, rust_config: &RustConfig) -> PolicyCheckResult {
-    let check_level = ctx.config.policy_check_level_for_language("rust");
-
-    // If policy check is off, skip entirely
-    if check_level == CheckLevel::Off {
-        return PolicyCheckResult {
-            violations: Vec::new(),
-            check_level,
-        };
-    }
-
-    if rust_config.policy.lint_changes != LintChangesPolicy::Standalone {
-        return PolicyCheckResult {
-            violations: Vec::new(),
-            check_level,
-        };
-    }
-    let Some(changed_files) = ctx.changed_files else {
-        return PolicyCheckResult {
-            violations: Vec::new(),
-            check_level,
-        };
-    };
-
-    let adapter = RustAdapter::new();
-    let file_refs: Vec<&Path> = changed_files.iter().map(|p| p.as_path()).collect();
-    let result = adapter.check_lint_policy(&file_refs, &rust_config.policy);
-    PolicyCheckResult {
-        violations: make_policy_violation(
-            result.standalone_violated,
-            &result.changed_lint_config,
-            &result.changed_source,
-        ),
-        check_level,
-    }
-}
-
-/// Check Go lint policy and generate violations.
-fn check_go_lint_policy(ctx: &CheckContext, go_config: &GoConfig) -> PolicyCheckResult {
-    let check_level = ctx.config.policy_check_level_for_language("go");
-
-    // If policy check is off, skip entirely
-    if check_level == CheckLevel::Off {
-        return PolicyCheckResult {
-            violations: Vec::new(),
-            check_level,
-        };
-    }
-
-    if go_config.policy.lint_changes != LintChangesPolicy::Standalone {
-        return PolicyCheckResult {
-            violations: Vec::new(),
-            check_level,
-        };
-    }
-    let Some(changed_files) = ctx.changed_files else {
-        return PolicyCheckResult {
-            violations: Vec::new(),
-            check_level,
-        };
-    };
-
-    let adapter = GoAdapter::new();
-    let file_refs: Vec<&Path> = changed_files.iter().map(|p| p.as_path()).collect();
-    let result = adapter.check_lint_policy(&file_refs, &go_config.policy);
-    PolicyCheckResult {
-        violations: make_policy_violation(
-            result.standalone_violated,
-            &result.changed_lint_config,
-            &result.changed_source,
-        ),
-        check_level,
-    }
-}
-
-/// Check Shell lint policy and generate violations.
-fn check_shell_lint_policy(ctx: &CheckContext, shell_config: &ShellConfig) -> PolicyCheckResult {
-    let check_level = ctx.config.policy_check_level_for_language("shell");
-
-    // If policy check is off, skip entirely
-    if check_level == CheckLevel::Off {
-        return PolicyCheckResult {
-            violations: Vec::new(),
-            check_level,
-        };
-    }
-
-    if shell_config.policy.lint_changes != LintChangesPolicy::Standalone {
-        return PolicyCheckResult {
-            violations: Vec::new(),
-            check_level,
-        };
-    }
-    let Some(changed_files) = ctx.changed_files else {
-        return PolicyCheckResult {
-            violations: Vec::new(),
-            check_level,
-        };
-    };
-
-    let adapter = ShellAdapter::new();
-    let file_refs: Vec<&Path> = changed_files.iter().map(|p| p.as_path()).collect();
-    let result = adapter.check_lint_policy(&file_refs, &shell_config.policy);
-    PolicyCheckResult {
-        violations: make_policy_violation(
-            result.standalone_violated,
-            &result.changed_lint_config,
-            &result.changed_source,
-        ),
-        check_level,
-    }
-}
-
-/// Check Python lint policy and generate violations.
-fn check_python_lint_policy(ctx: &CheckContext, python_config: &PythonConfig) -> PolicyCheckResult {
-    let check_level = ctx.config.policy_check_level_for_language("python");
-
-    // If policy check is off, skip entirely
-    if check_level == CheckLevel::Off {
-        return PolicyCheckResult {
-            violations: Vec::new(),
-            check_level,
-        };
-    }
-
-    if python_config.policy.lint_changes != LintChangesPolicy::Standalone {
-        return PolicyCheckResult {
-            violations: Vec::new(),
-            check_level,
-        };
-    }
-    let Some(changed_files) = ctx.changed_files else {
-        return PolicyCheckResult {
-            violations: Vec::new(),
-            check_level,
-        };
-    };
-
-    let adapter = PythonAdapter::new();
-    let file_refs: Vec<&Path> = changed_files.iter().map(|p| p.as_path()).collect();
-    let result = adapter.check_lint_policy(&file_refs, &python_config.policy);
-    PolicyCheckResult {
-        violations: make_policy_violation(
-            result.standalone_violated,
-            &result.changed_lint_config,
-            &result.changed_source,
-        ),
-        check_level,
-    }
-}
-
-/// Check Ruby lint policy and generate violations.
-fn check_ruby_lint_policy(ctx: &CheckContext, ruby_config: &RubyConfig) -> PolicyCheckResult {
-    let check_level = ctx.config.policy_check_level_for_language("ruby");
-
-    // If policy check is off, skip entirely
-    if check_level == CheckLevel::Off {
-        return PolicyCheckResult {
-            violations: Vec::new(),
-            check_level,
-        };
-    }
-
-    if ruby_config.policy.lint_changes != LintChangesPolicy::Standalone {
-        return PolicyCheckResult {
-            violations: Vec::new(),
-            check_level,
-        };
-    }
-    let Some(changed_files) = ctx.changed_files else {
-        return PolicyCheckResult {
-            violations: Vec::new(),
-            check_level,
-        };
-    };
-
-    let adapter = RubyAdapter::new();
-    let file_refs: Vec<&Path> = changed_files.iter().map(|p| p.as_path()).collect();
-    let result = adapter.check_lint_policy(&file_refs, &ruby_config.policy);
-    PolicyCheckResult {
-        violations: make_policy_violation(
-            result.standalone_violated,
-            &result.changed_lint_config,
-            &result.changed_source,
-        ),
-        check_level,
-    }
-}
-
-/// Check JavaScript lint policy and generate violations.
-fn check_javascript_lint_policy(
+/// Generic lint policy check for any language adapter.
+fn check_language_lint_policy<P, A, F>(
     ctx: &CheckContext,
-    js_config: &JavaScriptConfig,
-) -> PolicyCheckResult {
-    let check_level = ctx.config.policy_check_level_for_language("javascript");
+    language: &str,
+    policy_config: &P,
+    lint_changes: LintChangesPolicy,
+    make_adapter: F,
+) -> PolicyCheckResult
+where
+    P: PolicyConfig,
+    A: crate::adapter::Adapter,
+    F: FnOnce() -> A,
+{
+    let check_level = ctx.config.policy_check_level_for_language(language);
 
-    // If policy check is off, skip entirely
     if check_level == CheckLevel::Off {
         return PolicyCheckResult {
             violations: Vec::new(),
@@ -244,12 +95,13 @@ fn check_javascript_lint_policy(
         };
     }
 
-    if js_config.policy.lint_changes != LintChangesPolicy::Standalone {
+    if lint_changes != LintChangesPolicy::Standalone {
         return PolicyCheckResult {
             violations: Vec::new(),
             check_level,
         };
     }
+
     let Some(changed_files) = ctx.changed_files else {
         return PolicyCheckResult {
             violations: Vec::new(),
@@ -257,9 +109,9 @@ fn check_javascript_lint_policy(
         };
     };
 
-    let adapter = JavaScriptAdapter::new();
+    let adapter = make_adapter();
     let file_refs: Vec<&Path> = changed_files.iter().map(|p| p.as_path()).collect();
-    let result = adapter.check_lint_policy(&file_refs, &js_config.policy);
+    let result = policy::check_lint_policy(&file_refs, policy_config, |p| adapter.classify(p));
     PolicyCheckResult {
         violations: make_policy_violation(
             result.standalone_violated,

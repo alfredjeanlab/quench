@@ -290,6 +290,10 @@ pub struct EscapesConfig {
     #[serde(default)]
     pub check: CheckLevel,
 
+    /// Patterns to exclude from escape checks.
+    #[serde(default)]
+    pub exclude: Vec<String>,
+
     /// Patterns to detect (overrides defaults).
     #[serde(default)]
     pub patterns: Vec<EscapePattern>,
@@ -454,7 +458,7 @@ impl ClocConfig {
 }
 
 /// Check level: error, warn, or off.
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum CheckLevel {
     #[default]

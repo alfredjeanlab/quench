@@ -215,3 +215,54 @@ fn go_suppress_source_has_no_defaults() {
     // Go should have empty patterns
     assert!(config.golang.suppress.source.patterns.is_empty());
 }
+
+#[test]
+fn javascript_suppress_check_allow_is_respected() {
+    let path = PathBuf::from("quench.toml");
+    let content = r#"
+version = 1
+
+[javascript.suppress]
+check = "allow"
+"#;
+    let config = parse_with_warnings(content, &path).unwrap();
+    assert_eq!(config.javascript.suppress.check, SuppressLevel::Allow);
+    // Source scope should not have Rust-specific patterns for JavaScript
+    assert!(
+        config.javascript.suppress.source.patterns.is_empty(),
+        "JavaScript suppress source should not inherit Rust-specific patterns, got: {:?}",
+        config.javascript.suppress.source.patterns
+    );
+}
+
+#[test]
+fn javascript_suppress_source_has_no_defaults() {
+    let path = PathBuf::from("quench.toml");
+    let content = "version = 1\n";
+    let config = parse_with_warnings(content, &path).unwrap();
+
+    // JavaScript should NOT have Rust-specific patterns
+    assert!(
+        config.javascript.suppress.source.patterns.is_empty(),
+        "JavaScript suppress source should not inherit Rust-specific patterns, got: {:?}",
+        config.javascript.suppress.source.patterns
+    );
+}
+
+#[test]
+fn javascript_suppress_test_defaults_to_allow() {
+    let path = PathBuf::from("quench.toml");
+    // When [javascript.suppress] is present, test scope should still default to allow
+    let content = r#"
+version = 1
+
+[javascript.suppress]
+check = "comment"
+"#;
+    let config = parse_with_warnings(content, &path).unwrap();
+    assert_eq!(
+        config.javascript.suppress.test.check,
+        Some(SuppressLevel::Allow),
+        "JavaScript test scope should default to allow even when [javascript.suppress] is present"
+    );
+}

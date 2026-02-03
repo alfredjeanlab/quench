@@ -13,7 +13,7 @@ use globset::GlobSet;
 use serde_json::json;
 
 use crate::adapter::glob::build_glob_set;
-use crate::adapter::rust::CfgTestInfo;
+use crate::adapter::rust::{CfgTestBlock, CfgTestInfo, CfgTestItemKind};
 use crate::adapter::{AdapterRegistry, FileKind, RustAdapter};
 use crate::check::{Check, CheckContext, CheckResult, Violation};
 use crate::config::{CfgTestSplitMode, CheckLevel, ClocConfig, LineMetric};
@@ -159,15 +159,11 @@ impl Check for ClocCheck {
                                         ctx.config.cloc_check_level_for_language("rust");
                                     if rust_check_level != CheckLevel::Off {
                                         let cfg_info = CfgTestInfo::parse(content);
-                                        if cfg_info.has_inline_tests()
-                                            && let Some(line) = cfg_info.first_inline_test_line()
-                                        {
-                                            let is_error = rust_check_level == CheckLevel::Error;
+                                        let is_error = rust_check_level == CheckLevel::Error;
+                                        for block in &cfg_info.blocks {
                                             violation_infos.push((
                                                 create_inline_cfg_test_violation(
-                                                    ctx,
-                                                    &file.path,
-                                                    line as u32 + 1,
+                                                    ctx, &file.path, block,
                                                 ),
                                                 is_error,
                                             ));
@@ -506,14 +502,38 @@ fn try_create_token_violation(
 }
 
 /// Create a violation for inline #[cfg(test)] block.
-fn create_inline_cfg_test_violation(ctx: &CheckContext, file_path: &Path, line: u32) -> Violation {
+///
+/// Uses different violation codes and advice based on item kind:
+/// - `inline_cfg_test` for mod (test module)
+/// - `cfg_test_helper` for fn/impl (test helpers)
+/// - `cfg_test_item` for struct/enum/type/trait/const/static (test-only types)
+fn create_inline_cfg_test_violation(
+    ctx: &CheckContext,
+    file_path: &Path,
+    block: &CfgTestBlock,
+) -> Violation {
     let display_path = file_path.strip_prefix(ctx.root).unwrap_or(file_path);
-    Violation::file(
-        display_path,
-        line,
-        "inline_cfg_test",
-        "Move tests to a sibling _tests.rs file.",
-    )
+    let line = block.attr_line as u32 + 1;
+
+    let (code, advice) = match block.item_kind {
+        CfgTestItemKind::Mod => ("inline_cfg_test", "Move tests to a sibling _tests.rs file."),
+        CfgTestItemKind::Fn | CfgTestItemKind::Impl => (
+            "cfg_test_helper",
+            "Move test helper to the _tests.rs file, or use #[doc(hidden)] if needed in both.",
+        ),
+        CfgTestItemKind::Struct
+        | CfgTestItemKind::Enum
+        | CfgTestItemKind::Type
+        | CfgTestItemKind::Trait
+        | CfgTestItemKind::Const
+        | CfgTestItemKind::Static => (
+            "cfg_test_item",
+            "Move test-only type to the _tests.rs file.",
+        ),
+        CfgTestItemKind::Unknown => ("inline_cfg_test", "Move tests to a sibling _tests.rs file."),
+    };
+
+    Violation::file(display_path, line, code, advice)
 }
 
 /// Check if a file is a source code file (for LOC counting).

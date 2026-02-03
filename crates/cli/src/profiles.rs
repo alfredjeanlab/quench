@@ -388,27 +388,27 @@ required = {:?}
 /// Uses dotted keys per spec: docs/specs/commands/quench-init.md
 pub fn rust_detected_section() -> &'static str {
     r#"[rust]
-rust.cloc.check = "error"
-rust.policy.check = "error"
-rust.suppress.check = "comment"
+cloc.check = "error"
+policy.check = "error"
+suppress.check = "comment"
 "#
 }
 
 /// Minimal Go section for auto-detection output.
 pub fn golang_detected_section() -> &'static str {
     r#"[golang]
-golang.cloc.check = "error"
-golang.policy.check = "error"
-golang.suppress.check = "comment"
+cloc.check = "error"
+policy.check = "error"
+suppress.check = "comment"
 "#
 }
 
 /// Minimal JavaScript section for auto-detection output.
 pub fn javascript_detected_section() -> &'static str {
     r#"[javascript]
-javascript.cloc.check = "error"
-javascript.policy.check = "error"
-javascript.suppress.check = "comment"
+cloc.check = "error"
+policy.check = "error"
+suppress.check = "comment"
 "#
 }
 
@@ -417,27 +417,27 @@ javascript.suppress.check = "comment"
 /// Note: Shell uses "forbid" for suppress by default.
 pub fn shell_detected_section() -> &'static str {
     r#"[shell]
-shell.cloc.check = "error"
-shell.policy.check = "error"
-shell.suppress.check = "forbid"
+cloc.check = "error"
+policy.check = "error"
+suppress.check = "forbid"
 "#
 }
 
 /// Minimal Ruby section for auto-detection output.
 pub fn ruby_detected_section() -> &'static str {
     r#"[ruby]
-ruby.cloc.check = "error"
-ruby.policy.check = "error"
-ruby.suppress.check = "comment"
+cloc.check = "error"
+policy.check = "error"
+suppress.check = "comment"
 "#
 }
 
 /// Minimal Python section for auto-detection output.
 pub fn python_detected_section() -> &'static str {
     r#"[python]
-python.cloc.check = "error"
-python.policy.check = "error"
-python.suppress.check = "comment"
+cloc.check = "error"
+policy.check = "error"
+suppress.check = "comment"
 "#
 }
 

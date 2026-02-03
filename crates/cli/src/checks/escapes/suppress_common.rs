@@ -10,8 +10,8 @@ use std::path::Path;
 
 use crate::check::{CheckContext, Violation};
 use crate::config::{
-    GoSuppressConfig, PythonSuppressConfig, RubySuppressConfig, ShellSuppressConfig,
-    SuppressConfig, SuppressLevel, SuppressScopeConfig,
+    GoSuppressConfig, JavaScriptSuppressConfig, PythonSuppressConfig, RubySuppressConfig,
+    ShellSuppressConfig, SuppressConfig, SuppressLevel, SuppressScopeConfig,
 };
 
 use super::violations::try_create_violation;
@@ -102,6 +102,21 @@ impl SuppressConfigAccess for RubySuppressConfig {
 }
 
 impl SuppressConfigAccess for PythonSuppressConfig {
+    fn check(&self) -> SuppressLevel {
+        self.check
+    }
+    fn comment(&self) -> Option<&str> {
+        self.comment.as_deref()
+    }
+    fn source(&self) -> &SuppressScopeConfig {
+        &self.source
+    }
+    fn test(&self) -> &SuppressScopeConfig {
+        &self.test
+    }
+}
+
+impl SuppressConfigAccess for JavaScriptSuppressConfig {
     fn check(&self) -> SuppressLevel {
         self.check
     }

@@ -7,6 +7,32 @@
 
 use std::ops::Range;
 
+/// The kind of item following a #[cfg(test)] attribute.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum CfgTestItemKind {
+    /// `mod foo { ... }` - test module
+    Mod,
+    /// `fn foo() { ... }` - function (e.g., test helper)
+    Fn,
+    /// `impl Foo { ... }` - impl block with test methods
+    Impl,
+    /// `struct Foo { ... }` - test-only struct
+    Struct,
+    /// `enum Foo { ... }` - test-only enum
+    Enum,
+    /// `type Foo = ...;` - test-only type alias
+    Type,
+    /// `trait Foo { ... }` - test-only trait
+    Trait,
+    /// `const FOO: ...` - test-only constant
+    Const,
+    /// `static FOO: ...` - test-only static
+    Static,
+    /// Unknown or macro-generated item
+    #[default]
+    Unknown,
+}
+
 /// Lexer state for tracking what context we're in.
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum LexerState {
@@ -28,6 +54,8 @@ pub struct CfgTestBlock {
     pub attr_line: usize,
     /// Line range of the entire block (attribute through closing brace).
     pub range: Range<usize>,
+    /// The kind of item following the attribute.
+    pub item_kind: CfgTestItemKind,
 }
 
 /// Result of parsing a Rust file for #[cfg(test)] blocks.
@@ -67,6 +95,8 @@ impl CfgTestInfo {
         let mut waiting_for_block_start = false;
         // Track if we're inside a block comment
         let mut in_block_comment = false;
+        // Track the item kind for the current #[cfg(test)] block
+        let mut pending_item_kind = CfgTestItemKind::Unknown;
 
         for (line_idx, line) in content.lines().enumerate() {
             let trimmed = line.trim();
@@ -131,6 +161,9 @@ impl CfgTestInfo {
                 // If we're still waiting for the block to start and we see a line
                 // without an opening brace that ends with ';', it's an external module
                 if waiting_for_block_start {
+                    // Detect item kind from the first non-attribute line
+                    pending_item_kind = detect_item_kind(trimmed);
+
                     if delta > 0 {
                         // Found opening brace - this is an inline block
                         waiting_for_block_start = false;
@@ -140,6 +173,7 @@ impl CfgTestInfo {
                         // Not an inline test block
                         in_cfg_test = false;
                         waiting_for_block_start = false;
+                        pending_item_kind = CfgTestItemKind::Unknown;
                         continue;
                     }
                     // Otherwise keep waiting (might be blank line or comment)
@@ -154,9 +188,11 @@ impl CfgTestInfo {
                     info.blocks.push(CfgTestBlock {
                         attr_line: block_start,
                         range: range.clone(),
+                        item_kind: pending_item_kind,
                     });
                     info.test_ranges.push(range);
                     in_cfg_test = false;
+                    pending_item_kind = CfgTestItemKind::Unknown;
                 }
             }
         }
@@ -272,6 +308,77 @@ fn is_cfg_test_content(content: &str) -> bool {
         }
     }
     false
+}
+
+/// Detect the kind of item from a line following #[cfg(test)].
+fn detect_item_kind(line: &str) -> CfgTestItemKind {
+    let trimmed = line.trim();
+
+    // Skip visibility modifiers: pub, pub(crate), pub(super), etc.
+    let after_vis = skip_visibility(trimmed);
+
+    // Skip additional modifiers: async, unsafe, const (for fn), extern
+    let after_mods = skip_fn_modifiers(after_vis);
+
+    // Match first keyword
+    if after_mods.starts_with("mod ") || after_mods == "mod" {
+        CfgTestItemKind::Mod
+    } else if after_mods.starts_with("fn ") || after_mods.starts_with("fn<") {
+        CfgTestItemKind::Fn
+    } else if after_mods.starts_with("impl ") || after_mods.starts_with("impl<") {
+        CfgTestItemKind::Impl
+    } else if after_mods.starts_with("struct ") || after_mods.starts_with("struct<") {
+        CfgTestItemKind::Struct
+    } else if after_mods.starts_with("enum ") || after_mods.starts_with("enum<") {
+        CfgTestItemKind::Enum
+    } else if after_mods.starts_with("type ") {
+        CfgTestItemKind::Type
+    } else if after_mods.starts_with("trait ") || after_mods.starts_with("trait<") {
+        CfgTestItemKind::Trait
+    } else if after_mods.starts_with("const ") {
+        CfgTestItemKind::Const
+    } else if after_mods.starts_with("static ") {
+        CfgTestItemKind::Static
+    } else {
+        CfgTestItemKind::Unknown
+    }
+}
+
+/// Skip visibility modifiers from the start of a line.
+fn skip_visibility(s: &str) -> &str {
+    if s.starts_with("pub(") {
+        // Handle pub(crate), pub(super), pub(in path)
+        if let Some(end) = s.find(')') {
+            return s[end + 1..].trim_start();
+        }
+    } else if let Some(rest) = s.strip_prefix("pub ") {
+        return rest;
+    }
+    s
+}
+
+/// Skip function modifiers (async, unsafe, const, extern) from the start of a line.
+fn skip_fn_modifiers(s: &str) -> &str {
+    let mut result = s;
+    loop {
+        let prev = result;
+        for modifier in ["async ", "unsafe ", "const ", "extern "] {
+            if result.starts_with(modifier) {
+                result = result[modifier.len()..].trim_start();
+            }
+        }
+        // Handle extern "C" fn
+        if result.starts_with('"')
+            && let Some(end) = result[1..].find('"')
+        {
+            result = result[end + 2..].trim_start();
+        }
+        // No more modifiers found
+        if result == prev {
+            break;
+        }
+    }
+    result
 }
 
 /// Count brace depth changes in a line, accounting for string/char literals.

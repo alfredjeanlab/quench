@@ -294,3 +294,78 @@ fn python_landing_items_for_returns_defaults_when_nothing_detected() {
     assert!(items.iter().any(|i| i.contains("ruff format")));
     assert!(items.iter().any(|i| i.contains("pytest")));
 }
+
+// =============================================================================
+// DETECTED SECTION TOML VALIDITY TESTS
+// =============================================================================
+
+/// Helper: parse a detected section as TOML and verify the language key exists
+/// with the expected cloc, policy, and suppress sub-keys.
+fn assert_detected_section_valid(section: &str, lang: &str) {
+    let value: toml::Value = toml::from_str(section)
+        .unwrap_or_else(|e| panic!("failed to parse {lang} detected section as TOML: {e}"));
+
+    let table = value.as_table().expect("top-level should be a table");
+    let lang_table = table
+        .get(lang)
+        .unwrap_or_else(|| panic!("[{lang}] key missing"))
+        .as_table()
+        .unwrap_or_else(|| panic!("[{lang}] should be a table"));
+
+    // cloc.check should be nested correctly
+    let cloc = lang_table
+        .get("cloc")
+        .unwrap_or_else(|| panic!("{lang}.cloc missing"))
+        .as_table()
+        .unwrap_or_else(|| panic!("{lang}.cloc should be a table"));
+    assert!(cloc.get("check").is_some(), "{lang}.cloc.check missing");
+
+    // policy.check should be nested correctly
+    let policy = lang_table
+        .get("policy")
+        .unwrap_or_else(|| panic!("{lang}.policy missing"))
+        .as_table()
+        .unwrap_or_else(|| panic!("{lang}.policy should be a table"));
+    assert!(policy.get("check").is_some(), "{lang}.policy.check missing");
+
+    // suppress.check should be nested correctly
+    let suppress = lang_table
+        .get("suppress")
+        .unwrap_or_else(|| panic!("{lang}.suppress missing"))
+        .as_table()
+        .unwrap_or_else(|| panic!("{lang}.suppress should be a table"));
+    assert!(
+        suppress.get("check").is_some(),
+        "{lang}.suppress.check missing"
+    );
+}
+
+#[test]
+fn rust_detected_section_is_valid_toml() {
+    assert_detected_section_valid(rust_detected_section(), "rust");
+}
+
+#[test]
+fn golang_detected_section_is_valid_toml() {
+    assert_detected_section_valid(golang_detected_section(), "golang");
+}
+
+#[test]
+fn javascript_detected_section_is_valid_toml() {
+    assert_detected_section_valid(javascript_detected_section(), "javascript");
+}
+
+#[test]
+fn shell_detected_section_is_valid_toml() {
+    assert_detected_section_valid(shell_detected_section(), "shell");
+}
+
+#[test]
+fn ruby_detected_section_is_valid_toml() {
+    assert_detected_section_valid(ruby_detected_section(), "ruby");
+}
+
+#[test]
+fn python_detected_section_is_valid_toml() {
+    assert_detected_section_valid(python_detected_section(), "python");
+}

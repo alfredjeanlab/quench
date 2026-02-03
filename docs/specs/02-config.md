@@ -364,6 +364,7 @@ Escape hatch detection with configurable patterns.
 ```toml
 [check.escapes]
 check = "error"                        # error | warn | off
+exclude = ["**/generated/**"]
 
 [[check.escapes.patterns]]
 name = "unsafe"

@@ -500,3 +500,266 @@ fn main() {}
     assert_eq!(info.test_ranges.len(), 0);
     assert!(!info.has_inline_tests());
 }
+
+// =============================================================================
+// ITEM KIND DETECTION TESTS
+// =============================================================================
+
+#[test]
+fn item_kind_mod() {
+    let content = r#"
+fn source() {}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn it_works() {}
+}
+"#;
+    let info = CfgTestInfo::parse(content);
+    assert_eq!(info.blocks.len(), 1);
+    assert_eq!(info.blocks[0].item_kind, CfgTestItemKind::Mod);
+}
+
+#[test]
+fn item_kind_pub_mod() {
+    let content = r#"
+#[cfg(test)]
+pub mod tests {
+    fn test() {}
+}
+"#;
+    let info = CfgTestInfo::parse(content);
+    assert_eq!(info.blocks.len(), 1);
+    assert_eq!(info.blocks[0].item_kind, CfgTestItemKind::Mod);
+}
+
+#[test]
+fn item_kind_fn() {
+    let content = r#"
+#[cfg(test)]
+fn test_helper() -> i32 {
+    42
+}
+"#;
+    let info = CfgTestInfo::parse(content);
+    assert_eq!(info.blocks.len(), 1);
+    assert_eq!(info.blocks[0].item_kind, CfgTestItemKind::Fn);
+}
+
+#[test]
+fn item_kind_pub_fn() {
+    let content = r#"
+#[cfg(test)]
+pub fn test_helper() {
+}
+"#;
+    let info = CfgTestInfo::parse(content);
+    assert_eq!(info.blocks.len(), 1);
+    assert_eq!(info.blocks[0].item_kind, CfgTestItemKind::Fn);
+}
+
+#[test]
+fn item_kind_async_fn() {
+    let content = r#"
+#[cfg(test)]
+async fn async_helper() {
+}
+"#;
+    let info = CfgTestInfo::parse(content);
+    assert_eq!(info.blocks.len(), 1);
+    assert_eq!(info.blocks[0].item_kind, CfgTestItemKind::Fn);
+}
+
+#[test]
+fn item_kind_unsafe_fn() {
+    let content = r#"
+#[cfg(test)]
+unsafe fn unsafe_helper() {
+}
+"#;
+    let info = CfgTestInfo::parse(content);
+    assert_eq!(info.blocks.len(), 1);
+    assert_eq!(info.blocks[0].item_kind, CfgTestItemKind::Fn);
+}
+
+#[test]
+fn item_kind_pub_async_unsafe_fn() {
+    let content = r#"
+#[cfg(test)]
+pub async unsafe fn complex_fn() {
+}
+"#;
+    let info = CfgTestInfo::parse(content);
+    assert_eq!(info.blocks.len(), 1);
+    assert_eq!(info.blocks[0].item_kind, CfgTestItemKind::Fn);
+}
+
+#[test]
+fn item_kind_const_fn() {
+    let content = r#"
+#[cfg(test)]
+const fn const_helper() -> i32 {
+    42
+}
+"#;
+    let info = CfgTestInfo::parse(content);
+    assert_eq!(info.blocks.len(), 1);
+    assert_eq!(info.blocks[0].item_kind, CfgTestItemKind::Fn);
+}
+
+#[test]
+fn item_kind_extern_fn() {
+    let content = r#"
+#[cfg(test)]
+extern "C" fn extern_helper() {
+}
+"#;
+    let info = CfgTestInfo::parse(content);
+    assert_eq!(info.blocks.len(), 1);
+    assert_eq!(info.blocks[0].item_kind, CfgTestItemKind::Fn);
+}
+
+#[test]
+fn item_kind_impl() {
+    let content = r#"
+#[cfg(test)]
+impl TestStruct {
+    fn helper(&self) {}
+}
+"#;
+    let info = CfgTestInfo::parse(content);
+    assert_eq!(info.blocks.len(), 1);
+    assert_eq!(info.blocks[0].item_kind, CfgTestItemKind::Impl);
+}
+
+#[test]
+fn item_kind_impl_with_generics() {
+    let content = r#"
+#[cfg(test)]
+impl<T> TestStruct<T> {
+    fn helper(&self) {}
+}
+"#;
+    let info = CfgTestInfo::parse(content);
+    assert_eq!(info.blocks.len(), 1);
+    assert_eq!(info.blocks[0].item_kind, CfgTestItemKind::Impl);
+}
+
+#[test]
+fn item_kind_struct() {
+    let content = r#"
+#[cfg(test)]
+struct TestFixture {
+    value: i32,
+}
+"#;
+    let info = CfgTestInfo::parse(content);
+    assert_eq!(info.blocks.len(), 1);
+    assert_eq!(info.blocks[0].item_kind, CfgTestItemKind::Struct);
+}
+
+#[test]
+fn item_kind_pub_crate_struct() {
+    let content = r#"
+#[cfg(test)]
+pub(crate) struct TestFixture {
+    value: i32,
+}
+"#;
+    let info = CfgTestInfo::parse(content);
+    assert_eq!(info.blocks.len(), 1);
+    assert_eq!(info.blocks[0].item_kind, CfgTestItemKind::Struct);
+}
+
+#[test]
+fn item_kind_enum() {
+    let content = r#"
+#[cfg(test)]
+enum TestEnum {
+    A,
+    B,
+}
+"#;
+    let info = CfgTestInfo::parse(content);
+    assert_eq!(info.blocks.len(), 1);
+    assert_eq!(info.blocks[0].item_kind, CfgTestItemKind::Enum);
+}
+
+#[test]
+fn item_kind_trait() {
+    let content = r#"
+#[cfg(test)]
+trait TestTrait {
+    fn method(&self);
+}
+"#;
+    let info = CfgTestInfo::parse(content);
+    assert_eq!(info.blocks.len(), 1);
+    assert_eq!(info.blocks[0].item_kind, CfgTestItemKind::Trait);
+}
+
+#[test]
+fn item_kind_multiple_blocks() {
+    let content = r#"
+fn source() {}
+
+#[cfg(test)]
+mod tests {
+    fn test() {}
+}
+
+#[cfg(test)]
+fn helper() {
+}
+
+#[cfg(test)]
+struct Fixture {
+    x: i32,
+}
+"#;
+    let info = CfgTestInfo::parse(content);
+    assert_eq!(info.blocks.len(), 3);
+    assert_eq!(info.blocks[0].item_kind, CfgTestItemKind::Mod);
+    assert_eq!(info.blocks[1].item_kind, CfgTestItemKind::Fn);
+    assert_eq!(info.blocks[2].item_kind, CfgTestItemKind::Struct);
+}
+
+#[test]
+fn item_kind_with_path_attr() {
+    // Extra attributes between #[cfg(test)] and the item should be skipped
+    let content = r#"
+#[cfg(test)]
+#[path = "tests.rs"]
+mod tests {
+    fn test() {}
+}
+"#;
+    let info = CfgTestInfo::parse(content);
+    assert_eq!(info.blocks.len(), 1);
+    assert_eq!(info.blocks[0].item_kind, CfgTestItemKind::Mod);
+}
+
+#[test]
+fn item_kind_pub_super() {
+    let content = r#"
+#[cfg(test)]
+pub(super) fn test_helper() {
+}
+"#;
+    let info = CfgTestInfo::parse(content);
+    assert_eq!(info.blocks.len(), 1);
+    assert_eq!(info.blocks[0].item_kind, CfgTestItemKind::Fn);
+}
+
+#[test]
+fn item_kind_pub_in_path() {
+    let content = r#"
+#[cfg(test)]
+pub(in crate::module) fn test_helper() {
+}
+"#;
+    let info = CfgTestInfo::parse(content);
+    assert_eq!(info.blocks.len(), 1);
+    assert_eq!(info.blocks[0].item_kind, CfgTestItemKind::Fn);
+}

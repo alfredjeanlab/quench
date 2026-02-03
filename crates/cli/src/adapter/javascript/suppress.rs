@@ -49,6 +49,7 @@ const JS_COMMENT_STYLE: CommentStyle = CommentStyle {
         "@ts-ignore",
         "@ts-expect-error",
     ],
+    skip_prefixes: &[],
 };
 
 /// Parse ESLint rules from directive text.

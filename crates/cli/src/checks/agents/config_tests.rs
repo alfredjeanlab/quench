@@ -16,6 +16,15 @@ fn default_files_includes_cursorrules() {
 }
 
 #[test]
+fn default_files_excludes_cursorignore() {
+    let config = AgentsConfig::default();
+    assert!(
+        !config.files.contains(&".cursorignore".to_string()),
+        ".cursorignore is an ignore file, not an agent context file"
+    );
+}
+
+#[test]
 fn default_files_includes_cursor_rules_md_glob() {
     let config = AgentsConfig::default();
     assert!(config.files.contains(&".cursor/rules/*.md".to_string()));

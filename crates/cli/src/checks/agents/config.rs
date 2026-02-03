@@ -165,7 +165,6 @@ impl AgentsConfig {
             "CLAUDE.md".to_string(),
             "AGENTS.md".to_string(),
             ".cursorrules".to_string(),
-            ".cursorignore".to_string(),
             ".cursor/rules/*.md".to_string(),
             ".cursor/rules/*.mdc".to_string(),
         ]

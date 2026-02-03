@@ -325,6 +325,56 @@ fn eslint_disable_in_test_file_passes_without_comment() {
     check("escapes").on("javascript/eslint-test-ok").passes();
 }
 
+/// Spec: docs/specs/langs/javascript.md#suppress
+///
+/// > When `check = "allow"`, all suppress directives are permitted.
+#[test]
+fn eslint_disable_passes_when_check_is_allow() {
+    let temp = Project::empty();
+    temp.config(
+        r#"[javascript.suppress]
+check = "allow"
+"#,
+    );
+    temp.file("package.json", r#"{"name": "test", "version": "1.0.0"}"#);
+    temp.file(
+        "src/index.ts",
+        r#"// eslint-disable-next-line no-console
+console.log('debug');
+
+// biome-ignore lint/suspicious/noExplicitAny
+const data: any = {};
+"#,
+    );
+
+    check("escapes").pwd(temp.path()).passes();
+}
+
+/// Spec: docs/specs/langs/javascript.md#suppress
+///
+/// > JavaScript suppress does not inherit Rust-specific lint code patterns.
+#[test]
+fn javascript_suppress_does_not_require_rust_comment_patterns() {
+    let temp = Project::empty();
+    temp.config(
+        r#"[javascript.suppress]
+check = "comment"
+"#,
+    );
+    temp.file("package.json", r#"{"name": "test", "version": "1.0.0"}"#);
+    // Use a lint code that matches a Rust-specific pattern name ("deprecated")
+    // with a generic justification comment (not the Rust-specific pattern).
+    temp.file(
+        "src/index.ts",
+        r#"// Legacy API is still needed for backwards compatibility
+// eslint-disable-next-line deprecated
+const result = oldFunc();
+"#,
+    );
+
+    check("escapes").pwd(temp.path()).passes();
+}
+
 // =============================================================================
 // LINT CONFIG POLICY SPECS
 // =============================================================================

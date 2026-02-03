@@ -26,7 +26,10 @@ pub struct SuppressConfig {
     pub source: SuppressScopeConfig,
 
     /// Test-specific settings (overrides base settings for test code).
-    #[serde(default, deserialize_with = "deserialize_test_scope")]
+    #[serde(
+        default = "SuppressScopeConfig::default_for_test",
+        deserialize_with = "deserialize_test_scope"
+    )]
     pub test: SuppressScopeConfig,
 }
 
@@ -272,7 +275,7 @@ impl SuppressScopeConfig {
 }
 
 /// Suppress check level.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum SuppressLevel {
     /// Never allowed - any suppression fails.

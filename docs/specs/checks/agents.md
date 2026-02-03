@@ -15,7 +15,7 @@ With no configuration, the agents check applies these defaults:
 
 | Setting | Default | Rationale |
 |---------|---------|-----------|
-| `files` | CLAUDE.md, AGENTS.md, .cursorrules, .cursorignore, .cursor/rules/*.md[c] | All recognized agent files |
+| `files` | CLAUDE.md, AGENTS.md, .cursorrules, .cursor/rules/*.md[c] | All recognized agent files |
 | `required` | `["*"]` | At least one agent file must exist |
 | `sync` | `true` | Keep multiple agent files consistent |
 | `tables` | `allow` | Tables can be useful for structured data |
@@ -48,7 +48,6 @@ Quench recognizes these agent context files:
 | `AGENTS.md` | Generic agent instructions |
 | `.cursorrules` | Cursor IDE |
 | `.cursor/rules/*.md[c]` | Cursor IDE |
-| `.cursorignore` | Cursor IDE ignore patterns |
 
 Configure which files are recognized:
 

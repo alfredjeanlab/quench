@@ -6,11 +6,11 @@ check:
 	cargo clippy --all-targets --all-features -- -D warnings
 	cargo build --all
 	cargo test --all
-	./target/debug/quench check
+	cargo run -- check
 	cargo audit
 	cargo deny check licenses bans sources
-	@if [ -d tests/fixtures/bench-rust ] && [ -f target/release/quench ]; then \
-		timeout 5s ./target/release/quench check tests/fixtures/bench-rust >/dev/null 2>&1 \
+	@if [ -d tests/fixtures/bench-rust ] && command -v quench >/dev/null 2>&1; then \
+		timeout 5s quench check tests/fixtures/bench-rust >/dev/null 2>&1 \
 		|| (echo "Performance smoke test failed"; exit 1); \
 	fi
 

@@ -31,7 +31,7 @@ pub(crate) use checks::{
     EscapesConfig, LangClocConfig, LineMetric, SpecsConfig, SpecsSectionsConfig,
 };
 pub(crate) use go::{GoConfig, GoPolicyConfig, GoSuppressConfig};
-pub(crate) use javascript::{JavaScriptConfig, JavaScriptPolicyConfig};
+pub(crate) use javascript::{JavaScriptConfig, JavaScriptPolicyConfig, JavaScriptSuppressConfig};
 pub(crate) use python::{PythonConfig, PythonPolicyConfig, PythonSuppressConfig};
 pub(crate) use ratchet::RatchetConfig;
 #[cfg(test)]
@@ -190,7 +190,56 @@ impl GitCommitConfig {
     }
 }
 
+/// Identify a language from an adapter name or file extension.
+///
+/// Returns None for unrecognized languages.
+enum ResolvedLanguage {
+    Rust,
+    Go,
+    JavaScript,
+    Python,
+    Ruby,
+    Shell,
+}
+
+fn resolve_language(language: &str) -> Option<ResolvedLanguage> {
+    match language {
+        "rust" | "rs" => Some(ResolvedLanguage::Rust),
+        "go" => Some(ResolvedLanguage::Go),
+        "javascript" | "typescript" | "js" | "jsx" | "ts" | "tsx" | "mjs" | "mts" | "cjs"
+        | "cts" => Some(ResolvedLanguage::JavaScript),
+        "python" | "py" => Some(ResolvedLanguage::Python),
+        "ruby" | "rb" | "rake" => Some(ResolvedLanguage::Ruby),
+        "shell" | "sh" | "bash" | "zsh" | "fish" | "bats" => Some(ResolvedLanguage::Shell),
+        _ => None,
+    }
+}
+
 impl Config {
+    /// Get the language-specific cloc config (if any) for a given language name or extension.
+    fn lang_cloc_config(&self, language: &str) -> Option<&LangClocConfig> {
+        match resolve_language(language)? {
+            ResolvedLanguage::Rust => self.rust.cloc.as_ref(),
+            ResolvedLanguage::Go => self.golang.cloc.as_ref(),
+            ResolvedLanguage::JavaScript => self.javascript.cloc.as_ref(),
+            ResolvedLanguage::Python => self.python.cloc.as_ref(),
+            ResolvedLanguage::Ruby => self.ruby.cloc.as_ref(),
+            ResolvedLanguage::Shell => self.shell.cloc.as_ref(),
+        }
+    }
+
+    /// Get the flat `{lang}.cloc_advice` field (legacy; superseded by `{lang}.cloc.advice`).
+    fn lang_cloc_advice_flat(&self, language: &str) -> Option<&str> {
+        match resolve_language(language)? {
+            ResolvedLanguage::Rust => self.rust.cloc_advice.as_deref(),
+            ResolvedLanguage::Go => self.golang.cloc_advice.as_deref(),
+            ResolvedLanguage::JavaScript => self.javascript.cloc_advice.as_deref(),
+            ResolvedLanguage::Python => self.python.cloc_advice.as_deref(),
+            ResolvedLanguage::Ruby => self.ruby.cloc_advice.as_deref(),
+            ResolvedLanguage::Shell => self.shell.cloc_advice.as_deref(),
+        }
+    }
+
     /// Get effective cloc check level for a language.
     ///
     /// Resolution order:
@@ -201,21 +250,9 @@ impl Config {
     /// or a file extension (e.g., "rs"). This allows per-file language detection
     /// even in mixed-language projects where only the primary adapter is registered.
     pub fn cloc_check_level_for_language(&self, language: &str) -> CheckLevel {
-        let lang_level = match language {
-            // Adapter names and file extensions combined
-            // (Go uses "go" for both adapter name and file extension)
-            "rust" | "rs" => self.rust.cloc.as_ref().and_then(|c| c.check),
-            "go" => self.golang.cloc.as_ref().and_then(|c| c.check),
-            "javascript" | "typescript" | "js" | "jsx" | "ts" | "tsx" | "mjs" | "mts" | "cjs"
-            | "cts" => self.javascript.cloc.as_ref().and_then(|c| c.check),
-            "python" | "py" => self.python.cloc.as_ref().and_then(|c| c.check),
-            "shell" | "sh" | "bash" | "zsh" | "fish" | "bats" => {
-                self.shell.cloc.as_ref().and_then(|c| c.check)
-            }
-            "ruby" | "rb" | "rake" => self.ruby.cloc.as_ref().and_then(|c| c.check),
-            _ => None,
-        };
-        lang_level.unwrap_or(self.check.cloc.check)
+        self.lang_cloc_config(language)
+            .and_then(|c| c.check)
+            .unwrap_or(self.check.cloc.check)
     }
 
     /// Get cloc advice for source files, checking user override then language default.
@@ -229,48 +266,11 @@ impl Config {
     /// The `language` parameter can be either an adapter name or a file extension.
     pub fn cloc_advice_for_language(&self, language: &str, threshold: usize) -> String {
         // Check language-specific advice first
-        let lang_advice = match language {
-            "rust" | "rs" => self
-                .rust
-                .cloc
-                .as_ref()
-                .and_then(|c| c.advice.as_deref())
-                .or(self.rust.cloc_advice.as_deref()),
-            "go" => self
-                .golang
-                .cloc
-                .as_ref()
-                .and_then(|c| c.advice.as_deref())
-                .or(self.golang.cloc_advice.as_deref()),
-            "javascript" | "typescript" | "js" | "jsx" | "ts" | "tsx" | "mjs" | "mts" | "cjs"
-            | "cts" => self
-                .javascript
-                .cloc
-                .as_ref()
-                .and_then(|c| c.advice.as_deref())
-                .or(self.javascript.cloc_advice.as_deref()),
-            "python" | "py" => self
-                .python
-                .cloc
-                .as_ref()
-                .and_then(|c| c.advice.as_deref())
-                .or(self.python.cloc_advice.as_deref()),
-            "ruby" | "rb" | "rake" => self
-                .ruby
-                .cloc
-                .as_ref()
-                .and_then(|c| c.advice.as_deref())
-                .or(self.ruby.cloc_advice.as_deref()),
-            "shell" | "sh" | "bash" | "zsh" | "fish" | "bats" => self
-                .shell
-                .cloc
-                .as_ref()
-                .and_then(|c| c.advice.as_deref())
-                .or(self.shell.cloc_advice.as_deref()),
-            _ => None,
-        };
+        let lang_advice = self
+            .lang_cloc_config(language)
+            .and_then(|c| c.advice.as_deref())
+            .or_else(|| self.lang_cloc_advice_flat(language));
 
-        // If language-specific advice is set, use it
         if let Some(advice) = lang_advice {
             return advice.to_string();
         }
@@ -282,17 +282,14 @@ impl Config {
         }
 
         // Use language-specific defaults (recomputed with actual threshold)
-        match language {
-            "rust" | "rs" => RustConfig::default_cloc_advice(threshold),
-            "go" => GoConfig::default_cloc_advice(threshold),
-            "javascript" | "typescript" | "js" | "jsx" | "ts" | "tsx" | "mjs" | "mts" | "cjs"
-            | "cts" => JavaScriptConfig::default_cloc_advice(threshold),
-            "python" | "py" => PythonConfig::default_cloc_advice(threshold),
-            "ruby" | "rb" | "rake" => RubyConfig::default_cloc_advice(threshold),
-            "shell" | "sh" | "bash" | "zsh" | "fish" | "bats" => {
-                ShellConfig::default_cloc_advice(threshold)
-            }
-            _ => defaults::advice::cloc_source(threshold),
+        match resolve_language(language) {
+            Some(ResolvedLanguage::Rust) => RustConfig::default_cloc_advice(threshold),
+            Some(ResolvedLanguage::Go) => GoConfig::default_cloc_advice(threshold),
+            Some(ResolvedLanguage::JavaScript) => JavaScriptConfig::default_cloc_advice(threshold),
+            Some(ResolvedLanguage::Python) => PythonConfig::default_cloc_advice(threshold),
+            Some(ResolvedLanguage::Ruby) => RubyConfig::default_cloc_advice(threshold),
+            Some(ResolvedLanguage::Shell) => ShellConfig::default_cloc_advice(threshold),
+            None => defaults::advice::cloc_source(threshold),
         }
     }
 
@@ -696,3 +693,39 @@ mod exclude_tests;
 #[cfg(test)]
 #[path = "suppress_tests.rs"]
 mod suppress_tests;
+
+#[cfg(test)]
+#[path = "checks_tests.rs"]
+mod checks_tests;
+
+#[cfg(test)]
+#[path = "defaults_tests.rs"]
+mod defaults_tests;
+
+#[cfg(test)]
+#[path = "ratchet_tests.rs"]
+mod ratchet_tests;
+
+#[cfg(test)]
+#[path = "go_tests.rs"]
+mod go_tests;
+
+#[cfg(test)]
+#[path = "javascript_tests.rs"]
+mod javascript_tests;
+
+#[cfg(test)]
+#[path = "python_tests.rs"]
+mod python_tests;
+
+#[cfg(test)]
+#[path = "ruby_tests.rs"]
+mod ruby_tests;
+
+#[cfg(test)]
+#[path = "shell_tests.rs"]
+mod shell_tests;
+
+#[cfg(test)]
+#[path = "test_config_tests.rs"]
+mod test_config_tests;

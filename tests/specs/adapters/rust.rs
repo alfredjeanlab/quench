@@ -705,3 +705,59 @@ fn rust_cfg_test_split_off_counts_all_as_source() {
     );
     assert_eq!(metrics.get("test_lines").and_then(|v| v.as_u64()), Some(0));
 }
+
+// =============================================================================
+// CFG_TEST ITEM TYPE SPECS
+// =============================================================================
+
+/// Spec: docs/specs/langs/rust.md#violation-codes
+///
+/// > `inline_cfg_test` for `mod` - Move tests to a sibling _tests.rs file.
+#[test]
+fn rust_cfg_test_mod_produces_inline_cfg_test_violation() {
+    let cloc = check("cloc").on("rust/cfg-test-items").json().fails();
+
+    assert!(
+        cloc.has_violation("inline_cfg_test"),
+        "should produce inline_cfg_test for mod"
+    );
+}
+
+/// Spec: docs/specs/langs/rust.md#violation-codes
+///
+/// > `cfg_test_helper` for `fn`, `impl` - Move test helper to the _tests.rs file
+#[test]
+fn rust_cfg_test_fn_produces_cfg_test_helper_violation() {
+    let cloc = check("cloc").on("rust/cfg-test-items").json().fails();
+
+    assert!(
+        cloc.has_violation("cfg_test_helper"),
+        "should produce cfg_test_helper for fn/impl"
+    );
+}
+
+/// Spec: docs/specs/langs/rust.md#violation-codes
+///
+/// > `cfg_test_item` for `struct`, `enum`, `trait` - Move test-only type to the _tests.rs file.
+#[test]
+fn rust_cfg_test_struct_produces_cfg_test_item_violation() {
+    let cloc = check("cloc").on("rust/cfg-test-items").json().fails();
+
+    assert!(
+        cloc.has_violation("cfg_test_item"),
+        "should produce cfg_test_item for struct"
+    );
+}
+
+/// Spec: docs/specs/langs/rust.md#violation-codes
+///
+/// > Different violation codes produce different advice messages
+#[test]
+fn rust_cfg_test_violations_have_appropriate_advice() {
+    check("cloc")
+        .on("rust/cfg-test-items")
+        .fails()
+        .stdout_has("Move tests to a sibling _tests.rs file.")
+        .stdout_has("Move test helper to the _tests.rs file")
+        .stdout_has("Move test-only type to the _tests.rs file.");
+}

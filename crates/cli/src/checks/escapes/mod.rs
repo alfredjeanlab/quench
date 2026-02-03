@@ -21,6 +21,9 @@ mod violations;
 use std::collections::HashSet;
 use std::path::Path;
 
+use globset::GlobSet;
+
+use crate::adapter::glob::build_glob_set;
 use crate::adapter::{CfgTestInfo, FileKind, GenericAdapter, parse_suppress_attrs};
 use crate::check::{Check, CheckContext, CheckResult, Violation};
 use crate::config::{CheckLevel, EscapeAction, SuppressConfig, SuppressLevel};
@@ -96,6 +99,9 @@ impl Check for EscapesCheck {
         // Create adapter once for file classification (optimization: avoid per-file allocation)
         let file_adapter = GenericAdapter::new(&[], &test_patterns);
 
+        // Build exclude matcher
+        let exclude_matcher = ExcludeMatcher::new(&config.exclude);
+
         let mut violations = Vec::new();
         let mut metrics = EscapesMetrics::new();
         let mut limit_reached = false;
@@ -107,6 +113,11 @@ impl Check for EscapesCheck {
 
             // Skip non-source files (configs, docs, etc.)
             if !is_source_file(&file.path) {
+                continue;
+            }
+
+            // Skip excluded files
+            if exclude_matcher.is_excluded(&file.path, ctx.root) {
                 continue;
             }
 
@@ -595,6 +606,26 @@ fn check_suppress_violations(
     }
 
     violations
+}
+
+/// Pattern matcher for exclude patterns.
+struct ExcludeMatcher {
+    exclude_patterns: GlobSet,
+}
+
+impl ExcludeMatcher {
+    /// Create a new exclude matcher from config patterns.
+    fn new(exclude_patterns: &[String]) -> Self {
+        Self {
+            exclude_patterns: build_glob_set(exclude_patterns),
+        }
+    }
+
+    /// Check if a file should be excluded from escape checks.
+    fn is_excluded(&self, path: &Path, root: &Path) -> bool {
+        let relative = path.strip_prefix(root).unwrap_or(path);
+        self.exclude_patterns.is_match(relative)
+    }
 }
 
 #[cfg(test)]

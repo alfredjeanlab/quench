@@ -83,7 +83,7 @@ fn init_detects_rust_from_cargo_toml() {
 
     let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
     assert!(config.contains("[rust]"));
-    assert!(config.contains("rust.cloc.check"));
+    assert!(config.contains("cloc.check"));
 }
 
 /// Spec: docs/specs/commands/quench-init.md#language-detection
