@@ -68,19 +68,13 @@ fn parses_fix_type() {
 
 #[test]
 fn matches_docs_wildcard() {
-    let files = vec![
-        "docs/api/endpoints.md".to_string(),
-        "src/lib.rs".to_string(),
-    ];
+    let files = vec!["docs/api/endpoints.md".to_string(), "src/lib.rs".to_string()];
     assert!(has_changes_matching(&files, "docs/**"));
 }
 
 #[test]
 fn matches_specific_docs_path() {
-    let files = vec![
-        "docs/api/endpoints.md".to_string(),
-        "src/lib.rs".to_string(),
-    ];
+    let files = vec!["docs/api/endpoints.md".to_string(), "src/lib.rs".to_string()];
     assert!(has_changes_matching(&files, "docs/api/**"));
 }
 
@@ -105,10 +99,7 @@ fn check_commit_has_docs_with_area_mapping() {
     let mut areas = HashMap::new();
     areas.insert(
         "api".to_string(),
-        DocsAreaConfig {
-            docs: "docs/api/**".to_string(),
-            source: Some("src/api/**".to_string()),
-        },
+        DocsAreaConfig { docs: "docs/api/**".to_string(), source: Some("src/api/**".to_string()) },
     );
 
     let commit = ConventionalCommit {
@@ -162,10 +153,7 @@ fn check_commit_with_unknown_scope_uses_default() {
     let mut areas = HashMap::new();
     areas.insert(
         "api".to_string(),
-        DocsAreaConfig {
-            docs: "docs/api/**".to_string(),
-            source: None,
-        },
+        DocsAreaConfig { docs: "docs/api/**".to_string(), source: None },
     );
 
     let commit = ConventionalCommit {
@@ -227,17 +215,11 @@ fn finds_areas_from_source_changes() {
     let mut areas = HashMap::new();
     areas.insert(
         "api".to_string(),
-        DocsAreaConfig {
-            docs: "docs/api/**".to_string(),
-            source: Some("src/api/**".to_string()),
-        },
+        DocsAreaConfig { docs: "docs/api/**".to_string(), source: Some("src/api/**".to_string()) },
     );
     areas.insert(
         "cli".to_string(),
-        DocsAreaConfig {
-            docs: "docs/cli/**".to_string(),
-            source: Some("src/cli/**".to_string()),
-        },
+        DocsAreaConfig { docs: "docs/cli/**".to_string(), source: Some("src/cli/**".to_string()) },
     );
 
     let files = vec!["src/api/handler.rs".to_string()];
@@ -252,23 +234,14 @@ fn finds_multiple_areas_from_source_changes() {
     let mut areas = HashMap::new();
     areas.insert(
         "api".to_string(),
-        DocsAreaConfig {
-            docs: "docs/api/**".to_string(),
-            source: Some("src/api/**".to_string()),
-        },
+        DocsAreaConfig { docs: "docs/api/**".to_string(), source: Some("src/api/**".to_string()) },
     );
     areas.insert(
         "cli".to_string(),
-        DocsAreaConfig {
-            docs: "docs/cli/**".to_string(),
-            source: Some("src/cli/**".to_string()),
-        },
+        DocsAreaConfig { docs: "docs/cli/**".to_string(), source: Some("src/cli/**".to_string()) },
     );
 
-    let files = vec![
-        "src/api/handler.rs".to_string(),
-        "src/cli/main.rs".to_string(),
-    ];
+    let files = vec!["src/api/handler.rs".to_string(), "src/cli/main.rs".to_string()];
     let matched = find_areas_from_source(&files, &areas);
 
     assert_eq!(matched.len(), 2);
@@ -296,10 +269,7 @@ fn no_areas_matched_when_files_dont_match_patterns() {
     let mut areas = HashMap::new();
     areas.insert(
         "api".to_string(),
-        DocsAreaConfig {
-            docs: "docs/api/**".to_string(),
-            source: Some("src/api/**".to_string()),
-        },
+        DocsAreaConfig { docs: "docs/api/**".to_string(), source: Some("src/api/**".to_string()) },
     );
 
     let files = vec!["src/cli/main.rs".to_string()];
@@ -317,10 +287,7 @@ fn check_commit_uses_source_matching_when_no_scope() {
     let mut areas = HashMap::new();
     areas.insert(
         "api".to_string(),
-        DocsAreaConfig {
-            docs: "docs/api/**".to_string(),
-            source: Some("src/api/**".to_string()),
-        },
+        DocsAreaConfig { docs: "docs/api/**".to_string(), source: Some("src/api/**".to_string()) },
     );
 
     let commit = ConventionalCommit {
@@ -344,10 +311,7 @@ fn check_commit_source_match_passes_with_docs() {
     let mut areas = HashMap::new();
     areas.insert(
         "api".to_string(),
-        DocsAreaConfig {
-            docs: "docs/api/**".to_string(),
-            source: Some("src/api/**".to_string()),
-        },
+        DocsAreaConfig { docs: "docs/api/**".to_string(), source: Some("src/api/**".to_string()) },
     );
 
     let commit = ConventionalCommit {
@@ -358,10 +322,7 @@ fn check_commit_source_match_passes_with_docs() {
     };
 
     // Source files match and docs exist
-    let files = vec![
-        "src/api/handler.rs".to_string(),
-        "docs/api/handler.md".to_string(),
-    ];
+    let files = vec!["src/api/handler.rs".to_string(), "docs/api/handler.md".to_string()];
     let result = check_commit_has_docs(&commit, &files, &areas);
     assert!(result.has_docs);
     assert_eq!(result.matched_areas.len(), 1);
@@ -373,17 +334,11 @@ fn check_commit_multiple_source_areas_require_all_docs() {
     let mut areas = HashMap::new();
     areas.insert(
         "api".to_string(),
-        DocsAreaConfig {
-            docs: "docs/api/**".to_string(),
-            source: Some("src/api/**".to_string()),
-        },
+        DocsAreaConfig { docs: "docs/api/**".to_string(), source: Some("src/api/**".to_string()) },
     );
     areas.insert(
         "cli".to_string(),
-        DocsAreaConfig {
-            docs: "docs/cli/**".to_string(),
-            source: Some("src/cli/**".to_string()),
-        },
+        DocsAreaConfig { docs: "docs/cli/**".to_string(), source: Some("src/cli/**".to_string()) },
     );
 
     let commit = ConventionalCommit {
@@ -409,17 +364,11 @@ fn check_commit_scope_takes_priority_over_source() {
     let mut areas = HashMap::new();
     areas.insert(
         "api".to_string(),
-        DocsAreaConfig {
-            docs: "docs/api/**".to_string(),
-            source: Some("src/api/**".to_string()),
-        },
+        DocsAreaConfig { docs: "docs/api/**".to_string(), source: Some("src/api/**".to_string()) },
     );
     areas.insert(
         "cli".to_string(),
-        DocsAreaConfig {
-            docs: "docs/cli/**".to_string(),
-            source: Some("src/cli/**".to_string()),
-        },
+        DocsAreaConfig { docs: "docs/cli/**".to_string(), source: Some("src/cli/**".to_string()) },
     );
 
     let commit = ConventionalCommit {

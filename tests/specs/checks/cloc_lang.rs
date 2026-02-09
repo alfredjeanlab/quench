@@ -52,10 +52,7 @@ fn rust_cloc_advice_overrides_default() {
     let cloc = check("cloc").on("cloc-lang/rust-advice").json().fails();
     let violations = cloc.require("violations").as_array().unwrap();
 
-    let advice = violations[0]
-        .get("advice")
-        .and_then(|a| a.as_str())
-        .unwrap();
+    let advice = violations[0].get("advice").and_then(|a| a.as_str()).unwrap();
     assert_eq!(advice, "Rust files should be split into smaller modules.");
 }
 
@@ -126,19 +123,13 @@ fn each_language_can_have_independent_cloc_check_level() {
     // Rust file should cause failure
     let violations = result.require("violations").as_array().unwrap();
     assert!(violations.iter().any(|v| {
-        v.get("file")
-            .and_then(|f| f.as_str())
-            .map(|f| f.ends_with(".rs"))
-            .unwrap_or(false)
+        v.get("file").and_then(|f| f.as_str()).map(|f| f.ends_with(".rs")).unwrap_or(false)
     }));
 
     // Go file should not appear in violations (only warned)
     // JS file should not appear at all (skipped)
     assert!(!violations.iter().any(|v| {
-        v.get("file")
-            .and_then(|f| f.as_str())
-            .map(|f| f.ends_with(".js"))
-            .unwrap_or(false)
+        v.get("file").and_then(|f| f.as_str()).map(|f| f.ends_with(".js")).unwrap_or(false)
     }));
 }
 
@@ -186,15 +177,9 @@ max_lines = 5
 check = "error"
 "#,
     );
-    temp.file(
-        "Cargo.toml",
-        "[package]\nname = \"test\"\nversion = \"0.1.0\"\n",
-    );
+    temp.file("Cargo.toml", "[package]\nname = \"test\"\nversion = \"0.1.0\"\n");
     // Oversized Rust file should fail (rust.cloc overrides global off)
-    temp.file(
-        "src/big.rs",
-        "fn a() {}\nfn b() {}\nfn c() {}\nfn d() {}\nfn e() {}\nfn f() {}\n",
-    );
+    temp.file("src/big.rs", "fn a() {}\nfn b() {}\nfn c() {}\nfn d() {}\nfn e() {}\nfn f() {}\n");
     // Oversized Go file should pass (inherits global off)
     temp.file("go.mod", "module test\n");
     temp.file(
@@ -208,9 +193,6 @@ check = "error"
 
     // Only Rust violation, not Go
     assert!(violations.iter().all(|v| {
-        v.get("file")
-            .and_then(|f| f.as_str())
-            .map(|f| f.ends_with(".rs"))
-            .unwrap_or(false)
+        v.get("file").and_then(|f| f.as_str()).map(|f| f.ends_with(".rs")).unwrap_or(false)
     }));
 }

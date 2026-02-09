@@ -32,10 +32,7 @@ github.com/example/pkg/math/math.go:9.14,11.2 1 0
     assert!(result.line_coverage.is_some());
     // 1 covered out of 2 statements = 50%
     let coverage = result.line_coverage.unwrap();
-    assert!(
-        (coverage - 50.0).abs() < 0.1,
-        "Expected 50%, got {coverage}"
-    );
+    assert!((coverage - 50.0).abs() < 0.1, "Expected 50%, got {coverage}");
 }
 
 #[test]
@@ -91,10 +88,7 @@ github.com/example/pkg/math/math.go:9.14,11.2 1 0
     assert!(result.success);
     // count > 0 means covered, regardless of how many times
     let coverage = result.line_coverage.unwrap();
-    assert!(
-        (coverage - 50.0).abs() < 0.1,
-        "Expected 50%, got {coverage}"
-    );
+    assert!((coverage - 50.0).abs() < 0.1, "Expected 50%, got {coverage}");
 }
 
 // =============================================================================

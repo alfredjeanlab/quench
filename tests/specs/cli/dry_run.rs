@@ -60,11 +60,7 @@ sync_from = "CLAUDE.md"
     temp.file("CLAUDE.md", SOURCE);
     temp.file(".cursorrules", TARGET);
 
-    cli()
-        .pwd(temp.path())
-        .args(&["--fix", "--dry-run"])
-        .passes()
-        .stdout_has(".cursorrules");
+    cli().pwd(temp.path()).args(&["--fix", "--dry-run"]).passes().stdout_has(".cursorrules");
 }
 
 /// Spec: docs/specs/01-cli.md#output-flags
@@ -114,10 +110,7 @@ sync_from = "CLAUDE.md"
     temp.file(".cursorrules", TARGET);
 
     // Files are out of sync, fixes are needed, but --dry-run exits 0
-    cli()
-        .pwd(temp.path())
-        .args(&["--fix", "--dry-run"])
-        .passes(); // passes() expects exit code 0
+    cli().pwd(temp.path()).args(&["--fix", "--dry-run"]).passes(); // passes() expects exit code 0
 }
 
 // =============================================================================
@@ -141,10 +134,7 @@ sync_from = "CLAUDE.md"
     temp.file(".cursorrules", TARGET);
 
     // Run with --dry-run
-    cli()
-        .pwd(temp.path())
-        .args(&["--fix", "--dry-run"])
-        .passes();
+    cli().pwd(temp.path()).args(&["--fix", "--dry-run"]).passes();
 
     // Verify .cursorrules was NOT modified
     let content = std::fs::read_to_string(temp.path().join(".cursorrules")).unwrap();
@@ -173,11 +163,7 @@ sync_from = "CLAUDE.md"
     temp.file(".cursorrules", SOURCE);
 
     // Dry-run should pass with no preview needed
-    cli()
-        .pwd(temp.path())
-        .args(&["--fix", "--dry-run"])
-        .passes()
-        .stdout_lacks("Would sync"); // No preview shown
+    cli().pwd(temp.path()).args(&["--fix", "--dry-run"]).passes().stdout_lacks("Would sync"); // No preview shown
 }
 
 /// Edge case: dry-run with JSON output includes previews
@@ -197,11 +183,7 @@ sections.required = []
     temp.file("CLAUDE.md", SOURCE);
     temp.file(".cursorrules", TARGET);
 
-    let result = cli()
-        .pwd(temp.path())
-        .args(&["--fix", "--dry-run"])
-        .json()
-        .passes();
+    let result = cli().pwd(temp.path()).args(&["--fix", "--dry-run"]).json().passes();
 
     // Find the agents check result
     let agents = result
@@ -211,18 +193,10 @@ sections.required = []
         .expect("should have agents check");
 
     let fix_summary = agents.get("fix_summary").expect("should have fix_summary");
-    let previews = fix_summary
-        .get("previews")
-        .and_then(|p| p.as_array())
-        .expect("should have previews array");
+    let previews =
+        fix_summary.get("previews").and_then(|p| p.as_array()).expect("should have previews array");
 
     assert!(!previews.is_empty(), "previews should not be empty");
-    assert!(
-        previews[0].get("file").is_some(),
-        "preview should have file"
-    );
-    assert!(
-        previews[0].get("source").is_some(),
-        "preview should have source"
-    );
+    assert!(previews[0].get("file").is_some(), "preview should have file");
+    assert!(previews[0].get("source").is_some(), "preview should have source");
 }

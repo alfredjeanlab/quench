@@ -8,10 +8,7 @@ use std::path::PathBuf;
 pub enum Error {
     /// Configuration file not found or invalid
     #[error("config error: {message}")]
-    Config {
-        message: String,
-        path: Option<PathBuf>,
-    },
+    Config { message: String, path: Option<PathBuf> },
 
     /// Invalid command-line arguments
     #[error("argument error: {0}")]
@@ -31,11 +28,7 @@ pub enum Error {
 
     /// File exceeds maximum size limit.
     #[error("file too large: {} ({} bytes, max: {} bytes)", .path.display(), .size, .max_size)]
-    FileTooLarge {
-        path: PathBuf,
-        size: u64,
-        max_size: u64,
-    },
+    FileTooLarge { path: PathBuf, size: u64, max_size: u64 },
 
     /// Walker error.
     #[error("walk error: {message}")]

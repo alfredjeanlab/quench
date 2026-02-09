@@ -48,10 +48,7 @@ fn generates_template_with_scopes() {
 
 #[test]
 fn generates_template_with_empty_types() {
-    let config = GitCommitConfig {
-        types: Some(vec![]),
-        ..Default::default()
-    };
+    let config = GitCommitConfig { types: Some(vec![]), ..Default::default() };
     let template = generate_template(&config);
 
     assert!(template.contains("# Types: (any)"));
@@ -59,10 +56,7 @@ fn generates_template_with_empty_types() {
 
 #[test]
 fn generates_template_with_empty_scopes() {
-    let config = GitCommitConfig {
-        scopes: Some(vec![]),
-        ..Default::default()
-    };
+    let config = GitCommitConfig { scopes: Some(vec![]), ..Default::default() };
     let template = generate_template(&config);
 
     assert!(template.contains("# Scope: optional"));

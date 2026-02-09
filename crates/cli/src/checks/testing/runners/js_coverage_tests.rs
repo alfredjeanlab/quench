@@ -44,10 +44,7 @@ end_of_record
     assert!(result.line_coverage.is_some());
     // 2 covered out of 4 lines = 50%
     let coverage = result.line_coverage.unwrap();
-    assert!(
-        (coverage - 50.0).abs() < 0.1,
-        "Expected 50%, got {coverage}"
-    );
+    assert!((coverage - 50.0).abs() < 0.1, "Expected 50%, got {coverage}");
 }
 
 #[test]
@@ -89,10 +86,7 @@ end_of_record
 
     // Overall: 3 hit out of 6 lines = 50%
     let total_coverage = result.line_coverage.unwrap();
-    assert!(
-        (total_coverage - 50.0).abs() < 0.1,
-        "Expected 50%, got {total_coverage}"
-    );
+    assert!((total_coverage - 50.0).abs() < 0.1, "Expected 50%, got {total_coverage}");
 }
 
 #[parameterized(
@@ -218,10 +212,7 @@ end_of_record
 
     // packages/core: 3 hit out of 4 = 75%
     let core_coverage = result.packages.get("packages/core").unwrap();
-    assert!(
-        (core_coverage - 75.0).abs() < 0.1,
-        "Expected 75%, got {core_coverage}"
-    );
+    assert!((core_coverage - 75.0).abs() < 0.1, "Expected 75%, got {core_coverage}");
 
     // packages/ui: 0 hit out of 2 = 0%
     let ui_coverage = result.packages.get("packages/ui").unwrap();
@@ -305,10 +296,7 @@ end_of_record
     assert!(result.success);
     assert_eq!(result.files.len(), 2);
     let coverage = result.line_coverage.unwrap();
-    assert!(
-        (coverage - 100.0).abs() < 0.1,
-        "Expected 100%, got {coverage}"
-    );
+    assert!((coverage - 100.0).abs() < 0.1, "Expected 100%, got {coverage}");
 }
 
 #[test]

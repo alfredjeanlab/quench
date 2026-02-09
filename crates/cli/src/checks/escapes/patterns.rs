@@ -148,10 +148,7 @@ pub(super) fn compile_merged_patterns(
         .iter()
         .map(|p| {
             let matcher = CompiledPattern::compile(&p.pattern)?;
-            let advice = p
-                .advice
-                .clone()
-                .unwrap_or_else(|| default_advice(&p.action));
+            let advice = p.advice.clone().unwrap_or_else(|| default_advice(&p.action));
             Ok(CompiledEscapePattern {
                 name: p.effective_name().to_string(),
                 matcher,

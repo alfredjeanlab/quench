@@ -29,10 +29,7 @@ fn classify_scope_package_with_exact_pattern() {
     let file = Path::new("/project/packages/api/CLAUDE.md");
     let packages = vec!["packages/api".to_string()];
 
-    assert_eq!(
-        classify_scope(file, root, &packages),
-        Scope::Package("packages/api".to_string())
-    );
+    assert_eq!(classify_scope(file, root, &packages), Scope::Package("packages/api".to_string()));
 }
 
 #[test]
@@ -41,10 +38,7 @@ fn classify_scope_package_with_wildcard_pattern() {
     let file = Path::new("/project/crates/cli/CLAUDE.md");
     let packages = vec!["crates/*".to_string()];
 
-    assert_eq!(
-        classify_scope(file, root, &packages),
-        Scope::Package("crates/cli".to_string())
-    );
+    assert_eq!(classify_scope(file, root, &packages), Scope::Package("crates/cli".to_string()));
 }
 
 #[test]
@@ -74,8 +68,5 @@ fn extract_package_name_from_wildcard() {
 #[test]
 fn extract_package_name_exact() {
     let relative = Path::new("packages/api/CLAUDE.md");
-    assert_eq!(
-        extract_package_name(relative, "packages/api"),
-        "packages/api"
-    );
+    assert_eq!(extract_package_name(relative, "packages/api"), "packages/api");
 }

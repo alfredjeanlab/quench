@@ -162,7 +162,4 @@ impl GoSuppressConfig {
     }
 }
 
-define_policy_config!(
-    GoPolicyConfig,
-    [".golangci.yml", ".golangci.yaml", ".golangci.toml",]
-);
+define_policy_config!(GoPolicyConfig, [".golangci.yml", ".golangci.yaml", ".golangci.toml",]);

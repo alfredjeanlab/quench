@@ -21,10 +21,7 @@ fn cargo_runner_executes_cargo_test() {
     let temp = Project::cargo("test_project");
 
     // Runner should execute cargo test and report results
-    check("tests")
-        .pwd(temp.path())
-        .passes()
-        .stdout_has("PASS: tests");
+    check("tests").pwd(temp.path()).passes().stdout_has("PASS: tests");
 }
 
 /// Spec: docs/specs/11-test-runners.md#cargo
@@ -93,10 +90,7 @@ path = "tests/"
     );
 
     // Runner should execute bats --timing
-    check("tests")
-        .pwd(temp.path())
-        .passes()
-        .stdout_has("PASS: tests");
+    check("tests").pwd(temp.path()).passes().stdout_has("PASS: tests");
 }
 
 /// Spec: docs/specs/11-test-runners.md#bats
@@ -144,10 +138,7 @@ fn bats_runner_on_shell_scripts_fixture() {
 #[test]
 fn go_runner_executes_go_test() {
     // go-simple fixture has quench.toml with [[check.tests.suite]] runner = "go"
-    check("tests")
-        .on("go-simple")
-        .passes()
-        .stdout_has("PASS: tests");
+    check("tests").on("go-simple").passes().stdout_has("PASS: tests");
 }
 
 /// Spec: docs/specs/11-test-runners.md#go
@@ -183,11 +174,7 @@ fn go_runner_on_go_multi_fixture() {
 /// > Go runner provides coverage via `go test -coverprofile`.
 #[test]
 fn go_runner_collects_coverage() {
-    let result = check("tests")
-        .on("go-simple")
-        .args(&["--ci"])
-        .json()
-        .passes();
+    let result = check("tests").on("go-simple").args(&["--ci"]).json().passes();
     let metrics = result.require("metrics");
 
     // Should report Go coverage percentage
@@ -199,11 +186,7 @@ fn go_runner_collects_coverage() {
 
     // go-simple has a simple test that should cover the Add function
     let pct = go_coverage.unwrap();
-    assert!(
-        pct > 0.0,
-        "Expected positive coverage percentage, got {}",
-        pct
-    );
+    assert!(pct > 0.0, "Expected positive coverage percentage, got {}", pct);
 }
 
 /// Spec: docs/specs/11-test-runners.md#go-coverage
@@ -211,29 +194,17 @@ fn go_runner_collects_coverage() {
 /// > Go runner reports per-package coverage.
 #[test]
 fn go_runner_reports_package_coverage() {
-    let result = check("tests")
-        .on("go-multi")
-        .args(&["--ci"])
-        .json()
-        .passes();
+    let result = check("tests").on("go-multi").args(&["--ci"]).json().passes();
     let metrics = result.require("metrics");
 
     // Should report package coverage
-    let coverage_by_package = metrics
-        .get("coverage_by_package")
-        .and_then(|v| v.as_object());
-    assert!(
-        coverage_by_package.is_some(),
-        "Expected coverage_by_package in metrics"
-    );
+    let coverage_by_package = metrics.get("coverage_by_package").and_then(|v| v.as_object());
+    assert!(coverage_by_package.is_some(), "Expected coverage_by_package in metrics");
 
     let packages = coverage_by_package.unwrap();
     // go-multi has pkg/api, pkg/storage, and internal/core packages
     // At least one package should have coverage data
-    assert!(
-        !packages.is_empty(),
-        "Expected at least one package with coverage"
-    );
+    assert!(!packages.is_empty(), "Expected at least one package with coverage");
 }
 
 // =============================================================================
@@ -252,11 +223,7 @@ fn auto_detection_runs_all_languages_in_polyglot_project() {
     // Note: vitest will be skipped because it's not actually installed,
     // but the important part is that BOTH runners are detected and attempted.
     // The check passes overall because cargo tests pass.
-    let result = check("tests")
-        .on("multi-lang-auto")
-        .args(&["--ci"])
-        .json()
-        .passes(); // Passes because cargo tests pass
+    let result = check("tests").on("multi-lang-auto").args(&["--ci"]).json().passes(); // Passes because cargo tests pass
 
     let metrics = result.require("metrics");
 
@@ -264,10 +231,7 @@ fn auto_detection_runs_all_languages_in_polyglot_project() {
     assert_eq!(metrics.get("auto_detected"), Some(&serde_json::json!(true)));
 
     // Should have multiple suites (THIS IS THE KEY FIX)
-    let suites = metrics
-        .get("suites")
-        .and_then(|s| s.as_array())
-        .expect("Expected suites array");
+    let suites = metrics.get("suites").and_then(|s| s.as_array()).expect("Expected suites array");
 
     assert!(
         suites.len() >= 2,
@@ -277,10 +241,8 @@ fn auto_detection_runs_all_languages_in_polyglot_project() {
     );
 
     // Should have both cargo and vitest runners detected
-    let runners: Vec<&str> = suites
-        .iter()
-        .filter_map(|s| s.get("runner").and_then(|r| r.as_str()))
-        .collect();
+    let runners: Vec<&str> =
+        suites.iter().filter_map(|s| s.get("runner").and_then(|r| r.as_str())).collect();
 
     assert!(
         runners.contains(&"cargo"),
@@ -298,9 +260,6 @@ fn auto_detection_runs_all_languages_in_polyglot_project() {
         .iter()
         .find(|s| s.get("runner").and_then(|r| r.as_str()) == Some("cargo"))
         .expect("cargo suite");
-    let cargo_passed = cargo_suite
-        .get("passed")
-        .and_then(|p| p.as_bool())
-        .unwrap_or(false);
+    let cargo_passed = cargo_suite.get("passed").and_then(|p| p.as_bool()).unwrap_or(false);
     assert!(cargo_passed, "Cargo suite should pass");
 }

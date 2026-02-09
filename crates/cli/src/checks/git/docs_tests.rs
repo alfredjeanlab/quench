@@ -85,11 +85,8 @@ fn no_detection_in_empty_content() {
 #[test]
 fn check_commit_docs_finds_in_claude_md() {
     let temp = tempfile::tempdir().unwrap();
-    std::fs::write(
-        temp.path().join("CLAUDE.md"),
-        "# Project\n\n## Commits\n\nUse feat: format.\n",
-    )
-    .unwrap();
+    std::fs::write(temp.path().join("CLAUDE.md"), "# Project\n\n## Commits\n\nUse feat: format.\n")
+        .unwrap();
 
     match check_commit_docs(temp.path()) {
         DocsResult::Found(file) => assert_eq!(file, "CLAUDE.md"),
@@ -100,11 +97,7 @@ fn check_commit_docs_finds_in_claude_md() {
 #[test]
 fn check_commit_docs_not_found_when_missing() {
     let temp = tempfile::tempdir().unwrap();
-    std::fs::write(
-        temp.path().join("CLAUDE.md"),
-        "# Project\n\nNo commit info.\n",
-    )
-    .unwrap();
+    std::fs::write(temp.path().join("CLAUDE.md"), "# Project\n\nNo commit info.\n").unwrap();
 
     match check_commit_docs(temp.path()) {
         DocsResult::NotFound(files) => {
@@ -127,11 +120,8 @@ fn check_commit_docs_no_agent_files() {
 #[test]
 fn check_commit_docs_finds_in_agents_md() {
     let temp = tempfile::tempdir().unwrap();
-    std::fs::write(
-        temp.path().join("AGENTS.md"),
-        "# Agents\n\n## Commits\n\nUse fix: format.\n",
-    )
-    .unwrap();
+    std::fs::write(temp.path().join("AGENTS.md"), "# Agents\n\n## Commits\n\nUse fix: format.\n")
+        .unwrap();
 
     match check_commit_docs(temp.path()) {
         DocsResult::Found(file) => assert_eq!(file, "AGENTS.md"),

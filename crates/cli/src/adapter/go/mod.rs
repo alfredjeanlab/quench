@@ -191,13 +191,7 @@ fn enumerate_packages_recursive(root: &Path, current: &Path, packages: &mut Vec<
             .strip_prefix(root)
             .ok()
             .and_then(|p| p.to_str())
-            .map(|s| {
-                if s.is_empty() {
-                    ".".to_string()
-                } else {
-                    s.to_string()
-                }
-            })
+            .map(|s| if s.is_empty() { ".".to_string() } else { s.to_string() })
             .unwrap_or_else(|| ".".to_string());
         packages.push(relative);
     }

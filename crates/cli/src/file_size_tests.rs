@@ -11,19 +11,11 @@ fn file_size_classification() {
         (63 * 1024, FileSizeClass::Small, "63KB"),
         (MMAP_THRESHOLD, FileSizeClass::Small, "at mmap threshold"),
         // Normal class
-        (
-            MMAP_THRESHOLD + 1,
-            FileSizeClass::Normal,
-            "just over mmap threshold",
-        ),
+        (MMAP_THRESHOLD + 1, FileSizeClass::Normal, "just over mmap threshold"),
         (500 * 1024, FileSizeClass::Normal, "500KB"),
         (SOFT_LIMIT_SIZE, FileSizeClass::Normal, "at soft limit"),
         // Oversized class
-        (
-            SOFT_LIMIT_SIZE + 1,
-            FileSizeClass::Oversized,
-            "just over soft limit",
-        ),
+        (SOFT_LIMIT_SIZE + 1, FileSizeClass::Oversized, "just over soft limit"),
         (5 * 1024 * 1024, FileSizeClass::Oversized, "5MB"),
         (MAX_FILE_SIZE, FileSizeClass::Oversized, "at max"),
         // TooLarge class
@@ -68,10 +60,7 @@ fn human_size_megabytes() {
 fn human_size_gigabytes() {
     assert_eq!(human_size(1024 * 1024 * 1024, false), "1.0GB");
     assert_eq!(human_size(2 * 1024 * 1024 * 1024, false), "2.0GB");
-    assert_eq!(
-        human_size(1024 * 1024 * 1024 + 512 * 1024 * 1024, false),
-        "1.5GB"
-    );
+    assert_eq!(human_size(1024 * 1024 * 1024 + 512 * 1024 * 1024, false), "1.5GB");
 }
 
 #[test]

@@ -15,11 +15,8 @@ fn detects_npm_workspace_from_package_json() {
     let dir = TempDir::new().unwrap();
 
     // Create root package.json with workspaces
-    fs::write(
-        dir.path().join("package.json"),
-        r#"{"name": "root", "workspaces": ["packages/*"]}"#,
-    )
-    .unwrap();
+    fs::write(dir.path().join("package.json"), r#"{"name": "root", "workspaces": ["packages/*"]}"#)
+        .unwrap();
 
     // Create packages directory with subpackages
     fs::create_dir_all(dir.path().join("packages/core")).unwrap();
@@ -41,14 +38,8 @@ fn detects_npm_workspace_from_package_json() {
     assert_eq!(ws.patterns, vec!["packages/*"]);
     assert!(ws.package_paths.contains(&"packages/cli".to_string()));
     assert!(ws.package_paths.contains(&"packages/core".to_string()));
-    assert_eq!(
-        ws.package_names.get("packages/cli"),
-        Some(&"cli".to_string())
-    );
-    assert_eq!(
-        ws.package_names.get("packages/core"),
-        Some(&"core".to_string())
-    );
+    assert_eq!(ws.package_names.get("packages/cli"), Some(&"cli".to_string()));
+    assert_eq!(ws.package_names.get("packages/core"), Some(&"core".to_string()));
 }
 
 #[test]
@@ -74,10 +65,7 @@ fn detects_yarn_workspace_object_form() {
     assert!(ws.is_workspace);
     assert_eq!(ws.patterns, vec!["libs/*"]);
     assert!(ws.package_paths.contains(&"libs/utils".to_string()));
-    assert_eq!(
-        ws.package_names.get("libs/utils"),
-        Some(&"utils".to_string())
-    );
+    assert_eq!(ws.package_names.get("libs/utils"), Some(&"utils".to_string()));
 }
 
 // =============================================================================
@@ -89,11 +77,7 @@ fn detects_pnpm_workspace() {
     let dir = TempDir::new().unwrap();
 
     // Create pnpm-workspace.yaml
-    fs::write(
-        dir.path().join("pnpm-workspace.yaml"),
-        "packages:\n  - 'apps/*'\n",
-    )
-    .unwrap();
+    fs::write(dir.path().join("pnpm-workspace.yaml"), "packages:\n  - 'apps/*'\n").unwrap();
 
     // Create apps directory with subpackage
     fs::create_dir_all(dir.path().join("apps/web")).unwrap();
@@ -115,17 +99,10 @@ fn pnpm_workspace_takes_precedence() {
     let dir = TempDir::new().unwrap();
 
     // Create both pnpm-workspace.yaml and package.json workspaces
-    fs::write(
-        dir.path().join("pnpm-workspace.yaml"),
-        "packages:\n  - 'pnpm-pkgs/*'\n",
-    )
-    .unwrap();
+    fs::write(dir.path().join("pnpm-workspace.yaml"), "packages:\n  - 'pnpm-pkgs/*'\n").unwrap();
 
-    fs::write(
-        dir.path().join("package.json"),
-        r#"{"name": "root", "workspaces": ["npm-pkgs/*"]}"#,
-    )
-    .unwrap();
+    fs::write(dir.path().join("package.json"), r#"{"name": "root", "workspaces": ["npm-pkgs/*"]}"#)
+        .unwrap();
 
     let ws = JsWorkspace::from_root(dir.path());
     assert!(ws.is_workspace);
@@ -142,11 +119,8 @@ fn returns_default_for_non_workspace() {
     let dir = TempDir::new().unwrap();
 
     // Regular package.json without workspaces
-    fs::write(
-        dir.path().join("package.json"),
-        r#"{"name": "single-app", "version": "1.0.0"}"#,
-    )
-    .unwrap();
+    fs::write(dir.path().join("package.json"), r#"{"name": "single-app", "version": "1.0.0"}"#)
+        .unwrap();
 
     let ws = JsWorkspace::from_root(dir.path());
     assert!(!ws.is_workspace);
@@ -185,8 +159,5 @@ fn handles_direct_path_pattern() {
     let ws = JsWorkspace::from_root(dir.path());
     assert!(ws.is_workspace);
     assert!(ws.package_paths.contains(&"packages/core".to_string()));
-    assert_eq!(
-        ws.package_names.get("packages/core"),
-        Some(&"core".to_string())
-    );
+    assert_eq!(ws.package_names.get("packages/core"), Some(&"core".to_string()));
 }

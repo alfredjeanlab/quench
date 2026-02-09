@@ -14,11 +14,7 @@ fn create_temp_dir() -> TempDir {
 #[test]
 fn detects_pytest_from_pytest_ini() {
     let temp = create_temp_dir();
-    fs::write(
-        temp.path().join("pyproject.toml"),
-        "[project]\nname = \"test\"\n",
-    )
-    .unwrap();
+    fs::write(temp.path().join("pyproject.toml"), "[project]\nname = \"test\"\n").unwrap();
     fs::write(temp.path().join("pytest.ini"), "[pytest]\n").unwrap();
 
     let result = detect_py_runner(temp.path()).unwrap();
@@ -33,11 +29,7 @@ fn detects_pytest_from_pytest_ini() {
 fn detects_pytest_from_setup_cfg_tool_pytest() {
     let temp = create_temp_dir();
     fs::write(temp.path().join("setup.py"), "").unwrap();
-    fs::write(
-        temp.path().join("setup.cfg"),
-        "[tool:pytest]\naddopts = -v\n",
-    )
-    .unwrap();
+    fs::write(temp.path().join("setup.cfg"), "[tool:pytest]\naddopts = -v\n").unwrap();
 
     let result = detect_py_runner(temp.path()).unwrap();
     assert_eq!(result.runner, PyRunner::Pytest);
@@ -101,11 +93,7 @@ dependencies = ["pytest>=7.0"]
 #[test]
 fn detects_pytest_from_conftest_at_root() {
     let temp = create_temp_dir();
-    fs::write(
-        temp.path().join("pyproject.toml"),
-        "[project]\nname = \"test\"\n",
-    )
-    .unwrap();
+    fs::write(temp.path().join("pyproject.toml"), "[project]\nname = \"test\"\n").unwrap();
     fs::write(temp.path().join("conftest.py"), "# pytest fixtures\n").unwrap();
 
     let result = detect_py_runner(temp.path()).unwrap();
@@ -116,17 +104,9 @@ fn detects_pytest_from_conftest_at_root() {
 #[test]
 fn detects_pytest_from_conftest_in_tests() {
     let temp = create_temp_dir();
-    fs::write(
-        temp.path().join("pyproject.toml"),
-        "[project]\nname = \"test\"\n",
-    )
-    .unwrap();
+    fs::write(temp.path().join("pyproject.toml"), "[project]\nname = \"test\"\n").unwrap();
     fs::create_dir(temp.path().join("tests")).unwrap();
-    fs::write(
-        temp.path().join("tests").join("conftest.py"),
-        "# pytest fixtures\n",
-    )
-    .unwrap();
+    fs::write(temp.path().join("tests").join("conftest.py"), "# pytest fixtures\n").unwrap();
 
     let result = detect_py_runner(temp.path()).unwrap();
     assert_eq!(result.runner, PyRunner::Pytest);
@@ -136,17 +116,9 @@ fn detects_pytest_from_conftest_in_tests() {
 #[test]
 fn detects_pytest_from_test_file_pattern() {
     let temp = create_temp_dir();
-    fs::write(
-        temp.path().join("pyproject.toml"),
-        "[project]\nname = \"test\"\n",
-    )
-    .unwrap();
+    fs::write(temp.path().join("pyproject.toml"), "[project]\nname = \"test\"\n").unwrap();
     fs::create_dir(temp.path().join("tests")).unwrap();
-    fs::write(
-        temp.path().join("tests").join("test_example.py"),
-        "def test_one(): pass\n",
-    )
-    .unwrap();
+    fs::write(temp.path().join("tests").join("test_example.py"), "def test_one(): pass\n").unwrap();
 
     let result = detect_py_runner(temp.path()).unwrap();
     assert_eq!(result.runner, PyRunner::Pytest);
@@ -165,11 +137,7 @@ fn returns_none_for_non_python_project() {
 #[test]
 fn is_python_project_detects_pyproject() {
     let temp = create_temp_dir();
-    fs::write(
-        temp.path().join("pyproject.toml"),
-        "[project]\nname = \"test\"\n",
-    )
-    .unwrap();
+    fs::write(temp.path().join("pyproject.toml"), "[project]\nname = \"test\"\n").unwrap();
 
     assert!(is_python_project(temp.path()));
 }
@@ -177,11 +145,7 @@ fn is_python_project_detects_pyproject() {
 #[test]
 fn is_python_project_detects_setup_py() {
     let temp = create_temp_dir();
-    fs::write(
-        temp.path().join("setup.py"),
-        "from setuptools import setup\nsetup()\n",
-    )
-    .unwrap();
+    fs::write(temp.path().join("setup.py"), "from setuptools import setup\nsetup()\n").unwrap();
 
     assert!(is_python_project(temp.path()));
 }
@@ -235,21 +199,14 @@ fn detection_source_to_metric_string() {
         "pyproject_section:[tool.pytest]"
     );
     assert_eq!(PyDetectionSource::Conftest.to_metric_string(), "conftest");
-    assert_eq!(
-        PyDetectionSource::TestFilePattern.to_metric_string(),
-        "test_file_pattern"
-    );
+    assert_eq!(PyDetectionSource::TestFilePattern.to_metric_string(), "test_file_pattern");
     assert_eq!(PyDetectionSource::Fallback.to_metric_string(), "fallback");
 }
 
 #[test]
 fn detects_pytest_from_tox_ini() {
     let temp = create_temp_dir();
-    fs::write(
-        temp.path().join("pyproject.toml"),
-        "[project]\nname = \"test\"\n",
-    )
-    .unwrap();
+    fs::write(temp.path().join("pyproject.toml"), "[project]\nname = \"test\"\n").unwrap();
     fs::write(
         temp.path().join("tox.ini"),
         "[tox]\nenvlist = py39\n\n[testenv]\ncommands = pytest\n",

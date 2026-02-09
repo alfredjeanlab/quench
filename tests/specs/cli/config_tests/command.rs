@@ -26,10 +26,7 @@ fn outputs_guide_template_for_feature() {
         stdout.contains("Configuration reference for Rust language support"),
         "Should include guide description"
     );
-    assert!(
-        stdout.contains("[rust]"),
-        "Should contain TOML configuration examples"
-    );
+    assert!(stdout.contains("[rust]"), "Should contain TOML configuration examples");
 }
 
 /// Spec: Language aliases are supported (e.g., `js` for `javascript`)
@@ -46,45 +43,27 @@ fn supports_language_aliases() {
 
     let output = quench_cmd().args(["config", "rs"]).assert().success();
     let stdout = String::from_utf8_lossy(&output.get_output().stdout);
-    assert!(
-        stdout.contains("# Rust Configuration Guide"),
-        "rs alias should show Rust guide"
-    );
+    assert!(stdout.contains("# Rust Configuration Guide"), "rs alias should show Rust guide");
 
     let output = quench_cmd().args(["config", "py"]).assert().success();
     let stdout = String::from_utf8_lossy(&output.get_output().stdout);
-    assert!(
-        stdout.contains("# Python Configuration Guide"),
-        "py alias should show Python guide"
-    );
+    assert!(stdout.contains("# Python Configuration Guide"), "py alias should show Python guide");
 
     let output = quench_cmd().args(["config", "rb"]).assert().success();
     let stdout = String::from_utf8_lossy(&output.get_output().stdout);
-    assert!(
-        stdout.contains("# Ruby Configuration Guide"),
-        "rb alias should show Ruby guide"
-    );
+    assert!(stdout.contains("# Ruby Configuration Guide"), "rb alias should show Ruby guide");
 
     let output = quench_cmd().args(["config", "go"]).assert().success();
     let stdout = String::from_utf8_lossy(&output.get_output().stdout);
-    assert!(
-        stdout.contains("# Go Configuration Guide"),
-        "go alias should show Go guide"
-    );
+    assert!(stdout.contains("# Go Configuration Guide"), "go alias should show Go guide");
 
     let output = quench_cmd().args(["config", "sh"]).assert().success();
     let stdout = String::from_utf8_lossy(&output.get_output().stdout);
-    assert!(
-        stdout.contains("# Shell Configuration Guide"),
-        "sh alias should show Shell guide"
-    );
+    assert!(stdout.contains("# Shell Configuration Guide"), "sh alias should show Shell guide");
 
     let output = quench_cmd().args(["config", "bash"]).assert().success();
     let stdout = String::from_utf8_lossy(&output.get_output().stdout);
-    assert!(
-        stdout.contains("# Shell Configuration Guide"),
-        "bash alias should show Shell guide"
-    );
+    assert!(stdout.contains("# Shell Configuration Guide"), "bash alias should show Shell guide");
 
     let output = quench_cmd().args(["config", "ts"]).assert().success();
     let stdout = String::from_utf8_lossy(&output.get_output().stdout);
@@ -93,10 +72,7 @@ fn supports_language_aliases() {
         "ts alias should show JavaScript/TypeScript guide"
     );
 
-    let output = quench_cmd()
-        .args(["config", "typescript"])
-        .assert()
-        .success();
+    let output = quench_cmd().args(["config", "typescript"]).assert().success();
     let stdout = String::from_utf8_lossy(&output.get_output().stdout);
     assert!(
         stdout.contains("# JavaScript/TypeScript Configuration Guide"),
@@ -109,9 +85,7 @@ fn supports_language_aliases() {
 /// > All check names should have corresponding guides.
 #[test]
 fn supports_check_names() {
-    for check in &[
-        "agents", "build", "cloc", "docs", "escapes", "git", "license", "tests",
-    ] {
+    for check in &["agents", "build", "cloc", "docs", "escapes", "git", "license", "tests"] {
         let output = quench_cmd().args(["config", check]).assert().success();
         let stdout = String::from_utf8_lossy(&output.get_output().stdout);
         assert!(
@@ -130,14 +104,8 @@ fn unknown_feature_shows_helpful_error() {
     let output = quench_cmd().args(["config", "invalid"]).assert().failure();
     let stderr = String::from_utf8_lossy(&output.get_output().stderr);
 
-    assert!(
-        stderr.contains("Unknown feature 'invalid'"),
-        "Should indicate the feature is unknown"
-    );
-    assert!(
-        stderr.contains("Available features:"),
-        "Should list available features"
-    );
+    assert!(stderr.contains("Unknown feature 'invalid'"), "Should indicate the feature is unknown");
+    assert!(stderr.contains("Available features:"), "Should list available features");
     assert!(stderr.contains("agents, build, cloc"), "Should list checks");
     assert!(
         stderr.contains("golang (go), javascript (js/ts/typescript)"),
@@ -159,11 +127,7 @@ fn feature_names_are_case_insensitive() {
         uppercase.get_output().stdout,
         "RUST should match rust"
     );
-    assert_eq!(
-        lowercase.get_output().stdout,
-        mixed.get_output().stdout,
-        "Rust should match rust"
-    );
+    assert_eq!(lowercase.get_output().stdout, mixed.get_output().stdout, "Rust should match rust");
 }
 
 // =============================================================================

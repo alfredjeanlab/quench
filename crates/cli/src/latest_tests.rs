@@ -9,17 +9,11 @@ fn save_and_load_latest_metrics() {
     let temp = TempDir::new().unwrap();
     let path = temp.path().join(".quench/latest.json");
 
-    let output = CheckOutput {
-        timestamp: "2026-01-27T00:00:00Z".to_string(),
-        passed: true,
-        checks: vec![],
-    };
+    let output =
+        CheckOutput { timestamp: "2026-01-27T00:00:00Z".to_string(), passed: true, checks: vec![] };
 
-    let latest = LatestMetrics {
-        updated: chrono::Utc::now(),
-        commit: Some("abc1234".to_string()),
-        output,
-    };
+    let latest =
+        LatestMetrics { updated: chrono::Utc::now(), commit: Some("abc1234".to_string()), output };
 
     latest.save(&path).unwrap();
 
@@ -42,17 +36,10 @@ fn save_creates_parent_directories() {
     let temp = TempDir::new().unwrap();
     let path = temp.path().join("nested/dir/.quench/latest.json");
 
-    let output = CheckOutput {
-        timestamp: "2026-01-27T00:00:00Z".to_string(),
-        passed: true,
-        checks: vec![],
-    };
+    let output =
+        CheckOutput { timestamp: "2026-01-27T00:00:00Z".to_string(), passed: true, checks: vec![] };
 
-    let latest = LatestMetrics {
-        updated: chrono::Utc::now(),
-        commit: None,
-        output,
-    };
+    let latest = LatestMetrics { updated: chrono::Utc::now(), commit: None, output };
 
     latest.save(&path).unwrap();
     assert!(path.exists());

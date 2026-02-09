@@ -57,10 +57,7 @@ fn check_required(sections: &[Section], required: &[RequiredSection]) -> Vec<Mis
             let normalized = req.name.trim().to_lowercase();
             !section_names.contains(&normalized)
         })
-        .map(|req| MissingSection {
-            name: req.name.clone(),
-            advice: req.advice.clone(),
-        })
+        .map(|req| MissingSection { name: req.name.clone(), advice: req.advice.clone() })
         .collect()
 }
 

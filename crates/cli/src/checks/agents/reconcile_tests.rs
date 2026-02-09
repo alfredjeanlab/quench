@@ -52,21 +52,13 @@ fn always_apply_in_sync() {
     // Preamble will differ (# Project vs stripped header content), but named sections match
     let named_violations: Vec<_> = violations
         .iter()
-        .filter(|v| {
-            v.section
-                .as_deref()
-                .map(|s| s != "(preamble)")
-                .unwrap_or(true)
-        })
+        .filter(|v| v.section.as_deref().map(|s| s != "(preamble)").unwrap_or(true))
         .collect();
 
     assert!(
         named_violations.is_empty(),
         "expected no violations for named sections, got: {:?}",
-        named_violations
-            .iter()
-            .map(|v| &v.advice)
-            .collect::<Vec<_>>()
+        named_violations.iter().map(|v| &v.advice).collect::<Vec<_>>()
     );
 }
 
@@ -75,11 +67,7 @@ fn always_apply_missing_section_in_claude() {
     let dir = temp_dir();
     let root = dir.path();
 
-    write_file(
-        root,
-        "CLAUDE.md",
-        "# Project\n\n## Code Style\n\nUse 4 spaces.\n",
-    );
+    write_file(root, "CLAUDE.md", "# Project\n\n## Code Style\n\nUse 4 spaces.\n");
     write_file(
         root,
         ".cursor/rules/general.mdc",
@@ -95,10 +83,8 @@ fn always_apply_missing_section_in_claude() {
     );
 
     assert!(
-        violations
-            .iter()
-            .any(|v| v.violation_type == "cursor_missing_in_claude"
-                && v.section.as_deref() == Some("Testing")),
+        violations.iter().any(|v| v.violation_type == "cursor_missing_in_claude"
+            && v.section.as_deref() == Some("Testing")),
         "expected cursor_missing_in_claude for Testing section"
     );
 }
@@ -128,10 +114,8 @@ fn always_apply_missing_section_in_cursor() {
     );
 
     assert!(
-        violations
-            .iter()
-            .any(|v| v.violation_type == "claude_missing_in_cursor"
-                && v.section.as_deref() == Some("Testing")),
+        violations.iter().any(|v| v.violation_type == "claude_missing_in_cursor"
+            && v.section.as_deref() == Some("Testing")),
         "expected claude_missing_in_cursor for Testing section"
     );
 }
@@ -161,20 +145,12 @@ fn always_apply_bidirectional() {
     );
 
     // Deployment missing in CLAUDE.md (cursor → claude)
-    assert!(
-        violations
-            .iter()
-            .any(|v| v.violation_type == "cursor_missing_in_claude"
-                && v.section.as_deref() == Some("Deployment"))
-    );
+    assert!(violations.iter().any(|v| v.violation_type == "cursor_missing_in_claude"
+        && v.section.as_deref() == Some("Deployment")));
 
     // Testing missing in cursor (claude → cursor)
-    assert!(
-        violations
-            .iter()
-            .any(|v| v.violation_type == "claude_missing_in_cursor"
-                && v.section.as_deref() == Some("Testing"))
-    );
+    assert!(violations.iter().any(|v| v.violation_type == "claude_missing_in_cursor"
+        && v.section.as_deref() == Some("Testing")));
 }
 
 #[test]
@@ -209,21 +185,13 @@ fn always_apply_aggregate_multiple_mdc_files() {
     // Both directions should be satisfied with aggregate coverage
     let named_violations: Vec<_> = violations
         .iter()
-        .filter(|v| {
-            v.section
-                .as_deref()
-                .map(|s| s != "(preamble)")
-                .unwrap_or(true)
-        })
+        .filter(|v| v.section.as_deref().map(|s| s != "(preamble)").unwrap_or(true))
         .collect();
 
     assert!(
         named_violations.is_empty(),
         "expected no violations for named sections with aggregate coverage, got: {:?}",
-        named_violations
-            .iter()
-            .map(|v| &v.advice)
-            .collect::<Vec<_>>()
+        named_violations.iter().map(|v| &v.advice).collect::<Vec<_>>()
     );
 }
 
@@ -251,11 +219,7 @@ fn directory_scoped_no_agent_file() {
         false,
     );
 
-    assert!(
-        violations
-            .iter()
-            .any(|v| v.violation_type == "cursor_no_agent_file")
-    );
+    assert!(violations.iter().any(|v| v.violation_type == "cursor_no_agent_file"));
 }
 
 #[test]
@@ -268,11 +232,7 @@ fn directory_scoped_in_sync() {
         ".cursor/rules/api.mdc",
         "---\nglobs: \"src/api/**\"\nalwaysApply: false\n---\n\n## API Conventions\n\nUse REST.\n",
     );
-    write_file(
-        root,
-        "src/api/CLAUDE.md",
-        "## API Conventions\n\nUse REST.\n",
-    );
+    write_file(root, "src/api/CLAUDE.md", "## API Conventions\n\nUse REST.\n");
 
     let (violations, _) = check_cursor_reconciliation(
         root,
@@ -299,11 +259,7 @@ fn directory_scoped_missing_section() {
         ".cursor/rules/api.mdc",
         "---\nglobs: \"src/api/**\"\nalwaysApply: false\n---\n\n## API Conventions\n\nUse REST.\n\n## Authentication\n\nUse JWT.\n",
     );
-    write_file(
-        root,
-        "src/api/CLAUDE.md",
-        "## API Conventions\n\nUse REST.\n",
-    );
+    write_file(root, "src/api/CLAUDE.md", "## API Conventions\n\nUse REST.\n");
 
     let (violations, _) = check_cursor_reconciliation(
         root,
@@ -313,12 +269,8 @@ fn directory_scoped_missing_section() {
         false,
     );
 
-    assert!(
-        violations
-            .iter()
-            .any(|v| v.violation_type == "cursor_dir_missing_in_agent"
-                && v.section.as_deref() == Some("Authentication"))
-    );
+    assert!(violations.iter().any(|v| v.violation_type == "cursor_dir_missing_in_agent"
+        && v.section.as_deref() == Some("Authentication")));
 }
 
 // =============================================================================
@@ -353,11 +305,7 @@ fn fix_creates_missing_agent_file() {
     assert!(content.contains("## API Conventions"));
 
     // Violation still reported even when fix applied
-    assert!(
-        violations
-            .iter()
-            .any(|v| v.violation_type == "cursor_no_agent_file")
-    );
+    assert!(violations.iter().any(|v| v.violation_type == "cursor_no_agent_file"));
 }
 
 #[test]
@@ -393,11 +341,7 @@ fn malformed_mdc_produces_parse_error() {
     let dir = temp_dir();
     let root = dir.path();
 
-    write_file(
-        root,
-        ".cursor/rules/bad.mdc",
-        "---\nalwaysApply: true\nNo closing delimiter\n",
-    );
+    write_file(root, ".cursor/rules/bad.mdc", "---\nalwaysApply: true\nNo closing delimiter\n");
 
     let (violations, _) = check_cursor_reconciliation(
         root,
@@ -407,11 +351,7 @@ fn malformed_mdc_produces_parse_error() {
         false,
     );
 
-    assert!(
-        violations
-            .iter()
-            .any(|v| v.violation_type == "cursor_parse_error")
-    );
+    assert!(violations.iter().any(|v| v.violation_type == "cursor_parse_error"));
 }
 
 // =============================================================================
@@ -456,10 +396,7 @@ fn file_pattern_rules_not_reconciled() {
     );
 
     // FilePattern rules should not produce reconciliation violations
-    assert!(
-        violations.is_empty(),
-        "file-pattern rules should not be reconciled"
-    );
+    assert!(violations.is_empty(), "file-pattern rules should not be reconciled");
 }
 
 #[test]
@@ -481,10 +418,7 @@ fn on_demand_rules_not_reconciled() {
         false,
     );
 
-    assert!(
-        violations.is_empty(),
-        "on-demand rules should not be reconciled"
-    );
+    assert!(violations.is_empty(), "on-demand rules should not be reconciled");
 }
 
 #[test]
@@ -493,11 +427,7 @@ fn empty_body_no_sections_to_reconcile() {
     let root = dir.path();
 
     write_file(root, "CLAUDE.md", "## Code Style\n\nUse 4 spaces.\n");
-    write_file(
-        root,
-        ".cursor/rules/empty.mdc",
-        "---\nalwaysApply: true\n---\n",
-    );
+    write_file(root, ".cursor/rules/empty.mdc", "---\nalwaysApply: true\n---\n");
 
     let (violations, _) = check_cursor_reconciliation(
         root,
@@ -508,10 +438,7 @@ fn empty_body_no_sections_to_reconcile() {
     );
 
     // Empty body has no sections to check in cursor→claude direction
-    assert!(
-        violations.is_empty(),
-        "empty body should not produce cursor→claude violations"
-    );
+    assert!(violations.is_empty(), "empty body should not produce cursor→claude violations");
 }
 
 // =============================================================================
@@ -532,11 +459,8 @@ fn derive_direction_agents_source() {
 
 #[test]
 fn derive_direction_mdc_source() {
-    let dir = derive_direction_from_sync(
-        true,
-        Some(".cursor/rules/api.mdc"),
-        &["CLAUDE.md".to_string()],
-    );
+    let dir =
+        derive_direction_from_sync(true, Some(".cursor/rules/api.mdc"), &["CLAUDE.md".to_string()]);
     assert_eq!(dir, Some(ReconcileDirection::CursorToClaude));
 }
 
@@ -567,10 +491,7 @@ fn derive_direction_cursorrules_bidirectional() {
 #[test]
 fn derive_direction_no_source_is_bidirectional() {
     // When sync_from is not provided, default to bidirectional
-    let dir = derive_direction_from_sync(
-        true,
-        None,
-        &["CLAUDE.md".to_string(), "AGENTS.md".to_string()],
-    );
+    let dir =
+        derive_direction_from_sync(true, None, &["CLAUDE.md".to_string(), "AGENTS.md".to_string()]);
     assert_eq!(dir, Some(ReconcileDirection::Bidirectional));
 }

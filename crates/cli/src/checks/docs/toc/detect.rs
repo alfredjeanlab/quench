@@ -52,10 +52,7 @@ pub(crate) fn looks_like_tree(block: &FencedBlock) -> bool {
 
     // Box diagram detection: if any line contains a top corner, it's a box diagram, not a tree
     // Top corners: ┌ (U+250C), ╔ (U+2554), ╭ (U+256D)
-    if block
-        .lines
-        .iter()
-        .any(|line| line.contains('┌') || line.contains('╔') || line.contains('╭'))
+    if block.lines.iter().any(|line| line.contains('┌') || line.contains('╔') || line.contains('╭'))
     {
         return false;
     }
@@ -96,10 +93,7 @@ pub(crate) fn looks_like_tree(block: &FencedBlock) -> bool {
     // AND no indication this is error output
     if file_like_lines >= 3 {
         // Check that NO lines look like error output
-        let has_error_output = block
-            .lines
-            .iter()
-            .any(|line| looks_like_error_output(line.trim()));
+        let has_error_output = block.lines.iter().any(|line| looks_like_error_output(line.trim()));
         if !has_error_output {
             return true;
         }
@@ -196,9 +190,8 @@ fn is_tree_line(line: &str) -> bool {
     if trimmed.contains('.') && !trimmed.starts_with('.') {
         // Reject if it looks like code or config
         let code_patterns = ['(', ')', '=', ';', '{', '}', '"', '\'', '[', ']'];
-        let code_keywords = [
-            "let ", "fn ", "use ", "pub ", "mod ", "const ", "static ", "name ", "path ",
-        ];
+        let code_keywords =
+            ["let ", "fn ", "use ", "pub ", "mod ", "const ", "static ", "name ", "path "];
 
         let has_code_pattern = code_patterns.iter().any(|&c| trimmed.contains(c));
         let has_code_keyword = code_keywords.iter().any(|kw| trimmed.contains(kw));

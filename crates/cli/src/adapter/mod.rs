@@ -170,10 +170,7 @@ pub struct AdapterRegistry {
 impl AdapterRegistry {
     /// Create a new registry with the given fallback adapter.
     pub fn new(fallback: Arc<dyn Adapter>) -> Self {
-        Self {
-            by_extension: HashMap::new(),
-            fallback,
-        }
+        Self { by_extension: HashMap::new(), fallback }
     }
 
     /// Register an adapter for its declared extensions.
@@ -187,10 +184,7 @@ impl AdapterRegistry {
     pub fn adapter_for(&self, path: &Path) -> &dyn Adapter {
         let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
 
-        self.by_extension
-            .get(ext)
-            .map(|a| a.as_ref())
-            .unwrap_or(self.fallback.as_ref())
+        self.by_extension.get(ext).map(|a| a.as_ref()).unwrap_or(self.fallback.as_ref())
     }
 
     /// Classify a file using the appropriate adapter.
@@ -416,10 +410,8 @@ impl AdapterRegistry {
             vec![] // Empty = all non-test files are source
         };
 
-        let mut registry = Self::new(Arc::new(GenericAdapter::new(
-            &fallback_source_patterns,
-            &resolved.test,
-        )));
+        let mut registry =
+            Self::new(Arc::new(GenericAdapter::new(&fallback_source_patterns, &resolved.test)));
 
         match detect_language(root) {
             ProjectLanguage::Rust => {
@@ -499,11 +491,7 @@ macro_rules! define_resolve_patterns {
 
 define_resolve_patterns!(resolve_rust_patterns, rust, crate::config::RustConfig);
 define_resolve_patterns!(resolve_go_patterns, golang, crate::config::GoConfig);
-define_resolve_patterns!(
-    resolve_javascript_patterns,
-    javascript,
-    crate::config::JavaScriptConfig
-);
+define_resolve_patterns!(resolve_javascript_patterns, javascript, crate::config::JavaScriptConfig);
 define_resolve_patterns!(resolve_python_patterns, python, crate::config::PythonConfig);
 define_resolve_patterns!(resolve_ruby_patterns, ruby, crate::config::RubyConfig);
 define_resolve_patterns!(resolve_shell_patterns, shell, crate::config::ShellConfig);

@@ -10,12 +10,7 @@ use crate::checks::testing::diff::{ChangeType, CommitChanges, FileChange};
 use super::*;
 
 fn make_change(path: &str, change_type: ChangeType) -> FileChange {
-    FileChange {
-        path: PathBuf::from(path),
-        change_type,
-        lines_added: 10,
-        lines_deleted: 5,
-    }
+    FileChange { path: PathBuf::from(path), change_type, lines_added: 10, lines_deleted: 5 }
 }
 
 /// A Rust-like correlation config for unit tests (replaces former Default).
@@ -59,12 +54,7 @@ fn analyze_correlation_source_with_test() {
 
     assert_eq!(result.with_tests.len(), 1);
     assert_eq!(result.without_tests.len(), 0);
-    assert!(
-        result
-            .with_tests
-            .iter()
-            .any(|p| p.to_string_lossy().contains("parser.rs"))
-    );
+    assert!(result.with_tests.iter().any(|p| p.to_string_lossy().contains("parser.rs")));
 }
 
 #[test]
@@ -77,21 +67,13 @@ fn analyze_correlation_source_without_test() {
 
     assert_eq!(result.with_tests.len(), 0);
     assert_eq!(result.without_tests.len(), 1);
-    assert!(
-        result
-            .without_tests
-            .iter()
-            .any(|p| p.to_string_lossy().contains("parser.rs"))
-    );
+    assert!(result.without_tests.iter().any(|p| p.to_string_lossy().contains("parser.rs")));
 }
 
 #[test]
 fn analyze_correlation_test_only_tdd() {
     let root = Path::new("/project");
-    let changes = vec![make_change(
-        "/project/tests/parser_tests.rs",
-        ChangeType::Added,
-    )];
+    let changes = vec![make_change("/project/tests/parser_tests.rs", ChangeType::Added)];
 
     let config = rust_correlation_config();
     let result = analyze_correlation(&changes, &config, root);
@@ -206,10 +188,7 @@ fn analyze_commit_detects_test_only_tdd() {
     let commit = CommitChanges {
         hash: "def456abc123".to_string(),
         message: "test: add parser tests".to_string(),
-        changes: vec![make_change(
-            "/project/tests/parser_tests.rs",
-            ChangeType::Added,
-        )],
+        changes: vec![make_change("/project/tests/parser_tests.rs", ChangeType::Added)],
     };
 
     let config = rust_correlation_config();
@@ -308,12 +287,7 @@ fn analyze_correlation_many_sources_uses_index() {
     let root = Path::new("/project");
 
     let mut changes: Vec<FileChange> = (0..20)
-        .map(|i| {
-            make_change(
-                &format!("/project/src/module{}.rs", i),
-                ChangeType::Modified,
-            )
-        })
+        .map(|i| make_change(&format!("/project/src/module{}.rs", i), ChangeType::Modified))
         .collect();
 
     for i in 0..10 {
@@ -417,16 +391,8 @@ fn test_only_filter_single_source_matches_multi_source() {
     let single_result = analyze_correlation(&single_changes, &config, root);
     let multi_result = analyze_correlation(&multi_changes, &config, root);
 
-    assert_eq!(
-        single_result.test_only.len(),
-        1,
-        "Single source path should find 1 test-only"
-    );
-    assert_eq!(
-        multi_result.test_only.len(),
-        1,
-        "Multi source path should find 1 test-only"
-    );
+    assert_eq!(single_result.test_only.len(), 1, "Single source path should find 1 test-only");
+    assert_eq!(multi_result.test_only.len(), 1, "Multi source path should find 1 test-only");
 }
 
 // =============================================================================

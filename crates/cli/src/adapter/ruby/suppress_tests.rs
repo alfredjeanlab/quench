@@ -23,10 +23,7 @@ fn parse_rubocop_disable_multiple_cops() {
     let suppresses = parse_ruby_suppresses(content, None);
 
     assert_eq!(suppresses.len(), 1);
-    assert_eq!(
-        suppresses[0].codes,
-        vec!["Style/StringLiterals", "Metrics/LineLength"]
-    );
+    assert_eq!(suppresses[0].codes, vec!["Style/StringLiterals", "Metrics/LineLength"]);
 }
 
 #[test]
@@ -66,10 +63,7 @@ fn detects_justification_comment() {
 
     assert_eq!(suppresses.len(), 1);
     assert!(suppresses[0].has_comment);
-    assert_eq!(
-        suppresses[0].comment_text.as_deref(),
-        Some("This is necessary for DSL support")
-    );
+    assert_eq!(suppresses[0].comment_text.as_deref(), Some("This is necessary for DSL support"));
 }
 
 #[test]
@@ -87,10 +81,7 @@ fn requires_specific_pattern_when_configured() {
     let suppresses = parse_ruby_suppresses(content, Some("# LEGACY:"));
 
     assert_eq!(suppresses.len(), 1);
-    assert!(
-        !suppresses[0].has_comment,
-        "should require # LEGACY: pattern"
-    );
+    assert!(!suppresses[0].has_comment, "should require # LEGACY: pattern");
 }
 
 #[test]
@@ -108,10 +99,7 @@ fn ignores_rubocop_enable() {
     let content = "# rubocop:enable Style/StringLiterals\nfoo = 'bar'";
     let suppresses = parse_ruby_suppresses(content, None);
 
-    assert!(
-        suppresses.is_empty(),
-        "enable directive should not be detected"
-    );
+    assert!(suppresses.is_empty(), "enable directive should not be detected");
 }
 
 #[test]
@@ -141,10 +129,7 @@ fn comment_not_found_when_code_above() {
     let suppresses = parse_ruby_suppresses(content, None);
 
     assert_eq!(suppresses.len(), 1);
-    assert!(
-        !suppresses[0].has_comment,
-        "code above should stop comment search"
-    );
+    assert!(!suppresses[0].has_comment, "code above should stop comment search");
 }
 
 #[test]

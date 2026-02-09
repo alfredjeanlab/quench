@@ -29,19 +29,12 @@ fn env_no_color_disables_color() {
     temp.config(MINIMAL_CONFIG);
     temp.file("test.rs", "fn main() {}\n");
 
-    let output = quench_cmd()
-        .arg("check")
-        .current_dir(temp.path())
-        .env("NO_COLOR", "1")
-        .output()
-        .unwrap();
+    let output =
+        quench_cmd().arg("check").current_dir(temp.path()).env("NO_COLOR", "1").output().unwrap();
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     // ANSI escape codes start with \x1b[
-    assert!(
-        !stdout.contains("\x1b["),
-        "output should not contain ANSI codes"
-    );
+    assert!(!stdout.contains("\x1b["), "output should not contain ANSI codes");
 }
 
 /// Spec: docs/specs/02-config.md#environment-variables
@@ -83,9 +76,5 @@ fn env_log_trace_level() {
 /// > Unknown QUENCH_* environment variables are silently ignored
 #[test]
 fn env_unknown_vars_ignored() {
-    quench_cmd()
-        .arg("--help")
-        .env("QUENCH_UNKNOWN_VAR", "some_value")
-        .assert()
-        .success(); // Should not error on unknown env vars
+    quench_cmd().arg("--help").env("QUENCH_UNKNOWN_VAR", "some_value").assert().success(); // Should not error on unknown env vars
 }

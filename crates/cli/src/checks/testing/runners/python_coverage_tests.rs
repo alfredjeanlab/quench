@@ -223,26 +223,17 @@ fn normalizes_absolute_tests_path() {
 
 #[test]
 fn normalizes_relative_path() {
-    assert_eq!(
-        normalize_python_path("src/myproject/math.py"),
-        "src/myproject/math.py"
-    );
+    assert_eq!(normalize_python_path("src/myproject/math.py"), "src/myproject/math.py");
 }
 
 #[test]
 fn normalizes_lib_path() {
-    assert_eq!(
-        normalize_python_path("/home/user/project/lib/helpers.py"),
-        "lib/helpers.py"
-    );
+    assert_eq!(normalize_python_path("/home/user/project/lib/helpers.py"), "lib/helpers.py");
 }
 
 #[test]
 fn normalizes_app_path() {
-    assert_eq!(
-        normalize_python_path("/home/user/project/app/models.py"),
-        "app/models.py"
-    );
+    assert_eq!(normalize_python_path("/home/user/project/app/models.py"), "app/models.py");
 }
 
 #[test]
@@ -253,10 +244,7 @@ fn normalizes_site_packages_to_filename() {
 
 #[test]
 fn normalizes_unknown_absolute_to_filename() {
-    assert_eq!(
-        normalize_python_path("/some/unknown/path/file.py"),
-        "file.py"
-    );
+    assert_eq!(normalize_python_path("/some/unknown/path/file.py"), "file.py");
 }
 
 // =============================================================================
@@ -266,19 +254,13 @@ fn normalizes_unknown_absolute_to_filename() {
 #[test]
 fn extracts_package_from_src_layout() {
     assert_eq!(extract_python_package("src/myproject/math.py"), "myproject");
-    assert_eq!(
-        extract_python_package("src/myproject/subpackage/utils.py"),
-        "myproject"
-    );
+    assert_eq!(extract_python_package("src/myproject/subpackage/utils.py"), "myproject");
 }
 
 #[test]
 fn extracts_package_from_flat_layout() {
     assert_eq!(extract_python_package("myproject/math.py"), "myproject");
-    assert_eq!(
-        extract_python_package("myproject/subpackage/utils.py"),
-        "myproject"
-    );
+    assert_eq!(extract_python_package("myproject/subpackage/utils.py"), "myproject");
 }
 
 #[test]

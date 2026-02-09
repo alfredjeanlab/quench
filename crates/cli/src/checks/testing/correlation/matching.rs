@@ -39,10 +39,7 @@ impl TestIndex {
             }
         }
 
-        Self {
-            all_paths: test_changes.iter().cloned().collect(),
-            base_names,
-        }
+        Self { all_paths: test_changes.iter().cloned().collect(), base_names }
     }
 
     /// O(1) check for correlated test by base name.
@@ -69,20 +66,14 @@ impl TestIndex {
 
         // Check with common suffixes
         for suffix in patterns::TEST_SUFFIXES {
-            if self
-                .base_names
-                .contains(&format!("{}{}", base_name, suffix))
-            {
+            if self.base_names.contains(&format!("{}{}", base_name, suffix)) {
                 return true;
             }
         }
 
         // Check with common prefixes
         for prefix in patterns::TEST_PREFIXES {
-            if self
-                .base_names
-                .contains(&format!("{}{}", prefix, base_name))
-            {
+            if self.base_names.contains(&format!("{}{}", prefix, base_name)) {
                 return true;
             }
         }
@@ -94,10 +85,7 @@ impl TestIndex {
     pub fn has_test_at_location(&self, source_path: &Path) -> bool {
         let expected_locations = find_test_locations(source_path);
         for test_path in &self.all_paths {
-            if expected_locations
-                .iter()
-                .any(|loc| test_path.ends_with(loc))
-            {
+            if expected_locations.iter().any(|loc| test_path.ends_with(loc)) {
                 return true;
             }
         }
@@ -146,18 +134,13 @@ pub fn has_correlated_test(
     // Strategy 1: Check expected test locations
     let expected_locations = find_test_locations(source_path);
     for test_path in test_changes {
-        if expected_locations
-            .iter()
-            .any(|loc| test_path.ends_with(loc))
-        {
+        if expected_locations.iter().any(|loc| test_path.ends_with(loc)) {
             return true;
         }
     }
 
     // Strategy 2: Base name matching
-    test_base_names
-        .iter()
-        .any(|test_name| patterns::matches_base_name(test_name, base_name))
+    test_base_names.iter().any(|test_name| patterns::matches_base_name(test_name, base_name))
 }
 
 /// Get candidate test file paths for a base name (Rust).
@@ -184,9 +167,7 @@ pub(super) fn correlation_base_name(path: &Path) -> Option<&str> {
 /// A test is test-only if its base name doesn't match any source file's base name,
 /// even when accounting for common test suffixes/prefixes.
 pub(super) fn is_test_only(test_base: &str, source_base_names: &HashSet<String>) -> bool {
-    !source_base_names
-        .iter()
-        .any(|source_base| patterns::matches_base_name(test_base, source_base))
+    !source_base_names.iter().any(|source_base| patterns::matches_base_name(test_base, source_base))
 }
 
 /// Extract base name from a test file, stripping test suffixes.

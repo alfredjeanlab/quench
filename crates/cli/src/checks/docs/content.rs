@@ -37,10 +37,8 @@ fn validate_spec_sections(
     violations: &mut Vec<Violation>,
 ) {
     // Convert SpecsSectionsConfig to agents SectionsConfig for reuse
-    let agent_sections_config = SectionsConfig {
-        required: config.required.clone(),
-        forbid: config.forbid.clone(),
-    };
+    let agent_sections_config =
+        SectionsConfig { required: config.required.clone(), forbid: config.forbid.clone() };
 
     let result = validate_sections(content, &agent_sections_config);
 
@@ -127,9 +125,7 @@ fn validate_size_limits(
             Violation::file_only(
                 path,
                 "spec_too_large",
-                violation
-                    .limit_type
-                    .advice(violation.value, violation.threshold),
+                violation.limit_type.advice(violation.value, violation.threshold),
             )
             .with_threshold(violation.value as i64, violation.threshold as i64),
         );
@@ -143,9 +139,7 @@ fn validate_size_limits(
             Violation::file_only(
                 path,
                 "spec_too_large",
-                violation
-                    .limit_type
-                    .advice(violation.value, violation.threshold),
+                violation.limit_type.advice(violation.value, violation.threshold),
             )
             .with_threshold(violation.value as i64, violation.threshold as i64),
         );

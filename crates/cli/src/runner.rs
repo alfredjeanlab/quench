@@ -77,10 +77,7 @@ pub struct CheckRunner {
 
 impl CheckRunner {
     pub fn new(config: RunnerConfig) -> Self {
-        Self {
-            config,
-            cache: None,
-        }
+        Self { config, cache: None }
     }
 
     /// Enable caching for this runner.
@@ -184,8 +181,7 @@ impl CheckRunner {
                     .collect();
 
                 let ctx =
-                    self.config
-                        .build_context(root, &uncached_owned, config, &violation_count);
+                    self.config.build_context(root, &uncached_owned, config, &violation_count);
 
                 // Run check on uncached files with timing
                 let check_start = Instant::now();
@@ -209,10 +205,7 @@ impl CheckRunner {
 
                     // Sort violations by file path for consistent output
                     all_violations.sort_by(|a, b| {
-                        a.file
-                            .as_deref()
-                            .cmp(&b.file.as_deref())
-                            .then_with(|| a.line.cmp(&b.line))
+                        a.file.as_deref().cmp(&b.file.as_deref()).then_with(|| a.line.cmp(&b.line))
                     });
 
                     let passed = all_violations.is_empty() && !result.skipped;
@@ -274,10 +267,7 @@ impl CheckRunner {
         // Sort results by canonical check order for consistent output
         let mut sorted = results;
         sorted.sort_by_key(|r| {
-            crate::checks::CHECK_NAMES
-                .iter()
-                .position(|&n| n == r.name)
-                .unwrap_or(usize::MAX)
+            crate::checks::CHECK_NAMES.iter().position(|&n| n == r.name).unwrap_or(usize::MAX)
         });
 
         sorted
@@ -297,9 +287,7 @@ impl CheckRunner {
         let results: Vec<CheckResult> = checks
             .into_par_iter()
             .map(|check| {
-                let ctx = self
-                    .config
-                    .build_context(root, files, config, &violation_count);
+                let ctx = self.config.build_context(root, files, config, &violation_count);
 
                 // Catch panics to ensure error isolation, with timing
                 let check_start = Instant::now();
@@ -323,10 +311,7 @@ impl CheckRunner {
         // Sort results by canonical check order for consistent output
         let mut sorted = results;
         sorted.sort_by_key(|r| {
-            crate::checks::CHECK_NAMES
-                .iter()
-                .position(|&n| n == r.name)
-                .unwrap_or(usize::MAX)
+            crate::checks::CHECK_NAMES.iter().position(|&n| n == r.name).unwrap_or(usize::MAX)
         });
 
         sorted
@@ -334,11 +319,7 @@ impl CheckRunner {
 
     /// Check if early termination is needed based on violation count.
     pub fn should_terminate(&self, violation_count: usize) -> bool {
-        if let Some(limit) = self.config.limit {
-            violation_count >= limit
-        } else {
-            false
-        }
+        if let Some(limit) = self.config.limit { violation_count >= limit } else { false }
     }
 }
 

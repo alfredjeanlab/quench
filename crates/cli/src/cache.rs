@@ -93,9 +93,7 @@ impl FileCacheKey {
     /// Create cache key from file metadata.
     pub fn from_metadata(meta: &Metadata) -> Self {
         let mtime = meta.modified().unwrap_or(SystemTime::UNIX_EPOCH);
-        let duration = mtime
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .unwrap_or_default();
+        let duration = mtime.duration_since(SystemTime::UNIX_EPOCH).unwrap_or_default();
         Self {
             mtime_secs: duration.as_secs() as i64,
             mtime_nanos: duration.subsec_nanos(),
@@ -105,11 +103,7 @@ impl FileCacheKey {
 
     /// Create cache key from a WalkedFile.
     pub fn from_walked_file(file: &crate::walker::WalkedFile) -> Self {
-        Self {
-            mtime_secs: file.mtime_secs,
-            mtime_nanos: file.mtime_nanos,
-            size: file.size,
-        }
+        Self { mtime_secs: file.mtime_secs, mtime_nanos: file.mtime_nanos, size: file.size }
     }
 }
 
@@ -275,10 +269,7 @@ impl FileCache {
             .map(|(path, result)| {
                 (
                     path,
-                    CachedFileResult {
-                        key: result.key,
-                        violations: Arc::new(result.violations),
-                    },
+                    CachedFileResult { key: result.key, violations: Arc::new(result.violations) },
                 )
             })
             .collect();
@@ -311,13 +302,7 @@ impl FileCache {
 
     /// Insert or update a file's cached result.
     pub fn insert(&self, path: PathBuf, key: FileCacheKey, violations: Vec<CachedViolation>) {
-        self.inner.insert(
-            path,
-            CachedFileResult {
-                key,
-                violations: Arc::new(violations),
-            },
-        );
+        self.inner.insert(path, CachedFileResult { key, violations: Arc::new(violations) });
     }
 
     /// Persist cache to disk.

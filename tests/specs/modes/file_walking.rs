@@ -101,11 +101,7 @@ fn file_walking_ignores_gitignore_glob_patterns() {
 #[test]
 fn file_walking_respects_nested_gitignore() {
     // Nested .gitignore files should also be respected
-    cli()
-        .on("gitignore-test")
-        .env("QUENCH_DEBUG_FILES", "1")
-        .passes()
-        .stdout_lacks("vendor/");
+    cli().on("gitignore-test").env("QUENCH_DEBUG_FILES", "1").passes().stdout_lacks("vendor/");
 }
 
 // =============================================================================
@@ -132,11 +128,7 @@ fn file_walking_respects_custom_ignore_patterns() {
 #[test]
 fn file_walking_respects_custom_directory_patterns() {
     // testdata/ directory should be completely ignored
-    cli()
-        .on("custom-ignore")
-        .env("QUENCH_DEBUG_FILES", "1")
-        .passes()
-        .stdout_lacks("testdata/");
+    cli().on("custom-ignore").env("QUENCH_DEBUG_FILES", "1").passes().stdout_lacks("testdata/");
 }
 
 /// Spec: docs/specs/20-performance.md (custom ignore patterns)
@@ -145,11 +137,7 @@ fn file_walking_respects_custom_directory_patterns() {
 #[test]
 fn file_walking_respects_double_star_patterns() {
     // **/fixtures/** should match fixtures at any depth
-    cli()
-        .on("custom-ignore")
-        .env("QUENCH_DEBUG_FILES", "1")
-        .passes()
-        .stdout_lacks("fixtures/");
+    cli().on("custom-ignore").env("QUENCH_DEBUG_FILES", "1").passes().stdout_lacks("fixtures/");
 }
 
 // =============================================================================
@@ -185,11 +173,7 @@ fn file_walking_reports_symlink_loops_in_debug_mode() {
 #[test]
 fn file_walking_scans_normal_files_despite_symlink_loops() {
     // src/lib.rs should still be scanned even though a loop exists
-    cli()
-        .on("symlink-loop")
-        .env("QUENCH_DEBUG_FILES", "1")
-        .passes()
-        .stdout_has("src/lib.rs");
+    cli().on("symlink-loop").env("QUENCH_DEBUG_FILES", "1").passes().stdout_has("src/lib.rs");
 }
 
 // =============================================================================

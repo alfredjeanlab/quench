@@ -135,14 +135,7 @@ fn extract_alternation_returns_none_for_single() {
 #[test]
 fn extract_alternation_returns_literals() {
     let result = extract_alternation_literals("foo|bar|baz");
-    assert_eq!(
-        result,
-        Some(vec![
-            "foo".to_string(),
-            "bar".to_string(),
-            "baz".to_string()
-        ])
-    );
+    assert_eq!(result, Some(vec!["foo".to_string(), "bar".to_string(), "baz".to_string()]));
 }
 
 #[test]

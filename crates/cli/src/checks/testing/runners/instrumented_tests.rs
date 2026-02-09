@@ -8,10 +8,8 @@ use super::*;
 
 #[test]
 fn coverage_env_sets_profile_file() {
-    let build = InstrumentedBuild {
-        profile_dir: PathBuf::from("/tmp/coverage"),
-        binaries: HashMap::new(),
-    };
+    let build =
+        InstrumentedBuild { profile_dir: PathBuf::from("/tmp/coverage"), binaries: HashMap::new() };
 
     let env = coverage_env(&build);
     assert!(env.contains_key("LLVM_PROFILE_FILE"));
@@ -28,22 +26,13 @@ fn truncate_lines_limits_output() {
 
 #[test]
 fn normalize_path_extracts_src() {
-    assert_eq!(
-        normalize_path("/home/user/project/src/lib.rs"),
-        "src/lib.rs"
-    );
-    assert_eq!(
-        normalize_path("/workspace/myapp/src/main.rs"),
-        "src/main.rs"
-    );
+    assert_eq!(normalize_path("/home/user/project/src/lib.rs"), "src/lib.rs");
+    assert_eq!(normalize_path("/workspace/myapp/src/main.rs"), "src/main.rs");
 }
 
 #[test]
 fn normalize_path_extracts_tests() {
-    assert_eq!(
-        normalize_path("/home/user/project/tests/basic.rs"),
-        "tests/basic.rs"
-    );
+    assert_eq!(normalize_path("/home/user/project/tests/basic.rs"), "tests/basic.rs");
 }
 
 #[test]

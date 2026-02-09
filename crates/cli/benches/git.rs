@@ -78,10 +78,7 @@ fn bench_commit_parsing(c: &mut Criterion) {
             "feat(core): this is a very long commit message that tests the parser with extended descriptions containing many words",
         ),
         ("unicode_scope", "feat(módulo): feature with unicode scope"),
-        (
-            "nested_scope",
-            "fix(deeply/nested/scope): fix nested scope issue",
-        ),
+        ("nested_scope", "fix(deeply/nested/scope): fix nested scope issue"),
         ("minimal_type", "f: minimal"),
     ];
 
@@ -117,9 +114,8 @@ fn bench_validation(c: &mut Criterion) {
 
     // Scope validation
     let no_scopes: Option<&[String]> = None;
-    group.bench_function("scope_none", |b| {
-        b.iter(|| black_box(parsed.is_scope_allowed(no_scopes)))
-    });
+    group
+        .bench_function("scope_none", |b| b.iter(|| black_box(parsed.is_scope_allowed(no_scopes))));
 
     let allowed_scopes = vec!["api".to_string(), "cli".to_string(), "core".to_string()];
     group.bench_function("scope_allowed", |b| {
@@ -143,10 +139,7 @@ fn bench_docs_detection(c: &mut Criterion) {
 
     // Various CLAUDE.md content patterns
     let scenarios = [
-        (
-            "minimal",
-            "# Project\n\n## Commits\n\nfeat: format\nfix: bugs",
-        ),
+        ("minimal", "# Project\n\n## Commits\n\nfeat: format\nfix: bugs"),
         (
             "verbose",
             r#"# Project Documentation
@@ -173,10 +166,7 @@ Example: `feat(api): add user authentication endpoint`
             "no_docs",
             "# Project\n\nThis project has no commit format documentation.\n\n## Setup\n\nRun npm install",
         ),
-        (
-            "conventional_phrase",
-            "# Project\n\nWe use conventional commits for all changes.",
-        ),
+        ("conventional_phrase", "# Project\n\nWe use conventional commits for all changes."),
     ];
 
     for (name, content) in scenarios {

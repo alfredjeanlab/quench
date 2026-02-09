@@ -12,26 +12,14 @@ use std::process::Command;
 
 /// Initialize a git repo with user config and initial commit.
 fn init_git_repo(path: &std::path::Path) {
-    Command::new("git")
-        .args(["init", "-b", "main"])
-        .current_dir(path)
-        .output()
-        .unwrap();
+    Command::new("git").args(["init", "-b", "main"]).current_dir(path).output().unwrap();
     Command::new("git")
         .args(["config", "user.email", "test@test.com"])
         .current_dir(path)
         .output()
         .unwrap();
-    Command::new("git")
-        .args(["config", "user.name", "Test"])
-        .current_dir(path)
-        .output()
-        .unwrap();
-    Command::new("git")
-        .args(["add", "."])
-        .current_dir(path)
-        .output()
-        .unwrap();
+    Command::new("git").args(["config", "user.name", "Test"]).current_dir(path).output().unwrap();
+    Command::new("git").args(["add", "."]).current_dir(path).output().unwrap();
     Command::new("git")
         .args(["commit", "-m", "chore: initial commit", "--allow-empty"])
         .current_dir(path)
@@ -41,34 +29,18 @@ fn init_git_repo(path: &std::path::Path) {
 
 /// Stage files without committing.
 fn git_stage(path: &std::path::Path) {
-    Command::new("git")
-        .args(["add", "."])
-        .current_dir(path)
-        .output()
-        .unwrap();
+    Command::new("git").args(["add", "."]).current_dir(path).output().unwrap();
 }
 
 /// Add and commit all changes.
 fn git_commit(path: &std::path::Path, msg: &str) {
-    Command::new("git")
-        .args(["add", "."])
-        .current_dir(path)
-        .output()
-        .unwrap();
-    Command::new("git")
-        .args(["commit", "-m", msg])
-        .current_dir(path)
-        .output()
-        .unwrap();
+    Command::new("git").args(["add", "."]).current_dir(path).output().unwrap();
+    Command::new("git").args(["commit", "-m", msg]).current_dir(path).output().unwrap();
 }
 
 /// Create a feature branch.
 fn git_branch(path: &std::path::Path, name: &str) {
-    Command::new("git")
-        .args(["checkout", "-b", name])
-        .current_dir(path)
-        .output()
-        .unwrap();
+    Command::new("git").args(["checkout", "-b", name]).current_dir(path).output().unwrap();
 }
 
 // =============================================================================
@@ -137,11 +109,7 @@ check = "error"
     git_commit(temp.path(), "feat: add feature");
 
     // Check against main - should fail (source without test)
-    check("tests")
-        .pwd(temp.path())
-        .args(&["--base", "main"])
-        .fails()
-        .stdout_has("feature.rs");
+    check("tests").pwd(temp.path()).args(&["--base", "main"]).fails().stdout_has("feature.rs");
 }
 
 // =============================================================================
@@ -207,10 +175,7 @@ fn test_parse() {
     git_commit(temp.path(), "test: add parser tests");
 
     // Should pass - TDD workflow is valid
-    check("tests")
-        .pwd(temp.path())
-        .args(&["--base", "main"])
-        .passes();
+    check("tests").pwd(temp.path()).args(&["--base", "main"]).passes();
 }
 
 // =============================================================================
@@ -254,10 +219,7 @@ mod tests {
     git_commit(temp.path(), "feat: add parser with tests");
 
     // Should pass - inline tests satisfy the requirement
-    check("tests")
-        .pwd(temp.path())
-        .args(&["--base", "main"])
-        .passes();
+    check("tests").pwd(temp.path()).args(&["--base", "main"]).passes();
 }
 
 // =============================================================================
@@ -301,10 +263,7 @@ fn test_parse() {
     git_commit(temp.path(), "feat: add parser with placeholder test");
 
     // Should pass - placeholder indicates test intent
-    check("tests")
-        .pwd(temp.path())
-        .args(&["--base", "main"])
-        .passes();
+    check("tests").pwd(temp.path()).args(&["--base", "main"]).passes();
 }
 
 // =============================================================================
@@ -348,10 +307,7 @@ edition = "2021"
     git_commit(temp.path(), "feat: add module files");
 
     // Should pass - these files are excluded by default for Rust projects
-    check("tests")
-        .pwd(temp.path())
-        .args(&["--base", "main"])
-        .passes();
+    check("tests").pwd(temp.path()).args(&["--base", "main"]).passes();
 }
 
 /// Spec: Non-Rust projects don't exclude Rust entry points
@@ -375,11 +331,7 @@ check = "error"
     git_commit(temp.path(), "feat: add lib.rs");
 
     // Should fail - lib.rs is not excluded in a Generic project
-    check("tests")
-        .pwd(temp.path())
-        .args(&["--base", "main"])
-        .fails()
-        .stdout_has("lib.rs");
+    check("tests").pwd(temp.path()).args(&["--base", "main"]).fails().stdout_has("lib.rs");
 }
 
 // =============================================================================
@@ -413,21 +365,11 @@ check = "error"
     temp.file("src/bad.rs", "pub fn bad() {}");
     git_commit(temp.path(), "feat: add files");
 
-    let result = check("tests")
-        .pwd(temp.path())
-        .args(&["--base", "main"])
-        .json()
-        .fails();
+    let result = check("tests").pwd(temp.path()).args(&["--base", "main"]).json().fails();
 
     let metrics = result.require("metrics");
-    assert_eq!(
-        metrics.get("source_files_changed").and_then(|v| v.as_u64()),
-        Some(3)
-    );
-    assert_eq!(
-        metrics.get("with_test_changes").and_then(|v| v.as_u64()),
-        Some(2)
-    );
+    assert_eq!(metrics.get("source_files_changed").and_then(|v| v.as_u64()), Some(3));
+    assert_eq!(metrics.get("with_test_changes").and_then(|v| v.as_u64()), Some(2));
 }
 
 /// Spec: docs/specs/checks/tests.md#json-output
@@ -450,11 +392,7 @@ check = "error"
     temp.file("src/lexer.rs", "pub fn lex() {}");
     git_commit(temp.path(), "feat: add parser and lexer");
 
-    let result = check("tests")
-        .pwd(temp.path())
-        .args(&["--base", "main"])
-        .json()
-        .fails();
+    let result = check("tests").pwd(temp.path()).args(&["--base", "main"]).json().fails();
 
     // All violations should be of type "missing_tests"
     for violation in result.violations() {
@@ -488,20 +426,13 @@ check = "error"
     temp.file("src/existing.rs", "pub fn existing() {}\npub fn more() {}");
     git_stage(temp.path());
 
-    let result = check("tests")
-        .pwd(temp.path())
-        .args(&["--staged"])
-        .json()
-        .fails();
+    let result = check("tests").pwd(temp.path()).args(&["--staged"]).json().fails();
 
     let violations = result.violations_of_type("missing_tests");
     assert!(!violations.is_empty());
 
     let v = &violations[0];
-    assert_eq!(
-        v.get("change_type").and_then(|v| v.as_str()),
-        Some("modified")
-    );
+    assert_eq!(v.get("change_type").and_then(|v| v.as_str()), Some("modified"));
     assert!(v.get("lines_changed").and_then(|v| v.as_i64()).is_some());
 }
 
@@ -519,11 +450,7 @@ check = "error"
     temp.file("src/new_file.rs", "pub fn new_fn() {}");
     git_stage(temp.path());
 
-    let result = check("tests")
-        .pwd(temp.path())
-        .args(&["--staged"])
-        .json()
-        .fails();
+    let result = check("tests").pwd(temp.path()).args(&["--staged"]).json().fails();
 
     let violations = result.violations_of_type("missing_tests");
     assert!(!violations.is_empty());
@@ -545,18 +472,11 @@ check = "error"
     init_git_repo(temp.path());
 
     // Create a file with known line count
-    let content = (0..10)
-        .map(|i| format!("pub fn f{}() {{}}", i))
-        .collect::<Vec<_>>()
-        .join("\n");
+    let content = (0..10).map(|i| format!("pub fn f{}() {{}}", i)).collect::<Vec<_>>().join("\n");
     temp.file("src/multi.rs", &content);
     git_stage(temp.path());
 
-    let result = check("tests")
-        .pwd(temp.path())
-        .args(&["--staged"])
-        .json()
-        .fails();
+    let result = check("tests").pwd(temp.path()).args(&["--staged"]).json().fails();
 
     let violations = result.violations_of_type("missing_tests");
     let v = &violations[0];
@@ -620,17 +540,11 @@ scope = "commit"
     git_branch(temp.path(), "feature/tdd-commit");
 
     // Commit with only test changes - TDD workflow
-    temp.file(
-        "tests/parser_tests.rs",
-        "#[test] fn test_parse() { assert!(true); }",
-    );
+    temp.file("tests/parser_tests.rs", "#[test] fn test_parse() { assert!(true); }");
     git_commit(temp.path(), "test: add parser tests first");
 
     // Should pass - TDD commit is valid
-    check("tests")
-        .pwd(temp.path())
-        .args(&["--base", "main"])
-        .passes();
+    check("tests").pwd(temp.path()).args(&["--base", "main"]).passes();
 }
 
 /// Spec: docs/specs/checks/tests.md#commit-scope
@@ -660,10 +574,7 @@ scope = "commit"
     git_commit(temp.path(), "feat: add lexer with tests");
 
     // Should pass - each commit has tests
-    check("tests")
-        .pwd(temp.path())
-        .args(&["--base", "main"])
-        .passes();
+    check("tests").pwd(temp.path()).args(&["--base", "main"]).passes();
 }
 
 /// Spec: docs/specs/checks/tests.md#commit-scope
@@ -701,10 +612,7 @@ mod tests {
     git_commit(temp.path(), "feat: add parser with inline tests");
 
     // Should pass - inline tests satisfy requirement
-    check("tests")
-        .pwd(temp.path())
-        .args(&["--base", "main"])
-        .passes();
+    check("tests").pwd(temp.path()).args(&["--base", "main"]).passes();
 }
 
 /// Spec: docs/specs/checks/tests.md#commit-scope
@@ -732,10 +640,7 @@ scope = "branch"
     git_commit(temp.path(), "test: add parser tests");
 
     // Should pass in branch scope - tests exist somewhere in the branch
-    check("tests")
-        .pwd(temp.path())
-        .args(&["--base", "main"])
-        .passes();
+    check("tests").pwd(temp.path()).args(&["--base", "main"]).passes();
 }
 
 /// Spec: docs/specs/checks/tests.md#commit-scope
@@ -760,10 +665,7 @@ scope = "commit"
     git_commit(temp.path(), "feat: add parser with sibling tests");
 
     // Should pass - sibling test file satisfies requirement
-    check("tests")
-        .pwd(temp.path())
-        .args(&["--base", "main"])
-        .passes();
+    check("tests").pwd(temp.path()).args(&["--base", "main"]).passes();
 }
 
 /// Spec: docs/specs/checks/tests.md#json-output
@@ -790,25 +692,12 @@ scope = "commit"
     temp.file("src/bad.rs", "pub fn bad() {}");
     git_commit(temp.path(), "feat: add bad without tests");
 
-    let result = check("tests")
-        .pwd(temp.path())
-        .args(&["--base", "main"])
-        .json()
-        .fails();
+    let result = check("tests").pwd(temp.path()).args(&["--base", "main"]).json().fails();
 
     let metrics = result.require("metrics");
-    assert_eq!(
-        metrics.get("commits_checked").and_then(|v| v.as_u64()),
-        Some(2)
-    );
-    assert_eq!(
-        metrics.get("commits_failing").and_then(|v| v.as_u64()),
-        Some(1)
-    );
-    assert_eq!(
-        metrics.get("scope").and_then(|v| v.as_str()),
-        Some("commit")
-    );
+    assert_eq!(metrics.get("commits_checked").and_then(|v| v.as_u64()), Some(2));
+    assert_eq!(metrics.get("commits_failing").and_then(|v| v.as_u64()), Some(1));
+    assert_eq!(metrics.get("scope").and_then(|v| v.as_str()), Some("commit"));
 }
 
 // =============================================================================
@@ -846,10 +735,7 @@ test.todo('parser edge cases');
     git_commit(temp.path(), "feat: add parser with placeholder tests");
 
     // Should pass - test.todo indicates test intent
-    check("tests")
-        .pwd(temp.path())
-        .args(&["--base", "main"])
-        .passes();
+    check("tests").pwd(temp.path()).args(&["--base", "main"]).passes();
 }
 
 /// Spec: docs/specs/checks/tests.md#placeholder-tests
@@ -883,10 +769,7 @@ test.skip('lexer tokenizes correctly', () => {
     git_commit(temp.path(), "feat: add lexer with skipped test");
 
     // Should pass - test.skip indicates test intent
-    check("tests")
-        .pwd(temp.path())
-        .args(&["--base", "main"])
-        .passes();
+    check("tests").pwd(temp.path()).args(&["--base", "main"]).passes();
 }
 
 // =============================================================================
@@ -937,11 +820,7 @@ check = "error"
     git_commit(temp.path(), "feat: add parser");
 
     // Should fail with Go-specific advice
-    check("tests")
-        .pwd(temp.path())
-        .args(&["--base", "main"])
-        .fails()
-        .stdout_has("parser_test.go");
+    check("tests").pwd(temp.path()).args(&["--base", "main"]).fails().stdout_has("parser_test.go");
 }
 
 /// Spec: Advice messages are language-specific (Python)
@@ -962,11 +841,7 @@ check = "error"
     git_commit(temp.path(), "feat: add parser");
 
     // Should fail with Python-specific advice
-    check("tests")
-        .pwd(temp.path())
-        .args(&["--base", "main"])
-        .fails()
-        .stdout_has("test_parser.py");
+    check("tests").pwd(temp.path()).args(&["--base", "main"]).fails().stdout_has("test_parser.py");
 }
 
 // =============================================================================
@@ -995,10 +870,7 @@ check = "error"
     git_commit(temp.path(), "feat: add parser with jest tests");
 
     // Should pass - __tests__ directory is recognized
-    check("tests")
-        .pwd(temp.path())
-        .args(&["--base", "main"])
-        .passes();
+    check("tests").pwd(temp.path()).args(&["--base", "main"]).passes();
 }
 
 /// Spec: docs/specs/checks/tests.md#default-patterns
@@ -1022,10 +894,7 @@ check = "error"
     git_commit(temp.path(), "feat: add parser with .test.ts");
 
     // Should pass - .test.ts suffix is recognized
-    check("tests")
-        .pwd(temp.path())
-        .args(&["--base", "main"])
-        .passes();
+    check("tests").pwd(temp.path()).args(&["--base", "main"]).passes();
 }
 
 /// Spec: docs/specs/checks/tests.md#default-patterns
@@ -1050,8 +919,5 @@ check = "error"
     git_commit(temp.path(), "feat: add parser with spec");
 
     // Should pass - spec/ directory is recognized
-    check("tests")
-        .pwd(temp.path())
-        .args(&["--base", "main"])
-        .passes();
+    check("tests").pwd(temp.path()).args(&["--base", "main"]).passes();
 }

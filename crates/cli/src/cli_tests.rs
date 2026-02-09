@@ -127,10 +127,8 @@ fn agents_section_cursor_rules_dir() {
 
 #[test]
 fn agents_section_both_merges_required() {
-    let section = agents_section(&[
-        DetectedAgent::Claude,
-        DetectedAgent::Cursor(CursorMarker::Cursorrules),
-    ]);
+    let section =
+        agents_section(&[DetectedAgent::Claude, DetectedAgent::Cursor(CursorMarker::Cursorrules)]);
     assert!(section.contains("required"));
     assert!(section.contains("CLAUDE.md"));
     assert!(section.contains(".cursorrules"));

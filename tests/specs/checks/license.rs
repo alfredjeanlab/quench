@@ -23,10 +23,7 @@ use crate::prelude::*;
 /// > Uses SPDX license identifiers for standardization
 #[test]
 fn license_detects_spdx_header() {
-    check("license")
-        .on("license/valid-headers")
-        .args(&["--ci"])
-        .passes();
+    check("license").on("license/valid-headers").args(&["--ci"]).passes();
 }
 
 /// Spec: docs/specs/checks/license-headers.md#validation-rules
@@ -34,11 +31,7 @@ fn license_detects_spdx_header() {
 /// > File has no SPDX or copyright line
 #[test]
 fn license_missing_header_generates_violation() {
-    let license = check("license")
-        .on("license/missing-header")
-        .args(&["--ci"])
-        .json()
-        .fails();
+    let license = check("license").on("license/missing-header").args(&["--ci"]).json().fails();
     assert!(license.has_violation("missing_header"));
 }
 
@@ -47,21 +40,11 @@ fn license_missing_header_generates_violation() {
 /// > File has different SPDX identifier than configured
 #[test]
 fn license_wrong_license_generates_violation() {
-    let license = check("license")
-        .on("license/wrong-license")
-        .args(&["--ci"])
-        .json()
-        .fails();
+    let license = check("license").on("license/wrong-license").args(&["--ci"]).json().fails();
 
     let violation = license.require_violation("wrong_license");
-    assert_eq!(
-        violation.get("expected").and_then(|v| v.as_str()),
-        Some("MIT")
-    );
-    assert_eq!(
-        violation.get("found").and_then(|v| v.as_str()),
-        Some("Apache-2.0")
-    );
+    assert_eq!(violation.get("expected").and_then(|v| v.as_str()), Some("MIT"));
+    assert_eq!(violation.get("found").and_then(|v| v.as_str()), Some("Apache-2.0"));
 }
 
 /// Spec: docs/specs/checks/license-headers.md#outdated-copyright-year
@@ -69,11 +52,7 @@ fn license_wrong_license_generates_violation() {
 /// > Copyright year doesn't include current year
 #[test]
 fn license_outdated_year_generates_violation() {
-    let license = check("license")
-        .on("license/outdated-year")
-        .args(&["--ci"])
-        .json()
-        .fails();
+    let license = check("license").on("license/outdated-year").args(&["--ci"]).json().fails();
 
     let violation = license.require_violation("outdated_year");
     assert!(violation.get("found").is_some());
@@ -103,10 +82,7 @@ rust = ["**/*.rs"]
     );
     temp.file("src/lib.rs", "pub fn hello() {}\n");
 
-    check("license")
-        .pwd(temp.path())
-        .args(&["--ci", "--fix"])
-        .passes();
+    check("license").pwd(temp.path()).args(&["--ci", "--fix"]).passes();
 
     let content = std::fs::read_to_string(temp.path().join("src/lib.rs")).unwrap();
     assert!(content.contains("SPDX-License-Identifier: MIT"));
@@ -136,16 +112,10 @@ rust = ["**/*.rs"]
         "// SPDX-License-Identifier: MIT\n// Copyright (c) 2020 Test Org\n\npub fn hello() {}\n",
     );
 
-    check("license")
-        .pwd(temp.path())
-        .args(&["--ci", "--fix"])
-        .passes();
+    check("license").pwd(temp.path()).args(&["--ci", "--fix"]).passes();
 
     let content = std::fs::read_to_string(temp.path().join("src/lib.rs")).unwrap();
-    assert!(
-        content.contains("2026"),
-        "year should be updated to current year"
-    );
+    assert!(content.contains("2026"), "year should be updated to current year");
 }
 
 /// Spec: docs/specs/checks/license-headers.md#header-format
@@ -167,16 +137,10 @@ shell = ["**/*.sh"]
     );
     temp.file("scripts/run.sh", "#!/bin/bash\n\necho 'hello'\n");
 
-    check("license")
-        .pwd(temp.path())
-        .args(&["--ci", "--fix"])
-        .passes();
+    check("license").pwd(temp.path()).args(&["--ci", "--fix"]).passes();
 
     let content = std::fs::read_to_string(temp.path().join("scripts/run.sh")).unwrap();
-    assert!(
-        content.starts_with("#!/bin/bash\n"),
-        "shebang should be first line"
-    );
+    assert!(content.starts_with("#!/bin/bash\n"), "shebang should be first line");
     assert!(content.contains("SPDX-License-Identifier: MIT"));
     // Verify header is after shebang
     let shebang_pos = content.find("#!/bin/bash").unwrap();
@@ -206,21 +170,13 @@ fn exact_missing_header_text() {
 /// > Violation types: `missing_header`, `outdated_year`, `wrong_license`
 #[test]
 fn license_violation_types_are_expected_values() {
-    let license = check("license")
-        .on("license/mixed-violations")
-        .args(&["--ci"])
-        .json()
-        .fails();
+    let license = check("license").on("license/mixed-violations").args(&["--ci"]).json().fails();
     let violations = license.require("violations").as_array().unwrap();
 
     let valid_types = ["missing_header", "outdated_year", "wrong_license"];
     for v in violations {
         let vtype = v.get("type").and_then(|t| t.as_str()).unwrap();
-        assert!(
-            valid_types.contains(&vtype),
-            "unexpected violation type: {}",
-            vtype
-        );
+        assert!(valid_types.contains(&vtype), "unexpected violation type: {}", vtype);
     }
 }
 
@@ -229,11 +185,7 @@ fn license_violation_types_are_expected_values() {
 /// > Metrics include files_checked, files_with_headers, etc.
 #[test]
 fn license_json_includes_metrics() {
-    let license = check("license")
-        .on("license/valid-headers")
-        .args(&["--ci"])
-        .json()
-        .passes();
+    let license = check("license").on("license/valid-headers").args(&["--ci"]).json().passes();
 
     let metrics = license.require("metrics");
     assert!(metrics.get("files_checked").is_some());
@@ -259,11 +211,7 @@ rust = ["**/*.rs"]
     );
     temp.file("src/lib.rs", "pub fn hello() {}\n");
 
-    check("license")
-        .pwd(temp.path())
-        .args(&["--ci", "--fix"])
-        .passes()
-        .stdout_has("FIXED");
+    check("license").pwd(temp.path()).args(&["--ci", "--fix"]).passes().stdout_has("FIXED");
 }
 
 // =============================================================================
@@ -277,10 +225,7 @@ rust = ["**/*.rs"]
 fn license_skipped_without_ci_flag() {
     // Without --ci, license check passes silently (CI-only check)
     // It doesn't run violation detection, just passes
-    let license = check("license")
-        .on("license/missing-header")
-        .json()
-        .passes();
+    let license = check("license").on("license/missing-header").json().passes();
 
     // Verify no violations were detected (check didn't actually run)
     assert!(
@@ -289,11 +234,7 @@ fn license_skipped_without_ci_flag() {
     );
 
     // With --ci, the same fixture should fail (has missing header)
-    check("license")
-        .on("license/missing-header")
-        .args(&["--ci"])
-        .json()
-        .fails();
+    check("license").on("license/missing-header").args(&["--ci"]).json().fails();
 }
 
 /// Spec: docs/specs/checks/license-headers.md#configuration
@@ -339,11 +280,7 @@ rust = ["**/*.rs"]
         "MIT License\n\nCopyright (c) 2020 Test Org\n\nPermission is hereby granted...\n",
     );
 
-    let license = check("license")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .fails();
+    let license = check("license").pwd(temp.path()).args(&["--ci"]).json().fails();
 
     assert!(
         license.has_violation_for_file("LICENSE"),
@@ -352,17 +289,9 @@ rust = ["**/*.rs"]
     let violation = license
         .violations()
         .iter()
-        .find(|v| {
-            v.get("file")
-                .and_then(|f| f.as_str())
-                .map(|f| f == "LICENSE")
-                .unwrap_or(false)
-        })
+        .find(|v| v.get("file").and_then(|f| f.as_str()).map(|f| f == "LICENSE").unwrap_or(false))
         .unwrap();
-    assert_eq!(
-        violation.get("type").and_then(|t| t.as_str()),
-        Some("outdated_year")
-    );
+    assert_eq!(violation.get("type").and_then(|t| t.as_str()), Some("outdated_year"));
 }
 
 /// Spec: docs/specs/checks/license-headers.md#license-and-readmemd-files
@@ -386,16 +315,9 @@ rust = ["**/*.rs"]
         "src/lib.rs",
         "// SPDX-License-Identifier: MIT\n// Copyright (c) 2026 Test Org\n\npub fn hello() {}\n",
     );
-    temp.file(
-        "README.md",
-        "# Project\n\n## License\n\nMIT - Copyright (c) 2020 Test Org\n",
-    );
+    temp.file("README.md", "# Project\n\n## License\n\nMIT - Copyright (c) 2020 Test Org\n");
 
-    let license = check("license")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .fails();
+    let license = check("license").pwd(temp.path()).args(&["--ci"]).json().fails();
 
     assert!(
         license.has_violation_for_file("README.md"),
@@ -429,10 +351,7 @@ rust = ["**/*.rs"]
         "MIT License\n\nCopyright (c) 2020 Test Org\n\nPermission is hereby granted...\n",
     );
 
-    check("license")
-        .pwd(temp.path())
-        .args(&["--ci", "--fix"])
-        .passes();
+    check("license").pwd(temp.path()).args(&["--ci", "--fix"]).passes();
 
     let content = std::fs::read_to_string(temp.path().join("LICENSE")).unwrap();
     assert!(
@@ -463,15 +382,9 @@ rust = ["**/*.rs"]
         "src/lib.rs",
         "// SPDX-License-Identifier: MIT\n// Copyright (c) 2026 Test Org\n\npub fn hello() {}\n",
     );
-    temp.file(
-        "README.md",
-        "# Project\n\n## License\n\nMIT - Copyright (c) 2025 Test Org\n",
-    );
+    temp.file("README.md", "# Project\n\n## License\n\nMIT - Copyright (c) 2025 Test Org\n");
 
-    check("license")
-        .pwd(temp.path())
-        .args(&["--ci", "--fix"])
-        .passes();
+    check("license").pwd(temp.path()).args(&["--ci", "--fix"]).passes();
 
     let content = std::fs::read_to_string(temp.path().join("README.md")).unwrap();
     assert!(
@@ -507,22 +420,11 @@ rust = ["**/*.rs"]
         "MIT License\n\nCopyright (c) 2020-2025 Test Org\n\nPermission is hereby granted...\n",
     );
 
-    check("license")
-        .pwd(temp.path())
-        .args(&["--ci", "--fix"])
-        .passes();
+    check("license").pwd(temp.path()).args(&["--ci", "--fix"]).passes();
 
     let content = std::fs::read_to_string(temp.path().join("LICENSE")).unwrap();
-    assert!(
-        content.contains("2020-2026"),
-        "should extend existing range end year: {}",
-        content
-    );
-    assert!(
-        !content.contains("2020-2025"),
-        "should not contain old range: {}",
-        content
-    );
+    assert!(content.contains("2020-2026"), "should extend existing range end year: {}", content);
+    assert!(!content.contains("2020-2025"), "should not contain old range: {}", content);
 }
 
 /// Spec: docs/specs/checks/license-headers.md#license-and-readmemd-files
@@ -546,10 +448,7 @@ rust = ["**/*.rs"]
         "src/lib.rs",
         "// SPDX-License-Identifier: MIT\n// Copyright (c) 2026 Test Org\n\npub fn hello() {}\n",
     );
-    temp.file(
-        "LICENSE",
-        "Some custom license text without copyright line\n",
-    );
+    temp.file("LICENSE", "Some custom license text without copyright line\n");
     temp.file("README.md", "# Project\n\nNo copyright info here.\n");
 
     // Should pass - LICENSE and README.md are silently skipped when they don't have copyright lines

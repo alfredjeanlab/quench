@@ -131,10 +131,7 @@ fn parse_pylint_disable_multiple() {
     let suppresses = parse_python_suppresses(content, None);
 
     assert_eq!(suppresses.len(), 1);
-    assert_eq!(
-        suppresses[0].codes,
-        vec!["line-too-long", "unused-variable"]
-    );
+    assert_eq!(suppresses[0].codes, vec!["line-too-long", "unused-variable"]);
 }
 
 #[test]
@@ -207,10 +204,7 @@ fn detects_justification_comment() {
 
     assert_eq!(suppresses.len(), 1);
     assert!(suppresses[0].has_comment);
-    assert_eq!(
-        suppresses[0].comment_text.as_deref(),
-        Some("Legacy API compatibility")
-    );
+    assert_eq!(suppresses[0].comment_text.as_deref(), Some("Legacy API compatibility"));
 }
 
 #[test]
@@ -228,10 +222,7 @@ fn no_comment_when_code_above() {
     let suppresses = parse_python_suppresses(content, None);
 
     assert_eq!(suppresses.len(), 1);
-    assert!(
-        !suppresses[0].has_comment,
-        "code above should stop comment search"
-    );
+    assert!(!suppresses[0].has_comment, "code above should stop comment search");
 }
 
 #[test]
@@ -240,10 +231,7 @@ fn requires_specific_pattern_when_configured() {
     let suppresses = parse_python_suppresses(content, Some("# LEGACY:"));
 
     assert_eq!(suppresses.len(), 1);
-    assert!(
-        !suppresses[0].has_comment,
-        "should require # LEGACY: pattern"
-    );
+    assert!(!suppresses[0].has_comment, "should require # LEGACY: pattern");
 }
 
 #[test]
@@ -266,14 +254,8 @@ fn detects_comment_above_single_decorator() {
     let suppresses = parse_python_suppresses(content, None);
 
     assert_eq!(suppresses.len(), 1);
-    assert!(
-        suppresses[0].has_comment,
-        "should find comment above decorator"
-    );
-    assert_eq!(
-        suppresses[0].comment_text.as_deref(),
-        Some("Legacy API requires this signature")
-    );
+    assert!(suppresses[0].has_comment, "should find comment above decorator");
+    assert_eq!(suppresses[0].comment_text.as_deref(), Some("Legacy API requires this signature"));
 }
 
 #[test]
@@ -282,14 +264,8 @@ fn detects_comment_above_multiple_decorators() {
     let suppresses = parse_python_suppresses(content, None);
 
     assert_eq!(suppresses.len(), 1);
-    assert!(
-        suppresses[0].has_comment,
-        "should find comment above stacked decorators"
-    );
-    assert_eq!(
-        suppresses[0].comment_text.as_deref(),
-        Some("Framework requires both decorators")
-    );
+    assert!(suppresses[0].has_comment, "should find comment above stacked decorators");
+    assert_eq!(suppresses[0].comment_text.as_deref(), Some("Framework requires both decorators"));
 }
 
 #[test]
@@ -298,10 +274,7 @@ fn no_comment_when_blank_line_above_decorator() {
     let suppresses = parse_python_suppresses(content, None);
 
     assert_eq!(suppresses.len(), 1);
-    assert!(
-        !suppresses[0].has_comment,
-        "blank line should stop search even above decorators"
-    );
+    assert!(!suppresses[0].has_comment, "blank line should stop search even above decorators");
 }
 
 #[test]
@@ -345,16 +318,7 @@ fn parse_indented_directive() {
 #[test]
 fn suppress_kind_display() {
     assert_eq!(format!("{}", PythonSuppressKind::Noqa), "noqa");
-    assert_eq!(
-        format!("{}", PythonSuppressKind::TypeIgnore),
-        "type: ignore"
-    );
-    assert_eq!(
-        format!("{}", PythonSuppressKind::PylintDisable),
-        "pylint: disable"
-    );
-    assert_eq!(
-        format!("{}", PythonSuppressKind::PragmaNoCover),
-        "pragma: no cover"
-    );
+    assert_eq!(format!("{}", PythonSuppressKind::TypeIgnore), "type: ignore");
+    assert_eq!(format!("{}", PythonSuppressKind::PylintDisable), "pylint: disable");
+    assert_eq!(format!("{}", PythonSuppressKind::PragmaNoCover), "pragma: no cover");
 }

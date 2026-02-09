@@ -102,11 +102,7 @@ pub fn analyze_correlation(
 ) -> CorrelationResult {
     // Early termination: empty changes
     if changes.is_empty() {
-        return CorrelationResult {
-            with_tests: vec![],
-            without_tests: vec![],
-            test_only: vec![],
-        };
+        return CorrelationResult { with_tests: vec![], without_tests: vec![], test_only: vec![] };
     }
 
     let patterns =
@@ -168,11 +164,7 @@ pub fn analyze_correlation(
         })
         .collect();
 
-    CorrelationResult {
-        with_tests,
-        without_tests,
-        test_only,
-    }
+    CorrelationResult { with_tests, without_tests, test_only }
 }
 
 /// Optimized analysis for a single source file.
@@ -186,10 +178,8 @@ fn analyze_single_source(
     let rel_path = source.path.strip_prefix(root).unwrap_or(&source.path);
 
     // Extract test base names for matching
-    let test_base_names: Vec<String> = test_changes
-        .iter()
-        .filter_map(|p| extract_base_name(p))
-        .collect();
+    let test_base_names: Vec<String> =
+        test_changes.iter().filter_map(|p| extract_base_name(p)).collect();
 
     // Use the existing correlation check (efficient for single file)
     let has_test = has_correlated_test(rel_path, &test_changes, &test_base_names);
@@ -220,9 +210,5 @@ fn analyze_single_source(
         })
         .collect();
 
-    CorrelationResult {
-        with_tests,
-        without_tests,
-        test_only,
-    }
+    CorrelationResult { with_tests, without_tests, test_only }
 }

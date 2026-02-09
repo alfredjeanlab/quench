@@ -59,57 +59,30 @@ fn detect_language_rust() {
 #[test]
 fn detect_language_go() {
     assert_eq!(detect_language(Path::new("main.go")), Language::Go);
-    assert_eq!(
-        detect_language(Path::new("pkg/parser/parser.go")),
-        Language::Go
-    );
+    assert_eq!(detect_language(Path::new("pkg/parser/parser.go")), Language::Go);
 }
 
 #[test]
 fn detect_language_javascript() {
-    assert_eq!(
-        detect_language(Path::new("src/parser.ts")),
-        Language::JavaScript
-    );
-    assert_eq!(
-        detect_language(Path::new("src/parser.tsx")),
-        Language::JavaScript
-    );
-    assert_eq!(
-        detect_language(Path::new("src/parser.js")),
-        Language::JavaScript
-    );
-    assert_eq!(
-        detect_language(Path::new("src/parser.jsx")),
-        Language::JavaScript
-    );
-    assert_eq!(
-        detect_language(Path::new("src/parser.mjs")),
-        Language::JavaScript
-    );
-    assert_eq!(
-        detect_language(Path::new("src/parser.mts")),
-        Language::JavaScript
-    );
+    assert_eq!(detect_language(Path::new("src/parser.ts")), Language::JavaScript);
+    assert_eq!(detect_language(Path::new("src/parser.tsx")), Language::JavaScript);
+    assert_eq!(detect_language(Path::new("src/parser.js")), Language::JavaScript);
+    assert_eq!(detect_language(Path::new("src/parser.jsx")), Language::JavaScript);
+    assert_eq!(detect_language(Path::new("src/parser.mjs")), Language::JavaScript);
+    assert_eq!(detect_language(Path::new("src/parser.mts")), Language::JavaScript);
 }
 
 #[test]
 fn detect_language_python() {
     assert_eq!(detect_language(Path::new("main.py")), Language::Python);
-    assert_eq!(
-        detect_language(Path::new("src/parser.py")),
-        Language::Python
-    );
+    assert_eq!(detect_language(Path::new("src/parser.py")), Language::Python);
 }
 
 #[test]
 fn detect_language_unknown() {
     assert_eq!(detect_language(Path::new("file.cpp")), Language::Unknown);
     assert_eq!(detect_language(Path::new("file.java")), Language::Unknown);
-    assert_eq!(
-        detect_language(Path::new("no_extension")),
-        Language::Unknown
-    );
+    assert_eq!(detect_language(Path::new("no_extension")), Language::Unknown);
 }
 
 // =============================================================================
@@ -250,10 +223,7 @@ fn aggregated_metrics_finds_max_test_across_suites() {
 
 #[test]
 fn aggregated_metrics_handles_empty_suites() {
-    let suites = SuiteResults {
-        passed: true,
-        suites: vec![],
-    };
+    let suites = SuiteResults { passed: true, suites: vec![] };
 
     let agg = suites.aggregated_metrics();
 

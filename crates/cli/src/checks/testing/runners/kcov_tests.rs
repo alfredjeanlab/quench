@@ -62,14 +62,8 @@ fn extract_line_rate_returns_none_for_missing() {
 #[test]
 fn extract_attribute_finds_value() {
     let tag = r#"<class filename="/path/to/file.sh" line-rate="0.75">"#;
-    assert_eq!(
-        extract_attribute(tag, "filename"),
-        Some("/path/to/file.sh".to_string())
-    );
-    assert_eq!(
-        extract_attribute(tag, "line-rate"),
-        Some("0.75".to_string())
-    );
+    assert_eq!(extract_attribute(tag, "filename"), Some("/path/to/file.sh".to_string()));
+    assert_eq!(extract_attribute(tag, "line-rate"), Some("0.75".to_string()));
 }
 
 #[test]

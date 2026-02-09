@@ -86,13 +86,7 @@ impl Check for AgentsCheck {
         // Build metrics
         let files_found: Vec<String> = detected
             .iter()
-            .map(|f| {
-                f.path
-                    .strip_prefix(ctx.root)
-                    .unwrap_or(&f.path)
-                    .to_string_lossy()
-                    .to_string()
-            })
+            .map(|f| f.path.strip_prefix(ctx.root).unwrap_or(&f.path).to_string_lossy().to_string())
             .collect();
 
         // Update in_sync metric based on whether we fixed things
@@ -133,11 +127,7 @@ fn check_required_files(
     files_missing: &mut Vec<String>,
 ) {
     // Get effective requirements for root scope
-    let required = if let Some(ref root) = config.root {
-        &root.required
-    } else {
-        &config.required
-    };
+    let required = if let Some(ref root) = config.root { &root.required } else { &config.required };
 
     // Count root-scope detected files
     let root_files: Vec<_> = detected.iter().filter(|f| f.scope == Scope::Root).collect();
@@ -159,10 +149,7 @@ fn check_required_files(
             violations.push(Violation::file_only(
                 filename,
                 "missing_file",
-                format!(
-                    "Required agent file '{}' not found at project root",
-                    filename
-                ),
+                format!("Required agent file '{}' not found at project root", filename),
             ));
         }
     }
@@ -176,20 +163,13 @@ fn check_forbidden_files(
     violations: &mut Vec<Violation>,
 ) {
     // Get effective forbid list for root scope
-    let forbid = if let Some(ref root) = config.root {
-        &root.forbid
-    } else {
-        &config.forbid
-    };
+    let forbid = if let Some(ref root) = config.root { &root.forbid } else { &config.forbid };
 
     for filename in forbid {
         // Check if this forbidden file was detected at root scope
         let found_at_root = detected.iter().any(|f| {
             f.scope == Scope::Root
-                && f.path
-                    .file_name()
-                    .map(|n| n.to_string_lossy() == *filename)
-                    .unwrap_or(false)
+                && f.path.file_name().map(|n| n.to_string_lossy() == *filename).unwrap_or(false)
         });
 
         // Also do a direct check in case it wasn't in the detection patterns
@@ -238,11 +218,7 @@ struct SyncPreview {
 
 impl FixSummary {
     fn add_sync(&mut self, file: String, source: String, sections: usize) {
-        self.files_synced.push(SyncedFile {
-            file,
-            source,
-            sections,
-        });
+        self.files_synced.push(SyncedFile { file, source, sections });
     }
 
     fn add_preview(
@@ -253,13 +229,7 @@ impl FixSummary {
         new_content: String,
         sections: usize,
     ) {
-        self.previews.push(SyncPreview {
-            file,
-            source,
-            old_content,
-            new_content,
-            sections,
-        });
+        self.previews.push(SyncPreview { file, source, old_content, new_content, sections });
     }
 
     fn is_empty(&self) -> bool {
@@ -305,23 +275,17 @@ fn check_sync(
     }
 
     // Determine sync source (first in files list, or explicit sync_from)
-    let source_name = config
-        .sync_from
-        .as_ref()
-        .or_else(|| config.files.first())
-        .map(|s| s.as_str());
+    let source_name =
+        config.sync_from.as_ref().or_else(|| config.files.first()).map(|s| s.as_str());
 
     let Some(source_name) = source_name else {
         return true;
     };
 
     // Find source file in detected
-    let source_file = root_files.iter().find(|f| {
-        f.path
-            .file_name()
-            .map(|n| n.to_string_lossy() == source_name)
-            .unwrap_or(false)
-    });
+    let source_file = root_files
+        .iter()
+        .find(|f| f.path.file_name().map(|n| n.to_string_lossy() == source_name).unwrap_or(false));
 
     let Some(source_file) = source_file else {
         return true; // Source not present, nothing to sync
@@ -380,11 +344,7 @@ fn check_sync(
                 // Use heading if available, otherwise section name, "(preamble)" for empty
                 let section_display = |heading: Option<&str>, section: &str| -> String {
                     if let Some(h) = heading {
-                        if h.is_empty() {
-                            "(preamble)".to_string()
-                        } else {
-                            h.to_string()
-                        }
+                        if h.is_empty() { "(preamble)".to_string() } else { h.to_string() }
                     } else if section.is_empty() {
                         "(preamble)".to_string()
                     } else {
@@ -415,11 +375,7 @@ fn check_sync(
                 let violation = Violation::file_only(&target_name, "out_of_sync", advice)
                     .with_sync(
                         source_name,
-                        if diff.section.is_empty() {
-                            "(preamble)"
-                        } else {
-                            &diff.section
-                        },
+                        if diff.section.is_empty() { "(preamble)" } else { &diff.section },
                     );
 
                 violations.push(violation);
@@ -432,11 +388,7 @@ fn check_sync(
 
 /// Get the relative path of a detected file from the project root.
 fn relative_path(root: &std::path::Path, file: &DetectedFile) -> String {
-    file.path
-        .strip_prefix(root)
-        .unwrap_or(&file.path)
-        .to_string_lossy()
-        .to_string()
+    file.path.strip_prefix(root).unwrap_or(&file.path).to_string_lossy().to_string()
 }
 
 /// Generate a human-readable location prefix for an agent file.
@@ -446,11 +398,8 @@ fn relative_path(root: &std::path::Path, file: &DetectedFile) -> String {
 /// - "In a package-level file (e.g. crates/**/CLAUDE.md)" for package files
 /// - "In a folder-level file (e.g. src/**/CLAUDE.md)" for nested module files
 fn location_prefix(file: &DetectedFile) -> String {
-    let filename = file
-        .path
-        .file_name()
-        .map(|n| n.to_string_lossy().to_string())
-        .unwrap_or_default();
+    let filename =
+        file.path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
 
     match &file.scope {
         Scope::Root => format!("In the root {}", filename),
@@ -492,10 +441,7 @@ fn check_sections(
         // Generate violations for missing required sections
         for missing in validation.missing {
             let advice = if let Some(ref section_advice) = missing.advice {
-                format!(
-                    "{}, add a \"## {}\" section: {}",
-                    location, missing.name, section_advice
-                )
+                format!("{}, add a \"## {}\" section: {}", location, missing.name, section_advice)
             } else {
                 format!("{}, add a \"## {}\" section", location, missing.name)
             };
@@ -545,9 +491,8 @@ fn check_content(
         // Check content rules
         if config.tables == ContentRule::Forbid {
             for issue in detect_tables(&content) {
-                let advice = issue
-                    .content_type
-                    .advice_with_alternatives(mermaid_allowed, box_allowed);
+                let advice =
+                    issue.content_type.advice_with_alternatives(mermaid_allowed, box_allowed);
                 violations.push(Violation::file(
                     &rel_path,
                     issue.line,
@@ -559,9 +504,8 @@ fn check_content(
 
         if config.box_diagrams == ContentRule::Forbid {
             for issue in detect_box_diagrams(&content) {
-                let advice = issue
-                    .content_type
-                    .advice_with_alternatives(mermaid_allowed, box_allowed);
+                let advice =
+                    issue.content_type.advice_with_alternatives(mermaid_allowed, box_allowed);
                 violations.push(Violation::file(
                     &rel_path,
                     issue.line,
@@ -573,9 +517,8 @@ fn check_content(
 
         if config.mermaid == ContentRule::Forbid {
             for issue in detect_mermaid_blocks(&content) {
-                let advice = issue
-                    .content_type
-                    .advice_with_alternatives(mermaid_allowed, box_allowed);
+                let advice =
+                    issue.content_type.advice_with_alternatives(mermaid_allowed, box_allowed);
                 violations.push(Violation::file(
                     &rel_path,
                     issue.line,
@@ -596,9 +539,7 @@ fn check_content(
                     format!(
                         "{}, {}",
                         location,
-                        violation
-                            .limit_type
-                            .advice_lowercase(violation.value, violation.threshold)
+                        violation.limit_type.advice_lowercase(violation.value, violation.threshold)
                     ),
                 )
                 .with_threshold(violation.value as i64, violation.threshold as i64),
@@ -615,9 +556,7 @@ fn check_content(
                     format!(
                         "{}, {}",
                         location,
-                        violation
-                            .limit_type
-                            .advice_lowercase(violation.value, violation.threshold)
+                        violation.limit_type.advice_lowercase(violation.value, violation.threshold)
                     ),
                 )
                 .with_threshold(violation.value as i64, violation.threshold as i64),
@@ -666,13 +605,7 @@ fn check_cursor_reconciliation(
             .to_string();
 
         if ctx.dry_run {
-            fixes.add_preview(
-                target,
-                "cursor_reconcile".to_string(),
-                String::new(),
-                rf.content,
-                1,
-            );
+            fixes.add_preview(target, "cursor_reconcile".to_string(), String::new(), rf.content, 1);
         } else {
             fixes.add_sync(target, "cursor_reconcile".to_string(), 1);
         }
@@ -690,9 +623,7 @@ fn get_scope_limits(config: &AgentsConfig, scope: &Scope) -> (Option<usize>, Opt
     // Scope config overrides top-level, top-level provides defaults
     let max_lines = scope_config.and_then(|s| s.max_lines).or(config.max_lines);
 
-    let max_tokens = scope_config
-        .and_then(|s| s.max_tokens)
-        .or(config.max_tokens);
+    let max_tokens = scope_config.and_then(|s| s.max_tokens).or(config.max_tokens);
 
     (max_lines, max_tokens)
 }

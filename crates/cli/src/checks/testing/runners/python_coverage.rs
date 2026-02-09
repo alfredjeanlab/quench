@@ -70,11 +70,7 @@ pub fn collect_python_coverage(root: &Path, test_path: Option<&str>) -> Coverage
 
     // Determine source directory for coverage
     // Default to "src" if it exists, otherwise use project root
-    let source_dir = if root.join("src").is_dir() {
-        "src"
-    } else {
-        "."
-    };
+    let source_dir = if root.join("src").is_dir() { "src" } else { "." };
 
     // Try pytest-cov first (preferred)
     if pytest_cov_available() {
@@ -369,11 +365,9 @@ pub(crate) fn parse_cobertura_xml(xml: &str, duration: Duration) -> CoverageResu
 
     // Parse class elements for per-file coverage
     for class_start in xml.match_indices("<class ").map(|(i, _)| i) {
-        let class_end = xml[class_start..].find("/>").or_else(|| {
-            xml[class_start..]
-                .find("</class>")
-                .map(|i| i + "</class>".len())
-        });
+        let class_end = xml[class_start..]
+            .find("/>")
+            .or_else(|| xml[class_start..].find("</class>").map(|i| i + "</class>".len()));
 
         if let Some(end_offset) = class_end {
             let class_xml = &xml[class_start..class_start + end_offset];
@@ -401,14 +395,7 @@ pub(crate) fn parse_cobertura_xml(xml: &str, duration: Duration) -> CoverageResu
         })
         .collect();
 
-    CoverageResult {
-        success: true,
-        error: None,
-        duration,
-        line_coverage,
-        files,
-        packages,
-    }
+    CoverageResult { success: true, error: None, duration, line_coverage, files, packages }
 }
 
 /// Extract an attribute value from an XML element string.

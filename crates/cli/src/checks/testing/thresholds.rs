@@ -123,12 +123,9 @@ pub fn check_time_thresholds(
                 "Test '{}' took {}ms, exceeds max_test {}ms",
                 test_name, max_ms, threshold_ms
             );
-            let v = Violation::file_only(
-                format!("<test:{}>", test_name),
-                "time_test_exceeded",
-                advice,
-            )
-            .with_threshold(max_ms as i64, threshold_ms as i64);
+            let v =
+                Violation::file_only(format!("<test:{}>", test_name), "time_test_exceeded", advice)
+                    .with_threshold(max_ms as i64, threshold_ms as i64);
             violations.push((v, is_error));
         }
     }

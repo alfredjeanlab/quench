@@ -72,14 +72,7 @@ fn parse_nolint_line(line: &str) -> Option<ParsedNolint> {
     let (codes_part, inline_comment) = if let Some(comment_pos) = rest.find(" //") {
         let codes = &rest[..comment_pos];
         let comment = rest[comment_pos + 3..].trim();
-        (
-            codes,
-            if comment.is_empty() {
-                None
-            } else {
-                Some(comment.to_string())
-            },
-        )
+        (codes, if comment.is_empty() { None } else { Some(comment.to_string()) })
     } else {
         (rest, None)
     };
@@ -95,11 +88,7 @@ fn parse_nolint_line(line: &str) -> Option<ParsedNolint> {
         Vec::new()
     };
 
-    Some(ParsedNolint {
-        codes,
-        has_inline_comment: inline_comment.is_some(),
-        inline_comment,
-    })
+    Some(ParsedNolint { codes, has_inline_comment: inline_comment.is_some(), inline_comment })
 }
 
 #[cfg(test)]

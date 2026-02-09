@@ -214,9 +214,7 @@ pub fn save_to_git_notes(root: &Path, content: &str) -> anyhow::Result<()> {
         .peel_to_commit()
         .context("HEAD is not a commit")?;
 
-    let sig = repo
-        .signature()
-        .or_else(|_| git2::Signature::now("quench", "quench@local"))?;
+    let sig = repo.signature().or_else(|_| git2::Signature::now("quench", "quench@local"))?;
 
     // Get or create notes ref
     let notes_ref = "refs/notes/quench";

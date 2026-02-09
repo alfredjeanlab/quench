@@ -118,11 +118,7 @@ pub fn resolve_js_targets(
         let bundles = scan_bundle_files(&output_dir);
         return bundles
             .into_iter()
-            .filter_map(|p| {
-                p.strip_prefix(root)
-                    .ok()
-                    .map(|rel| rel.to_string_lossy().into_owned())
-            })
+            .filter_map(|p| p.strip_prefix(root).ok().map(|rel| rel.to_string_lossy().into_owned()))
             .collect();
     }
 

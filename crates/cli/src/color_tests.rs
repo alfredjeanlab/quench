@@ -131,10 +131,7 @@ fn find_description_start_with_two_spaces() {
 #[test]
 fn find_description_start_with_many_spaces() {
     assert_eq!(find_description_start("cmd     desc"), Some(3));
-    assert_eq!(
-        find_description_start("quench check --all   List all"),
-        Some(18)
-    );
+    assert_eq!(find_description_start("quench check --all   List all"), Some(18));
 }
 
 #[test]
@@ -343,10 +340,7 @@ key = \"value\"
 
 More prose.";
     let result = format_guide(input, false);
-    assert_eq!(
-        result, input,
-        "colorize=false should return input unchanged"
-    );
+    assert_eq!(result, input, "colorize=false should return input unchanged");
 }
 
 #[test]
@@ -385,10 +379,7 @@ fn guide_empty_input() {
 #[test]
 fn find_toml_comment_trailing() {
     assert_eq!(find_toml_comment("flag = true  # comment"), Some(11));
-    assert_eq!(
-        find_toml_comment(r#"allow = ["dead_code"]     # No comment needed"#),
-        Some(21)
-    );
+    assert_eq!(find_toml_comment(r#"allow = ["dead_code"]     # No comment needed"#), Some(21));
 }
 
 #[test]

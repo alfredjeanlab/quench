@@ -15,10 +15,7 @@ fn config_error_display() {
 
 #[test]
 fn exit_code_from_config_error() {
-    let err = Error::Config {
-        message: "test".into(),
-        path: None,
-    };
+    let err = Error::Config { message: "test".into(), path: None };
     assert_eq!(ExitCode::from(&err), ExitCode::ConfigError);
 }
 

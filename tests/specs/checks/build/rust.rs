@@ -47,19 +47,12 @@ path = "src/main.rs"
         .output()
         .expect("cargo build should succeed");
 
-    let result = check("build")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .passes();
+    let result = check("build").pwd(temp.path()).args(&["--ci"]).json().passes();
 
     let metrics = result.require("metrics");
     let size = metrics.get("size").and_then(|v| v.as_object());
     assert!(size.is_some(), "should have size metrics");
-    assert!(
-        size.unwrap().contains_key("myapp"),
-        "should detect myapp target"
-    );
+    assert!(size.unwrap().contains_key("myapp"), "should detect myapp target");
 }
 
 /// Spec: docs/specs/checks/build.md#targets
@@ -92,19 +85,12 @@ edition = "2021"
         .output()
         .expect("cargo build should succeed");
 
-    let result = check("build")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .passes();
+    let result = check("build").pwd(temp.path()).args(&["--ci"]).json().passes();
 
     let metrics = result.require("metrics");
     let size = metrics.get("size").and_then(|v| v.as_object());
     assert!(size.is_some(), "should have size metrics");
-    assert!(
-        size.unwrap().contains_key("defaultbin"),
-        "should detect defaultbin from package name"
-    );
+    assert!(size.unwrap().contains_key("defaultbin"), "should detect defaultbin from package name");
 }
 
 /// Spec: docs/specs/checks/build.md#targets
@@ -146,21 +132,14 @@ path = "src/bin/myserver.rs"
         .output()
         .expect("cargo build should succeed");
 
-    let result = check("build")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .passes();
+    let result = check("build").pwd(temp.path()).args(&["--ci"]).json().passes();
 
     let metrics = result.require("metrics");
     let size = metrics.get("size").and_then(|v| v.as_object());
     assert!(size.is_some(), "should have size metrics");
     let size_obj = size.unwrap();
     assert!(size_obj.contains_key("myapp"), "should detect myapp target");
-    assert!(
-        size_obj.contains_key("myserver"),
-        "should detect myserver target"
-    );
+    assert!(size_obj.contains_key("myserver"), "should detect myserver target");
 }
 
 // =============================================================================
@@ -197,17 +176,10 @@ edition = "2021"
         .output()
         .expect("cargo build should succeed");
 
-    let result = check("build")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .passes();
+    let result = check("build").pwd(temp.path()).args(&["--ci"]).json().passes();
 
     let metrics = result.require("metrics");
-    let size = metrics
-        .get("size")
-        .and_then(|v| v.get("sizetest"))
-        .and_then(|v| v.as_u64());
+    let size = metrics.get("size").and_then(|v| v.get("sizetest")).and_then(|v| v.as_u64());
 
     assert!(size.is_some(), "should measure binary size");
     assert!(size.unwrap() > 0, "size should be non-zero");
@@ -242,11 +214,7 @@ edition = "2021"
         .output()
         .expect("cargo build should succeed");
 
-    let result = check("build")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .passes();
+    let result = check("build").pwd(temp.path()).args(&["--ci"]).json().passes();
 
     let metrics = result.require("metrics");
 
@@ -288,11 +256,7 @@ edition = "2021"
         .output()
         .expect("cargo build should succeed");
 
-    let result = check("build")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .passes();
+    let result = check("build").pwd(temp.path()).args(&["--ci"]).json().passes();
 
     // Without release binary, check returns stub (no metrics) or empty size metrics
     let metrics = result.get("metrics");
@@ -307,10 +271,7 @@ edition = "2021"
             // (since only debug was built, not release)
             assert!(
                 !size_obj.contains_key("releasetest")
-                    || size_obj
-                        .get("releasetest")
-                        .and_then(|v| v.as_u64())
-                        .is_none(),
+                    || size_obj.get("releasetest").and_then(|v| v.as_u64()).is_none(),
                 "should not measure debug binary"
             );
         }
@@ -353,21 +314,14 @@ edition = "2021"
         .output()
         .expect("build should succeed");
 
-    let result = check("build")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .fails();
+    let result = check("build").pwd(temp.path()).args(&["--ci"]).json().fails();
 
     assert!(result.has_violation("size_exceeded"));
 
     let v = result.require_violation("size_exceeded");
     assert!(v.get("target").is_some(), "violation should include target");
     assert!(v.get("value").is_some(), "violation should include value");
-    assert!(
-        v.get("threshold").is_some(),
-        "violation should include threshold"
-    );
+    assert!(v.get("threshold").is_some(), "violation should include threshold");
 }
 
 /// Spec: docs/specs/checks/build.md#configuration
@@ -400,16 +354,9 @@ edition = "2021"
         .output()
         .expect("build should succeed");
 
-    let result = check("build")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .passes();
+    let result = check("build").pwd(temp.path()).args(&["--ci"]).json().passes();
 
-    assert!(
-        !result.has_violation("size_exceeded"),
-        "should not have size violation"
-    );
+    assert!(!result.has_violation("size_exceeded"), "should not have size violation");
 }
 
 /// Spec: docs/specs/checks/build.md#configuration
@@ -445,16 +392,9 @@ edition = "2021"
         .output()
         .expect("build should succeed");
 
-    let result = check("build")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .fails();
+    let result = check("build").pwd(temp.path()).args(&["--ci"]).json().fails();
 
-    assert!(
-        result.has_violation("size_exceeded"),
-        "per-target threshold should trigger violation"
-    );
+    assert!(result.has_violation("size_exceeded"), "per-target threshold should trigger violation");
 }
 
 // =============================================================================
@@ -488,19 +428,12 @@ edition = "2021"
     );
     temp.file("src/main.rs", "fn main() {}");
 
-    let result = check("build")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .passes();
+    let result = check("build").pwd(temp.path()).args(&["--ci"]).json().passes();
 
     let metrics = result.require("metrics");
     let time = metrics.get("time").and_then(|v| v.as_object());
     assert!(time.is_some(), "should have time metrics");
-    assert!(
-        time.unwrap().get("cold").is_some(),
-        "should have cold build time"
-    );
+    assert!(time.unwrap().get("cold").is_some(), "should have cold build time");
 }
 
 /// Spec: docs/specs/checks/build.md#metrics
@@ -537,19 +470,12 @@ edition = "2021"
         .output()
         .expect("cargo build should succeed");
 
-    let result = check("build")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .passes();
+    let result = check("build").pwd(temp.path()).args(&["--ci"]).json().passes();
 
     let metrics = result.require("metrics");
     let time = metrics.get("time").and_then(|v| v.as_object());
     assert!(time.is_some(), "should have time metrics");
-    assert!(
-        time.unwrap().get("hot").is_some(),
-        "should have hot build time"
-    );
+    assert!(time.unwrap().get("hot").is_some(), "should have hot build time");
 }
 
 /// Spec: docs/specs/checks/build.md#configuration
@@ -579,11 +505,7 @@ edition = "2021"
     );
     temp.file("src/main.rs", "fn main() {}");
 
-    let result = check("build")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .fails();
+    let result = check("build").pwd(temp.path()).args(&["--ci"]).json().fails();
 
     assert!(result.has_violation("time_cold_exceeded"));
 }
@@ -622,11 +544,7 @@ edition = "2021"
         .output()
         .expect("cargo build should succeed");
 
-    let result = check("build")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .fails();
+    let result = check("build").pwd(temp.path()).args(&["--ci"]).json().fails();
 
     assert!(result.has_violation("time_hot_exceeded"));
 }
@@ -665,17 +583,10 @@ edition = "2021"
         .output()
         .expect("build should succeed");
 
-    let result = check("build")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .fails();
+    let result = check("build").pwd(temp.path()).args(&["--ci"]).json().fails();
 
     let v = result.require_violation("size_exceeded");
-    assert_eq!(
-        v.get("type").and_then(|v| v.as_str()),
-        Some("size_exceeded")
-    );
+    assert_eq!(v.get("type").and_then(|v| v.as_str()), Some("size_exceeded"));
 }
 
 /// Spec: docs/specs/checks/build.md#json-output
@@ -702,11 +613,7 @@ edition = "2021"
     );
     temp.file("src/lib.rs", "pub fn foo() {}");
 
-    let result = check("build")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .fails();
+    let result = check("build").pwd(temp.path()).args(&["--ci"]).json().fails();
 
     assert!(result.has_violation("missing_target"));
 }
@@ -778,11 +685,7 @@ edition = "2021"
         .output()
         .expect("cargo build should succeed");
 
-    let result = check("build")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .passes();
+    let result = check("build").pwd(temp.path()).args(&["--ci"]).json().passes();
 
     let metrics = result.get("metrics");
     assert!(
@@ -825,18 +728,11 @@ edition = "2021"
         .output()
         .expect("build should succeed");
 
-    let result = check("build")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .fails();
+    let result = check("build").pwd(temp.path()).args(&["--ci"]).json().fails();
 
     let v = result.require_violation("size_exceeded");
     let advice = v.get("advice").and_then(|a| a.as_str()).unwrap();
-    assert_eq!(
-        advice,
-        "Reduce binary size. Check for unnecessary dependencies."
-    );
+    assert_eq!(advice, "Reduce binary size. Check for unnecessary dependencies.");
 }
 
 // =============================================================================
@@ -920,24 +816,14 @@ path = "src/bin/app2.rs"
         .output()
         .expect("build should succeed");
 
-    let result = check("build")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .passes();
+    let result = check("build").pwd(temp.path()).args(&["--ci"]).json().passes();
 
     let metrics = result.require("metrics");
     let size = metrics.get("size").and_then(|v| v.as_object()).unwrap();
 
     // Both targets should be present
-    assert!(
-        size.contains_key("app1"),
-        "should have app1 in per-target breakdown"
-    );
-    assert!(
-        size.contains_key("app2"),
-        "should have app2 in per-target breakdown"
-    );
+    assert!(size.contains_key("app1"), "should have app1 in per-target breakdown");
+    assert!(size.contains_key("app2"), "should have app2 in per-target breakdown");
 
     // Both should have non-zero sizes
     assert!(size.get("app1").and_then(|v| v.as_u64()).unwrap() > 0);
@@ -973,11 +859,7 @@ edition = "2021"
         .output()
         .expect("cargo build should succeed");
 
-    let result = check("build")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .passes();
+    let result = check("build").pwd(temp.path()).args(&["--ci"]).json().passes();
 
     let metrics = result.require("metrics");
 

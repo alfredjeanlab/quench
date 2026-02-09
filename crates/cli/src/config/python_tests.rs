@@ -17,55 +17,23 @@ fn python_config_defaults() {
     assert!(config.python.tests.contains(&"tests/**/*.py".to_string()));
     assert!(config.python.tests.contains(&"**/conftest.py".to_string()));
     assert!(config.python.exclude.contains(&".venv/**".to_string()));
-    assert!(
-        config
-            .python
-            .exclude
-            .contains(&"__pycache__/**".to_string())
-    );
+    assert!(config.python.exclude.contains(&"__pycache__/**".to_string()));
 }
 
 #[test]
 fn python_suppress_defaults() {
     let config = parse_config("version = 1\n");
     assert_eq!(config.python.suppress.check, SuppressLevel::Comment);
-    assert_eq!(
-        config.python.suppress.test.check,
-        Some(SuppressLevel::Allow)
-    );
+    assert_eq!(config.python.suppress.test.check, Some(SuppressLevel::Allow));
 }
 
 #[test]
 fn python_policy_defaults() {
     let config = parse_config("version = 1\n");
-    assert!(
-        config
-            .python
-            .policy
-            .lint_config
-            .contains(&"ruff.toml".to_string())
-    );
-    assert!(
-        config
-            .python
-            .policy
-            .lint_config
-            .contains(&"pyproject.toml".to_string())
-    );
-    assert!(
-        config
-            .python
-            .policy
-            .lint_config
-            .contains(&".flake8".to_string())
-    );
-    assert!(
-        config
-            .python
-            .policy
-            .lint_config
-            .contains(&"mypy.ini".to_string())
-    );
+    assert!(config.python.policy.lint_config.contains(&"ruff.toml".to_string()));
+    assert!(config.python.policy.lint_config.contains(&"pyproject.toml".to_string()));
+    assert!(config.python.policy.lint_config.contains(&".flake8".to_string()));
+    assert!(config.python.policy.lint_config.contains(&"mypy.ini".to_string()));
 }
 
 #[test]

@@ -28,11 +28,7 @@ fn auto_detected_when_go_mod_present() {
     let checks = result.checks();
 
     // escapes check should have Go-specific patterns active
-    assert!(
-        checks
-            .iter()
-            .any(|c| c.get("name").and_then(|n| n.as_str()) == Some("escapes"))
-    );
+    assert!(checks.iter().any(|c| c.get("name").and_then(|n| n.as_str()) == Some("escapes")));
 }
 
 // =============================================================================
@@ -48,10 +44,7 @@ fn default_source_pattern_matches_go_files() {
     let metrics = cloc.require("metrics");
 
     // Should count .go files as source
-    let source_lines = metrics
-        .get("source_lines")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(0);
+    let source_lines = metrics.get("source_lines").and_then(|v| v.as_u64()).unwrap_or(0);
     assert!(source_lines > 0, "should count .go files as source");
 }
 
@@ -64,10 +57,7 @@ fn default_test_pattern_matches_test_files() {
     let metrics = cloc.require("metrics");
 
     // Should count *_test.go files as test
-    let test_lines = metrics
-        .get("test_lines")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(0);
+    let test_lines = metrics.get("test_lines").and_then(|v| v.as_u64()).unwrap_or(0);
     assert!(test_lines > 0, "should count *_test.go files as test");
 }
 
@@ -80,10 +70,7 @@ fn default_ignores_vendor_directory() {
     let metrics = cloc.require("metrics");
 
     // vendor/ files should not be counted
-    let source_lines = metrics
-        .get("source_lines")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(0);
+    let source_lines = metrics.get("source_lines").and_then(|v| v.as_u64()).unwrap_or(0);
 
     // Only main.go should be counted (not vendor/dep/dep.go)
     // main.go has ~5 lines, vendor/dep/dep.go also has ~5 lines
@@ -100,10 +87,7 @@ fn custom_exclude_patterns_respected() {
     let metrics = cloc.require("metrics");
 
     // Only main.go should be counted (not vendor/dep.go)
-    let source_lines = metrics
-        .get("source_lines")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(0);
+    let source_lines = metrics.get("source_lines").and_then(|v| v.as_u64()).unwrap_or(0);
     assert!(
         source_lines < 20,
         "vendor/ should be excluded via config, got {} source lines",
@@ -124,11 +108,7 @@ fn detects_module_name_from_go_mod() {
     let checks = result.checks();
 
     // Module name should be detected and available in check context
-    assert!(
-        checks
-            .iter()
-            .any(|c| c.get("name").and_then(|n| n.as_str()) == Some("escapes"))
-    );
+    assert!(checks.iter().any(|c| c.get("name").and_then(|n| n.as_str()) == Some("escapes")));
 }
 
 /// Spec: docs/specs/langs/golang.md#detection
@@ -140,11 +120,7 @@ fn detects_packages_from_directory_structure() {
     let checks = result.checks();
 
     // Should detect packages from directory structure
-    assert!(
-        checks
-            .iter()
-            .any(|c| c.get("name").and_then(|n| n.as_str()) == Some("escapes"))
-    );
+    assert!(checks.iter().any(|c| c.get("name").and_then(|n| n.as_str()) == Some("escapes")));
 }
 
 // =============================================================================
@@ -296,10 +272,7 @@ fn nolint_with_custom_pattern_passes() {
 /// > comment = "// OK:" requires that specific pattern
 #[test]
 fn nolint_without_custom_pattern_fails() {
-    check("escapes")
-        .on("golang/nolint-custom-pattern-fail")
-        .fails()
-        .stdout_has("// OK:");
+    check("escapes").on("golang/nolint-custom-pattern-fail").fails().stdout_has("// OK:");
 }
 
 // =============================================================================
@@ -325,11 +298,7 @@ lint_config = [".golangci.yml"]
     temp.file("go.mod", "module example.com/test\n\ngo 1.21\n");
 
     // Initialize git repo
-    std::process::Command::new("git")
-        .args(["init"])
-        .current_dir(temp.path())
-        .output()
-        .unwrap();
+    std::process::Command::new("git").args(["init"]).current_dir(temp.path()).output().unwrap();
 
     std::process::Command::new("git")
         .args(["config", "user.email", "test@test.com"])
@@ -360,10 +329,7 @@ lint_config = [".golangci.yml"]
 
     // Add both lint config and source changes
     temp.file(".golangci.yml", "linters:\n  enable:\n    - errcheck\n");
-    temp.file(
-        "main.go",
-        "package main\n\nfunc main() {}\nfunc helper() {}\n",
-    );
+    temp.file("main.go", "package main\n\nfunc main() {}\nfunc helper() {}\n");
 
     std::process::Command::new("git")
         .args(["add", "-A"])
@@ -399,11 +365,7 @@ lint_config = [".golangci.yml"]
     temp.file("go.mod", "module example.com/test\n\ngo 1.21\n");
 
     // Initialize git repo
-    std::process::Command::new("git")
-        .args(["init"])
-        .current_dir(temp.path())
-        .output()
-        .unwrap();
+    std::process::Command::new("git").args(["init"]).current_dir(temp.path()).output().unwrap();
 
     std::process::Command::new("git")
         .args(["config", "user.email", "test@test.com"])
@@ -442,10 +404,7 @@ lint_config = [".golangci.yml"]
         .unwrap();
 
     // Should pass - only lint config changed
-    check("escapes")
-        .pwd(temp.path())
-        .args(&["--base", "HEAD"])
-        .passes();
+    check("escapes").pwd(temp.path()).args(&["--base", "HEAD"]).passes();
 }
 
 // =============================================================================
@@ -473,14 +432,11 @@ fn exact_go_simple_cloc_json() {
 /// Spec: Go escape violation text output format
 #[test]
 fn exact_unsafe_pointer_fail_text() {
-    check("escapes")
-        .on("golang/unsafe-pointer-fail")
-        .fails()
-        .stdout_eq(
-            r###"escapes: FAIL
+    check("escapes").on("golang/unsafe-pointer-fail").fails().stdout_eq(
+        r###"escapes: FAIL
   main.go:7: missing_comment: unsafe_pointer
     Add a // SAFETY: comment explaining pointer validity.
 FAIL: escapes
 "###,
-        );
+    );
 }

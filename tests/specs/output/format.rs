@@ -106,10 +106,7 @@ fn json_output_validates_against_schema() {
     let schema: serde_json::Value = serde_json::from_str(&schema_str).unwrap();
 
     let compiled = jsonschema::validator_for(&schema).expect("schema should be valid");
-    assert!(
-        compiled.is_valid(json),
-        "output should validate against schema"
-    );
+    assert!(compiled.is_valid(json), "output should validate against schema");
 }
 
 /// Spec: docs/specs/03-output.md#json-format
@@ -133,17 +130,12 @@ fn json_output_timestamp_iso8601() {
     let result = cli().pwd(temp.path()).args(&["--no-git"]).json().passes();
     let json = result.value();
 
-    let ts = json
-        .get("timestamp")
-        .and_then(|v| v.as_str())
-        .expect("should have timestamp");
+    let ts = json.get("timestamp").and_then(|v| v.as_str()).expect("should have timestamp");
 
     // ISO 8601 format: YYYY-MM-DDTHH:MM:SSZ (e.g., 2026-01-21T10:30:00Z)
     assert_eq!(ts.len(), 20, "timestamp should be exactly 20 chars: {}", ts);
     assert!(
-        predicates::str::is_match(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
-            .unwrap()
-            .eval(ts),
+        predicates::str::is_match(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$").unwrap().eval(ts),
         "timestamp should match ISO 8601: {}",
         ts
     );
@@ -170,14 +162,8 @@ fn json_output_violation_has_required_fields() {
     for check in result.checks() {
         if let Some(violations) = check.get("violations").and_then(|v| v.as_array()) {
             for violation in violations {
-                assert!(
-                    violation.get("type").is_some(),
-                    "violation should have 'type'"
-                );
-                assert!(
-                    violation.get("advice").is_some(),
-                    "violation should have 'advice'"
-                );
+                assert!(violation.get("type").is_some(), "violation should have 'type'");
+                assert!(violation.get("advice").is_some(), "violation should have 'advice'");
             }
         }
     }
@@ -240,11 +226,7 @@ fn exit_codes_are_exactly_0_1_2_3() {
 #[test]
 fn color_disabled_when_claude_code_env_set() {
     // No ANSI escape codes in output
-    cli()
-        .on("output-test")
-        .env("CLAUDE_CODE", "1")
-        .exits(1)
-        .stdout_lacks("\x1b[");
+    cli().on("output-test").env("CLAUDE_CODE", "1").exits(1).stdout_lacks("\x1b[");
 }
 
 /// Spec: docs/specs/03-output.md#colorization
@@ -263,11 +245,7 @@ fn color_disabled_when_not_tty() {
 #[test]
 fn no_color_env_disables_color() {
     // No ANSI escape codes in output
-    cli()
-        .on("output-test")
-        .env("NO_COLOR", "1")
-        .exits(1)
-        .stdout_lacks("\x1b[");
+    cli().on("output-test").env("NO_COLOR", "1").exits(1).stdout_lacks("\x1b[");
 }
 
 /// Spec: docs/specs/03-output.md#colorization
@@ -277,11 +255,7 @@ fn no_color_env_disables_color() {
 fn color_env_forces_color() {
     // Note: This test runs in a non-TTY environment (piped stdout)
     // COLOR should force color output regardless
-    cli()
-        .on("output-test")
-        .env("COLOR", "1")
-        .exits(1)
-        .stdout_has("\x1b[");
+    cli().on("output-test").env("COLOR", "1").exits(1).stdout_has("\x1b[");
 }
 
 // =============================================================================
@@ -325,16 +299,10 @@ fn limit_n_shows_n_violations() {
 /// > Message shown when limit reached: "Stopped after N violations. Use --no-limit to see all."
 #[test]
 fn limit_message_when_truncated() {
-    cli()
-        .on("violations")
-        .args(&["--limit", "1"])
-        .exits(1)
-        .stdout_has(
-            predicates::str::is_match(
-                r"Stopped after \d+ violations?\. Use --no-limit to see all\.",
-            )
+    cli().on("violations").args(&["--limit", "1"]).exits(1).stdout_has(
+        predicates::str::is_match(r"Stopped after \d+ violations?\. Use --no-limit to see all\.")
             .unwrap(),
-        );
+    );
 }
 
 // =============================================================================
@@ -440,11 +408,7 @@ fn json_output_never_deduplicates_advice() {
         .expect("should have violations array");
 
     // Should have exactly 3 violations (one per oversized file)
-    assert_eq!(
-        violations.len(),
-        3,
-        "should have 3 file_too_large violations"
-    );
+    assert_eq!(violations.len(), 3, "should have 3 file_too_large violations");
 
     // Every violation must have non-empty advice in JSON output
     for violation in violations {
@@ -453,10 +417,7 @@ fn json_output_never_deduplicates_advice() {
             .and_then(|a| a.as_str())
             .expect("all violations in JSON should have advice field");
 
-        assert!(
-            !advice.is_empty(),
-            "advice should not be empty in JSON output"
-        );
+        assert!(!advice.is_empty(), "advice should not be empty in JSON output");
 
         // Verify it's the expected multi-line advice
         assert!(

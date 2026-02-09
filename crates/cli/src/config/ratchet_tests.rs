@@ -69,18 +69,9 @@ test_time_tolerance = "2s"
 "#,
     );
     assert_eq!(config.ratchet.coverage_tolerance_pct(), Some(2.5));
-    assert_eq!(
-        config.ratchet.binary_size_tolerance_bytes(),
-        Some(100 * 1024)
-    );
-    assert_eq!(
-        config.ratchet.build_time_tolerance_duration(),
-        Some(Duration::from_secs(5))
-    );
-    assert_eq!(
-        config.ratchet.test_time_tolerance_duration(),
-        Some(Duration::from_secs(2))
-    );
+    assert_eq!(config.ratchet.binary_size_tolerance_bytes(), Some(100 * 1024));
+    assert_eq!(config.ratchet.build_time_tolerance_duration(), Some(Duration::from_secs(5)));
+    assert_eq!(config.ratchet.test_time_tolerance_duration(), Some(Duration::from_secs(2)));
 }
 
 #[test]
@@ -93,10 +84,7 @@ build_time_tolerance = "10s"
 "#,
     );
     // test_time_tolerance not set, falls back to build_time_tolerance
-    assert_eq!(
-        config.ratchet.test_time_tolerance_duration(),
-        Some(Duration::from_secs(10))
-    );
+    assert_eq!(config.ratchet.test_time_tolerance_duration(), Some(Duration::from_secs(10)));
 }
 
 #[test]

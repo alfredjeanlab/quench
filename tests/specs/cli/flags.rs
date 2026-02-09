@@ -23,11 +23,7 @@ use crate::prelude::*;
 /// > -h shows help (short for --help)
 #[test]
 fn short_help_flag_works() {
-    quench_cmd()
-        .arg("-h")
-        .assert()
-        .success()
-        .stdout(predicates::str::contains("Usage:"));
+    quench_cmd().arg("-h").assert().success().stdout(predicates::str::contains("Usage:"));
 }
 
 /// Spec: docs/specs/01-cli.md#global-flags
@@ -94,18 +90,12 @@ fn check_output_json_format() {
     let temp = Project::empty();
     temp.config(MINIMAL_CONFIG);
 
-    let output = quench_cmd()
-        .args(["check", "-o", "json"])
-        .current_dir(temp.path())
-        .output()
-        .unwrap();
+    let output =
+        quench_cmd().args(["check", "-o", "json"]).current_dir(temp.path()).output().unwrap();
 
     let json: serde_json::Value =
         serde_json::from_slice(&output.stdout).expect("output should be valid JSON");
-    assert!(
-        json.get("passed").is_some(),
-        "JSON should have 'passed' field"
-    );
+    assert!(json.get("passed").is_some(), "JSON should have 'passed' field");
 }
 
 /// Spec: docs/specs/01-cli.md#output-flags

@@ -44,14 +44,9 @@ pub fn assert_buffered_matches_streamed<F: ReportFormatter>(
 ) {
     let buffered = formatter.format(baseline, filter).unwrap();
     let mut streamed = Vec::new();
-    formatter
-        .format_to(&mut streamed, baseline, filter)
-        .unwrap();
+    formatter.format_to(&mut streamed, baseline, filter).unwrap();
     let streamed_str = String::from_utf8(streamed).unwrap();
-    assert_eq!(
-        buffered, streamed_str,
-        "Buffered and streamed output should match"
-    );
+    assert_eq!(buffered, streamed_str, "Buffered and streamed output should match");
 }
 
 /// Create a standard test baseline with all metric types populated.
@@ -61,26 +56,16 @@ pub fn create_test_baseline() -> Baseline {
         updated: chrono::Utc::now(),
         commit: Some("abc1234".to_string()),
         metrics: BaselineMetrics {
-            coverage: Some(CoverageMetrics {
-                total: 85.5,
-                by_package: None,
-            }),
+            coverage: Some(CoverageMetrics { total: 85.5, by_package: None }),
             escapes: Some(EscapesMetrics {
                 source: [("unwrap".to_string(), 10), ("expect".to_string(), 5)]
                     .into_iter()
                     .collect(),
                 test: None,
             }),
-            build_time: Some(BuildTimeMetrics {
-                cold: 45.0,
-                hot: 12.5,
-            }),
+            build_time: Some(BuildTimeMetrics { cold: 45.0, hot: 12.5 }),
             binary_size: Some([("quench".to_string(), 5_242_880)].into_iter().collect()),
-            test_time: Some(TestTimeMetrics {
-                total: 30.5,
-                avg: 0.5,
-                max: 2.0,
-            }),
+            test_time: Some(TestTimeMetrics { total: 30.5, avg: 0.5, max: 2.0 }),
         },
     }
 }

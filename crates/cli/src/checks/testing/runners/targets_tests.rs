@@ -99,12 +99,7 @@ version = "0.1.0"
 
     let result = resolve_rust_binary("unknown", temp.path());
     assert!(result.is_err());
-    assert!(
-        result
-            .unwrap_err()
-            .message
-            .contains("not a Rust binary or glob pattern")
-    );
+    assert!(result.unwrap_err().message.contains("not a Rust binary or glob pattern"));
 }
 
 #[test]
@@ -141,12 +136,7 @@ fn resolve_shell_pattern_fails_for_no_matches() {
 
     let result = resolve_shell_pattern("nonexistent/*.sh", &config, temp.path());
     assert!(result.is_err());
-    assert!(
-        result
-            .unwrap_err()
-            .message
-            .contains("no shell scripts match")
-    );
+    assert!(result.unwrap_err().message.contains("no shell scripts match"));
 }
 
 #[test]
@@ -170,30 +160,18 @@ version = "0.1.0"
 
     // Binary target
     let binary_result = resolve_target("myapp", &config, temp.path());
-    assert!(matches!(
-        binary_result,
-        Ok(ResolvedTarget::RustBinary { .. })
-    ));
+    assert!(matches!(binary_result, Ok(ResolvedTarget::RustBinary { .. })));
 
     // Glob target
     let glob_result = resolve_target("scripts/*.sh", &config, temp.path());
-    assert!(matches!(
-        glob_result,
-        Ok(ResolvedTarget::ShellScripts { .. })
-    ));
+    assert!(matches!(glob_result, Ok(ResolvedTarget::ShellScripts { .. })));
 }
 
 #[test]
 fn rust_binary_names_extracts_names() {
     let targets = vec![
-        ResolvedTarget::RustBinary {
-            name: "app1".to_string(),
-            binary_path: None,
-        },
-        ResolvedTarget::ShellScripts {
-            pattern: "*.sh".to_string(),
-            files: vec![],
-        },
+        ResolvedTarget::RustBinary { name: "app1".to_string(), binary_path: None },
+        ResolvedTarget::ShellScripts { pattern: "*.sh".to_string(), files: vec![] },
         ResolvedTarget::RustBinary {
             name: "app2".to_string(),
             binary_path: Some(PathBuf::from("/path/to/app2")),
@@ -207,10 +185,7 @@ fn rust_binary_names_extracts_names() {
 #[test]
 fn shell_script_files_extracts_paths() {
     let targets = vec![
-        ResolvedTarget::RustBinary {
-            name: "app".to_string(),
-            binary_path: None,
-        },
+        ResolvedTarget::RustBinary { name: "app".to_string(), binary_path: None },
         ResolvedTarget::ShellScripts {
             pattern: "a/*.sh".to_string(),
             files: vec![PathBuf::from("a/one.sh"), PathBuf::from("a/two.sh")],
@@ -224,11 +199,7 @@ fn shell_script_files_extracts_paths() {
     let files = shell_script_files(&targets);
     assert_eq!(
         files,
-        vec![
-            PathBuf::from("a/one.sh"),
-            PathBuf::from("a/two.sh"),
-            PathBuf::from("b/three.sh"),
-        ]
+        vec![PathBuf::from("a/one.sh"), PathBuf::from("a/two.sh"), PathBuf::from("b/three.sh"),]
     );
 }
 

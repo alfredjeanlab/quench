@@ -242,10 +242,7 @@ impl Check for ClocCheck {
                         let adapter_name = registry.adapter_for(relative_path).name();
                         let lang_key = if adapter_name == "generic" {
                             // Fall back to file extension for per-language config lookup
-                            file.path
-                                .extension()
-                                .and_then(|e| e.to_str())
-                                .unwrap_or(adapter_name)
+                            file.path.extension().and_then(|e| e.to_str()).unwrap_or(adapter_name)
                         } else {
                             adapter_name
                         };
@@ -333,11 +330,7 @@ impl Check for ClocCheck {
         };
 
         // Calculate ratio
-        let ratio = if source_lines > 0 {
-            test_lines as f64 / source_lines as f64
-        } else {
-            0.0
-        };
+        let ratio = if source_lines > 0 { test_lines as f64 / source_lines as f64 } else { 0.0 };
 
         let result = result.with_metrics(json!({
             "source_lines": source_lines,
@@ -396,11 +389,7 @@ struct PackageMetrics {
 
 impl PackageMetrics {
     fn ratio(&self) -> f64 {
-        if self.source_lines > 0 {
-            self.test_lines as f64 / self.source_lines as f64
-        } else {
-            0.0
-        }
+        if self.source_lines > 0 { self.test_lines as f64 / self.source_lines as f64 } else { 0.0 }
     }
 }
 
@@ -432,9 +421,7 @@ struct ExcludeMatcher {
 impl ExcludeMatcher {
     /// Create a new exclude matcher from config patterns.
     fn new(exclude_patterns: &[String]) -> Self {
-        Self {
-            exclude_patterns: build_glob_set(exclude_patterns),
-        }
+        Self { exclude_patterns: build_glob_set(exclude_patterns) }
     }
 
     /// Check if a file should be excluded from violations.
@@ -523,11 +510,7 @@ fn create_inline_cfg_test_violation(
 /// Check if a file is a source code file (for LOC counting).
 /// Delegates to the shared `cloc` module's text extension check.
 fn is_text_file(path: &Path) -> bool {
-    let ext = path
-        .extension()
-        .and_then(|e| e.to_str())
-        .unwrap_or("")
-        .to_lowercase();
+    let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
 
     crate::cloc::is_text_extension(&ext)
 }
@@ -555,11 +538,7 @@ fn count_file_metrics(path: &Path) -> std::io::Result<FileMetrics> {
     let nonblank_lines = text.lines().filter(|l| !l.trim().is_empty()).count();
     let tokens = text.chars().count() / 4;
 
-    Ok(FileMetrics {
-        lines,
-        nonblank_lines,
-        tokens,
-    })
+    Ok(FileMetrics { lines, nonblank_lines, tokens })
 }
 
 #[cfg(test)]

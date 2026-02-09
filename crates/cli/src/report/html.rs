@@ -86,11 +86,7 @@ macro_rules! write_card {
 /// Write a table row inline.
 macro_rules! write_row {
     ($writer:expr, $metric:expr, $value:expr) => {
-        writeln!(
-            $writer,
-            r#"        <tr><td>{}</td><td>{}</td></tr>"#,
-            $metric, $value
-        )?;
+        writeln!($writer, r#"        <tr><td>{}</td><td>{}</td></tr>"#, $metric, $value)?;
     };
 }
 
@@ -126,12 +122,7 @@ macro_rules! write_html_report {
 
         // Write cards section
         if let Some(coverage) = $filtered.coverage() {
-            write_card!(
-                $writer,
-                "Coverage",
-                format!("{:.1}%", coverage.total),
-                "tests"
-            );
+            write_card!($writer, "Coverage", format!("{:.1}%", coverage.total), "tests");
         }
 
         if let Some(items) = $filtered.sorted_escapes() {
@@ -141,38 +132,18 @@ macro_rules! write_html_report {
         }
 
         if let Some(build) = $filtered.build_time() {
-            write_card!(
-                $writer,
-                "Build (cold)",
-                format!("{:.1}s", build.cold),
-                "build"
-            );
-            write_card!(
-                $writer,
-                "Build (hot)",
-                format!("{:.1}s", build.hot),
-                "build"
-            );
+            write_card!($writer, "Build (cold)", format!("{:.1}s", build.cold), "build");
+            write_card!($writer, "Build (hot)", format!("{:.1}s", build.hot), "build");
         }
 
         if let Some(items) = $filtered.sorted_binary_sizes() {
             for (name, size) in items {
-                write_card!(
-                    $writer,
-                    format!("Binary: {}", name),
-                    human_bytes(size),
-                    "build"
-                );
+                write_card!($writer, format!("Binary: {}", name), human_bytes(size), "build");
             }
         }
 
         if let Some(tests) = $filtered.test_time() {
-            write_card!(
-                $writer,
-                "Test Time",
-                format!("{:.1}s", tests.total),
-                "tests"
-            );
+            write_card!($writer, "Test Time", format!("{:.1}s", tests.total), "tests");
         }
 
         // Write table section header
@@ -192,11 +163,7 @@ macro_rules! write_html_report {
 
             if let Some(packages) = $filtered.sorted_package_coverage() {
                 for (name, pct) in packages {
-                    write_row!(
-                        $writer,
-                        format!("coverage.{}", name),
-                        format!("{:.1}%", pct)
-                    );
+                    write_row!($writer, format!("coverage.{}", name), format!("{:.1}%", pct));
                 }
             }
         }

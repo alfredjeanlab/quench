@@ -86,11 +86,8 @@ fn is_bundle_file_excludes_non_js() {
 #[test]
 fn has_build_script_true() {
     let dir = TempDir::new().unwrap();
-    std::fs::write(
-        dir.path().join("package.json"),
-        r#"{"scripts": {"build": "vite build"}}"#,
-    )
-    .unwrap();
+    std::fs::write(dir.path().join("package.json"), r#"{"scripts": {"build": "vite build"}}"#)
+        .unwrap();
 
     assert!(has_build_script(dir.path()));
 }
@@ -98,11 +95,7 @@ fn has_build_script_true() {
 #[test]
 fn has_build_script_false_no_build() {
     let dir = TempDir::new().unwrap();
-    std::fs::write(
-        dir.path().join("package.json"),
-        r#"{"scripts": {"start": "vite"}}"#,
-    )
-    .unwrap();
+    std::fs::write(dir.path().join("package.json"), r#"{"scripts": {"start": "vite"}}"#).unwrap();
 
     assert!(!has_build_script(dir.path()));
 }

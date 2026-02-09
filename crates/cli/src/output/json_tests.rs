@@ -45,10 +45,7 @@ fn json_output_passed_is_true_when_all_pass() {
 
 #[test]
 fn json_output_passed_is_false_when_any_fails() {
-    let checks = vec![
-        CheckResult::passed("cloc"),
-        CheckResult::failed("escapes", vec![]),
-    ];
+    let checks = vec![CheckResult::passed("cloc"), CheckResult::failed("escapes", vec![])];
     let output = create_output(checks);
     assert!(!output.passed);
 }
@@ -58,12 +55,8 @@ fn json_violation_has_required_fields() {
     let mut buffer = Vec::new();
     let mut formatter = JsonFormatter::new(&mut buffer);
 
-    let violations = vec![Violation::file(
-        "src/main.rs",
-        42,
-        "file_too_large",
-        "Split into modules.",
-    )];
+    let violations =
+        vec![Violation::file("src/main.rs", 42, "file_too_large", "Split into modules.")];
     let checks = vec![CheckResult::failed("cloc", violations)];
     let output = create_output(checks);
     formatter.write(&output).unwrap();
@@ -107,9 +100,7 @@ fn json_formats_empty_violations() {
     let checks = json.get("checks").unwrap().as_array().unwrap();
 
     // Violations array is always present for consistency (even when empty)
-    let violations = checks[0]
-        .get("violations")
-        .expect("violations should be present");
+    let violations = checks[0].get("violations").expect("violations should be present");
     assert!(violations.as_array().unwrap().is_empty());
 }
 
@@ -192,20 +183,13 @@ fn json_output_includes_timing_when_provided() {
     let output = create_output(checks);
 
     let timing = TimingInfo {
-        phases: PhaseTiming {
-            discovery_ms: 10,
-            checking_ms: 50,
-            output_ms: 5,
-            total_ms: 65,
-        },
+        phases: PhaseTiming { discovery_ms: 10, checking_ms: 50, output_ms: 5, total_ms: 65 },
         files: 100,
         cache_hits: 80,
         checks: [("cloc".to_string(), 25)].into_iter().collect(),
     };
 
-    formatter
-        .write_with_timing(&output, None, Some(&timing))
-        .unwrap();
+    formatter.write_with_timing(&output, None, Some(&timing)).unwrap();
 
     let json: serde_json::Value = serde_json::from_slice(&buffer).unwrap();
 

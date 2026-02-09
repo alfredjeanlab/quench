@@ -16,10 +16,7 @@ fn classifies_rb_files_as_source() {
 #[test]
 fn classifies_rake_files_as_source() {
     let adapter = RubyAdapter::new();
-    assert_eq!(
-        adapter.classify(Path::new("tasks/deploy.rake")),
-        FileKind::Source
-    );
+    assert_eq!(adapter.classify(Path::new("tasks/deploy.rake")), FileKind::Source);
 }
 
 #[test]
@@ -37,58 +34,34 @@ fn classifies_gemfile_as_source() {
 #[test]
 fn classifies_gemspec_as_source() {
     let adapter = RubyAdapter::new();
-    assert_eq!(
-        adapter.classify(Path::new("myapp.gemspec")),
-        FileKind::Source
-    );
+    assert_eq!(adapter.classify(Path::new("myapp.gemspec")), FileKind::Source);
 }
 
 #[test]
 fn classifies_spec_files_as_test() {
     let adapter = RubyAdapter::new();
-    assert_eq!(
-        adapter.classify(Path::new("spec/app_spec.rb")),
-        FileKind::Test
-    );
-    assert_eq!(
-        adapter.classify(Path::new("spec/models/user_spec.rb")),
-        FileKind::Test
-    );
+    assert_eq!(adapter.classify(Path::new("spec/app_spec.rb")), FileKind::Test);
+    assert_eq!(adapter.classify(Path::new("spec/models/user_spec.rb")), FileKind::Test);
 }
 
 #[test]
 fn classifies_test_unit_files_as_test() {
     let adapter = RubyAdapter::new();
-    assert_eq!(
-        adapter.classify(Path::new("test/app_test.rb")),
-        FileKind::Test
-    );
-    assert_eq!(
-        adapter.classify(Path::new("test/models/user_test.rb")),
-        FileKind::Test
-    );
+    assert_eq!(adapter.classify(Path::new("test/app_test.rb")), FileKind::Test);
+    assert_eq!(adapter.classify(Path::new("test/models/user_test.rb")), FileKind::Test);
 }
 
 #[test]
 fn classifies_test_prefix_files_as_test() {
     let adapter = RubyAdapter::new();
-    assert_eq!(
-        adapter.classify(Path::new("test/test_app.rb")),
-        FileKind::Test
-    );
-    assert_eq!(
-        adapter.classify(Path::new("test/models/test_user.rb")),
-        FileKind::Test
-    );
+    assert_eq!(adapter.classify(Path::new("test/test_app.rb")), FileKind::Test);
+    assert_eq!(adapter.classify(Path::new("test/models/test_user.rb")), FileKind::Test);
 }
 
 #[test]
 fn classifies_cucumber_features_as_test() {
     let adapter = RubyAdapter::new();
-    assert_eq!(
-        adapter.classify(Path::new("features/login.rb")),
-        FileKind::Test
-    );
+    assert_eq!(adapter.classify(Path::new("features/login.rb")), FileKind::Test);
     assert_eq!(
         adapter.classify(Path::new("features/step_definitions/login_steps.rb")),
         FileKind::Test
@@ -98,19 +71,13 @@ fn classifies_cucumber_features_as_test() {
 #[test]
 fn ignores_vendor_directory() {
     let adapter = RubyAdapter::new();
-    assert_eq!(
-        adapter.classify(Path::new("vendor/bundle/gems/foo/lib/foo.rb")),
-        FileKind::Other
-    );
+    assert_eq!(adapter.classify(Path::new("vendor/bundle/gems/foo/lib/foo.rb")), FileKind::Other);
 }
 
 #[test]
 fn ignores_tmp_directory() {
     let adapter = RubyAdapter::new();
-    assert_eq!(
-        adapter.classify(Path::new("tmp/cache/foo.rb")),
-        FileKind::Other
-    );
+    assert_eq!(adapter.classify(Path::new("tmp/cache/foo.rb")), FileKind::Other);
 }
 
 #[test]
@@ -122,20 +89,14 @@ fn ignores_log_directory() {
 #[test]
 fn ignores_coverage_directory() {
     let adapter = RubyAdapter::new();
-    assert_eq!(
-        adapter.classify(Path::new("coverage/index.rb")),
-        FileKind::Other
-    );
+    assert_eq!(adapter.classify(Path::new("coverage/index.rb")), FileKind::Other);
 }
 
 #[test]
 fn test_patterns_take_precedence_over_source() {
     let adapter = RubyAdapter::new();
     // A file that matches both test and source patterns should be classified as test
-    assert_eq!(
-        adapter.classify(Path::new("spec/lib_spec.rb")),
-        FileKind::Test
-    );
+    assert_eq!(adapter.classify(Path::new("spec/lib_spec.rb")), FileKind::Test);
 }
 
 #[test]

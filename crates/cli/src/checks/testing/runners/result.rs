@@ -24,32 +24,17 @@ pub struct TestResult {
 impl TestResult {
     /// Create a passing test result.
     pub fn passed(name: impl Into<String>, duration: Duration) -> Self {
-        Self {
-            name: name.into(),
-            passed: true,
-            skipped: false,
-            duration,
-        }
+        Self { name: name.into(), passed: true, skipped: false, duration }
     }
 
     /// Create a failing test result.
     pub fn failed(name: impl Into<String>, duration: Duration) -> Self {
-        Self {
-            name: name.into(),
-            passed: false,
-            skipped: false,
-            duration,
-        }
+        Self { name: name.into(), passed: false, skipped: false, duration }
     }
 
     /// Create a skipped/ignored test result.
     pub fn skipped(name: impl Into<String>) -> Self {
-        Self {
-            name: name.into(),
-            passed: true,
-            skipped: true,
-            duration: Duration::ZERO,
-        }
+        Self { name: name.into(), passed: true, skipped: true, duration: Duration::ZERO }
     }
 }
 
@@ -178,10 +163,7 @@ impl TestRunResult {
 
     /// Get count of failed tests.
     pub fn failed_count(&self) -> usize {
-        self.tests
-            .iter()
-            .filter(|t| !t.passed && !t.skipped)
-            .count()
+        self.tests.iter().filter(|t| !t.passed && !t.skipped).count()
     }
 
     /// Get count of skipped/ignored tests.
@@ -197,12 +179,8 @@ impl TestRunResult {
         if self.tests.is_empty() {
             return None;
         }
-        let mut durations: Vec<Duration> = self
-            .tests
-            .iter()
-            .filter(|t| !t.skipped)
-            .map(|t| t.duration)
-            .collect();
+        let mut durations: Vec<Duration> =
+            self.tests.iter().filter(|t| !t.skipped).map(|t| t.duration).collect();
         if durations.is_empty() {
             return None;
         }

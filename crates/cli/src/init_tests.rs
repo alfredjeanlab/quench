@@ -138,11 +138,7 @@ fn detect_ruby_from_rails() {
 #[test]
 fn detect_python_from_pyproject_toml() {
     let temp = TempDir::new().unwrap();
-    fs::write(
-        temp.path().join("pyproject.toml"),
-        "[project]\nname = \"test\"",
-    )
-    .unwrap();
+    fs::write(temp.path().join("pyproject.toml"), "[project]\nname = \"test\"").unwrap();
 
     let detected = detect_languages(temp.path());
     assert!(detected.contains(&DetectedLanguage::Python));

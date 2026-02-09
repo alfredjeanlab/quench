@@ -381,10 +381,7 @@ fn get_staged_files_includes_renamed_new_path() {
     // Without rename detection, git mv shows as deletion + addition = 2 changes
     // Both old and new paths are reported (old from deletion, new from addition)
     assert_eq!(files.len(), 2);
-    assert!(
-        files.iter().any(|f| f.ends_with("new_name.txt")),
-        "should include new name"
-    );
+    assert!(files.iter().any(|f| f.ends_with("new_name.txt")), "should include new name");
     assert!(
         files.iter().any(|f| f.ends_with("old_name.txt")),
         "should include old name (from deletion)"

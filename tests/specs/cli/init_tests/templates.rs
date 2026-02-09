@@ -16,11 +16,7 @@ use crate::prelude::*;
 fn init_output_matches_template_format() {
     let temp = Project::empty();
 
-    quench_cmd()
-        .args(["init"])
-        .current_dir(temp.path())
-        .assert()
-        .success();
+    quench_cmd().args(["init"]).current_dir(temp.path()).assert().success();
 
     let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
 
@@ -41,30 +37,19 @@ fn init_output_matches_template_format() {
 fn init_default_output_matches_spec_template() {
     let temp = Project::empty();
 
-    quench_cmd()
-        .args(["init"])
-        .current_dir(temp.path())
-        .assert()
-        .success();
+    quench_cmd().args(["init"]).current_dir(temp.path()).assert().success();
 
     let generated = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
 
     // Read the spec template file (relative to workspace root)
-    let spec_path = concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/../../docs/specs/templates/init.default.toml"
-    );
+    let spec_path =
+        concat!(env!("CARGO_MANIFEST_DIR"), "/../../docs/specs/templates/init.default.toml");
     let spec_template = std::fs::read_to_string(spec_path)
         .expect("docs/specs/templates/init.default.toml should exist");
 
     // Normalize whitespace: trim lines and overall content
     let normalize = |s: &str| {
-        s.lines()
-            .map(|line| line.trim_end())
-            .collect::<Vec<_>>()
-            .join("\n")
-            .trim()
-            .to_string()
+        s.lines().map(|line| line.trim_end()).collect::<Vec<_>>().join("\n").trim().to_string()
     };
 
     let generated_normalized = normalize(&generated);
@@ -90,23 +75,15 @@ fn init_default_output_matches_spec_template() {
 fn init_rust_profile_matches_spec_template() {
     let temp = Project::empty();
 
-    quench_cmd()
-        .args(["init", "--with", "rust"])
-        .current_dir(temp.path())
-        .assert()
-        .success();
+    quench_cmd().args(["init", "--with", "rust"]).current_dir(temp.path()).assert().success();
 
     let generated = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
 
     // Read base template and language-specific template
-    let base_path = concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/../../docs/specs/templates/init.default.toml"
-    );
-    let lang_path = concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/../../docs/specs/templates/init.rust.toml"
-    );
+    let base_path =
+        concat!(env!("CARGO_MANIFEST_DIR"), "/../../docs/specs/templates/init.default.toml");
+    let lang_path =
+        concat!(env!("CARGO_MANIFEST_DIR"), "/../../docs/specs/templates/init.rust.toml");
 
     let base_template = std::fs::read_to_string(base_path)
         .expect("docs/specs/templates/init.default.toml should exist");
@@ -117,12 +94,7 @@ fn init_rust_profile_matches_spec_template() {
 
     // Normalize whitespace: trim lines and overall content
     let normalize = |s: &str| {
-        s.lines()
-            .map(|line| line.trim_end())
-            .collect::<Vec<_>>()
-            .join("\n")
-            .trim()
-            .to_string()
+        s.lines().map(|line| line.trim_end()).collect::<Vec<_>>().join("\n").trim().to_string()
     };
 
     let generated_normalized = normalize(&generated);
@@ -148,22 +120,14 @@ fn init_rust_profile_matches_spec_template() {
 fn init_golang_profile_matches_spec_template() {
     let temp = Project::empty();
 
-    quench_cmd()
-        .args(["init", "--with", "golang"])
-        .current_dir(temp.path())
-        .assert()
-        .success();
+    quench_cmd().args(["init", "--with", "golang"]).current_dir(temp.path()).assert().success();
 
     let generated = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
 
-    let base_path = concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/../../docs/specs/templates/init.default.toml"
-    );
-    let lang_path = concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/../../docs/specs/templates/init.golang.toml"
-    );
+    let base_path =
+        concat!(env!("CARGO_MANIFEST_DIR"), "/../../docs/specs/templates/init.default.toml");
+    let lang_path =
+        concat!(env!("CARGO_MANIFEST_DIR"), "/../../docs/specs/templates/init.golang.toml");
 
     let base_template = std::fs::read_to_string(base_path)
         .expect("docs/specs/templates/init.default.toml should exist");
@@ -173,12 +137,7 @@ fn init_golang_profile_matches_spec_template() {
     let expected = format!("{}\n{}", base_template, lang_template);
 
     let normalize = |s: &str| {
-        s.lines()
-            .map(|line| line.trim_end())
-            .collect::<Vec<_>>()
-            .join("\n")
-            .trim()
-            .to_string()
+        s.lines().map(|line| line.trim_end()).collect::<Vec<_>>().join("\n").trim().to_string()
     };
 
     let generated_normalized = normalize(&generated);
@@ -204,22 +163,14 @@ fn init_golang_profile_matches_spec_template() {
 fn init_javascript_profile_matches_spec_template() {
     let temp = Project::empty();
 
-    quench_cmd()
-        .args(["init", "--with", "javascript"])
-        .current_dir(temp.path())
-        .assert()
-        .success();
+    quench_cmd().args(["init", "--with", "javascript"]).current_dir(temp.path()).assert().success();
 
     let generated = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
 
-    let base_path = concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/../../docs/specs/templates/init.default.toml"
-    );
-    let lang_path = concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/../../docs/specs/templates/init.javascript.toml"
-    );
+    let base_path =
+        concat!(env!("CARGO_MANIFEST_DIR"), "/../../docs/specs/templates/init.default.toml");
+    let lang_path =
+        concat!(env!("CARGO_MANIFEST_DIR"), "/../../docs/specs/templates/init.javascript.toml");
 
     let base_template = std::fs::read_to_string(base_path)
         .expect("docs/specs/templates/init.default.toml should exist");
@@ -229,12 +180,7 @@ fn init_javascript_profile_matches_spec_template() {
     let expected = format!("{}\n{}", base_template, lang_template);
 
     let normalize = |s: &str| {
-        s.lines()
-            .map(|line| line.trim_end())
-            .collect::<Vec<_>>()
-            .join("\n")
-            .trim()
-            .to_string()
+        s.lines().map(|line| line.trim_end()).collect::<Vec<_>>().join("\n").trim().to_string()
     };
 
     let generated_normalized = normalize(&generated);
@@ -260,22 +206,14 @@ fn init_javascript_profile_matches_spec_template() {
 fn init_shell_profile_matches_spec_template() {
     let temp = Project::empty();
 
-    quench_cmd()
-        .args(["init", "--with", "shell"])
-        .current_dir(temp.path())
-        .assert()
-        .success();
+    quench_cmd().args(["init", "--with", "shell"]).current_dir(temp.path()).assert().success();
 
     let generated = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
 
-    let base_path = concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/../../docs/specs/templates/init.default.toml"
-    );
-    let lang_path = concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/../../docs/specs/templates/init.shell.toml"
-    );
+    let base_path =
+        concat!(env!("CARGO_MANIFEST_DIR"), "/../../docs/specs/templates/init.default.toml");
+    let lang_path =
+        concat!(env!("CARGO_MANIFEST_DIR"), "/../../docs/specs/templates/init.shell.toml");
 
     let base_template = std::fs::read_to_string(base_path)
         .expect("docs/specs/templates/init.default.toml should exist");
@@ -285,12 +223,7 @@ fn init_shell_profile_matches_spec_template() {
     let expected = format!("{}\n{}", base_template, lang_template);
 
     let normalize = |s: &str| {
-        s.lines()
-            .map(|line| line.trim_end())
-            .collect::<Vec<_>>()
-            .join("\n")
-            .trim()
-            .to_string()
+        s.lines().map(|line| line.trim_end()).collect::<Vec<_>>().join("\n").trim().to_string()
     };
 
     let generated_normalized = normalize(&generated);
@@ -316,22 +249,14 @@ fn init_shell_profile_matches_spec_template() {
 fn init_ruby_profile_matches_spec_template() {
     let temp = Project::empty();
 
-    quench_cmd()
-        .args(["init", "--with", "ruby"])
-        .current_dir(temp.path())
-        .assert()
-        .success();
+    quench_cmd().args(["init", "--with", "ruby"]).current_dir(temp.path()).assert().success();
 
     let generated = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
 
-    let base_path = concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/../../docs/specs/templates/init.default.toml"
-    );
-    let lang_path = concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/../../docs/specs/templates/init.ruby.toml"
-    );
+    let base_path =
+        concat!(env!("CARGO_MANIFEST_DIR"), "/../../docs/specs/templates/init.default.toml");
+    let lang_path =
+        concat!(env!("CARGO_MANIFEST_DIR"), "/../../docs/specs/templates/init.ruby.toml");
 
     let base_template = std::fs::read_to_string(base_path)
         .expect("docs/specs/templates/init.default.toml should exist");
@@ -341,12 +266,7 @@ fn init_ruby_profile_matches_spec_template() {
     let expected = format!("{}\n{}", base_template, lang_template);
 
     let normalize = |s: &str| {
-        s.lines()
-            .map(|line| line.trim_end())
-            .collect::<Vec<_>>()
-            .join("\n")
-            .trim()
-            .to_string()
+        s.lines().map(|line| line.trim_end()).collect::<Vec<_>>().join("\n").trim().to_string()
     };
 
     let generated_normalized = normalize(&generated);
@@ -372,22 +292,14 @@ fn init_ruby_profile_matches_spec_template() {
 fn init_python_profile_matches_spec_template() {
     let temp = Project::empty();
 
-    quench_cmd()
-        .args(["init", "--with", "python"])
-        .current_dir(temp.path())
-        .assert()
-        .success();
+    quench_cmd().args(["init", "--with", "python"]).current_dir(temp.path()).assert().success();
 
     let generated = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
 
-    let base_path = concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/../../docs/specs/templates/init.default.toml"
-    );
-    let lang_path = concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/../../docs/specs/templates/init.python.toml"
-    );
+    let base_path =
+        concat!(env!("CARGO_MANIFEST_DIR"), "/../../docs/specs/templates/init.default.toml");
+    let lang_path =
+        concat!(env!("CARGO_MANIFEST_DIR"), "/../../docs/specs/templates/init.python.toml");
 
     let base_template = std::fs::read_to_string(base_path)
         .expect("docs/specs/templates/init.default.toml should exist");
@@ -397,12 +309,7 @@ fn init_python_profile_matches_spec_template() {
     let expected = format!("{}\n{}", base_template, lang_template);
 
     let normalize = |s: &str| {
-        s.lines()
-            .map(|line| line.trim_end())
-            .collect::<Vec<_>>()
-            .join("\n")
-            .trim()
-            .to_string()
+        s.lines().map(|line| line.trim_end()).collect::<Vec<_>>().join("\n").trim().to_string()
     };
 
     let generated_normalized = normalize(&generated);

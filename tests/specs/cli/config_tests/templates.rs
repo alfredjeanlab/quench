@@ -15,10 +15,8 @@ use std::path::PathBuf;
 /// > Every code block must be valid TOML that quench can parse.
 #[test]
 fn guide_templates_contain_valid_toml() {
-    let templates_dir = PathBuf::from(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/../../docs/specs/templates"
-    ));
+    let templates_dir =
+        PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/../../docs/specs/templates"));
 
     // Find all guide.*.md files
     let guide_files: Vec<_> = std::fs::read_dir(&templates_dir)
@@ -36,10 +34,7 @@ fn guide_templates_contain_valid_toml() {
         })
         .collect();
 
-    assert!(
-        !guide_files.is_empty(),
-        "No guide.*.md files found in docs/specs/templates/"
-    );
+    assert!(!guide_files.is_empty(), "No guide.*.md files found in docs/specs/templates/");
 
     let mut failures = Vec::new();
 
@@ -52,10 +47,8 @@ fn guide_templates_contain_valid_toml() {
         let code_blocks = extract_toml_blocks(&content);
 
         if code_blocks.is_empty() {
-            failures.push(format!(
-                "{}: No TOML code blocks found (expected at least one)",
-                filename
-            ));
+            failures
+                .push(format!("{}: No TOML code blocks found (expected at least one)", filename));
             continue;
         }
 
@@ -94,10 +87,8 @@ fn guide_templates_contain_valid_toml() {
 /// > They should not include `version = 1` as that's boilerplate.
 #[test]
 fn guide_templates_exclude_version_tag() {
-    let templates_dir = PathBuf::from(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/../../docs/specs/templates"
-    ));
+    let templates_dir =
+        PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/../../docs/specs/templates"));
 
     let guide_files: Vec<_> = std::fs::read_dir(&templates_dir)
         .expect("templates directory should exist")
@@ -175,10 +166,7 @@ fn extract_toml_blocks(markdown: &str) -> Vec<String> {
 /// Indent each line by n spaces
 fn indent_lines(text: &str, spaces: usize) -> String {
     let indent = " ".repeat(spaces);
-    text.lines()
-        .map(|line| format!("{}{}", indent, line))
-        .collect::<Vec<_>>()
-        .join("\n")
+    text.lines().map(|line| format!("{}{}", indent, line)).collect::<Vec<_>>().join("\n")
 }
 
 #[cfg(test)]

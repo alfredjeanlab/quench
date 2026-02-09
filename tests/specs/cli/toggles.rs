@@ -30,10 +30,8 @@ fn check_names_are_exactly_8_known_checks() {
     let result = cli().pwd(temp.path()).json().passes();
     let checks = result.checks();
 
-    let names: Vec<&str> = checks
-        .iter()
-        .filter_map(|c| c.get("name").and_then(|n| n.as_str()))
-        .collect();
+    let names: Vec<&str> =
+        checks.iter().filter_map(|c| c.get("name").and_then(|n| n.as_str())).collect();
 
     // All 8 checks should be present
     assert!(names.contains(&"cloc"), "should have cloc check");
@@ -88,11 +86,7 @@ fn check_toggles_shown_in_help() {
 )]
 fn enable_flag_runs_only_that_check(check_name: &str) {
     let temp = default_project();
-    let result = cli()
-        .pwd(temp.path())
-        .args(&[&format!("--{}", check_name)])
-        .json()
-        .passes();
+    let result = cli().pwd(temp.path()).args(&[&format!("--{}", check_name)]).json().passes();
     let names = check_names(result.value());
 
     assert_eq!(names.len(), 1, "only one check should run");
@@ -118,24 +112,11 @@ fn enable_flag_runs_only_that_check(check_name: &str) {
 )]
 fn disable_flag_skips_that_check(check_name: &str) {
     let temp = default_project();
-    let result = cli()
-        .pwd(temp.path())
-        .args(&[&format!("--no-{}", check_name)])
-        .json()
-        .passes();
+    let result = cli().pwd(temp.path()).args(&[&format!("--no-{}", check_name)]).json().passes();
     let names = check_names(result.value());
 
-    assert!(
-        !names.contains(&check_name),
-        "{} should not be present",
-        check_name
-    );
-    assert_eq!(
-        names.len(),
-        7,
-        "7 checks should run (all except {})",
-        check_name
-    );
+    assert!(!names.contains(&check_name), "{} should not be present", check_name);
+    assert_eq!(names.len(), 7, "7 checks should run (all except {})", check_name);
 }
 
 // =============================================================================
@@ -148,11 +129,7 @@ fn disable_flag_skips_that_check(check_name: &str) {
 #[test]
 fn multiple_enable_flags_run_multiple_checks() {
     let temp = default_project();
-    let result = cli()
-        .pwd(temp.path())
-        .args(&["--cloc", "--escapes"])
-        .json()
-        .passes();
+    let result = cli().pwd(temp.path()).args(&["--cloc", "--escapes"]).json().passes();
     let names = check_names(result.value());
 
     assert_eq!(names.len(), 2, "two checks should run");
@@ -166,11 +143,7 @@ fn multiple_enable_flags_run_multiple_checks() {
 #[test]
 fn multiple_disable_flags_skip_multiple_checks() {
     let temp = default_project();
-    let result = cli()
-        .pwd(temp.path())
-        .args(&["--no-docs", "--no-tests"])
-        .json()
-        .passes();
+    let result = cli().pwd(temp.path()).args(&["--no-docs", "--no-tests"]).json().passes();
     let names = check_names(result.value());
 
     assert!(!names.contains(&"docs"), "docs should not be present");
@@ -184,11 +157,7 @@ fn multiple_disable_flags_skip_multiple_checks() {
 #[test]
 fn no_cloc_no_escapes_skips_both() {
     let temp = default_project();
-    let result = cli()
-        .pwd(temp.path())
-        .args(&["--no-cloc", "--no-escapes"])
-        .json()
-        .passes();
+    let result = cli().pwd(temp.path()).args(&["--no-cloc", "--no-escapes"]).json().passes();
     let names = check_names(result.value());
 
     assert!(!names.contains(&"cloc"), "cloc should not be present");
@@ -252,19 +221,14 @@ fn check_failure_doesnt_block_other_checks() {
     );
 
     // Other checks should have completed (may pass or fail, but not skipped)
-    let other_checks: Vec<_> = checks
-        .iter()
-        .filter(|c| c.get("name").and_then(|n| n.as_str()) != Some("cloc"))
-        .collect();
+    let other_checks: Vec<_> =
+        checks.iter().filter(|c| c.get("name").and_then(|n| n.as_str()) != Some("cloc")).collect();
 
     for check in other_checks {
         assert!(
             check.get("skipped").and_then(|s| s.as_bool()) != Some(true),
             "check {} should not be skipped due to cloc failure",
-            check
-                .get("name")
-                .and_then(|n| n.as_str())
-                .unwrap_or("unknown")
+            check.get("name").and_then(|n| n.as_str()).unwrap_or("unknown")
         );
     }
 }
@@ -284,9 +248,7 @@ fn skipped_check_shows_error_but_continues() {
     let checks = result.checks();
 
     // Find git check
-    let git = checks
-        .iter()
-        .find(|c| c.get("name").and_then(|n| n.as_str()) == Some("git"));
+    let git = checks.iter().find(|c| c.get("name").and_then(|n| n.as_str()) == Some("git"));
 
     if let Some(git_check) = git {
         // Git check should be skipped with error message
@@ -295,16 +257,12 @@ fn skipped_check_shows_error_but_continues() {
             Some(true),
             "git check should be skipped"
         );
-        assert!(
-            git_check.get("error").is_some(),
-            "skipped check should have error message"
-        );
+        assert!(git_check.get("error").is_some(), "skipped check should have error message");
     }
 
     // Other checks should still have run
-    let non_git_checks = checks
-        .iter()
-        .filter(|c| c.get("name").and_then(|n| n.as_str()) != Some("git"));
+    let non_git_checks =
+        checks.iter().filter(|c| c.get("name").and_then(|n| n.as_str()) != Some("git"));
     assert!(non_git_checks.count() >= 7, "other checks should have run");
 }
 
@@ -339,10 +297,7 @@ fn skipped_check_json_has_required_fields() {
         .collect();
 
     for check in skipped {
-        assert!(
-            check.get("error").is_some(),
-            "skipped check should have 'error' field"
-        );
+        assert!(check.get("error").is_some(), "skipped check should have 'error' field");
         assert_eq!(
             check.get("passed").and_then(|p| p.as_bool()),
             Some(false),

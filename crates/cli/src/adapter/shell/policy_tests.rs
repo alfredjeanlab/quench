@@ -49,11 +49,7 @@ fn detects_hidden_lint_config_files() {
     use crate::adapter::common::test_utils::check_policy;
 
     let policy = default_policy();
-    let result = check_policy(
-        &[".shellcheckrc", "scripts/build.sh"],
-        &policy,
-        simple_classify,
-    );
+    let result = check_policy(&[".shellcheckrc", "scripts/build.sh"], &policy, simple_classify);
 
     assert!(result.standalone_violated);
     assert_eq!(result.changed_lint_config, vec![".shellcheckrc"]);
@@ -64,11 +60,8 @@ fn detects_nested_lint_config_files() {
     use crate::adapter::common::test_utils::check_policy;
 
     let policy = default_policy();
-    let result = check_policy(
-        &["scripts/.shellcheckrc", "scripts/build.sh"],
-        &policy,
-        simple_classify,
-    );
+    let result =
+        check_policy(&["scripts/.shellcheckrc", "scripts/build.sh"], &policy, simple_classify);
 
     assert!(result.standalone_violated);
     assert_eq!(result.changed_lint_config.len(), 1);
@@ -84,11 +77,7 @@ fn custom_lint_config_list() {
         lint_changes: LintChangesPolicy::Standalone,
         lint_config: vec!["shellcheck.yaml".to_string()],
     };
-    let result = check_policy(
-        &["shellcheck.yaml", "scripts/build.sh"],
-        &policy,
-        simple_classify,
-    );
+    let result = check_policy(&["shellcheck.yaml", "scripts/build.sh"], &policy, simple_classify);
 
     assert!(result.standalone_violated);
     assert_eq!(result.changed_lint_config, vec!["shellcheck.yaml"]);

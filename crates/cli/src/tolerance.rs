@@ -27,11 +27,7 @@ pub fn parse_duration(s: &str) -> Result<Duration, ParseError> {
             0.0
         } else {
             let sec_str = sec_part.trim_end_matches('s');
-            if sec_str.is_empty() {
-                0.0
-            } else {
-                sec_str.parse()?
-            }
+            if sec_str.is_empty() { 0.0 } else { sec_str.parse()? }
         };
         return Ok(Duration::from_secs(mins * 60) + Duration::from_secs_f64(secs));
     }

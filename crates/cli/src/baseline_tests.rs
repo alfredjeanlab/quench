@@ -44,10 +44,7 @@ fn save_and_load_roundtrip() {
     assert!(loaded.metrics.escapes.is_some());
     let escapes = loaded.metrics.escapes.unwrap();
     assert_eq!(escapes.source.get("unsafe"), Some(&5));
-    assert_eq!(
-        escapes.test.as_ref().and_then(|t| t.get("unsafe")),
-        Some(&10)
-    );
+    assert_eq!(escapes.test.as_ref().and_then(|t| t.get("unsafe")), Some(&10));
 }
 
 #[test]
@@ -64,10 +61,7 @@ fn version_too_new_returns_error() {
     std::fs::write(&path, content).unwrap();
 
     let result = Baseline::load(&path);
-    assert!(matches!(
-        result,
-        Err(BaselineError::Version { found: 999, .. })
-    ));
+    assert!(matches!(result, Err(BaselineError::Version { found: 999, .. })));
 }
 
 #[test]
@@ -202,10 +196,7 @@ fn load_from_notes_rejects_future_version() {
     add_git_note(&temp, baseline_json);
 
     let result = Baseline::load_from_notes(temp.path(), "HEAD");
-    assert!(matches!(
-        result,
-        Err(BaselineError::Version { found: 999, .. })
-    ));
+    assert!(matches!(result, Err(BaselineError::Version { found: 999, .. })));
 }
 
 #[test]

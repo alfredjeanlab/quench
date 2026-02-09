@@ -229,11 +229,7 @@ fn parse_summary_line(line: &str) -> Option<(usize, usize)> {
     }
 
     // Only return Some if we found at least one count
-    if passed > 0 || failed > 0 {
-        Some((passed, failed))
-    } else {
-        None
-    }
+    if passed > 0 || failed > 0 { Some((passed, failed)) } else { None }
 }
 
 #[cfg(test)]

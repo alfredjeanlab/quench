@@ -52,11 +52,8 @@ pub fn detect_agent_files(
     for pkg in packages {
         let pkg_dirs = expand_package_glob(root, pkg);
         for pkg_path in pkg_dirs {
-            let pkg_name = pkg_path
-                .strip_prefix(root)
-                .unwrap_or(&pkg_path)
-                .to_string_lossy()
-                .to_string();
+            let pkg_name =
+                pkg_path.strip_prefix(root).unwrap_or(&pkg_path).to_string_lossy().to_string();
 
             for pattern in patterns {
                 // Only check exact file names in packages, not glob patterns
@@ -123,11 +120,7 @@ fn expand_package_glob(root: &Path, pkg_pattern: &str) -> Vec<PathBuf> {
             }
             let name = entry.file_name();
             let name_str = name.to_str()?;
-            if matcher.is_match(name_str) {
-                Some(path)
-            } else {
-                None
-            }
+            if matcher.is_match(name_str) { Some(path) } else { None }
         })
         .collect()
 }
@@ -183,11 +176,7 @@ fn match_glob_pattern(pattern: &str, root: &Path) -> Vec<PathBuf> {
             let file_name = entry.file_name();
             let file_name_str = file_name.to_str()?;
 
-            if matcher.is_match(file_name_str) {
-                Some(entry.path())
-            } else {
-                None
-            }
+            if matcher.is_match(file_name_str) { Some(entry.path()) } else { None }
         })
         .collect()
 }
@@ -205,11 +194,7 @@ pub fn classify_scope(file_path: &Path, root: &Path, packages: &[String]) -> Sco
 
     // Direct child of root = Root scope
     // Deeper nesting = Module scope
-    if relative.components().count() == 1 {
-        Scope::Root
-    } else {
-        Scope::Module
-    }
+    if relative.components().count() == 1 { Scope::Root } else { Scope::Module }
 }
 
 /// Check if a relative path is under a package pattern.
@@ -232,10 +217,8 @@ fn extract_package_name(relative: &Path, pkg_pattern: &str) -> String {
     if pkg_pattern.contains('*') {
         // For patterns like "crates/*", extract "crates/cli" from "crates/cli/CLAUDE.md"
         let prefix = pkg_pattern.trim_end_matches('*').trim_end_matches('/');
-        let rest = relative_str
-            .strip_prefix(prefix)
-            .unwrap_or(&relative_str)
-            .trim_start_matches('/');
+        let rest =
+            relative_str.strip_prefix(prefix).unwrap_or(&relative_str).trim_start_matches('/');
 
         // Take up to the next path separator
         let pkg_name = rest.split('/').next().unwrap_or(rest);

@@ -54,11 +54,8 @@ pub fn run(_cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
     let exclude_patterns = apply_language_defaults(&root, &mut config);
     verbose::config(&verbose, &root, &config, &config_path, &exclude_patterns);
 
-    let walker_config = WalkerConfig {
-        max_depth: Some(args.max_depth),
-        exclude_patterns,
-        ..Default::default()
-    };
+    let walker_config =
+        WalkerConfig { max_depth: Some(args.max_depth), exclude_patterns, ..Default::default() };
 
     // === Discovery Phase ===
     let discovery_start = Instant::now();
@@ -111,23 +108,14 @@ pub fn run(_cli: &Cli, args: &CheckArgs) -> anyhow::Result<ExitCode> {
         run_ratchet_check(&config, &verbose, &output, use_notes, &root, &base_branch);
 
     if args.fix {
-        save_baseline(
-            &config,
-            &output,
-            &ratchet_result,
-            baseline,
-            use_notes,
-            &root,
-        );
+        save_baseline(&config, &output, &ratchet_result, baseline, use_notes, &root);
     }
 
     save_latest(&root, &output, &verbose);
 
     // === Output Phase ===
     let color_choice = resolve_color();
-    let options = FormatOptions {
-        limit: effective_limit(args),
-    };
+    let options = FormatOptions { limit: effective_limit(args) };
     let timing_info = build_timing_info(args, &cache, &output, &files, discovery_ms, checking_ms);
 
     let output_start = Instant::now();
@@ -195,11 +183,7 @@ fn resolve_root(cwd: &std::path::Path, args: &CheckArgs) -> std::path::PathBuf {
         cwd.to_path_buf()
     } else {
         let path = &args.paths[0];
-        if path.is_absolute() {
-            path.clone()
-        } else {
-            cwd.join(path)
-        }
+        if path.is_absolute() { path.clone() } else { cwd.join(path) }
     }
 }
 
@@ -226,10 +210,7 @@ fn run_discovery(
     root: &std::path::Path,
     walker_config: WalkerConfig,
     verbose: &VerboseLogger,
-) -> anyhow::Result<(
-    Option<Vec<quench::walker::WalkedFile>>,
-    quench::walker::WalkStats,
-)> {
+) -> anyhow::Result<(Option<Vec<quench::walker::WalkedFile>>, quench::walker::WalkStats)> {
     let walker = FileWalker::new(walker_config);
     let (rx, handle) = walker.walk(root);
 
@@ -307,11 +288,7 @@ fn resolve_changed_files(
 }
 
 fn effective_limit(args: &CheckArgs) -> Option<usize> {
-    if args.no_limit || args.ci {
-        None
-    } else {
-        Some(args.limit)
-    }
+    if args.no_limit || args.ci { None } else { Some(args.limit) }
 }
 
 fn setup_cache(
@@ -370,10 +347,7 @@ fn run_ratchet_check(
 
     if verbose.is_enabled() {
         verbose.section("Ratchet");
-        verbose.log(&format!(
-            "Mode: {}",
-            if use_notes { "git notes" } else { "file" }
-        ));
+        verbose.log(&format!("Mode: {}", if use_notes { "git notes" } else { "file" }));
         if let Some(base) = base_branch {
             verbose.log(&format!("Base branch: {}", base));
         }
@@ -401,10 +375,7 @@ fn ratchet_from_notes(
     match find_ratchet_base(root, base_branch.as_deref()) {
         Ok(base_commit) => {
             if verbose.is_enabled() {
-                verbose.log(&format!(
-                    "Ratchet base: {}",
-                    &base_commit[..7.min(base_commit.len())]
-                ));
+                verbose.log(&format!("Ratchet base: {}", &base_commit[..7.min(base_commit.len())]));
             }
             match Baseline::load_from_notes(root, &base_commit) {
                 Ok(Some(baseline)) => {
@@ -454,10 +425,7 @@ fn ratchet_from_file(
     match Baseline::load(&baseline_path) {
         Ok(Some(baseline)) => {
             if verbose.is_enabled() {
-                verbose.log(&format!(
-                    "Baseline: loaded from {}",
-                    baseline_path.display()
-                ));
+                verbose.log(&format!("Baseline: loaded from {}", baseline_path.display()));
             }
             warn_stale_baseline(&baseline, config);
             let current = CurrentMetrics::from_output(output);
@@ -498,9 +466,8 @@ fn save_baseline(
     root: &std::path::Path,
 ) {
     let current = CurrentMetrics::from_output(output);
-    let mut baseline = baseline
-        .map(|b| b.with_commit(root))
-        .unwrap_or_else(|| Baseline::new().with_commit(root));
+    let mut baseline =
+        baseline.map(|b| b.with_commit(root)).unwrap_or_else(|| Baseline::new().with_commit(root));
 
     ratchet::update_baseline(&mut baseline, &current);
 
@@ -560,12 +527,7 @@ fn build_timing_info(
     }
     let stats = cache.as_ref().map(|c| c.stats());
     Some(TimingInfo {
-        phases: PhaseTiming {
-            discovery_ms,
-            checking_ms,
-            output_ms: 0,
-            total_ms: 0,
-        },
+        phases: PhaseTiming { discovery_ms, checking_ms, output_ms: 0, total_ms: 0 },
         files: files.len(),
         cache_hits: stats.as_ref().map(|s| s.hits).unwrap_or(0),
         checks: output
@@ -702,11 +664,8 @@ fn report_baseline_update_file(
 
 fn print_improvements(improvements: &[ratchet::MetricImprovement]) {
     for improvement in improvements {
-        let ratchet_label = if improvement.name.starts_with("coverage.") {
-            "new floor"
-        } else {
-            "new ceiling"
-        };
+        let ratchet_label =
+            if improvement.name.starts_with("coverage.") { "new floor" } else { "new ceiling" };
         eprintln!(
             "  {}: {} -> {} ({})",
             improvement.name,

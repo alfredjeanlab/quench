@@ -25,28 +25,21 @@ const RUST_EXT: &str = "rs";
 const SHORT_HASH_LEN: usize = 7;
 
 fn truncate_hash(hash: &str) -> &str {
-    if hash.len() >= SHORT_HASH_LEN {
-        &hash[..SHORT_HASH_LEN]
-    } else {
-        hash
-    }
+    if hash.len() >= SHORT_HASH_LEN { &hash[..SHORT_HASH_LEN] } else { hash }
 }
 
 pub fn missing_tests_advice(file_stem: &str, lang: Language) -> String {
     match lang {
-        Language::Rust => format!(
-            "Add tests in tests/{}.rs or a sibling {}_tests.rs file",
-            file_stem, file_stem
-        ),
+        Language::Rust => {
+            format!("Add tests in tests/{}.rs or a sibling {}_tests.rs file", file_stem, file_stem)
+        }
         Language::Go => format!("Add tests in {}_test.go", file_stem),
-        Language::JavaScript => format!(
-            "Add tests in {}.test.ts or __tests__/{}.test.ts",
-            file_stem, file_stem
-        ),
-        Language::Python => format!(
-            "Add tests in test_{}.py or tests/test_{}.py",
-            file_stem, file_stem
-        ),
+        Language::JavaScript => {
+            format!("Add tests in {}.test.ts or __tests__/{}.test.ts", file_stem, file_stem)
+        }
+        Language::Python => {
+            format!("Add tests in test_{}.py or tests/test_{}.py", file_stem, file_stem)
+        }
         Language::Unknown => format!("Add tests for {}", file_stem),
     }
 }
@@ -67,30 +60,24 @@ fn has_placeholder_for_source(source_path: &Path, root: &Path) -> bool {
         return false;
     };
     let lang = detect_language(source_path);
-    candidate_test_paths_for(source_path)
-        .iter()
-        .any(|test_path| {
-            let test_file = Path::new(test_path);
-            root.join(test_file).exists()
-                && match lang {
-                    Language::JavaScript => {
-                        has_js_placeholder_test(test_file, base_name, root).unwrap_or(false)
-                    }
-                    Language::Rust => {
-                        has_placeholder_test(test_file, base_name, root).unwrap_or(false)
-                    }
-                    _ => false,
+    candidate_test_paths_for(source_path).iter().any(|test_path| {
+        let test_file = Path::new(test_path);
+        root.join(test_file).exists()
+            && match lang {
+                Language::JavaScript => {
+                    has_js_placeholder_test(test_file, base_name, root).unwrap_or(false)
                 }
-        })
+                Language::Rust => has_placeholder_test(test_file, base_name, root).unwrap_or(false),
+                _ => false,
+            }
+    })
 }
 
 fn get_diff_range<'a>(ctx: &'a CheckContext) -> DiffRange<'a> {
     if ctx.staged {
         DiffRange::Staged
     } else {
-        ctx.base_branch
-            .map(DiffRange::Branch)
-            .unwrap_or(DiffRange::Staged)
+        ctx.base_branch.map(DiffRange::Branch).unwrap_or(DiffRange::Staged)
     }
 }
 
@@ -102,9 +89,8 @@ fn build_violations(
 ) -> Vec<Violation> {
     let mut violations = Vec::new();
     for path in paths {
-        let change = changes
-            .iter()
-            .find(|c| c.path.strip_prefix(ctx.root).unwrap_or(&c.path) == path);
+        let change =
+            changes.iter().find(|c| c.path.strip_prefix(ctx.root).unwrap_or(&c.path) == path);
         let file_stem = path.file_stem().and_then(|s| s.to_str()).unwrap_or("file");
         let lang = detect_language(path);
         let test_advice = missing_tests_advice(file_stem, lang);
@@ -184,12 +170,7 @@ pub fn check_branch_scope(
 
     let mut result = analyze_correlation(&changes, correlation_config, ctx.root);
     result.without_tests.retain(|path| {
-        !should_skip_path(
-            path,
-            config.placeholders == "allow",
-            get_diff_range(ctx),
-            ctx.root,
-        )
+        !should_skip_path(path, config.placeholders == "allow", get_diff_range(ctx), ctx.root)
     });
     let violations = build_violations(&result.without_tests, &changes, ctx, None);
     let metrics = json!({

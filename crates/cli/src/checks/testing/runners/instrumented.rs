@@ -40,20 +40,12 @@ pub fn build_instrumented(targets: &[String], root: &Path) -> Result<Instrumente
         cmd.args(["--bin", target]);
     }
     cmd.env("RUSTFLAGS", "-C instrument-coverage")
-        .env(
-            "LLVM_PROFILE_FILE",
-            profile_dir
-                .join("%p-%m.profraw")
-                .to_string_lossy()
-                .to_string(),
-        )
+        .env("LLVM_PROFILE_FILE", profile_dir.join("%p-%m.profraw").to_string_lossy().to_string())
         .current_dir(root)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
 
-    let output = cmd
-        .output()
-        .map_err(|e| format!("failed to build instrumented binaries: {e}"))?;
+    let output = cmd.output().map_err(|e| format!("failed to build instrumented binaries: {e}"))?;
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
@@ -70,10 +62,7 @@ pub fn build_instrumented(targets: &[String], root: &Path) -> Result<Instrumente
         }
     }
 
-    Ok(InstrumentedBuild {
-        profile_dir,
-        binaries,
-    })
+    Ok(InstrumentedBuild { profile_dir, binaries })
 }
 
 /// Get environment variables needed to run an instrumented binary.
@@ -84,11 +73,7 @@ pub fn coverage_env(build: &InstrumentedBuild) -> HashMap<String, String> {
     let mut env = HashMap::new();
     env.insert(
         "LLVM_PROFILE_FILE".to_string(),
-        build
-            .profile_dir
-            .join("%p-%m.profraw")
-            .to_string_lossy()
-            .to_string(),
+        build.profile_dir.join("%p-%m.profraw").to_string_lossy().to_string(),
     );
     env
 }
@@ -155,9 +140,7 @@ pub fn collect_instrumented_coverage(build: &InstrumentedBuild, root: &Path) -> 
 fn merge_profiles(profraw_files: &[PathBuf], output: &Path) -> Result<(), String> {
     // First try using cargo-llvm-cov's bundled llvm-profdata
     let mut cmd = Command::new("cargo");
-    cmd.args(["llvm-cov", "show", "--help"])
-        .stdout(Stdio::null())
-        .stderr(Stdio::null());
+    cmd.args(["llvm-cov", "show", "--help"]).stdout(Stdio::null()).stderr(Stdio::null());
 
     // If cargo llvm-cov is available, use its profdata merge
     let cargo_llvm_cov = cmd.status().is_ok_and(|s| s.success());
@@ -189,16 +172,12 @@ fn merge_profiles(profraw_files: &[PathBuf], output: &Path) -> Result<(), String
     merge_cmd.args(["-o", &output.to_string_lossy()]);
     merge_cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
 
-    let output_result = merge_cmd
-        .output()
-        .map_err(|e| format!("failed to run llvm-profdata: {e}"))?;
+    let output_result =
+        merge_cmd.output().map_err(|e| format!("failed to run llvm-profdata: {e}"))?;
 
     if !output_result.status.success() {
         let stderr = String::from_utf8_lossy(&output_result.stderr);
-        return Err(format!(
-            "llvm-profdata merge failed: {}",
-            truncate_lines(&stderr, 5)
-        ));
+        return Err(format!("llvm-profdata merge failed: {}", truncate_lines(&stderr, 5)));
     }
 
     Ok(())
@@ -224,20 +203,13 @@ fn export_coverage(
         }
     }
 
-    cmd.current_dir(root)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
+    cmd.current_dir(root).stdout(Stdio::piped()).stderr(Stdio::piped());
 
-    let output = cmd
-        .output()
-        .map_err(|e| format!("failed to run llvm-cov: {e}"))?;
+    let output = cmd.output().map_err(|e| format!("failed to run llvm-cov: {e}"))?;
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(format!(
-            "llvm-cov export failed: {}",
-            truncate_lines(&stderr, 5)
-        ));
+        return Err(format!("llvm-cov export failed: {}", truncate_lines(&stderr, 5)));
     }
 
     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -276,10 +248,7 @@ fn parse_llvm_cov_export(json: &str) -> Result<(f64, HashMap<String, f64>), Stri
     let export: LlvmCovExport =
         serde_json::from_str(json).map_err(|e| format!("failed to parse llvm-cov output: {e}"))?;
 
-    let data = export
-        .data
-        .first()
-        .ok_or_else(|| "no coverage data in report".to_string())?;
+    let data = export.data.first().ok_or_else(|| "no coverage data in report".to_string())?;
 
     let line_coverage = data.totals.lines.percent;
 

@@ -125,12 +125,8 @@ fn is_bun_installed() -> bool {
 
 fn detect_from_config_files(root: &Path) -> Option<DetectionResult> {
     // Vitest config files
-    const VITEST_CONFIGS: &[&str] = &[
-        "vitest.config.ts",
-        "vitest.config.js",
-        "vitest.config.mts",
-        "vitest.config.mjs",
-    ];
+    const VITEST_CONFIGS: &[&str] =
+        &["vitest.config.ts", "vitest.config.js", "vitest.config.mts", "vitest.config.mjs"];
     for config in VITEST_CONFIGS {
         if root.join(config).exists() {
             return Some(DetectionResult {
@@ -141,12 +137,8 @@ fn detect_from_config_files(root: &Path) -> Option<DetectionResult> {
     }
 
     // Jest config files
-    const JEST_CONFIGS: &[&str] = &[
-        "jest.config.ts",
-        "jest.config.js",
-        "jest.config.mjs",
-        "jest.config.json",
-    ];
+    const JEST_CONFIGS: &[&str] =
+        &["jest.config.ts", "jest.config.js", "jest.config.mjs", "jest.config.json"];
     for config in JEST_CONFIGS {
         if root.join(config).exists() {
             return Some(DetectionResult {

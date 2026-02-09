@@ -139,11 +139,7 @@ fn detects_ruff_from_dot_ruff_toml() {
 #[test]
 fn detects_ruff_from_pyproject_toml() {
     let dir = setup_dir();
-    std::fs::write(
-        dir.path().join("pyproject.toml"),
-        "[tool.ruff]\nline-length = 88\n",
-    )
-    .unwrap();
+    std::fs::write(dir.path().join("pyproject.toml"), "[tool.ruff]\nline-length = 88\n").unwrap();
 
     let tooling = PythonTooling::detect(dir.path());
     assert!(tooling.has_ruff);
@@ -152,11 +148,7 @@ fn detects_ruff_from_pyproject_toml() {
 #[test]
 fn detects_black_from_pyproject_toml() {
     let dir = setup_dir();
-    std::fs::write(
-        dir.path().join("pyproject.toml"),
-        "[tool.black]\nline-length = 88\n",
-    )
-    .unwrap();
+    std::fs::write(dir.path().join("pyproject.toml"), "[tool.black]\nline-length = 88\n").unwrap();
 
     let tooling = PythonTooling::detect(dir.path());
     assert!(tooling.has_black);
@@ -183,11 +175,7 @@ fn detects_mypy_from_dot_mypy_ini() {
 #[test]
 fn detects_mypy_from_pyproject_toml() {
     let dir = setup_dir();
-    std::fs::write(
-        dir.path().join("pyproject.toml"),
-        "[tool.mypy]\nstrict = true\n",
-    )
-    .unwrap();
+    std::fs::write(dir.path().join("pyproject.toml"), "[tool.mypy]\nstrict = true\n").unwrap();
 
     let tooling = PythonTooling::detect(dir.path());
     assert!(tooling.has_mypy);
@@ -258,11 +246,7 @@ fn detects_build_from_setup_py() {
 #[test]
 fn detects_flake8_from_dotfile() {
     let dir = setup_dir();
-    std::fs::write(
-        dir.path().join(".flake8"),
-        "[flake8]\nmax-line-length = 100",
-    )
-    .unwrap();
+    std::fs::write(dir.path().join(".flake8"), "[flake8]\nmax-line-length = 100").unwrap();
 
     let tooling = PythonTooling::detect(dir.path());
     assert!(tooling.has_flake8);
@@ -271,11 +255,7 @@ fn detects_flake8_from_dotfile() {
 #[test]
 fn detects_flake8_from_setup_cfg() {
     let dir = setup_dir();
-    std::fs::write(
-        dir.path().join("setup.cfg"),
-        "[flake8]\nmax-line-length = 100",
-    )
-    .unwrap();
+    std::fs::write(dir.path().join("setup.cfg"), "[flake8]\nmax-line-length = 100").unwrap();
 
     let tooling = PythonTooling::detect(dir.path());
     assert!(tooling.has_flake8);

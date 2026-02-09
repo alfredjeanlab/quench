@@ -33,21 +33,13 @@ impl EscapesMetrics {
     }
 
     pub(super) fn increment(&mut self, pattern_name: &str, is_test: bool) {
-        let map = if is_test {
-            &mut self.test
-        } else {
-            &mut self.source
-        };
+        let map = if is_test { &mut self.test } else { &mut self.source };
         *map.entry(pattern_name.to_string()).or_insert(0) += 1;
     }
 
     pub(super) fn increment_package(&mut self, package: &str, pattern_name: &str, is_test: bool) {
         let pkg = self.packages.entry(package.to_string()).or_default();
-        let map = if is_test {
-            &mut pkg.test
-        } else {
-            &mut pkg.source
-        };
+        let map = if is_test { &mut pkg.test } else { &mut pkg.source };
         *map.entry(pattern_name.to_string()).or_insert(0) += 1;
     }
 
@@ -62,14 +54,8 @@ impl EscapesMetrics {
         let mut test_obj = serde_json::Map::new();
 
         for name in pattern_names {
-            source_obj.insert(
-                name.clone(),
-                json!(self.source.get(name).copied().unwrap_or(0)),
-            );
-            test_obj.insert(
-                name.clone(),
-                json!(self.test.get(name).copied().unwrap_or(0)),
-            );
+            source_obj.insert(name.clone(), json!(self.source.get(name).copied().unwrap_or(0)));
+            test_obj.insert(name.clone(), json!(self.test.get(name).copied().unwrap_or(0)));
         }
 
         json!({
@@ -97,10 +83,8 @@ impl EscapesMetrics {
                     name.clone(),
                     json!(pkg_metrics.source.get(name).copied().unwrap_or(0)),
                 );
-                test_obj.insert(
-                    name.clone(),
-                    json!(pkg_metrics.test.get(name).copied().unwrap_or(0)),
-                );
+                test_obj
+                    .insert(name.clone(), json!(pkg_metrics.test.get(name).copied().unwrap_or(0)));
             }
 
             result.insert(

@@ -64,27 +64,15 @@ impl From<&MetricComparison> for MetricComparisonOutput {
     fn from(comp: &MetricComparison) -> Self {
         // Coverage uses min_allowed (floor), others use max_allowed (ceiling)
         let is_coverage = comp.name.starts_with("coverage.");
-        let tolerance = if comp.tolerance > 0.0 {
-            Some(comp.tolerance)
-        } else {
-            None
-        };
+        let tolerance = if comp.tolerance > 0.0 { Some(comp.tolerance) } else { None };
 
         Self {
             name: comp.name.clone(),
             current: comp.current,
             baseline: comp.baseline,
             tolerance,
-            min_allowed: if is_coverage {
-                Some(comp.threshold)
-            } else {
-                None
-            },
-            max_allowed: if !is_coverage {
-                Some(comp.threshold)
-            } else {
-                None
-            },
+            min_allowed: if is_coverage { Some(comp.threshold) } else { None },
+            max_allowed: if !is_coverage { Some(comp.threshold) } else { None },
             passed: comp.passed,
             improved: comp.improved,
         }
@@ -93,11 +81,7 @@ impl From<&MetricComparison> for MetricComparisonOutput {
 
 impl From<&MetricImprovement> for MetricImprovementOutput {
     fn from(imp: &MetricImprovement) -> Self {
-        Self {
-            name: imp.name.clone(),
-            old_value: imp.old_value,
-            new_value: imp.new_value,
-        }
+        Self { name: imp.name.clone(), old_value: imp.old_value, new_value: imp.new_value }
     }
 }
 
@@ -160,10 +144,7 @@ impl<W: Write> JsonFormatter<W> {
 
 /// Create CheckOutput with current timestamp.
 pub fn create_output(checks: Vec<CheckResult>) -> CheckOutput {
-    CheckOutput::new(
-        Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
-        checks,
-    )
+    CheckOutput::new(Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true), checks)
 }
 
 #[cfg(test)]

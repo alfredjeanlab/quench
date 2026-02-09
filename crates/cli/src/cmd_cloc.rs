@@ -37,11 +37,7 @@ pub fn run(args: &ClocArgs) -> anyhow::Result<ExitCode> {
         cwd.clone()
     } else {
         let path = &args.paths[0];
-        if path.is_absolute() {
-            path.clone()
-        } else {
-            cwd.join(path)
-        }
+        if path.is_absolute() { path.clone() } else { cwd.join(path) }
     };
 
     // Load config
@@ -61,11 +57,8 @@ pub fn run(args: &ClocArgs) -> anyhow::Result<ExitCode> {
     }
 
     // Set up walker
-    let walker_config = WalkerConfig {
-        max_depth: Some(args.max_depth),
-        exclude_patterns,
-        ..Default::default()
-    };
+    let walker_config =
+        WalkerConfig { max_depth: Some(args.max_depth), exclude_patterns, ..Default::default() };
     let walker = FileWalker::new(walker_config);
     let (rx, handle) = walker.walk(&root);
 
@@ -149,11 +142,8 @@ pub fn run(args: &ClocArgs) -> anyhow::Result<ExitCode> {
             // Split metrics proportionally between source and test
             let total_nonblank = metrics.nonblank.max(1);
 
-            let pkg = if !packages.is_empty() {
-                file_package(relative_path, packages)
-            } else {
-                None
-            };
+            let pkg =
+                if !packages.is_empty() { file_package(relative_path, packages) } else { None };
 
             if classification.source_lines > 0 {
                 let ratio = classification.source_lines as f64 / total_nonblank as f64;
@@ -206,9 +196,7 @@ pub fn run(args: &ClocArgs) -> anyhow::Result<ExitCode> {
             if !packages.is_empty()
                 && let Some(pkg) = file_package(relative_path, packages)
             {
-                let pe = package_lang_stats
-                    .entry((pkg, lang, file_kind))
-                    .or_default();
+                let pe = package_lang_stats.entry((pkg, lang, file_kind)).or_default();
                 pe.files += 1;
                 pe.blank += metrics.blank;
                 pe.comment += metrics.comment;
@@ -307,10 +295,7 @@ fn print_text(
                 FileKind::Other => "other",
             }
         );
-        println!(
-            "{:<25} {:>5}  {:>8}  {:>8}  {:>8}",
-            label, s.files, s.blank, s.comment, s.code
-        );
+        println!("{:<25} {:>5}  {:>8}  {:>8}  {:>8}", label, s.files, s.blank, s.comment, s.code);
 
         // Inline per-package rows (indented)
         if has_packages {

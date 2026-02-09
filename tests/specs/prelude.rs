@@ -113,13 +113,7 @@ impl CheckBuilder<Text, Single> {
 #[allow(dead_code)]
 impl CheckBuilder<Text, All> {
     fn all() -> Self {
-        Self {
-            scope: All,
-            dir: None,
-            args: Vec::new(),
-            envs: Vec::new(),
-            _mode: PhantomData,
-        }
+        Self { scope: All, dir: None, args: Vec::new(), envs: Vec::new(), _mode: PhantomData }
     }
 
     pub fn json(self) -> CheckBuilder<Json, All> {
@@ -187,35 +181,19 @@ pub struct ReportBuilder<Mode = Text> {
 #[allow(dead_code)]
 impl ReportBuilder<Text> {
     fn new() -> Self {
-        Self {
-            dir: None,
-            args: Vec::new(),
-            _mode: PhantomData,
-        }
+        Self { dir: None, args: Vec::new(), _mode: PhantomData }
     }
 
     pub fn json(self) -> ReportBuilder<Json> {
-        ReportBuilder {
-            dir: self.dir,
-            args: self.args,
-            _mode: PhantomData,
-        }
+        ReportBuilder { dir: self.dir, args: self.args, _mode: PhantomData }
     }
 
     pub fn html(self) -> ReportBuilder<Html> {
-        ReportBuilder {
-            dir: self.dir,
-            args: self.args,
-            _mode: PhantomData,
-        }
+        ReportBuilder { dir: self.dir, args: self.args, _mode: PhantomData }
     }
 
     pub fn markdown(self) -> ReportBuilder<Markdown> {
-        ReportBuilder {
-            dir: self.dir,
-            args: self.args,
-            _mode: PhantomData,
-        }
+        ReportBuilder { dir: self.dir, args: self.args, _mode: PhantomData }
     }
 
     pub fn runs(self) -> RunAssert {
@@ -337,10 +315,7 @@ pub struct CheckJson {
 impl CheckJson {
     fn new(stdout: &[u8], name: &str) -> Self {
         let root: serde_json::Value = serde_json::from_slice(stdout).expect("valid JSON");
-        Self {
-            root,
-            name: name.to_string(),
-        }
+        Self { root, name: name.to_string() }
     }
 
     /// Get the root JSON value
@@ -371,9 +346,7 @@ impl CheckJson {
 
     /// Get field from the check, panics if missing
     pub fn require(&self, key: &str) -> &serde_json::Value {
-        self.check()
-            .get(key)
-            .unwrap_or_else(|| panic!("expected '{}' in check JSON", key))
+        self.check().get(key).unwrap_or_else(|| panic!("expected '{}' in check JSON", key))
     }
 
     // =========================================================================
@@ -382,17 +355,12 @@ impl CheckJson {
 
     /// Get all violations as a slice
     pub fn violations(&self) -> &[serde_json::Value] {
-        self.get("violations")
-            .and_then(|v| v.as_array())
-            .map(|v| v.as_slice())
-            .unwrap_or(&[])
+        self.get("violations").and_then(|v| v.as_array()).map(|v| v.as_slice()).unwrap_or(&[])
     }
 
     /// Returns true if any violation has this type
     pub fn has_violation(&self, vtype: &str) -> bool {
-        self.violations()
-            .iter()
-            .any(|v| v.get("type").and_then(|t| t.as_str()) == Some(vtype))
+        self.violations().iter().any(|v| v.get("type").and_then(|t| t.as_str()) == Some(vtype))
     }
 
     /// Panics if no violation of this type exists, returns it otherwise
@@ -575,11 +543,7 @@ impl RunAssert {
         P: Predicate<str>,
     {
         let stdout = String::from_utf8_lossy(&self.output.stdout);
-        assert!(
-            predicate.into_predicate().eval(&stdout),
-            "stdout predicate failed:\n{}",
-            stdout
-        );
+        assert!(predicate.into_predicate().eval(&stdout), "stdout predicate failed:\n{}", stdout);
         self
     }
 
@@ -616,11 +580,7 @@ impl RunAssert {
         P: Predicate<str>,
     {
         let stderr = String::from_utf8_lossy(&self.output.stderr);
-        assert!(
-            predicate.into_predicate().eval(&stderr),
-            "stderr predicate failed:\n{}",
-            stderr
-        );
+        assert!(predicate.into_predicate().eval(&stderr), "stderr predicate failed:\n{}", stderr);
         self
     }
 
@@ -718,11 +678,7 @@ pub fn setup_js_fixture(fixture_name: &str) {
         .status()
         .expect("npm should be available");
 
-    assert!(
-        status.success(),
-        "npm install failed for fixture: {}",
-        fixture_name
-    );
+    assert!(status.success(), "npm install failed for fixture: {}", fixture_name);
 
     // Remove lock after successful installation
     let mut locks = FIXTURE_LOCKS.lock().unwrap();
@@ -767,9 +723,7 @@ pub struct Project {
 impl Project {
     /// Create an empty project with no files
     pub fn empty() -> Self {
-        Self {
-            dir: tempfile::tempdir().unwrap(),
-        }
+        Self { dir: tempfile::tempdir().unwrap() }
     }
 
     /// Create a minimal Cargo project with tests check configured.

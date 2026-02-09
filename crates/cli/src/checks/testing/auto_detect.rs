@@ -162,9 +162,7 @@ pub fn run_auto_detected_suite(
         let violation = Violation::file_only(
             format!("<suite:{}>", result.name),
             "test_suite_failed",
-            result
-                .error
-                .unwrap_or_else(|| "test suite failed".to_string()),
+            result.error.unwrap_or_else(|| "test suite failed".to_string()),
         );
         CheckResult::failed(check_name, vec![violation]).with_metrics(metrics)
     }

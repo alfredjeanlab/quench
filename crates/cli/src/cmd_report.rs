@@ -110,10 +110,7 @@ fn load_baseline_for_ref(
         match Baseline::load_from_notes(root, git_ref) {
             Ok(baseline) => Ok(baseline),
             Err(e) => {
-                eprintln!(
-                    "warning: failed to load baseline from git notes for {}: {}",
-                    git_ref, e
-                );
+                eprintln!("warning: failed to load baseline from git notes for {}: {}", git_ref, e);
                 Ok(None)
             }
         }

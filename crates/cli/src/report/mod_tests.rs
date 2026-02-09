@@ -200,12 +200,9 @@ fn sorted_test_escapes_returns_sorted_when_present() {
             escapes: Some(EscapesMetrics {
                 source: [("unwrap".to_string(), 1_usize)].into_iter().collect(),
                 test: Some(
-                    [
-                        ("zebra".to_string(), 1_usize),
-                        ("alpha".to_string(), 2_usize),
-                    ]
-                    .into_iter()
-                    .collect(),
+                    [("zebra".to_string(), 1_usize), ("alpha".to_string(), 2_usize)]
+                        .into_iter()
+                        .collect(),
                 ),
             }),
             ..Default::default()

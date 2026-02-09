@@ -198,13 +198,7 @@ pub fn parse_eslint_suppresses(
         let (has_comment, comment_text) =
             check_justification_comment(&lines, line_idx, comment_pattern, &JS_COMMENT_STYLE);
 
-        suppresses.push(EslintSuppress {
-            line: line_idx,
-            kind,
-            codes,
-            has_comment,
-            comment_text,
-        });
+        suppresses.push(EslintSuppress { line: line_idx, kind, codes, has_comment, comment_text });
     }
 
     suppresses
@@ -259,14 +253,7 @@ fn parse_biome_ignore_line(line: &str) -> Option<ParsedBiome> {
     let (codes_part, explanation) = if let Some(colon_pos) = rest.find(':') {
         let codes = &rest[..colon_pos];
         let expl = rest[colon_pos + 1..].trim();
-        (
-            codes,
-            if expl.is_empty() {
-                None
-            } else {
-                Some(expl.to_string())
-            },
-        )
+        (codes, if expl.is_empty() { None } else { Some(expl.to_string()) })
     } else {
         (rest, None)
     };
@@ -358,13 +345,7 @@ impl From<BiomeSuppress> for JavaScriptSuppress {
         let has_comment = s.has_explanation || s.has_comment;
         let comment_text = s.explanation_text.or(s.comment_text);
 
-        Self {
-            line: s.line,
-            tool: SuppressTool::Biome,
-            codes: s.codes,
-            has_comment,
-            comment_text,
-        }
+        Self { line: s.line, tool: SuppressTool::Biome, codes: s.codes, has_comment, comment_text }
     }
 }
 

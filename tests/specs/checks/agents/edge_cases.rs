@@ -78,10 +78,7 @@ sections.required = ["Directory Structure"]
     temp.file("CLAUDE.md", "");
 
     let result = check("agents").pwd(temp.path()).json().fails();
-    assert!(
-        result.has_violation("missing_section"),
-        "empty file should fail section validation"
-    );
+    assert!(result.has_violation("missing_section"), "empty file should fail section validation");
 }
 
 /// Edge case: whitespace-only agent file

@@ -203,18 +203,9 @@ fn detect_mermaid_with_indentation() {
 
 #[test]
 fn content_type_violation_type() {
-    assert_eq!(
-        ContentType::MarkdownTable.violation_type(),
-        "forbidden_table"
-    );
-    assert_eq!(
-        ContentType::BoxDiagram.violation_type(),
-        "forbidden_diagram"
-    );
-    assert_eq!(
-        ContentType::MermaidBlock.violation_type(),
-        "forbidden_mermaid"
-    );
+    assert_eq!(ContentType::MarkdownTable.violation_type(), "forbidden_table");
+    assert_eq!(ContentType::BoxDiagram.violation_type(), "forbidden_diagram");
+    assert_eq!(ContentType::MermaidBlock.violation_type(), "forbidden_mermaid");
 }
 
 #[test]

@@ -16,11 +16,7 @@ use super::runners::{RunnerContext, filter_suites_for_mode, get_runner, run_setu
 ///
 /// Returns e.g. "450ms" for small values, "3.2s" for values over 3000ms.
 fn format_duration_ms(ms: u64) -> String {
-    if ms > 3000 {
-        format!("{:.1}s", ms as f64 / 1000.0)
-    } else {
-        format!("{}ms", ms)
-    }
+    if ms > 3000 { format!("{:.1}s", ms as f64 / 1000.0) } else { format!("{}ms", ms) }
 }
 
 /// Aggregated results from all test suites.
@@ -75,13 +71,7 @@ impl SuiteResults {
             .map(|(ms, name)| (Some(ms), name))
             .unwrap_or((None, None));
 
-        AggregatedMetrics {
-            test_count,
-            total_ms,
-            avg_ms,
-            max_ms,
-            max_test,
-        }
+        AggregatedMetrics { test_count, total_ms, avg_ms, max_ms, max_test }
     }
 }
 
@@ -154,10 +144,8 @@ pub fn run_suites(ctx: &CheckContext) -> Option<SuiteResults> {
 
     // Parallel execution in CI mode when multiple suites
     if ctx.ci_mode && active_suites.len() > 1 {
-        results = active_suites
-            .par_iter()
-            .map(|suite| run_single_suite(suite, &runner_ctx))
-            .collect();
+        results =
+            active_suites.par_iter().map(|suite| run_single_suite(suite, &runner_ctx)).collect();
         all_passed = results.iter().all(|r| r.passed || r.skipped);
     } else {
         // Sequential with early termination for fast mode
@@ -177,10 +165,7 @@ pub fn run_suites(ctx: &CheckContext) -> Option<SuiteResults> {
         }
     }
 
-    Some(SuiteResults {
-        passed: all_passed,
-        suites: results,
-    })
+    Some(SuiteResults { passed: all_passed, suites: results })
 }
 
 /// Execute a single test suite and return its result.
@@ -253,29 +238,17 @@ pub fn run_single_suite(suite: &TestSuiteConfig, runner_ctx: &RunnerContext) -> 
     let skipped_count = run_result.skipped_count();
     let total_ms = run_result.total_time.as_millis() as u64;
     let avg_ms = run_result.avg_duration().map(|d| d.as_millis() as u64);
-    let max_ms = run_result
-        .slowest_test()
-        .map(|t| t.duration.as_millis() as u64);
+    let max_ms = run_result.slowest_test().map(|t| t.duration.as_millis() as u64);
     let max_test = run_result.slowest_test().map(|t| t.name.clone());
-    let p50_ms = run_result
-        .percentile_duration(50.0)
-        .map(|d| d.as_millis() as u64);
-    let p90_ms = run_result
-        .percentile_duration(90.0)
-        .map(|d| d.as_millis() as u64);
-    let p99_ms = run_result
-        .percentile_duration(99.0)
-        .map(|d| d.as_millis() as u64);
+    let p50_ms = run_result.percentile_duration(50.0).map(|d| d.as_millis() as u64);
+    let p90_ms = run_result.percentile_duration(90.0).map(|d| d.as_millis() as u64);
+    let p99_ms = run_result.percentile_duration(99.0).map(|d| d.as_millis() as u64);
     let coverage = run_result.coverage.clone();
     let coverage_by_package = run_result.coverage_by_package.clone();
 
     // Verbose: show suite completion
     if runner_ctx.verbose {
-        let exit_status = if run_result.passed {
-            "passed"
-        } else {
-            "FAILED"
-        };
+        let exit_status = if run_result.passed { "passed" } else { "FAILED" };
         if run_result.passed {
             eprintln!(
                 "  Suite {:?} completed: {}, {} tests, {}",

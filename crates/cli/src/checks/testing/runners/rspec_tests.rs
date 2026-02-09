@@ -112,10 +112,7 @@ fn parses_failing_test_details() {
 
     assert!(result.tests[0].passed);
     assert!(!result.tests[1].passed);
-    assert_eq!(
-        result.tests[1].name,
-        "Math .divide handles division by zero"
-    );
+    assert_eq!(result.tests[1].name, "Math .divide handles division by zero");
 }
 
 #[test]

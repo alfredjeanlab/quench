@@ -165,11 +165,7 @@ fn calculate_line_coverage(lines: &[Option<u64>]) -> Option<f64> {
         }
     }
 
-    if total == 0 {
-        None
-    } else {
-        Some((covered as f64 / total as f64) * 100.0)
-    }
+    if total == 0 { None } else { Some((covered as f64 / total as f64) * 100.0) }
 }
 
 /// Normalize Ruby file paths to project-relative.

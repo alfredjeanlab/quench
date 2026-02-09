@@ -68,12 +68,9 @@ impl JavaScriptAdapter {
     /// Returns Some(true) for JS/TS extensions, None if GlobSet needed.
     #[inline]
     fn is_js_extension(path: &Path) -> Option<bool> {
-        path.extension().and_then(|ext| ext.to_str()).map(|ext| {
-            matches!(
-                ext,
-                "js" | "jsx" | "ts" | "tsx" | "mjs" | "mts" | "cjs" | "cts"
-            )
-        })
+        path.extension()
+            .and_then(|ext| ext.to_str())
+            .map(|ext| matches!(ext, "js" | "jsx" | "ts" | "tsx" | "mjs" | "mts" | "cjs" | "cts"))
     }
 
     /// Create a new JavaScript adapter with default patterns.

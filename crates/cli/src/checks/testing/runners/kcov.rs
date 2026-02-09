@@ -50,16 +50,11 @@ pub fn collect_shell_coverage(
     }
 
     // Build include paths from script directories
-    let include_paths: HashSet<PathBuf> = scripts
-        .iter()
-        .filter_map(|p| p.parent().map(|d| d.to_path_buf()))
-        .collect();
+    let include_paths: HashSet<PathBuf> =
+        scripts.iter().filter_map(|p| p.parent().map(|d| d.to_path_buf())).collect();
 
-    let include_arg = include_paths
-        .iter()
-        .map(|p| p.to_string_lossy().to_string())
-        .collect::<Vec<_>>()
-        .join(",");
+    let include_arg =
+        include_paths.iter().map(|p| p.to_string_lossy().to_string()).collect::<Vec<_>>().join(",");
 
     // Run kcov wrapping the test command
     let mut cmd = Command::new("kcov");

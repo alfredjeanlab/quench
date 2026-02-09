@@ -32,11 +32,7 @@ fn quench_bin() -> &'static str {
 }
 
 fn quench_root() -> &'static Path {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .unwrap()
-        .parent()
-        .unwrap()
+    Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap().parent().unwrap()
 }
 
 //=============================================================================
@@ -60,13 +56,7 @@ fn bench_tests_ci_fixture(c: &mut Criterion) {
     group.bench_function("fast", |b| {
         b.iter(|| {
             Command::new(quench_bin)
-                .args([
-                    "check",
-                    "--tests",
-                    "--no-cloc",
-                    "--no-escapes",
-                    "--no-agents",
-                ])
+                .args(["check", "--tests", "--no-cloc", "--no-escapes", "--no-agents"])
                 .current_dir(&path)
                 .output()
                 .expect("quench should run")
@@ -77,14 +67,7 @@ fn bench_tests_ci_fixture(c: &mut Criterion) {
     group.bench_function("ci", |b| {
         b.iter(|| {
             Command::new(quench_bin)
-                .args([
-                    "check",
-                    "--tests",
-                    "--no-cloc",
-                    "--no-escapes",
-                    "--no-agents",
-                    "--ci",
-                ])
+                .args(["check", "--tests", "--no-cloc", "--no-escapes", "--no-agents", "--ci"])
                 .current_dir(&path)
                 .output()
                 .expect("quench should run")
@@ -130,13 +113,7 @@ fn bench_ci_mode_overhead(c: &mut Criterion) {
     group.bench_function("tests_fast", |b| {
         b.iter(|| {
             Command::new(quench_bin)
-                .args([
-                    "check",
-                    "--tests",
-                    "--no-cloc",
-                    "--no-escapes",
-                    "--no-agents",
-                ])
+                .args(["check", "--tests", "--no-cloc", "--no-escapes", "--no-agents"])
                 .current_dir(root)
                 .output()
                 .expect("quench should run")
@@ -147,14 +124,7 @@ fn bench_ci_mode_overhead(c: &mut Criterion) {
     group.bench_function("tests_ci", |b| {
         b.iter(|| {
             Command::new(quench_bin)
-                .args([
-                    "check",
-                    "--tests",
-                    "--no-cloc",
-                    "--no-escapes",
-                    "--no-agents",
-                    "--ci",
-                ])
+                .args(["check", "--tests", "--no-cloc", "--no-escapes", "--no-agents", "--ci"])
                 .current_dir(root)
                 .output()
                 .expect("quench should run")

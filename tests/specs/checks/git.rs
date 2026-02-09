@@ -72,9 +72,7 @@ agents = false
     let violations = git.require("violations").as_array().unwrap();
 
     assert!(
-        violations
-            .iter()
-            .any(|v| v.get("type").and_then(|t| t.as_str()) == Some("invalid_format")),
+        violations.iter().any(|v| v.get("type").and_then(|t| t.as_str()) == Some("invalid_format")),
         "should have invalid_format violation"
     );
 }
@@ -110,9 +108,7 @@ agents = false
     let violations = git.require("violations").as_array().unwrap();
 
     assert!(
-        violations
-            .iter()
-            .any(|v| v.get("type").and_then(|t| t.as_str()) == Some("invalid_type")),
+        violations.iter().any(|v| v.get("type").and_then(|t| t.as_str()) == Some("invalid_type")),
         "should have invalid_type violation"
     );
 }
@@ -148,9 +144,7 @@ agents = false
     let violations = git.require("violations").as_array().unwrap();
 
     assert!(
-        violations
-            .iter()
-            .any(|v| v.get("type").and_then(|t| t.as_str()) == Some("invalid_scope")),
+        violations.iter().any(|v| v.get("type").and_then(|t| t.as_str()) == Some("invalid_scope")),
         "should have invalid_scope violation"
     );
 }
@@ -192,10 +186,7 @@ agents = false
 #[test]
 fn git_missing_format_documentation_generates_violation() {
     let git = check("git").on("git/missing-docs").json().fails();
-    assert!(
-        git.has_violation("missing_docs"),
-        "should have missing_docs violation"
-    );
+    assert!(git.has_violation("missing_docs"), "should have missing_docs violation");
 }
 
 /// Spec: docs/specs/checks/git.md#detection
@@ -281,11 +272,7 @@ template = true
     );
 
     // Initialize git repo for template config
-    std::process::Command::new("git")
-        .args(["init"])
-        .current_dir(temp.path())
-        .output()
-        .unwrap();
+    std::process::Command::new("git").args(["init"]).current_dir(temp.path()).output().unwrap();
 
     check("git").pwd(temp.path()).args(&["--fix"]).passes();
 
@@ -294,10 +281,7 @@ template = true
     assert!(gitmessage_path.exists(), ".gitmessage should be created");
 
     let content = std::fs::read_to_string(&gitmessage_path).unwrap();
-    assert!(
-        content.contains("# <type>"),
-        ".gitmessage should contain template"
-    );
+    assert!(content.contains("# <type>"), ".gitmessage should contain template");
 }
 
 /// Spec: docs/specs/checks/git.md#git-config
@@ -318,11 +302,7 @@ template = true
     );
 
     // Initialize git repo
-    std::process::Command::new("git")
-        .args(["init"])
-        .current_dir(temp.path())
-        .output()
-        .unwrap();
+    std::process::Command::new("git").args(["init"]).current_dir(temp.path()).output().unwrap();
 
     check("git").pwd(temp.path()).args(&["--fix"]).passes();
 
@@ -333,10 +313,7 @@ template = true
         .output()
         .unwrap();
     let template_value = String::from_utf8_lossy(&output.stdout);
-    assert!(
-        template_value.trim() == ".gitmessage",
-        "commit.template should be set to .gitmessage"
-    );
+    assert!(template_value.trim() == ".gitmessage", "commit.template should be set to .gitmessage");
 }
 
 /// Spec: docs/specs/checks/git.md#behavior
@@ -357,11 +334,7 @@ template = true
     );
     temp.file(".gitmessage", "# Custom template\n");
 
-    std::process::Command::new("git")
-        .args(["init"])
-        .current_dir(temp.path())
-        .output()
-        .unwrap();
+    std::process::Command::new("git").args(["init"]).current_dir(temp.path()).output().unwrap();
 
     check("git").pwd(temp.path()).args(&["--fix"]).passes();
 
@@ -399,20 +372,11 @@ agents = false
     let git = check("git").pwd(temp.path()).args(&["--ci"]).json().fails();
     let violations = git.require("violations").as_array().unwrap();
 
-    let valid_types = [
-        "invalid_format",
-        "invalid_type",
-        "invalid_scope",
-        "missing_docs",
-    ];
+    let valid_types = ["invalid_format", "invalid_type", "invalid_scope", "missing_docs"];
 
     for v in violations {
         let vtype = v.get("type").and_then(|t| t.as_str()).unwrap();
-        assert!(
-            valid_types.contains(&vtype),
-            "unexpected violation type: {}",
-            vtype
-        );
+        assert!(valid_types.contains(&vtype), "unexpected violation type: {}", vtype);
     }
 }
 
@@ -446,15 +410,9 @@ agents = false
         .find(|v| v.get("type").and_then(|t| t.as_str()) == Some("invalid_format"))
         .expect("should have invalid_format violation");
 
+    assert!(commit_violation.get("commit").is_some(), "commit violation should have commit field");
     assert!(
-        commit_violation.get("commit").is_some(),
-        "commit violation should have commit field"
-    );
-    assert!(
-        commit_violation
-            .get("file")
-            .map(|f| f.is_null())
-            .unwrap_or(true),
+        commit_violation.get("file").map(|f| f.is_null()).unwrap_or(true),
         "commit violation should have null file"
     );
 }
@@ -473,10 +431,7 @@ fn git_missing_docs_violation_references_file() {
         .expect("should have missing_docs violation");
 
     assert!(
-        docs_violation
-            .get("file")
-            .and_then(|f| f.as_str())
-            .is_some(),
+        docs_violation.get("file").and_then(|f| f.as_str()).is_some(),
         "missing_docs violation should reference file"
     );
 }
@@ -526,10 +481,7 @@ agents = false
     git_init(&temp);
     git_initial_commit(&temp);
 
-    check("git")
-        .pwd(temp.path())
-        .passes()
-        .stdout_eq("PASS: git\n");
+    check("git").pwd(temp.path()).passes().stdout_eq("PASS: git\n");
 }
 
 /// Spec: docs/specs/checks/git.md#fix-output
@@ -549,23 +501,12 @@ template = true
         "# Project\n\n## Commits\n\nfeat: format\n\n## Directory Structure\n\nMinimal.\n\n## Landing the Plane\n\n- Done\n",
     );
 
-    std::process::Command::new("git")
-        .args(["init"])
-        .current_dir(temp.path())
-        .output()
-        .unwrap();
+    std::process::Command::new("git").args(["init"]).current_dir(temp.path()).output().unwrap();
 
-    check("git")
-        .pwd(temp.path())
-        .args(&["--fix"])
-        .passes()
-        .stdout_has("FIXED");
+    check("git").pwd(temp.path()).args(&["--fix"]).passes().stdout_has("FIXED");
 
     // Verify .gitmessage was actually created
-    assert!(
-        temp.path().join(".gitmessage").exists(),
-        ".gitmessage should be created by fix"
-    );
+    assert!(temp.path().join(".gitmessage").exists(), ".gitmessage should be created by fix");
 }
 
 /// Spec: docs/specs/checks/git.md#fix-output
@@ -585,23 +526,11 @@ template = true
         "# Project\n\n## Commits\n\nfeat: format\n\n## Directory Structure\n\nMinimal.\n\n## Landing the Plane\n\n- Done\n",
     );
 
-    std::process::Command::new("git")
-        .args(["init"])
-        .current_dir(temp.path())
-        .output()
-        .unwrap();
+    std::process::Command::new("git").args(["init"]).current_dir(temp.path()).output().unwrap();
 
-    let result = check("git")
-        .pwd(temp.path())
-        .args(&["--fix"])
-        .json()
-        .passes();
+    let result = check("git").pwd(temp.path()).args(&["--fix"]).json().passes();
 
-    assert_eq!(
-        result.require("fixed").as_bool(),
-        Some(true),
-        "should have fixed: true"
-    );
+    assert_eq!(result.require("fixed").as_bool(), Some(true), "should have fixed: true");
 }
 
 // =============================================================================
@@ -642,23 +571,14 @@ agents = false
     git_checkout(&temp, "main");
     // Use --no-ff to force merge commit
     std::process::Command::new("git")
-        .args([
-            "merge",
-            "--no-ff",
-            "feature",
-            "-m",
-            "Merge branch 'feature'",
-        ])
+        .args(["merge", "--no-ff", "feature", "-m", "Merge branch 'feature'"])
         .current_dir(temp.path())
         .output()
         .unwrap();
 
     // Should pass - merge commit is skipped, feat commit is valid
     // Use HEAD~1 to check from initial commit (before merge and feature commit)
-    check("git")
-        .pwd(temp.path())
-        .args(&["--base", "HEAD~1"])
-        .passes();
+    check("git").pwd(temp.path()).args(&["--base", "HEAD~1"]).passes();
 }
 
 /// Spec: docs/specs/checks/git.md#merge-commits
@@ -691,13 +611,7 @@ skip_merge = false
     // Merge back to main (creates merge commit)
     git_checkout(&temp, "main");
     std::process::Command::new("git")
-        .args([
-            "merge",
-            "--no-ff",
-            "feature",
-            "-m",
-            "Merge branch 'feature'",
-        ])
+        .args(["merge", "--no-ff", "feature", "-m", "Merge branch 'feature'"])
         .current_dir(temp.path())
         .output()
         .unwrap();
@@ -705,11 +619,7 @@ skip_merge = false
     // Should fail - merge commit violates conventional format when skip_merge=false
     // Check commits since initial commit (HEAD~1 is the merge, initial is HEAD~2)
     // Actually check HEAD^1 which is the first parent before merge
-    check("git")
-        .pwd(temp.path())
-        .args(&["--base", "HEAD^"])
-        .fails()
-        .stdout_has("invalid_format");
+    check("git").pwd(temp.path()).args(&["--base", "HEAD^"]).fails().stdout_has("invalid_format");
 }
 
 /// Spec: docs/specs/checks/git.md#json-output
@@ -746,17 +656,10 @@ agents = false
     git_commit(&temp, "fix: third");
 
     // JSON output should show skipped count
-    let result = check("git")
-        .pwd(temp.path())
-        .args(&["--base", "main"])
-        .json()
-        .passes();
+    let result = check("git").pwd(temp.path()).args(&["--base", "main"]).json().passes();
 
     let metrics = result.require("metrics");
-    assert!(
-        metrics.get("commits_skipped").is_some(),
-        "metrics should include commits_skipped"
-    );
+    assert!(metrics.get("commits_skipped").is_some(), "metrics should include commits_skipped");
 }
 
 // =============================================================================

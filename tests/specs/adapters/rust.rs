@@ -31,11 +31,7 @@ fn rust_adapter_auto_detected_when_cargo_toml_present() {
 
     // escapes check should have rust-specific patterns active
     // (will verify by checking that .unwrap() is detected)
-    assert!(
-        checks
-            .iter()
-            .any(|c| c.get("name").and_then(|n| n.as_str()) == Some("escapes"))
-    );
+    assert!(checks.iter().any(|c| c.get("name").and_then(|n| n.as_str()) == Some("escapes")));
 }
 
 /// Spec: docs/specs/langs/rust.md#default-patterns
@@ -47,10 +43,7 @@ fn rust_adapter_default_source_pattern_matches_rs_files() {
     let metrics = cloc.require("metrics");
 
     // Should count .rs files as source
-    let source_lines = metrics
-        .get("source_lines")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(0);
+    let source_lines = metrics.get("source_lines").and_then(|v| v.as_u64()).unwrap_or(0);
     assert!(source_lines > 0, "should count .rs files as source");
 }
 
@@ -65,9 +58,7 @@ fn rust_adapter_default_ignores_target_directory() {
 
     if let Some(files) = files {
         assert!(
-            !files
-                .iter()
-                .any(|f| { f.as_str().map(|s| s.contains("target/")).unwrap_or(false) }),
+            !files.iter().any(|f| { f.as_str().map(|s| s.contains("target/")).unwrap_or(false) }),
             "target/ directory should be ignored"
         );
     }
@@ -91,14 +82,8 @@ fn rust_adapter_detects_workspace_packages_from_cargo_toml() {
     let by_package = by_package.unwrap();
 
     // Should detect packages from workspace members
-    assert!(
-        by_package.get("core").is_some(),
-        "should detect 'core' package"
-    );
-    assert!(
-        by_package.get("cli").is_some(),
-        "should detect 'cli' package"
-    );
+    assert!(by_package.get("core").is_some(), "should detect 'core' package");
+    assert!(by_package.get("cli").is_some(), "should detect 'cli' package");
 }
 
 // =============================================================================
@@ -114,14 +99,8 @@ fn rust_adapter_cfg_test_blocks_counted_as_test_loc() {
     let metrics = cloc.require("metrics");
 
     // Source file has both source and #[cfg(test)] code
-    let source_lines = metrics
-        .get("source_lines")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(0);
-    let test_lines = metrics
-        .get("test_lines")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(0);
+    let source_lines = metrics.get("source_lines").and_then(|v| v.as_u64()).unwrap_or(0);
+    let test_lines = metrics.get("test_lines").and_then(|v| v.as_u64()).unwrap_or(0);
 
     assert!(source_lines > 0, "should have source LOC");
     assert!(test_lines > 0, "should have test LOC from #[cfg(test)]");
@@ -138,10 +117,7 @@ fn rust_adapter_cfg_test_split_can_be_disabled() {
 cfg_test_split = "off"
 "#,
     );
-    temp.file(
-        "Cargo.toml",
-        "[package]\nname = \"test\"\nversion = \"0.1.0\"\n",
-    );
+    temp.file("Cargo.toml", "[package]\nname = \"test\"\nversion = \"0.1.0\"\n");
     temp.file(
         "src/lib.rs",
         r#"
@@ -159,10 +135,7 @@ mod tests {
     let metrics = cloc.require("metrics");
 
     // With cfg_test_split = "off", all lines should be counted as source
-    let test_lines = metrics
-        .get("test_lines")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(0);
+    let test_lines = metrics.get("test_lines").and_then(|v| v.as_u64()).unwrap_or(0);
     assert_eq!(test_lines, 0, "should not split #[cfg(test)] when disabled");
 }
 
@@ -176,16 +149,10 @@ fn rust_adapter_external_test_modules_detected_via_file_patterns() {
     let cloc = check("cloc").on("rust/external-tests").json().passes();
     let metrics = cloc.require("metrics");
 
-    let test_lines = metrics
-        .get("test_lines")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(0);
+    let test_lines = metrics.get("test_lines").and_then(|v| v.as_u64()).unwrap_or(0);
 
     // tests/test.rs should be counted as test LOC via tests/** pattern
-    assert!(
-        test_lines > 0,
-        "external test files in tests/ should be counted as test LOC"
-    );
+    assert!(test_lines > 0, "external test files in tests/ should be counted as test LOC");
 }
 
 /// Spec: docs/specs/langs/rust.md#supported-patterns
@@ -196,16 +163,10 @@ fn rust_adapter_multiline_cfg_test_detected() {
     let cloc = check("cloc").on("rust/multiline-cfg-test").json().passes();
     let metrics = cloc.require("metrics");
 
-    let test_lines = metrics
-        .get("test_lines")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(0);
+    let test_lines = metrics.get("test_lines").and_then(|v| v.as_u64()).unwrap_or(0);
 
     // Multi-line #[cfg(test)] block should be counted as test LOC
-    assert!(
-        test_lines > 0,
-        "multi-line #[cfg(test)] blocks should be counted as test LOC"
-    );
+    assert!(test_lines > 0, "multi-line #[cfg(test)] blocks should be counted as test LOC");
 }
 
 // =============================================================================
@@ -242,19 +203,10 @@ fn rust_adapter_unsafe_with_safety_comment_passes() {
 #[test]
 fn rust_adapter_transmute_without_safety_comment_fails() {
     let temp = Project::empty();
-    temp.file(
-        "Cargo.toml",
-        "[package]\nname = \"test\"\nversion = \"0.1.0\"\n",
-    );
-    temp.file(
-        "src/lib.rs",
-        "use std::mem; pub fn f() -> u64 { unsafe { mem::transmute(1i64) } }",
-    );
+    temp.file("Cargo.toml", "[package]\nname = \"test\"\nversion = \"0.1.0\"\n");
+    temp.file("src/lib.rs", "use std::mem; pub fn f() -> u64 { unsafe { mem::transmute(1i64) } }");
 
-    check("escapes")
-        .pwd(temp.path())
-        .fails()
-        .stdout_has("// SAFETY:");
+    check("escapes").pwd(temp.path()).fails().stdout_has("// SAFETY:");
 }
 
 // =============================================================================
@@ -272,16 +224,10 @@ fn rust_adapter_allow_without_comment_fails_when_configured() {
 check = "comment"
 "#,
     );
-    temp.file(
-        "Cargo.toml",
-        "[package]\nname = \"test\"\nversion = \"0.1.0\"\n",
-    );
+    temp.file("Cargo.toml", "[package]\nname = \"test\"\nversion = \"0.1.0\"\n");
     temp.file("src/lib.rs", "#[allow(dead_code)]\nfn unused() {}");
 
-    check("escapes")
-        .pwd(temp.path())
-        .fails()
-        .stdout_has("#[allow");
+    check("escapes").pwd(temp.path()).fails().stdout_has("#[allow");
 }
 
 /// Spec: docs/specs/langs/rust.md#suppress
@@ -295,10 +241,7 @@ fn rust_adapter_allow_with_comment_passes() {
 check = "comment"
 "#,
     );
-    temp.file(
-        "Cargo.toml",
-        "[package]\nname = \"test\"\nversion = \"0.1.0\"\n",
-    );
+    temp.file("Cargo.toml", "[package]\nname = \"test\"\nversion = \"0.1.0\"\n");
     // dead_code default patterns include "// KEEP UNTIL:" and "// NOTE(compat):"
     temp.file(
         "src/lib.rs",
@@ -321,14 +264,8 @@ check = "comment"
 check = "allow"
 "#,
     );
-    temp.file(
-        "Cargo.toml",
-        "[package]\nname = \"test\"\nversion = \"0.1.0\"\n",
-    );
-    temp.file(
-        "tests/test.rs",
-        "#[allow(unused)]\n#[test]\nfn test_something() {}",
-    );
+    temp.file("Cargo.toml", "[package]\nname = \"test\"\nversion = \"0.1.0\"\n");
+    temp.file("tests/test.rs", "#[allow(unused)]\n#[test]\nfn test_something() {}");
 
     check("escapes").pwd(temp.path()).passes();
 }
@@ -346,10 +283,7 @@ check = "comment"
 allow = ["dead_code"]
 "#,
     );
-    temp.file(
-        "Cargo.toml",
-        "[package]\nname = \"test\"\nversion = \"0.1.0\"\n",
-    );
+    temp.file("Cargo.toml", "[package]\nname = \"test\"\nversion = \"0.1.0\"\n");
     // No comment, but dead_code is in allow list
     temp.file("src/lib.rs", "#[allow(dead_code)]\nfn unused() {}");
 
@@ -367,10 +301,7 @@ fn rust_adapter_forbid_list_always_fails() {
 forbid = ["unsafe_code"]
 "#,
     );
-    temp.file(
-        "Cargo.toml",
-        "[package]\nname = \"test\"\nversion = \"0.1.0\"\n",
-    );
+    temp.file("Cargo.toml", "[package]\nname = \"test\"\nversion = \"0.1.0\"\n");
     temp.file(
         "src/lib.rs",
         "// Even with comment, forbidden\n#[allow(unsafe_code)]\nfn allow_unsafe() {}",
@@ -393,10 +324,7 @@ check = "allow"
 check = "comment"
 "#,
     );
-    temp.file(
-        "Cargo.toml",
-        "[package]\nname = \"test\"\nversion = \"0.1.0\"\n",
-    );
+    temp.file("Cargo.toml", "[package]\nname = \"test\"\nversion = \"0.1.0\"\n");
     // No comment - should fail with source.check = "comment"
     temp.file("src/lib.rs", "#[allow(dead_code)]\nfn unused() {}");
 
@@ -425,10 +353,7 @@ fn rust_adapter_multiline_allow_detected() {
 fn rust_adapter_inner_allow_without_comment_fails_when_configured() {
     // Fixture has #![allow(dead_code)] - inner attribute
     // Violation output normalizes to #[allow(...)] format
-    check("escapes")
-        .on("rust/module-suppress")
-        .fails()
-        .stdout_has("#[allow(dead_code)");
+    check("escapes").on("rust/module-suppress").fails().stdout_has("#[allow(dead_code)");
 }
 
 /// Spec: docs/specs/langs/rust.md#supported-patterns
@@ -442,10 +367,7 @@ fn rust_adapter_inner_allow_with_comment_passes() {
 check = "comment"
 "#,
     );
-    temp.file(
-        "Cargo.toml",
-        "[package]\nname = \"test\"\nversion = \"0.1.0\"\n",
-    );
+    temp.file("Cargo.toml", "[package]\nname = \"test\"\nversion = \"0.1.0\"\n");
     // dead_code default patterns include "// NOTE(compat):"
     temp.file(
         "src/lib.rs",
@@ -466,17 +388,11 @@ fn rust_adapter_inner_expect_without_comment_fails() {
 check = "comment"
 "#,
     );
-    temp.file(
-        "Cargo.toml",
-        "[package]\nname = \"test\"\nversion = \"0.1.0\"\n",
-    );
+    temp.file("Cargo.toml", "[package]\nname = \"test\"\nversion = \"0.1.0\"\n");
     temp.file("src/lib.rs", "#![expect(unused)]\n\nfn f() {}");
 
     // Violation output normalizes to #[expect(...)] format
-    check("escapes")
-        .pwd(temp.path())
-        .fails()
-        .stdout_has("#[expect(unused)");
+    check("escapes").pwd(temp.path()).fails().stdout_has("#[expect(unused)");
 }
 
 /// Spec: docs/specs/langs/rust.md#supported-patterns
@@ -486,10 +402,7 @@ check = "comment"
 fn rust_adapter_allow_in_macro_rules_detected() {
     // macro-escape fixture has #[allow(dead_code)] inside a macro_rules! definition
     // with check = "forbid", so it should fail
-    check("escapes")
-        .on("rust/macro-escape")
-        .fails()
-        .stdout_has("#[allow(dead_code)]");
+    check("escapes").on("rust/macro-escape").fails().stdout_has("#[allow(dead_code)]");
 }
 
 // =============================================================================
@@ -512,17 +425,10 @@ lint_config = ["rustfmt.toml"]
     );
 
     // Setup Cargo.toml
-    temp.file(
-        "Cargo.toml",
-        "[package]\nname = \"test\"\nversion = \"0.1.0\"\n",
-    );
+    temp.file("Cargo.toml", "[package]\nname = \"test\"\nversion = \"0.1.0\"\n");
 
     // Initialize git repo
-    std::process::Command::new("git")
-        .args(["init"])
-        .current_dir(temp.path())
-        .output()
-        .unwrap();
+    std::process::Command::new("git").args(["init"]).current_dir(temp.path()).output().unwrap();
 
     std::process::Command::new("git")
         .args(["config", "user.email", "test@test.com"])
@@ -586,17 +492,10 @@ lint_config = ["rustfmt.toml"]
     );
 
     // Setup Cargo.toml
-    temp.file(
-        "Cargo.toml",
-        "[package]\nname = \"test\"\nversion = \"0.1.0\"\n",
-    );
+    temp.file("Cargo.toml", "[package]\nname = \"test\"\nversion = \"0.1.0\"\n");
 
     // Initialize git repo
-    std::process::Command::new("git")
-        .args(["init"])
-        .current_dir(temp.path())
-        .output()
-        .unwrap();
+    std::process::Command::new("git").args(["init"]).current_dir(temp.path()).output().unwrap();
 
     std::process::Command::new("git")
         .args(["config", "user.email", "test@test.com"])
@@ -635,10 +534,7 @@ lint_config = ["rustfmt.toml"]
         .unwrap();
 
     // Should pass - only lint config changed
-    check("escapes")
-        .pwd(temp.path())
-        .args(&["--base", "HEAD"])
-        .passes();
+    check("escapes").pwd(temp.path()).args(&["--base", "HEAD"]).passes();
 }
 
 // =============================================================================
@@ -650,20 +546,11 @@ lint_config = ["rustfmt.toml"]
 /// > cfg_test_split = "count" (default): Split #[cfg(test)] blocks into test LOC
 #[test]
 fn rust_cfg_test_split_count_separates_source_and_test() {
-    let cloc = check("cloc")
-        .on("rust/inline-cfg-test-count")
-        .json()
-        .passes();
+    let cloc = check("cloc").on("rust/inline-cfg-test-count").json().passes();
     let metrics = cloc.require("metrics");
 
     // Source and test lines should be separated
-    assert!(
-        metrics
-            .get("source_lines")
-            .and_then(|v| v.as_u64())
-            .unwrap()
-            > 0
-    );
+    assert!(metrics.get("source_lines").and_then(|v| v.as_u64()).unwrap() > 0);
     assert!(metrics.get("test_lines").and_then(|v| v.as_u64()).unwrap() > 0);
 }
 
@@ -696,13 +583,7 @@ fn rust_cfg_test_split_off_counts_all_as_source() {
     let metrics = cloc.require("metrics");
 
     // All lines counted as source, none as test
-    assert!(
-        metrics
-            .get("source_lines")
-            .and_then(|v| v.as_u64())
-            .unwrap()
-            > 0
-    );
+    assert!(metrics.get("source_lines").and_then(|v| v.as_u64()).unwrap() > 0);
     assert_eq!(metrics.get("test_lines").and_then(|v| v.as_u64()), Some(0));
 }
 
@@ -717,10 +598,7 @@ fn rust_cfg_test_split_off_counts_all_as_source() {
 fn rust_cfg_test_mod_produces_inline_cfg_test_violation() {
     let cloc = check("cloc").on("rust/cfg-test-items").json().fails();
 
-    assert!(
-        cloc.has_violation("inline_cfg_test"),
-        "should produce inline_cfg_test for mod"
-    );
+    assert!(cloc.has_violation("inline_cfg_test"), "should produce inline_cfg_test for mod");
 }
 
 /// Spec: docs/specs/langs/rust.md#violation-codes

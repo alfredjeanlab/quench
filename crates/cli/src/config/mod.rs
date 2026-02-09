@@ -116,10 +116,7 @@ pub struct GitConfig {
 
 impl Default for GitConfig {
     fn default() -> Self {
-        Self {
-            baseline: Self::default_baseline(),
-            commit: GitCommitConfig::default(),
-        }
+        Self { baseline: Self::default_baseline(), commit: GitCommitConfig::default() }
     }
 }
 
@@ -135,11 +132,7 @@ impl GitConfig {
 
     /// Get baseline file path (returns None if using notes mode).
     pub fn baseline_path(&self) -> Option<&str> {
-        if self.uses_notes() {
-            None
-        } else {
-            Some(&self.baseline)
-        }
+        if self.uses_notes() { None } else { Some(&self.baseline) }
     }
 }
 
@@ -250,9 +243,7 @@ impl Config {
     /// or a file extension (e.g., "rs"). This allows per-file language detection
     /// even in mixed-language projects where only the primary adapter is registered.
     pub fn cloc_check_level_for_language(&self, language: &str) -> CheckLevel {
-        self.lang_cloc_config(language)
-            .and_then(|c| c.check)
-            .unwrap_or(self.check.cloc.check)
+        self.lang_cloc_config(language).and_then(|c| c.check).unwrap_or(self.check.cloc.check)
     }
 
     /// Get cloc advice for source files, checking user override then language default.
@@ -440,12 +431,7 @@ impl RustConfig {
 
 define_policy_config!(
     RustPolicyConfig,
-    [
-        "rustfmt.toml",
-        ".rustfmt.toml",
-        "clippy.toml",
-        ".clippy.toml",
-    ]
+    ["rustfmt.toml", ".rustfmt.toml", "clippy.toml", ".clippy.toml",]
 );
 
 /// Lint changes policy.
@@ -628,10 +614,8 @@ pub const SUPPORTED_VERSION: i64 = 1;
 
 /// Load and validate config from a file path.
 pub fn load(path: &Path) -> Result<Config> {
-    let content = std::fs::read_to_string(path).map_err(|e| Error::Io {
-        path: path.to_path_buf(),
-        source: e,
-    })?;
+    let content = std::fs::read_to_string(path)
+        .map_err(|e| Error::Io { path: path.to_path_buf(), source: e })?;
 
     parse(&content, path)
 }
@@ -647,10 +631,8 @@ pub fn load_with_warnings(path: &Path) -> Result<Config> {
 /// Parse config from string content (strict mode).
 pub fn parse(content: &str, path: &Path) -> Result<Config> {
     // First check version
-    let version_check: VersionOnly = toml::from_str(content).map_err(|e| Error::Config {
-        message: e.to_string(),
-        path: Some(path.to_path_buf()),
-    })?;
+    let version_check: VersionOnly = toml::from_str(content)
+        .map_err(|e| Error::Config { message: e.to_string(), path: Some(path.to_path_buf()) })?;
 
     let version = version_check.version.ok_or_else(|| Error::Config {
         message: "missing required field: version".to_string(),
@@ -668,10 +650,8 @@ pub fn parse(content: &str, path: &Path) -> Result<Config> {
     }
 
     // Parse full config
-    toml::from_str(content).map_err(|e| Error::Config {
-        message: e.to_string(),
-        path: Some(path.to_path_buf()),
-    })
+    toml::from_str(content)
+        .map_err(|e| Error::Config { message: e.to_string(), path: Some(path.to_path_buf()) })
 }
 
 /// Parse config with warnings for unknown keys.

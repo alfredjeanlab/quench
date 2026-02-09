@@ -19,14 +19,8 @@ fn agents_json_includes_files_found_and_in_sync_metrics() {
     let agents = check("agents").on("agents/metrics").json().passes();
     let metrics = agents.require("metrics");
 
-    assert!(
-        metrics.get("files_found").is_some(),
-        "should have files_found metric"
-    );
-    assert!(
-        metrics.get("in_sync").is_some(),
-        "should have in_sync metric"
-    );
+    assert!(metrics.get("files_found").is_some(), "should have files_found metric");
+    assert!(metrics.get("in_sync").is_some(), "should have in_sync metric");
 }
 
 /// Spec: docs/specs/checks/agents.md#json-output
@@ -94,10 +88,7 @@ sync_from = "CLAUDE.md"
 /// > Missing file shows human-readable description.
 #[test]
 fn agents_missing_file_text_output() {
-    check("agents")
-        .on("agents/missing-file")
-        .fails()
-        .stdout_has("missing required file");
+    check("agents").on("agents/missing-file").fails().stdout_has("missing required file");
 }
 
 /// Spec: docs/specs/checks/agents.md#output
@@ -105,10 +96,7 @@ fn agents_missing_file_text_output() {
 /// > Out of sync shows other file name.
 #[test]
 fn agents_out_of_sync_text_output() {
-    check("agents")
-        .on("agents/out-of-sync")
-        .fails()
-        .stdout_has("out of sync with");
+    check("agents").on("agents/out-of-sync").fails().stdout_has("out of sync with");
 }
 
 /// Spec: docs/specs/checks/agents.md#output
@@ -127,11 +115,7 @@ fn agents_out_of_sync_preamble_text_output() {
         "# Project B\n\nDifferent preamble.\n\n## Directory Structure\n\nLayout.\n\n## Landing the Plane\n\n- Done\n",
     );
 
-    check("agents")
-        .pwd(temp.path())
-        .fails()
-        .stdout_has("(preamble)")
-        .stdout_lacks("Section \"\"");
+    check("agents").pwd(temp.path()).fails().stdout_has("(preamble)").stdout_lacks("Section \"\"");
 }
 
 /// Spec: docs/specs/checks/agents.md#output
@@ -166,10 +150,7 @@ fn agents_forbidden_table_text_output() {
 /// > File too large shows value vs threshold.
 #[test]
 fn agents_file_too_large_text_output() {
-    check("agents")
-        .on("agents/oversized-lines")
-        .fails()
-        .stdout_has("vs");
+    check("agents").on("agents/oversized-lines").fails().stdout_has("vs");
 }
 
 // =============================================================================
@@ -220,17 +201,9 @@ sync_from = "CLAUDE.md"
     temp.file("CLAUDE.md", source);
     temp.file(".cursorrules", "# Different content");
 
-    let result = check("agents")
-        .pwd(temp.path())
-        .args(&["--fix"])
-        .json()
-        .passes();
+    let result = check("agents").pwd(temp.path()).args(&["--fix"]).json().passes();
 
-    assert_eq!(
-        result.require("fixed").as_bool(),
-        Some(true),
-        "should have fixed: true"
-    );
+    assert_eq!(result.require("fixed").as_bool(), Some(true), "should have fixed: true");
 }
 
 // =============================================================================
@@ -343,16 +316,8 @@ fn exact_agents_project_json() {
     let files_found = metrics.get("files_found").unwrap().as_array().unwrap();
     assert_eq!(files_found.len(), 3);
     assert!(files_found.iter().any(|f| f.as_str() == Some("CLAUDE.md")));
-    assert!(
-        files_found
-            .iter()
-            .any(|f| f.as_str() == Some(".cursorrules"))
-    );
-    assert!(
-        files_found
-            .iter()
-            .any(|f| f.as_str() == Some("crates/api/CLAUDE.md"))
-    );
+    assert!(files_found.iter().any(|f| f.as_str() == Some(".cursorrules")));
+    assert!(files_found.iter().any(|f| f.as_str() == Some("crates/api/CLAUDE.md")));
 
     let files_missing = metrics.get("files_missing").unwrap().as_array().unwrap();
     assert!(files_missing.is_empty());

@@ -162,14 +162,8 @@ fn percentile_duration_empty() {
 fn percentile_duration_single_test() {
     let tests = vec![TestResult::passed("test_one", Duration::from_millis(100))];
     let result = TestRunResult::passed(Duration::from_millis(100)).with_tests(tests);
-    assert_eq!(
-        result.percentile_duration(50.0),
-        Some(Duration::from_millis(100))
-    );
-    assert_eq!(
-        result.percentile_duration(99.0),
-        Some(Duration::from_millis(100))
-    );
+    assert_eq!(result.percentile_duration(50.0), Some(Duration::from_millis(100)));
+    assert_eq!(result.percentile_duration(99.0), Some(Duration::from_millis(100)));
 }
 
 #[test]
@@ -189,20 +183,11 @@ fn percentile_duration_multiple_tests() {
     let result = TestRunResult::passed(Duration::from_millis(550)).with_tests(tests);
 
     // p50 should be at the 5th element (index 4) = 50ms
-    assert_eq!(
-        result.percentile_duration(50.0),
-        Some(Duration::from_millis(50))
-    );
+    assert_eq!(result.percentile_duration(50.0), Some(Duration::from_millis(50)));
     // p90 should be at the 9th element (index 8) = 90ms
-    assert_eq!(
-        result.percentile_duration(90.0),
-        Some(Duration::from_millis(90))
-    );
+    assert_eq!(result.percentile_duration(90.0), Some(Duration::from_millis(90)));
     // p99 should be at the 10th element (index 9) = 100ms
-    assert_eq!(
-        result.percentile_duration(99.0),
-        Some(Duration::from_millis(100))
-    );
+    assert_eq!(result.percentile_duration(99.0), Some(Duration::from_millis(100)));
 }
 
 #[test]
@@ -216,14 +201,8 @@ fn percentile_duration_excludes_skipped() {
     let result = TestRunResult::passed(Duration::from_millis(300)).with_tests(tests);
 
     // Only 2 non-skipped tests: 100ms and 200ms
-    assert_eq!(
-        result.percentile_duration(50.0),
-        Some(Duration::from_millis(100))
-    );
-    assert_eq!(
-        result.percentile_duration(99.0),
-        Some(Duration::from_millis(200))
-    );
+    assert_eq!(result.percentile_duration(50.0), Some(Duration::from_millis(100)));
+    assert_eq!(result.percentile_duration(99.0), Some(Duration::from_millis(200)));
 }
 
 #[test]

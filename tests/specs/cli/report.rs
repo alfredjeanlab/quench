@@ -22,10 +22,7 @@ use crate::prelude::*;
 /// > Reports read from .quench/baseline.json
 #[test]
 fn report_reads_baseline_file() {
-    report()
-        .on("report/with-baseline")
-        .runs()
-        .stdout_has("coverage");
+    report().on("report/with-baseline").runs().stdout_has("coverage");
 }
 
 /// Spec: docs/specs/01-cli.md#quench-report
@@ -33,10 +30,7 @@ fn report_reads_baseline_file() {
 /// > Report without baseline shows appropriate message
 #[test]
 fn report_without_baseline_shows_message() {
-    report()
-        .on("report/no-baseline")
-        .runs()
-        .stdout_has("No baseline");
+    report().on("report/no-baseline").runs().stdout_has("No baseline");
 }
 
 // =============================================================================
@@ -49,11 +43,7 @@ fn report_without_baseline_shows_message() {
 #[test]
 fn report_default_format_is_text() {
     // Should not be JSON or HTML
-    report()
-        .on("report/with-baseline")
-        .runs()
-        .stdout_lacks("{")
-        .stdout_lacks("<html");
+    report().on("report/with-baseline").runs().stdout_lacks("{").stdout_lacks("<html");
 }
 
 /// Spec: docs/specs/01-cli.md#quench-report
@@ -73,11 +63,7 @@ fn report_text_shows_summary() {
 /// > Text format shows baseline commit and timestamp
 #[test]
 fn report_text_shows_baseline_info() {
-    report()
-        .on("report/with-baseline")
-        .runs()
-        .stdout_has("abc1234")
-        .stdout_has("2026-01-20");
+    report().on("report/with-baseline").runs().stdout_has("abc1234").stdout_has("2026-01-20");
 }
 
 // =============================================================================
@@ -179,12 +165,7 @@ fn report_markdown_produces_table() {
 /// > Markdown format includes all metric values
 #[test]
 fn report_markdown_includes_metrics() {
-    report()
-        .on("report/with-baseline")
-        .markdown()
-        .runs()
-        .stdout_has("Coverage")
-        .stdout_has("85.5");
+    report().on("report/with-baseline").markdown().runs().stdout_has("Coverage").stdout_has("85.5");
 }
 
 /// Spec: docs/specs/01-cli.md#quench-report
@@ -192,11 +173,7 @@ fn report_markdown_includes_metrics() {
 /// > Markdown format with no baseline shows appropriate message
 #[test]
 fn report_markdown_no_baseline_shows_message() {
-    report()
-        .on("report/no-baseline")
-        .markdown()
-        .runs()
-        .stdout_has("No baseline");
+    report().on("report/no-baseline").markdown().runs().stdout_has("No baseline");
 }
 
 /// Spec: docs/specs/01-cli.md#quench-report
@@ -204,11 +181,7 @@ fn report_markdown_no_baseline_shows_message() {
 /// > Markdown format includes baseline metadata
 #[test]
 fn report_markdown_includes_metadata() {
-    report()
-        .on("report/with-baseline")
-        .markdown()
-        .runs()
-        .stdout_has("abc1234"); // commit hash
+    report().on("report/with-baseline").markdown().runs().stdout_has("abc1234"); // commit hash
 }
 
 // =============================================================================
@@ -247,11 +220,7 @@ baseline = ".quench/baseline.json"
     }"#,
     );
 
-    quench_cmd()
-        .args(["report", "-o", "report.html"])
-        .current_dir(temp.path())
-        .assert()
-        .success();
+    quench_cmd().args(["report", "-o", "report.html"]).current_dir(temp.path()).assert().success();
 
     let output_path = temp.path().join("report.html");
     assert!(output_path.exists(), "report.html should be created");

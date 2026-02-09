@@ -88,23 +88,12 @@ pub fn resolve_patterns<C: LanguageDefaults>(
         C::default_tests()
     };
 
-    let source = if !lang_source.is_empty() {
-        lang_source.to_vec()
-    } else {
-        C::default_source()
-    };
+    let source = if !lang_source.is_empty() { lang_source.to_vec() } else { C::default_source() };
 
-    let exclude = if !lang_exclude.is_empty() {
-        lang_exclude.to_vec()
-    } else {
-        C::default_exclude()
-    };
+    let exclude =
+        if !lang_exclude.is_empty() { lang_exclude.to_vec() } else { C::default_exclude() };
 
-    ResolvedPatterns {
-        source,
-        test,
-        exclude,
-    }
+    ResolvedPatterns { source, test, exclude }
 }
 
 // =============================================================================

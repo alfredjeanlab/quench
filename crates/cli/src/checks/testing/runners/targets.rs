@@ -71,10 +71,7 @@ pub fn resolve_targets(
     config: &Config,
     root: &Path,
 ) -> Result<Vec<ResolvedTarget>, TargetResolutionError> {
-    targets
-        .iter()
-        .map(|t| resolve_target(t, config, root))
-        .collect()
+    targets.iter().map(|t| resolve_target(t, config, root)).collect()
 }
 
 /// Check if a string contains glob pattern characters.
@@ -159,10 +156,7 @@ fn resolve_shell_pattern(
         });
     }
 
-    Ok(ResolvedTarget::ShellScripts {
-        pattern: pattern.to_string(),
-        files,
-    })
+    Ok(ResolvedTarget::ShellScripts { pattern: pattern.to_string(), files })
 }
 
 /// Find files matching both the target pattern and shell source patterns.

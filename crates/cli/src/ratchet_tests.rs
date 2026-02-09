@@ -11,29 +11,19 @@ use crate::check::{CheckOutput, CheckResult};
 use crate::config::{CheckLevel, RatchetConfig};
 
 fn make_config(escapes: bool) -> RatchetConfig {
-    RatchetConfig {
-        check: CheckLevel::Error,
-        escapes,
-        ..Default::default()
-    }
+    RatchetConfig { check: CheckLevel::Error, escapes, ..Default::default() }
 }
 
 fn make_baseline_metrics(escapes: HashMap<String, usize>) -> BaselineMetrics {
     BaselineMetrics {
-        escapes: Some(BaselineEscapes {
-            source: escapes,
-            test: None,
-        }),
+        escapes: Some(BaselineEscapes { source: escapes, test: None }),
         ..Default::default()
     }
 }
 
 fn make_current_metrics(escapes: HashMap<String, usize>) -> CurrentMetrics {
     CurrentMetrics {
-        escapes: Some(EscapesCurrent {
-            source: escapes,
-            test: HashMap::new(),
-        }),
+        escapes: Some(EscapesCurrent { source: escapes, test: HashMap::new() }),
         ..Default::default()
     }
 }
@@ -144,10 +134,8 @@ fn extract_metrics_no_escapes_check() {
 #[test]
 fn update_baseline_with_current() {
     let mut baseline = Baseline::new();
-    let current = make_current_metrics(HashMap::from([
-        ("unsafe".to_string(), 5),
-        ("unwrap".to_string(), 3),
-    ]));
+    let current =
+        make_current_metrics(HashMap::from([("unsafe".to_string(), 5), ("unwrap".to_string(), 3)]));
 
     update_baseline(&mut baseline, &current);
 
@@ -160,10 +148,8 @@ fn update_baseline_with_current() {
 #[test]
 fn update_baseline_replaces_values() {
     let mut baseline = Baseline::new();
-    baseline.metrics.escapes = Some(BaselineEscapes {
-        source: HashMap::from([("unsafe".to_string(), 10)]),
-        test: None,
-    });
+    baseline.metrics.escapes =
+        Some(BaselineEscapes { source: HashMap::from([("unsafe".to_string(), 10)]), test: None });
 
     let current = make_current_metrics(HashMap::from([("unsafe".to_string(), 3)]));
 
@@ -301,17 +287,11 @@ fn make_build_time_config(cold: bool, hot: bool, tolerance: Option<&str>) -> Rat
 fn build_time_cold_regression_fails() {
     let config = make_build_time_config(true, false, None);
     let baseline = BaselineMetrics {
-        build_time: Some(BaselineBuildTime {
-            cold: 10.0,
-            hot: 5.0,
-        }),
+        build_time: Some(BaselineBuildTime { cold: 10.0, hot: 5.0 }),
         ..Default::default()
     };
     let current = CurrentMetrics {
-        build_time: Some(BuildTimeCurrent {
-            cold: Some(Duration::from_secs(15)),
-            hot: None,
-        }),
+        build_time: Some(BuildTimeCurrent { cold: Some(Duration::from_secs(15)), hot: None }),
         ..Default::default()
     };
 
@@ -324,10 +304,7 @@ fn build_time_cold_regression_fails() {
 fn build_time_within_tolerance_passes() {
     let config = make_build_time_config(true, false, Some("5s"));
     let baseline = BaselineMetrics {
-        build_time: Some(BaselineBuildTime {
-            cold: 10.0,
-            hot: 5.0,
-        }),
+        build_time: Some(BaselineBuildTime { cold: 10.0, hot: 5.0 }),
         ..Default::default()
     };
     let current = CurrentMetrics {
@@ -356,10 +333,7 @@ fn extract_build_metrics() {
     let current = CurrentMetrics::from_output(&output);
 
     assert!(current.binary_size.is_some());
-    assert_eq!(
-        current.binary_size.as_ref().unwrap().get("myapp"),
-        Some(&1000000)
-    );
+    assert_eq!(current.binary_size.as_ref().unwrap().get("myapp"), Some(&1000000));
 
     assert!(current.build_time.is_some());
     let build_time = current.build_time.as_ref().unwrap();
@@ -407,10 +381,7 @@ fn update_baseline_with_perf_metrics() {
     update_baseline(&mut baseline, &current);
 
     assert!(baseline.metrics.binary_size.is_some());
-    assert_eq!(
-        baseline.metrics.binary_size.as_ref().unwrap().get("myapp"),
-        Some(&800_000)
-    );
+    assert_eq!(baseline.metrics.binary_size.as_ref().unwrap().get("myapp"), Some(&800_000));
 
     assert!(baseline.metrics.build_time.is_some());
     let build_time = baseline.metrics.build_time.as_ref().unwrap();
@@ -439,20 +410,14 @@ fn make_coverage_config(tolerance: Option<f64>) -> RatchetConfig {
 
 fn make_coverage_baseline(total: f64) -> BaselineMetrics {
     BaselineMetrics {
-        coverage: Some(BaselineCoverage {
-            total,
-            by_package: None,
-        }),
+        coverage: Some(BaselineCoverage { total, by_package: None }),
         ..Default::default()
     }
 }
 
 fn make_coverage_current(total: f64) -> CurrentMetrics {
     CurrentMetrics {
-        coverage: Some(CoverageCurrent {
-            total,
-            by_package: HashMap::new(),
-        }),
+        coverage: Some(CoverageCurrent { total, by_package: HashMap::new() }),
         ..Default::default()
     }
 }
@@ -614,10 +579,7 @@ fn update_baseline_with_coverage() {
 fn update_baseline_coverage_empty_by_package() {
     let mut baseline = Baseline::new();
     let current = CurrentMetrics {
-        coverage: Some(CoverageCurrent {
-            total: 0.80,
-            by_package: HashMap::new(),
-        }),
+        coverage: Some(CoverageCurrent { total: 0.80, by_package: HashMap::new() }),
         ..Default::default()
     };
 
@@ -637,28 +599,18 @@ use crate::config::RatchetPackageConfig;
 
 fn make_per_package_baseline(by_package: HashMap<String, f64>) -> BaselineMetrics {
     BaselineMetrics {
-        coverage: Some(BaselineCoverage {
-            total: 0.80,
-            by_package: Some(by_package),
-        }),
+        coverage: Some(BaselineCoverage { total: 0.80, by_package: Some(by_package) }),
         ..Default::default()
     }
 }
 
 fn make_per_package_current(total: f64, by_package: HashMap<String, f64>) -> CurrentMetrics {
-    CurrentMetrics {
-        coverage: Some(CoverageCurrent { total, by_package }),
-        ..Default::default()
-    }
+    CurrentMetrics { coverage: Some(CoverageCurrent { total, by_package }), ..Default::default() }
 }
 
 #[test]
 fn per_package_coverage_regression_fails() {
-    let config = RatchetConfig {
-        check: CheckLevel::Error,
-        coverage: true,
-        ..Default::default()
-    };
+    let config = RatchetConfig { check: CheckLevel::Error, coverage: true, ..Default::default() };
     let baseline = make_per_package_baseline(HashMap::from([
         ("core".to_string(), 0.90),
         ("cli".to_string(), 0.70),
@@ -678,11 +630,7 @@ fn per_package_coverage_regression_fails() {
     assert_eq!(result.comparisons.len(), 3);
 
     // Find the core comparison
-    let core_comp = result
-        .comparisons
-        .iter()
-        .find(|c| c.name == "coverage.core")
-        .unwrap();
+    let core_comp = result.comparisons.iter().find(|c| c.name == "coverage.core").unwrap();
     assert!(!core_comp.passed);
     assert_eq!(core_comp.current, 0.85);
     assert_eq!(core_comp.baseline, 0.90);
@@ -726,11 +674,7 @@ fn per_package_coverage_disabled_skips() {
 
 #[test]
 fn per_package_coverage_improvement_tracked() {
-    let config = RatchetConfig {
-        check: CheckLevel::Error,
-        coverage: true,
-        ..Default::default()
-    };
+    let config = RatchetConfig { check: CheckLevel::Error, coverage: true, ..Default::default() };
     let baseline = make_per_package_baseline(HashMap::from([("core".to_string(), 0.80)]));
     let current = make_per_package_current(0.85, HashMap::from([("core".to_string(), 0.90)]));
 
@@ -739,28 +683,15 @@ fn per_package_coverage_improvement_tracked() {
     assert!(result.passed);
     // Both total and core should be improvements
     assert_eq!(result.improvements.len(), 2);
-    assert!(
-        result
-            .improvements
-            .iter()
-            .any(|i| i.name == "coverage.total")
-    );
-    assert!(
-        result
-            .improvements
-            .iter()
-            .any(|i| i.name == "coverage.core")
-    );
+    assert!(result.improvements.iter().any(|i| i.name == "coverage.total"));
+    assert!(result.improvements.iter().any(|i| i.name == "coverage.core"));
 }
 
 #[test]
 fn is_coverage_ratcheted_default() {
     // Note: RatchetConfig::default() uses bool::default() (false) for coverage,
     // but serde deserialization uses default_true(). This tests the method logic.
-    let config = RatchetConfig {
-        coverage: true,
-        ..Default::default()
-    };
+    let config = RatchetConfig { coverage: true, ..Default::default() };
 
     assert!(config.is_coverage_ratcheted("any_package"));
 }
@@ -771,10 +702,7 @@ fn is_coverage_ratcheted_package_override() {
         coverage: true,
         package: HashMap::from([(
             "cli".to_string(),
-            RatchetPackageConfig {
-                coverage: Some(false),
-                escapes: None,
-            },
+            RatchetPackageConfig { coverage: Some(false), escapes: None },
         )]),
         ..Default::default()
     };

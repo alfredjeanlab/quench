@@ -147,10 +147,7 @@ pub(crate) fn parse_jest_json(stdout: &str, total_time: Duration) -> TestRunResu
 
     for file in output.test_results {
         for assertion in file.assertion_results {
-            let duration = assertion
-                .duration
-                .map(Duration::from_millis)
-                .unwrap_or(Duration::ZERO);
+            let duration = assertion.duration.map(Duration::from_millis).unwrap_or(Duration::ZERO);
 
             let passed = assertion.status == "passed";
 

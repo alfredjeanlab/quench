@@ -196,10 +196,7 @@ fn find_js_placeholders_with_escaped_single_quotes() {
     let content = r#"test.todo('doesn\'t break on escaped quotes');"#;
     let result = find_js_placeholders(content);
     assert_eq!(result.len(), 1);
-    assert!(
-        result[0].contains("doesn't"),
-        "Should unescape single quote"
-    );
+    assert!(result[0].contains("doesn't"), "Should unescape single quote");
 }
 
 #[test]
@@ -207,10 +204,7 @@ fn find_js_placeholders_with_escaped_double_quotes() {
     let content = r#"test.todo("parser \"quoted\" test");"#;
     let result = find_js_placeholders(content);
     assert_eq!(result.len(), 1);
-    assert!(
-        result[0].contains("\"quoted\""),
-        "Should unescape double quotes"
-    );
+    assert!(result[0].contains("\"quoted\""), "Should unescape double quotes");
 }
 
 #[test]
@@ -218,10 +212,7 @@ fn find_js_placeholders_with_escaped_backticks() {
     let content = r#"test.todo(`template \`backtick\` test`);"#;
     let result = find_js_placeholders(content);
     assert_eq!(result.len(), 1);
-    assert!(
-        result[0].contains("`backtick`"),
-        "Should unescape backticks"
-    );
+    assert!(result[0].contains("`backtick`"), "Should unescape backticks");
 }
 
 #[test]

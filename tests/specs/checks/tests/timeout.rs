@@ -35,11 +35,7 @@ timeout = "100ms"
 "#,
     );
 
-    check("tests")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .fails()
-        .stdout_has("timed out");
+    check("tests").pwd(temp.path()).args(&["--ci"]).fails().stdout_has("timed out");
 }
 
 /// Spec: Suite without timeout runs normally.
@@ -80,11 +76,7 @@ timeout = "100ms"
 "#,
     );
 
-    check("tests")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .fails()
-        .stdout_has("timed out");
+    check("tests").pwd(temp.path()).args(&["--ci"]).fails().stdout_has("timed out");
 }
 
 /// Spec: Custom runner without timeout completes normally.

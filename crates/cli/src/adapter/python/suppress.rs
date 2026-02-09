@@ -78,11 +78,7 @@ fn parse_python_directive(
     let trimmed = line.trim();
 
     // Find the comment portion of the line
-    let comment_start = if trimmed.starts_with('#') {
-        Some(0)
-    } else {
-        trimmed.find('#')
-    };
+    let comment_start = if trimmed.starts_with('#') { Some(0) } else { trimmed.find('#') };
 
     let comment_start = comment_start?;
     let comment = &trimmed[comment_start..];
@@ -260,11 +256,7 @@ fn parse_comma_separated_codes(codes_str: &str) -> Vec<String> {
     // Stop at any trailing comment marker
     let codes_str = codes_str.split('#').next().unwrap_or(codes_str);
 
-    codes_str
-        .split(',')
-        .map(|s| s.trim().to_string())
-        .filter(|s| !s.is_empty())
-        .collect()
+    codes_str.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect()
 }
 
 #[cfg(test)]

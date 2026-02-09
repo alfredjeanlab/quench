@@ -40,23 +40,14 @@ fn go_suppress_defaults() {
     let config = parse_config("version = 1\n");
     assert_eq!(config.golang.suppress.check, SuppressLevel::Comment);
     assert!(config.golang.suppress.comment.is_none());
-    assert_eq!(
-        config.golang.suppress.test.check,
-        Some(SuppressLevel::Allow)
-    );
+    assert_eq!(config.golang.suppress.test.check, Some(SuppressLevel::Allow));
 }
 
 #[test]
 fn go_policy_config_defaults() {
     let config = parse_config("version = 1\n");
     assert_eq!(config.golang.policy.lint_changes, LintChangesPolicy::None);
-    assert!(
-        config
-            .golang
-            .policy
-            .lint_config
-            .contains(&".golangci.yml".to_string())
-    );
+    assert!(config.golang.policy.lint_config.contains(&".golangci.yml".to_string()));
 }
 
 #[test]

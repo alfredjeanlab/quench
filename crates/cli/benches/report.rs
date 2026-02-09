@@ -31,9 +31,7 @@ fn fixture_path(name: &str) -> PathBuf {
 
 fn load_fixture_baseline(name: &str) -> Baseline {
     let path = fixture_path(name).join(".quench/baseline.json");
-    Baseline::load(&path)
-        .expect("baseline should load")
-        .expect("fixture must exist")
+    Baseline::load(&path).expect("baseline should load").expect("fixture must exist")
 }
 
 /// Benchmark text format across all fixture sizes.
@@ -110,11 +108,9 @@ fn bench_format_comparison(c: &mut Criterion) {
     let baseline = load_fixture_baseline("typical");
     let args = ReportArgs::default();
 
-    for (format, name) in [
-        (OutputFormat::Text, "text"),
-        (OutputFormat::Json, "json"),
-        (OutputFormat::Html, "html"),
-    ] {
+    for (format, name) in
+        [(OutputFormat::Text, "text"), (OutputFormat::Json, "json"), (OutputFormat::Html, "html")]
+    {
         group.bench_with_input(BenchmarkId::new("typical", name), &baseline, |b, bl| {
             b.iter(|| format_report(format, Some(black_box(bl)), &args))
         });

@@ -235,11 +235,7 @@ fn python_landing_items_for_uses_flake8_when_no_ruff() {
 #[test]
 fn python_landing_items_for_uses_black_when_no_ruff() {
     let dir = setup_dir();
-    std::fs::write(
-        dir.path().join("pyproject.toml"),
-        "[tool.black]\nline-length = 88\n",
-    )
-    .unwrap();
+    std::fs::write(dir.path().join("pyproject.toml"), "[tool.black]\nline-length = 88\n").unwrap();
 
     let items = python_landing_items_for(dir.path());
     assert!(items.iter().any(|i| i.contains("black --check")));
@@ -261,11 +257,7 @@ fn python_landing_items_for_includes_build_when_configured() {
 #[test]
 fn python_landing_items_for_omits_build_when_not_configured() {
     let dir = setup_dir();
-    std::fs::write(
-        dir.path().join("pyproject.toml"),
-        "[project]\nname = \"test\"\n",
-    )
-    .unwrap();
+    std::fs::write(dir.path().join("pyproject.toml"), "[project]\nname = \"test\"\n").unwrap();
 
     let items = python_landing_items_for(dir.path());
     assert!(!items.iter().any(|i| i.contains("python -m build")));
@@ -334,10 +326,7 @@ fn assert_detected_section_valid(section: &str, lang: &str) {
         .unwrap_or_else(|| panic!("{lang}.suppress missing"))
         .as_table()
         .unwrap_or_else(|| panic!("{lang}.suppress should be a table"));
-    assert!(
-        suppress.get("check").is_some(),
-        "{lang}.suppress.check missing"
-    );
+    assert!(suppress.get("check").is_some(), "{lang}.suppress.check missing");
 }
 
 #[test]

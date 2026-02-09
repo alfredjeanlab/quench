@@ -31,20 +31,8 @@ fn ruby_suppress_defaults() {
 #[test]
 fn ruby_policy_defaults() {
     let config = parse_config("version = 1\n");
-    assert!(
-        config
-            .ruby
-            .policy
-            .lint_config
-            .contains(&".rubocop.yml".to_string())
-    );
-    assert!(
-        config
-            .ruby
-            .policy
-            .lint_config
-            .contains(&".rubocop_todo.yml".to_string())
-    );
+    assert!(config.ruby.policy.lint_config.contains(&".rubocop.yml".to_string()));
+    assert!(config.ruby.policy.lint_config.contains(&".rubocop_todo.yml".to_string()));
 }
 
 #[test]

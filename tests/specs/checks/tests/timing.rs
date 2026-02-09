@@ -147,9 +147,5 @@ use std::time::Duration;
     );
 
     // Should fail because test exceeds max_test threshold
-    check("tests")
-        .pwd(temp.path())
-        .fails()
-        .stdout_has("slow_test")
-        .stdout_has("exceeded");
+    check("tests").pwd(temp.path()).fails().stdout_has("slow_test").stdout_has("exceeded");
 }

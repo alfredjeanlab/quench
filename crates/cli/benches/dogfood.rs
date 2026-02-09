@@ -13,11 +13,7 @@ use std::path::Path;
 use std::process::Command;
 
 fn quench_root() -> &'static Path {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .unwrap()
-        .parent()
-        .unwrap()
+    Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap().parent().unwrap()
 }
 
 fn bench_dogfood_fast(c: &mut Criterion) {
@@ -121,10 +117,5 @@ fn bench_dogfood_ci(c: &mut Criterion) {
     });
 }
 
-criterion_group!(
-    benches,
-    bench_dogfood_fast,
-    bench_dogfood_individual_checks,
-    bench_dogfood_ci
-);
+criterion_group!(benches, bench_dogfood_fast, bench_dogfood_individual_checks, bench_dogfood_ci);
 criterion_main!(benches);

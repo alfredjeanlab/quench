@@ -98,11 +98,7 @@ pub fn detect_py_runner(root: &Path) -> Option<PyDetectionResult> {
 
     // 5. Fallback to unittest if pytest is not available
     Some(PyDetectionResult {
-        runner: if is_pytest_available() {
-            PyRunner::Pytest
-        } else {
-            PyRunner::Unittest
-        },
+        runner: if is_pytest_available() { PyRunner::Pytest } else { PyRunner::Unittest },
         source: PyDetectionSource::Fallback,
     })
 }
@@ -222,11 +218,7 @@ fn detect_from_test_patterns(root: &Path) -> Option<PyDetectionResult> {
     let test_dirs = ["tests", "test", "."];
 
     for dir in test_dirs {
-        let test_path = if dir == "." {
-            root.to_path_buf()
-        } else {
-            root.join(dir)
-        };
+        let test_path = if dir == "." { root.to_path_buf() } else { root.join(dir) };
 
         if !test_path.is_dir() {
             continue;

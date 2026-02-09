@@ -72,10 +72,7 @@ fn detect_index_file_cached(
 fn matches_extension(path: &Path, extension: &str) -> bool {
     // Handle both ".md" and "md" formats
     let ext = extension.trim_start_matches('.');
-    path.extension()
-        .and_then(|e| e.to_str())
-        .map(|e| e.eq_ignore_ascii_case(ext))
-        .unwrap_or(false)
+    path.extension().and_then(|e| e.to_str()).map(|e| e.eq_ignore_ascii_case(ext)).unwrap_or(false)
 }
 
 /// Count spec files in the directory.
@@ -149,11 +146,7 @@ fn validate_toc_mode(
             } else if entry.path.contains('/') {
                 // Might be relative to project root
                 let from_root = root.join(&entry.path);
-                if from_root.exists() {
-                    from_root
-                } else {
-                    specs_dir.join(&entry.path)
-                }
+                if from_root.exists() { from_root } else { specs_dir.join(&entry.path) }
             } else {
                 // Just filename, relative to specs dir
                 specs_dir.join(&entry.path)
@@ -310,9 +303,7 @@ fn validate_auto_mode(
     if has_trees {
         validate_toc_mode(root, index_file, specs_dir, all_specs, violations, limit);
     } else {
-        validate_linked_mode(
-            root, index_file, specs_dir, all_specs, violations, limit, path_cache,
-        );
+        validate_linked_mode(root, index_file, specs_dir, all_specs, violations, limit, path_cache);
     }
 }
 
@@ -325,10 +316,7 @@ pub fn validate_specs(
     let config = &ctx.config.check.docs.specs;
 
     // Check if specs validation is disabled
-    if !super::is_check_enabled(
-        config.check.as_deref(),
-        ctx.config.check.docs.check.as_deref(),
-    ) {
+    if !super::is_check_enabled(config.check.as_deref(), ctx.config.check.docs.check.as_deref()) {
         return;
     }
 
@@ -369,14 +357,7 @@ pub fn validate_specs(
             if let Ok(canonical_index) = ctx.root.join(&index_file).canonicalize() {
                 all_specs.remove(&canonical_index);
             }
-            validate_toc_mode(
-                ctx.root,
-                &index_file,
-                &specs_dir,
-                &all_specs,
-                violations,
-                ctx.limit,
-            );
+            validate_toc_mode(ctx.root, &index_file, &specs_dir, &all_specs, violations, ctx.limit);
         }
         "linked" => {
             let mut all_specs = collect_spec_files(ctx.root, specs_path, &config.extension);

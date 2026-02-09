@@ -83,9 +83,7 @@ pub fn collect_rust_coverage(root: &Path, path: Option<&str>) -> CoverageResult 
     cmd.args(["llvm-cov", "--json", "--release"]);
 
     // Set working directory
-    let work_dir = path
-        .map(|p| root.join(p))
-        .unwrap_or_else(|| root.to_path_buf());
+    let work_dir = path.map(|p| root.join(p)).unwrap_or_else(|| root.to_path_buf());
     cmd.current_dir(&work_dir);
 
     cmd.stdout(Stdio::piped());

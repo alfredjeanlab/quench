@@ -169,11 +169,7 @@ impl FileWalker {
             return false;
         }
 
-        entry
-            .file_name()
-            .to_str()
-            .map(|name| SKIP_DIRECTORIES.contains(&name))
-            .unwrap_or(false)
+        entry.file_name().to_str().map(|name| SKIP_DIRECTORIES.contains(&name)).unwrap_or(false)
     }
 
     /// Create a new walker with the given configuration.
@@ -183,10 +179,7 @@ impl FileWalker {
 
     /// Create a walker from project exclude config.
     pub fn from_exclude_config(exclude: &ExcludeConfig) -> Self {
-        Self::new(WalkerConfig {
-            exclude_patterns: exclude.patterns.clone(),
-            ..Default::default()
-        })
+        Self::new(WalkerConfig { exclude_patterns: exclude.patterns.clone(), ..Default::default() })
     }
 
     /// Determine whether to use parallel walking based on heuristics.
@@ -205,9 +198,7 @@ impl FileWalker {
         // Quick heuristic: count top-level entries.
         // If > threshold / 10, likely a large codebase worth parallelizing.
         // This avoids scanning the entire tree just to decide the walking strategy.
-        let entry_count = std::fs::read_dir(root)
-            .map(|entries| entries.count())
-            .unwrap_or(0);
+        let entry_count = std::fs::read_dir(root).map(|entries| entries.count()).unwrap_or(0);
 
         entry_count >= self.config.parallel_threshold / 10
     }

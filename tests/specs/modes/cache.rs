@@ -24,16 +24,9 @@ fn cache_file_created_after_check() {
     fs::write(temp.path().join("test.rs"), "fn main() {}\n").unwrap();
 
     // Uses quench_cmd() directly - cache tests need cache enabled
-    quench_cmd()
-        .args(["check"])
-        .current_dir(temp.path())
-        .assert()
-        .success();
+    quench_cmd().args(["check"]).current_dir(temp.path()).assert().success();
 
-    assert!(
-        temp.path().join(".quench/cache.bin").exists(),
-        "cache file should be created"
-    );
+    assert!(temp.path().join(".quench/cache.bin").exists(), "cache file should be created");
 }
 
 /// Spec: docs/specs/performance.md#file-caching
@@ -47,11 +40,7 @@ fn no_cache_flag_skips_cache() {
     fs::write(temp.path().join("test.rs"), "fn main() {}\n").unwrap();
 
     // Uses quench_cmd() directly - testing --no-cache flag behavior
-    quench_cmd()
-        .args(["check", "--no-cache"])
-        .current_dir(temp.path())
-        .assert()
-        .success();
+    quench_cmd().args(["check", "--no-cache"]).current_dir(temp.path()).assert().success();
 
     assert!(
         !temp.path().join(".quench/cache.bin").exists(),
@@ -193,11 +182,8 @@ fn docs_cache_invalidated_when_target_created() {
     let temp = default_project();
 
     // Create a markdown file with a broken link
-    fs::write(
-        temp.path().join("README.md"),
-        "# Project\n\nSee [missing](missing.md) for info.\n",
-    )
-    .unwrap();
+    fs::write(temp.path().join("README.md"), "# Project\n\nSee [missing](missing.md) for info.\n")
+        .unwrap();
 
     // First run: should report broken_link violation
     quench_cmd()
@@ -239,11 +225,8 @@ fn docs_cache_invalidated_when_target_symlink_created() {
     let temp = default_project();
 
     // Create a markdown file with a broken link
-    fs::write(
-        temp.path().join("README.md"),
-        "# Project\n\nSee [missing](missing.md) for info.\n",
-    )
-    .unwrap();
+    fs::write(temp.path().join("README.md"), "# Project\n\nSee [missing](missing.md) for info.\n")
+        .unwrap();
 
     // First run: should report broken_link violation
     quench_cmd()
@@ -277,11 +260,7 @@ fn cache_persists_across_invocations() {
 
     // Uses quench_cmd() directly - cache tests need cache enabled
     // First run: build cache
-    quench_cmd()
-        .args(["check"])
-        .current_dir(temp.path())
-        .assert()
-        .success();
+    quench_cmd().args(["check"]).current_dir(temp.path()).assert().success();
 
     // Verify cache file exists
     let cache_path = temp.path().join(".quench/cache.bin");

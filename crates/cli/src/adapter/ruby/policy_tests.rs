@@ -22,10 +22,7 @@ fn classify_mock(path: &Path) -> FileKind {
 
 #[test]
 fn no_policy_allows_mixed_changes() {
-    let policy = RubyPolicyConfig {
-        lint_changes: LintChangesPolicy::None,
-        ..Default::default()
-    };
+    let policy = RubyPolicyConfig { lint_changes: LintChangesPolicy::None, ..Default::default() };
 
     let files = [Path::new(".rubocop.yml"), Path::new("lib/app.rb")];
     let refs: Vec<&Path> = files.to_vec();
@@ -36,10 +33,8 @@ fn no_policy_allows_mixed_changes() {
 
 #[test]
 fn standalone_policy_detects_mixed_changes() {
-    let policy = RubyPolicyConfig {
-        lint_changes: LintChangesPolicy::Standalone,
-        ..Default::default()
-    };
+    let policy =
+        RubyPolicyConfig { lint_changes: LintChangesPolicy::Standalone, ..Default::default() };
 
     let files = [Path::new(".rubocop.yml"), Path::new("lib/app.rb")];
     let refs: Vec<&Path> = files.to_vec();
@@ -52,10 +47,8 @@ fn standalone_policy_detects_mixed_changes() {
 
 #[test]
 fn standalone_policy_allows_lint_only_changes() {
-    let policy = RubyPolicyConfig {
-        lint_changes: LintChangesPolicy::Standalone,
-        ..Default::default()
-    };
+    let policy =
+        RubyPolicyConfig { lint_changes: LintChangesPolicy::Standalone, ..Default::default() };
 
     let files = [Path::new(".rubocop.yml"), Path::new(".rubocop_todo.yml")];
     let refs: Vec<&Path> = files.to_vec();
@@ -66,10 +59,8 @@ fn standalone_policy_allows_lint_only_changes() {
 
 #[test]
 fn standalone_policy_allows_source_only_changes() {
-    let policy = RubyPolicyConfig {
-        lint_changes: LintChangesPolicy::Standalone,
-        ..Default::default()
-    };
+    let policy =
+        RubyPolicyConfig { lint_changes: LintChangesPolicy::Standalone, ..Default::default() };
 
     let files = [Path::new("lib/app.rb"), Path::new("lib/models/user.rb")];
     let refs: Vec<&Path> = files.to_vec();
@@ -80,10 +71,8 @@ fn standalone_policy_allows_source_only_changes() {
 
 #[test]
 fn detects_standard_yml_as_lint_config() {
-    let policy = RubyPolicyConfig {
-        lint_changes: LintChangesPolicy::Standalone,
-        ..Default::default()
-    };
+    let policy =
+        RubyPolicyConfig { lint_changes: LintChangesPolicy::Standalone, ..Default::default() };
 
     let files = [Path::new(".standard.yml"), Path::new("lib/app.rb")];
     let refs: Vec<&Path> = files.to_vec();

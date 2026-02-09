@@ -97,23 +97,11 @@ fn executable_returns_correct_names() {
 
 #[test]
 fn run_command_generates_correct_args() {
-    assert_eq!(
-        PackageManager::Npm.run_command("build"),
-        vec!["npm", "run", "build"]
-    );
-    assert_eq!(
-        PackageManager::Pnpm.run_command("build"),
-        vec!["pnpm", "run", "build"]
-    );
+    assert_eq!(PackageManager::Npm.run_command("build"), vec!["npm", "run", "build"]);
+    assert_eq!(PackageManager::Pnpm.run_command("build"), vec!["pnpm", "run", "build"]);
     // Yarn doesn't need "run"
-    assert_eq!(
-        PackageManager::Yarn.run_command("build"),
-        vec!["yarn", "build"]
-    );
-    assert_eq!(
-        PackageManager::Bun.run_command("build"),
-        vec!["bun", "run", "build"]
-    );
+    assert_eq!(PackageManager::Yarn.run_command("build"), vec!["yarn", "build"]);
+    assert_eq!(PackageManager::Bun.run_command("build"), vec!["bun", "run", "build"]);
 }
 
 #[test]

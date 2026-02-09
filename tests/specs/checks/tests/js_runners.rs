@@ -21,25 +21,15 @@ fn auto_detects_vitest_from_config_file() {
     temp.file("package.json", r#"{"name": "test"}"#);
     temp.file("vitest.config.ts", "export default {}");
 
-    let result = check("tests")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .passes();
+    let result = check("tests").pwd(temp.path()).args(&["--ci"]).json().passes();
     let metrics = result.require("metrics");
 
     assert_eq!(metrics.get("auto_detected"), Some(&serde_json::json!(true)));
 
     // Check runner and detection_source in suites array
-    let suites = metrics
-        .get("suites")
-        .and_then(|s| s.as_array())
-        .expect("suites");
+    let suites = metrics.get("suites").and_then(|s| s.as_array()).expect("suites");
     assert_eq!(suites.len(), 1);
-    assert_eq!(
-        suites[0].get("runner").and_then(|r| r.as_str()),
-        Some("vitest")
-    );
+    assert_eq!(suites[0].get("runner").and_then(|r| r.as_str()), Some("vitest"));
     assert!(
         suites[0]
             .get("detection_source")
@@ -56,25 +46,15 @@ fn auto_detects_jest_from_config_file() {
     temp.file("package.json", r#"{"name": "test"}"#);
     temp.file("jest.config.js", "module.exports = {}");
 
-    let result = check("tests")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .passes();
+    let result = check("tests").pwd(temp.path()).args(&["--ci"]).json().passes();
     let metrics = result.require("metrics");
 
     assert_eq!(metrics.get("auto_detected"), Some(&serde_json::json!(true)));
 
     // Check runner in suites array
-    let suites = metrics
-        .get("suites")
-        .and_then(|s| s.as_array())
-        .expect("suites");
+    let suites = metrics.get("suites").and_then(|s| s.as_array()).expect("suites");
     assert_eq!(suites.len(), 1);
-    assert_eq!(
-        suites[0].get("runner").and_then(|r| r.as_str()),
-        Some("jest")
-    );
+    assert_eq!(suites[0].get("runner").and_then(|r| r.as_str()), Some("jest"));
 }
 
 // =============================================================================
@@ -86,30 +66,17 @@ fn auto_detects_jest_from_config_file() {
 fn auto_detects_vitest_from_dev_dependencies() {
     let temp = Project::empty();
     temp.config("[check.tests]\nauto = true");
-    temp.file(
-        "package.json",
-        r#"{"name": "test", "devDependencies": {"vitest": "^2.0.0"}}"#,
-    );
+    temp.file("package.json", r#"{"name": "test", "devDependencies": {"vitest": "^2.0.0"}}"#);
 
-    let result = check("tests")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .passes();
+    let result = check("tests").pwd(temp.path()).args(&["--ci"]).json().passes();
     let metrics = result.require("metrics");
 
     assert_eq!(metrics.get("auto_detected"), Some(&serde_json::json!(true)));
 
     // Check runner and detection_source in suites array
-    let suites = metrics
-        .get("suites")
-        .and_then(|s| s.as_array())
-        .expect("suites");
+    let suites = metrics.get("suites").and_then(|s| s.as_array()).expect("suites");
     assert_eq!(suites.len(), 1);
-    assert_eq!(
-        suites[0].get("runner").and_then(|r| r.as_str()),
-        Some("vitest")
-    );
+    assert_eq!(suites[0].get("runner").and_then(|r| r.as_str()), Some("vitest"));
     assert!(
         suites[0]
             .get("detection_source")
@@ -123,30 +90,17 @@ fn auto_detects_vitest_from_dev_dependencies() {
 fn auto_detects_jest_from_dev_dependencies() {
     let temp = Project::empty();
     temp.config("[check.tests]\nauto = true");
-    temp.file(
-        "package.json",
-        r#"{"name": "test", "devDependencies": {"jest": "^29.0.0"}}"#,
-    );
+    temp.file("package.json", r#"{"name": "test", "devDependencies": {"jest": "^29.0.0"}}"#);
 
-    let result = check("tests")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .passes();
+    let result = check("tests").pwd(temp.path()).args(&["--ci"]).json().passes();
     let metrics = result.require("metrics");
 
     assert_eq!(metrics.get("auto_detected"), Some(&serde_json::json!(true)));
 
     // Check runner in suites array
-    let suites = metrics
-        .get("suites")
-        .and_then(|s| s.as_array())
-        .expect("suites");
+    let suites = metrics.get("suites").and_then(|s| s.as_array()).expect("suites");
     assert_eq!(suites.len(), 1);
-    assert_eq!(
-        suites[0].get("runner").and_then(|r| r.as_str()),
-        Some("jest")
-    );
+    assert_eq!(suites[0].get("runner").and_then(|r| r.as_str()), Some("jest"));
 }
 
 // =============================================================================
@@ -158,30 +112,17 @@ fn auto_detects_jest_from_dev_dependencies() {
 fn auto_detects_vitest_from_test_script() {
     let temp = Project::empty();
     temp.config("[check.tests]\nauto = true");
-    temp.file(
-        "package.json",
-        r#"{"name": "test", "scripts": {"test": "vitest run"}}"#,
-    );
+    temp.file("package.json", r#"{"name": "test", "scripts": {"test": "vitest run"}}"#);
 
-    let result = check("tests")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .passes();
+    let result = check("tests").pwd(temp.path()).args(&["--ci"]).json().passes();
     let metrics = result.require("metrics");
 
     assert_eq!(metrics.get("auto_detected"), Some(&serde_json::json!(true)));
 
     // Check runner and detection_source in suites array
-    let suites = metrics
-        .get("suites")
-        .and_then(|s| s.as_array())
-        .expect("suites");
+    let suites = metrics.get("suites").and_then(|s| s.as_array()).expect("suites");
     assert_eq!(suites.len(), 1);
-    assert_eq!(
-        suites[0].get("runner").and_then(|r| r.as_str()),
-        Some("vitest")
-    );
+    assert_eq!(suites[0].get("runner").and_then(|r| r.as_str()), Some("vitest"));
     assert!(
         suites[0]
             .get("detection_source")
@@ -204,16 +145,10 @@ fn explicit_config_takes_precedence() {
 runner = "cargo"
 "#,
     );
-    temp.file(
-        "Cargo.toml",
-        "[package]\nname = \"test\"\nversion = \"0.1.0\"\nedition = \"2021\"",
-    );
+    temp.file("Cargo.toml", "[package]\nname = \"test\"\nversion = \"0.1.0\"\nedition = \"2021\"");
     temp.file("src/lib.rs", "");
     // Also has package.json with vitest - should be ignored
-    temp.file(
-        "package.json",
-        r#"{"name": "test", "devDependencies": {"vitest": "^2.0.0"}}"#,
-    );
+    temp.file("package.json", r#"{"name": "test", "devDependencies": {"vitest": "^2.0.0"}}"#);
 
     let result = check("tests").pwd(temp.path()).json().passes();
     let metrics = result.require("metrics");
@@ -245,10 +180,7 @@ fn no_auto_detection_without_package_json() {
 #[test]
 fn no_auto_detection_when_no_runner_found() {
     let temp = Project::empty();
-    temp.file(
-        "package.json",
-        r#"{"name": "test", "scripts": {"test": "echo 'no tests'"}}"#,
-    );
+    temp.file("package.json", r#"{"name": "test", "scripts": {"test": "echo 'no tests'"}}"#);
 
     let result = check("tests").pwd(temp.path()).json().passes();
 
@@ -266,30 +198,17 @@ fn no_auto_detection_when_no_runner_found() {
 fn config_file_priority_over_dependencies() {
     let temp = Project::empty();
     temp.config("[check.tests]\nauto = true");
-    temp.file(
-        "package.json",
-        r#"{"name": "test", "devDependencies": {"jest": "^29.0.0"}}"#,
-    );
+    temp.file("package.json", r#"{"name": "test", "devDependencies": {"jest": "^29.0.0"}}"#);
     // vitest config file should win over jest devDependency
     temp.file("vitest.config.ts", "export default {}");
 
-    let result = check("tests")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .passes();
+    let result = check("tests").pwd(temp.path()).args(&["--ci"]).json().passes();
     let metrics = result.require("metrics");
 
     // Check runner and detection_source in suites array
-    let suites = metrics
-        .get("suites")
-        .and_then(|s| s.as_array())
-        .expect("suites");
+    let suites = metrics.get("suites").and_then(|s| s.as_array()).expect("suites");
     assert_eq!(suites.len(), 1);
-    assert_eq!(
-        suites[0].get("runner").and_then(|r| r.as_str()),
-        Some("vitest")
-    );
+    assert_eq!(suites[0].get("runner").and_then(|r| r.as_str()), Some("vitest"));
     assert!(
         suites[0]
             .get("detection_source")
@@ -306,25 +225,15 @@ fn config_file_priority_over_dependencies() {
 #[test]
 fn auto_detects_vitest_on_js_simple_fixture() {
     setup_js_fixture("js-simple");
-    let result = check("tests")
-        .on("js-simple")
-        .args(&["--ci"])
-        .json()
-        .passes();
+    let result = check("tests").on("js-simple").args(&["--ci"]).json().passes();
     let metrics = result.require("metrics");
 
     assert_eq!(metrics.get("auto_detected"), Some(&serde_json::json!(true)));
 
     // Check runner and detection_source in suites array
-    let suites = metrics
-        .get("suites")
-        .and_then(|s| s.as_array())
-        .expect("suites");
+    let suites = metrics.get("suites").and_then(|s| s.as_array()).expect("suites");
     assert_eq!(suites.len(), 1);
-    assert_eq!(
-        suites[0].get("runner").and_then(|r| r.as_str()),
-        Some("vitest")
-    );
+    assert_eq!(suites[0].get("runner").and_then(|r| r.as_str()), Some("vitest"));
     assert!(
         suites[0]
             .get("detection_source")

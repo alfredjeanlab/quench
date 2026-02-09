@@ -16,11 +16,7 @@ use crate::prelude::*;
 fn init_creates_quench_toml_in_current_directory() {
     let temp = Project::empty();
 
-    quench_cmd()
-        .args(["init"])
-        .current_dir(temp.path())
-        .assert()
-        .success();
+    quench_cmd().args(["init"]).current_dir(temp.path()).assert().success();
 
     assert!(temp.path().join("quench.toml").exists());
 }
@@ -54,11 +50,7 @@ fn init_force_overwrites_existing_config() {
     let temp = Project::empty();
     temp.file("quench.toml", "version = 1\n# existing content\n");
 
-    quench_cmd()
-        .args(["init", "--force"])
-        .current_dir(temp.path())
-        .assert()
-        .success();
+    quench_cmd().args(["init", "--force"]).current_dir(temp.path()).assert().success();
 
     let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
     assert!(!config.contains("# existing content"), "should overwrite");
@@ -96,11 +88,7 @@ fn init_with_rust_configures_rust_defaults() {
 fn init_with_claude_configures_claude_defaults() {
     let temp = Project::empty();
 
-    quench_cmd()
-        .args(["init", "--with", "claude"])
-        .current_dir(temp.path())
-        .assert()
-        .success();
+    quench_cmd().args(["init", "--with", "claude"]).current_dir(temp.path()).assert().success();
 
     let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
     assert!(config.contains("[check.agents]"));
@@ -114,11 +102,7 @@ fn init_with_claude_configures_claude_defaults() {
 fn init_with_cursor_configures_cursor_defaults() {
     let temp = Project::empty();
 
-    quench_cmd()
-        .args(["init", "--with", "cursor"])
-        .current_dir(temp.path())
-        .assert()
-        .success();
+    quench_cmd().args(["init", "--with", "cursor"]).current_dir(temp.path()).assert().success();
 
     let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
     assert!(config.contains("[check.agents]"));
@@ -137,11 +121,7 @@ fn init_accepts_valid_profile_names() {
     for profile in ["rust", "shell", "claude", "cursor"] {
         let temp = Project::empty();
 
-        quench_cmd()
-            .args(["init", "--with", profile])
-            .current_dir(temp.path())
-            .assert()
-            .success();
+        quench_cmd().args(["init", "--with", profile]).current_dir(temp.path()).assert().success();
 
         assert!(temp.path().join("quench.toml").exists());
     }
@@ -169,11 +149,7 @@ fn init_warns_on_unknown_profile() {
 fn init_profile_names_case_insensitive() {
     let temp = Project::empty();
 
-    quench_cmd()
-        .args(["init", "--with", "RUST"])
-        .current_dir(temp.path())
-        .assert()
-        .success();
+    quench_cmd().args(["init", "--with", "RUST"]).current_dir(temp.path()).assert().success();
 
     let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
     assert!(config.contains("[rust]"));
@@ -189,11 +165,7 @@ fn init_profile_names_case_insensitive() {
 #[test]
 fn init_with_accepts_comma_separated_profiles() {
     let temp = Project::empty();
-    quench_cmd()
-        .args(["init", "--with", "rust,shell"])
-        .current_dir(temp.path())
-        .assert()
-        .success();
+    quench_cmd().args(["init", "--with", "rust,shell"]).current_dir(temp.path()).assert().success();
 
     let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
     assert!(config.contains("[rust]"));
@@ -209,23 +181,13 @@ fn init_with_skips_auto_detection() {
     temp.file("Cargo.toml", "[package]\nname = \"test\"\n");
     temp.file("go.mod", "module test\n");
 
-    quench_cmd()
-        .args(["init", "--with", "shell"])
-        .current_dir(temp.path())
-        .assert()
-        .success();
+    quench_cmd().args(["init", "--with", "shell"]).current_dir(temp.path()).assert().success();
 
     let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
     assert!(config.contains("[shell]"));
     // Check for actual section headers, not comments
-    assert!(
-        !config.lines().any(|l| l.trim() == "[rust]"),
-        "--with should skip rust detection"
-    );
-    assert!(
-        !config.lines().any(|l| l.trim() == "[golang]"),
-        "--with should skip go detection"
-    );
+    assert!(!config.lines().any(|l| l.trim() == "[rust]"), "--with should skip rust detection");
+    assert!(!config.lines().any(|l| l.trim() == "[golang]"), "--with should skip go detection");
 }
 
 /// Spec: docs/specs/commands/quench-init.md#language-detection
@@ -236,11 +198,7 @@ fn init_without_with_triggers_auto_detection() {
     let temp = Project::empty();
     temp.file("Cargo.toml", "[package]\nname = \"test\"\n");
 
-    quench_cmd()
-        .args(["init"])
-        .current_dir(temp.path())
-        .assert()
-        .success();
+    quench_cmd().args(["init"]).current_dir(temp.path()).assert().success();
 
     let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
     assert!(config.contains("[rust]"), "should auto-detect rust");
@@ -261,14 +219,8 @@ fn init_combined_profiles_generates_both() {
         .stdout(predicates::str::contains("rust, shell"));
 
     let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
-    assert!(
-        config.contains("[rust]"),
-        "config should have [rust] section"
-    );
-    assert!(
-        config.contains("[shell]"),
-        "config should have [shell] section"
-    );
+    assert!(config.contains("[rust]"), "config should have [rust] section");
+    assert!(config.contains("[shell]"), "config should have [shell] section");
 }
 
 /// Spec: docs/specs/commands/quench-init.md#language-detection
@@ -279,11 +231,7 @@ fn init_detected_language_uses_dotted_keys() {
     let temp = Project::empty();
     temp.file("Cargo.toml", "[package]\nname = \"test\"\n");
 
-    quench_cmd()
-        .args(["init"])
-        .current_dir(temp.path())
-        .assert()
-        .success();
+    quench_cmd().args(["init"]).current_dir(temp.path()).assert().success();
 
     let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
 

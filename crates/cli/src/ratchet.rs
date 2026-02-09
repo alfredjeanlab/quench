@@ -89,28 +89,19 @@ fn extract_escapes_metrics(json: &serde_json::Value) -> Option<EscapesCurrent> {
     let source = json.get("source")?.as_object()?;
     let test = json.get("test")?.as_object()?;
 
-    let source_map: HashMap<String, usize> = source
-        .iter()
-        .filter_map(|(k, v)| v.as_u64().map(|n| (k.clone(), n as usize)))
-        .collect();
+    let source_map: HashMap<String, usize> =
+        source.iter().filter_map(|(k, v)| v.as_u64().map(|n| (k.clone(), n as usize))).collect();
 
-    let test_map: HashMap<String, usize> = test
-        .iter()
-        .filter_map(|(k, v)| v.as_u64().map(|n| (k.clone(), n as usize)))
-        .collect();
+    let test_map: HashMap<String, usize> =
+        test.iter().filter_map(|(k, v)| v.as_u64().map(|n| (k.clone(), n as usize))).collect();
 
-    Some(EscapesCurrent {
-        source: source_map,
-        test: test_map,
-    })
+    Some(EscapesCurrent { source: source_map, test: test_map })
 }
 
 fn extract_binary_size(json: &serde_json::Value) -> Option<HashMap<String, u64>> {
     let size = json.get("size")?.as_object()?;
-    let map: HashMap<String, u64> = size
-        .iter()
-        .filter_map(|(k, v)| v.as_u64().map(|n| (k.clone(), n)))
-        .collect();
+    let map: HashMap<String, u64> =
+        size.iter().filter_map(|(k, v)| v.as_u64().map(|n| (k.clone(), n))).collect();
 
     if map.is_empty() { None } else { Some(map) }
 }
@@ -118,21 +109,11 @@ fn extract_binary_size(json: &serde_json::Value) -> Option<HashMap<String, u64>>
 fn extract_build_time(json: &serde_json::Value) -> Option<BuildTimeCurrent> {
     let time = json.get("time")?;
 
-    let cold = time
-        .get("cold")
-        .and_then(|v| v.as_f64())
-        .map(Duration::from_secs_f64);
+    let cold = time.get("cold").and_then(|v| v.as_f64()).map(Duration::from_secs_f64);
 
-    let hot = time
-        .get("hot")
-        .and_then(|v| v.as_f64())
-        .map(Duration::from_secs_f64);
+    let hot = time.get("hot").and_then(|v| v.as_f64()).map(Duration::from_secs_f64);
 
-    if cold.is_none() && hot.is_none() {
-        None
-    } else {
-        Some(BuildTimeCurrent { cold, hot })
-    }
+    if cold.is_none() && hot.is_none() { None } else { Some(BuildTimeCurrent { cold, hot }) }
 }
 
 /// Extract test time metrics from JSON.
@@ -167,11 +148,7 @@ fn extract_coverage_metrics(json: &serde_json::Value) -> Option<CoverageCurrent>
     let by_package = json
         .get("coverage_by_package")
         .and_then(|v| v.as_object())
-        .map(|obj| {
-            obj.iter()
-                .filter_map(|(k, v)| v.as_f64().map(|f| (k.clone(), f)))
-                .collect()
-        })
+        .map(|obj| obj.iter().filter_map(|(k, v)| v.as_f64().map(|f| (k.clone(), f))).collect())
         .unwrap_or_default();
 
     Some(CoverageCurrent { total, by_package })
@@ -471,11 +448,7 @@ pub fn compare(
         );
     }
 
-    RatchetResult {
-        passed,
-        comparisons,
-        improvements,
-    }
+    RatchetResult { passed, comparisons, improvements }
 }
 
 /// Compare a timing metric against baseline with tolerance.
@@ -524,10 +497,7 @@ pub fn update_baseline(baseline: &mut Baseline, current: &CurrentMetrics) {
         let base_escapes = baseline
             .metrics
             .escapes
-            .get_or_insert_with(|| BaselineEscapes {
-                source: HashMap::new(),
-                test: None,
-            });
+            .get_or_insert_with(|| BaselineEscapes { source: HashMap::new(), test: None });
 
         // Update all source counts (baseline is always current snapshot)
         for (pattern, &count) in &curr_escapes.source {
@@ -554,10 +524,7 @@ pub fn update_baseline(baseline: &mut Baseline, current: &CurrentMetrics) {
 
     // Update binary size metrics
     if let Some(curr_sizes) = &current.binary_size {
-        let base_sizes = baseline
-            .metrics
-            .binary_size
-            .get_or_insert_with(HashMap::new);
+        let base_sizes = baseline.metrics.binary_size.get_or_insert_with(HashMap::new);
         for (target, &size) in curr_sizes {
             base_sizes.insert(target.clone(), size);
         }
@@ -565,13 +532,8 @@ pub fn update_baseline(baseline: &mut Baseline, current: &CurrentMetrics) {
 
     // Update build time metrics
     if let Some(curr_time) = &current.build_time {
-        let base_time = baseline
-            .metrics
-            .build_time
-            .get_or_insert(BaselineBuildTime {
-                cold: 0.0,
-                hot: 0.0,
-            });
+        let base_time =
+            baseline.metrics.build_time.get_or_insert(BaselineBuildTime { cold: 0.0, hot: 0.0 });
         if let Some(cold) = curr_time.cold {
             base_time.cold = cold.as_secs_f64();
         }

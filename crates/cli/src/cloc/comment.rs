@@ -25,51 +25,24 @@ pub struct LineCounts {
 /// Return the comment style for a file extension, or `None` if unknown.
 pub fn comment_style(ext: &str) -> Option<CommentStyle> {
     match ext {
-        "rs" => Some(CommentStyle {
-            line: &["//"],
-            block: &[("/*", "*/")],
-        }),
-        "go" => Some(CommentStyle {
-            line: &["//"],
-            block: &[("/*", "*/")],
-        }),
-        "py" | "rb" | "sh" | "bash" | "zsh" | "fish" | "bats" | "r" => Some(CommentStyle {
-            line: &["#"],
-            block: &[],
-        }),
+        "rs" => Some(CommentStyle { line: &["//"], block: &[("/*", "*/")] }),
+        "go" => Some(CommentStyle { line: &["//"], block: &[("/*", "*/")] }),
+        "py" | "rb" | "sh" | "bash" | "zsh" | "fish" | "bats" | "r" => {
+            Some(CommentStyle { line: &["#"], block: &[] })
+        }
         "js" | "jsx" | "ts" | "tsx" | "mjs" | "mts" | "cjs" | "cts" | "java" | "kt" | "scala"
-        | "swift" | "c" | "cpp" | "h" | "hpp" | "cs" | "m" | "mm" => Some(CommentStyle {
-            line: &["//"],
-            block: &[("/*", "*/")],
-        }),
-        "lua" => Some(CommentStyle {
-            line: &["--"],
-            block: &[("--[[", "]]")],
-        }),
-        "sql" => Some(CommentStyle {
-            line: &["--"],
-            block: &[("/*", "*/")],
-        }),
-        "php" => Some(CommentStyle {
-            line: &["//", "#"],
-            block: &[("/*", "*/")],
-        }),
-        "vue" | "svelte" => Some(CommentStyle {
-            line: &["//"],
-            block: &[("/*", "*/"), ("<!--", "-->")],
-        }),
-        "pl" | "pm" => Some(CommentStyle {
-            line: &["#"],
-            block: &[("=pod", "=cut")],
-        }),
-        "ps1" => Some(CommentStyle {
-            line: &["#"],
-            block: &[("<#", "#>")],
-        }),
-        "bat" | "cmd" => Some(CommentStyle {
-            line: &["REM ", ":: "],
-            block: &[],
-        }),
+        | "swift" | "c" | "cpp" | "h" | "hpp" | "cs" | "m" | "mm" => {
+            Some(CommentStyle { line: &["//"], block: &[("/*", "*/")] })
+        }
+        "lua" => Some(CommentStyle { line: &["--"], block: &[("--[[", "]]")] }),
+        "sql" => Some(CommentStyle { line: &["--"], block: &[("/*", "*/")] }),
+        "php" => Some(CommentStyle { line: &["//", "#"], block: &[("/*", "*/")] }),
+        "vue" | "svelte" => {
+            Some(CommentStyle { line: &["//"], block: &[("/*", "*/"), ("<!--", "-->")] })
+        }
+        "pl" | "pm" => Some(CommentStyle { line: &["#"], block: &[("=pod", "=cut")] }),
+        "ps1" => Some(CommentStyle { line: &["#"], block: &[("<#", "#>")] }),
+        "bat" | "cmd" => Some(CommentStyle { line: &["REM ", ":: "], block: &[] }),
         _ => None,
     }
 }

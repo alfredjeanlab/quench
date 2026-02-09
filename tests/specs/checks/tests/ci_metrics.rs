@@ -19,11 +19,7 @@ use crate::prelude::*;
 /// > max_ms, and max_test at the top level.
 #[test]
 fn ci_mode_reports_aggregated_timing_metrics() {
-    let result = check("tests")
-        .on("tests-ci")
-        .args(&["--ci"])
-        .json()
-        .passes();
+    let result = check("tests").on("tests-ci").args(&["--ci"]).json().passes();
     let metrics = result.require("metrics");
 
     // Should have test_count and total_ms
@@ -36,11 +32,7 @@ fn ci_mode_reports_aggregated_timing_metrics() {
 /// > Each suite should report its own timing metrics.
 #[test]
 fn ci_mode_reports_per_suite_timing() {
-    let result = check("tests")
-        .on("tests-ci")
-        .args(&["--ci"])
-        .json()
-        .passes();
+    let result = check("tests").on("tests-ci").args(&["--ci"]).json().passes();
     let metrics = result.require("metrics");
 
     // Should have suites array
@@ -86,11 +78,7 @@ fn test_covered() { assert_eq!(test_project::covered(), 42); }
 "#,
     );
 
-    let result = check("tests")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .passes();
+    let result = check("tests").pwd(temp.path()).args(&["--ci"]).json().passes();
     let metrics = result.require("metrics");
 
     // If coverage was collected, it should appear in metrics
@@ -137,11 +125,7 @@ fn test_covered() { assert_eq!(test_project::covered(), 42); }
 "#,
     );
 
-    let result = check("tests")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .fails();
+    let result = check("tests").pwd(temp.path()).args(&["--ci"]).json().fails();
 
     assert!(result.has_violation("coverage_below_min"));
     let v = result.require_violation("coverage_below_min");
@@ -184,11 +168,7 @@ fn test_covered() { assert_eq!(test_project::covered(), 42); }
 "#,
     );
 
-    let result = check("tests")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .fails();
+    let result = check("tests").pwd(temp.path()).args(&["--ci"]).json().fails();
 
     // Should fail on package-specific threshold
     assert!(result.has_violation("coverage_below_min"));
@@ -211,11 +191,7 @@ check = "error"
 "#,
     );
 
-    let result = check("tests")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .fails();
+    let result = check("tests").pwd(temp.path()).args(&["--ci"]).json().fails();
 
     assert!(result.has_violation("time_total_exceeded"));
     let v = result.require_violation("time_total_exceeded");
@@ -256,11 +232,7 @@ check = "error"
 "#,
     );
 
-    let result = check("tests")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .fails();
+    let result = check("tests").pwd(temp.path()).args(&["--ci"]).json().fails();
 
     assert!(result.has_violation("time_test_exceeded"));
 }
@@ -298,11 +270,7 @@ check = "error"
 "#,
     );
 
-    let result = check("tests")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .fails();
+    let result = check("tests").pwd(temp.path()).args(&["--ci"]).json().fails();
 
     assert!(result.has_violation("time_avg_exceeded"));
 }
@@ -318,12 +286,8 @@ check = "error"
 fn tests_ci_violation_types_are_documented() {
     // This test documents the expected violation types.
     // Each type should be tested individually above.
-    let expected_types = [
-        "coverage_below_min",
-        "time_total_exceeded",
-        "time_avg_exceeded",
-        "time_test_exceeded",
-    ];
+    let expected_types =
+        ["coverage_below_min", "time_total_exceeded", "time_avg_exceeded", "time_test_exceeded"];
 
     // Verify these are the only CI threshold violation types
     // by checking they don't overlap with other tests check violations
@@ -347,11 +311,7 @@ fn tests_ci_violation_types_are_documented() {
 /// > CI mode should output "PASS: tests" on success.
 #[test]
 fn tests_ci_text_output_passes() {
-    check("tests")
-        .on("tests-ci")
-        .args(&["--ci"])
-        .passes()
-        .stdout_has("PASS: tests");
+    check("tests").on("tests-ci").args(&["--ci"]).passes().stdout_has("PASS: tests");
 }
 
 /// Spec: CI mode JSON output includes timing metrics structure.
@@ -360,11 +320,7 @@ fn tests_ci_text_output_passes() {
 /// > with required fields.
 #[test]
 fn tests_ci_json_output_timing_structure() {
-    let result = check("tests")
-        .on("tests-ci")
-        .args(&["--ci"])
-        .json()
-        .passes();
+    let result = check("tests").on("tests-ci").args(&["--ci"]).json().passes();
     let metrics = result.require("metrics");
 
     // Verify required fields
@@ -424,11 +380,7 @@ check = "error"
 "#,
     );
 
-    let result = check("tests")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .fails();
+    let result = check("tests").pwd(temp.path()).args(&["--ci"]).json().fails();
 
     let v = result.require_violation("time_total_exceeded");
     assert!(v.get("threshold").is_some());
@@ -469,11 +421,7 @@ fn test_ignored() { panic!("should not run"); }
 "#,
     );
 
-    let result = check("tests")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .passes();
+    let result = check("tests").pwd(temp.path()).args(&["--ci"]).json().passes();
     let metrics = result.require("metrics");
     let suites = metrics.get("suites").and_then(|v| v.as_array()).unwrap();
 
@@ -523,11 +471,7 @@ path = "tests"
 "#,
     );
 
-    let result = check("tests")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .passes();
+    let result = check("tests").pwd(temp.path()).args(&["--ci"]).json().passes();
     let metrics = result.require("metrics");
     let suites = metrics.get("suites").and_then(|v| v.as_array()).unwrap();
 

@@ -65,10 +65,7 @@ fn toc_tag_invalid_format_detected() {
     // Test that arbitrary text in a toc block is caught
     let block = FencedBlock {
         start_line: 1,
-        lines: vec![
-            "This is not a tree".to_string(),
-            "Just some random text".to_string(),
-        ],
+        lines: vec!["This is not a tree".to_string(), "Just some random text".to_string()],
         language: Some("toc".to_string()),
     };
     assert!(!is_valid_tree_format(&block));
@@ -96,11 +93,7 @@ fn toc_tag_valid_box_drawing_format() {
 
 #[test]
 fn toc_tag_empty_block_invalid() {
-    let block = FencedBlock {
-        start_line: 1,
-        lines: vec![],
-        language: Some("toc".to_string()),
-    };
+    let block = FencedBlock { start_line: 1, lines: vec![], language: Some("toc".to_string()) };
     assert!(!is_valid_tree_format(&block));
 }
 
@@ -160,11 +153,7 @@ fn text_block_not_tree() {
 fn unlabeled_tree_still_detected() {
     let block = FencedBlock {
         start_line: 1,
-        lines: vec![
-            "src/".to_string(),
-            "├── lib.rs".to_string(),
-            "└── main.rs".to_string(),
-        ],
+        lines: vec!["src/".to_string(), "├── lib.rs".to_string(), "└── main.rs".to_string()],
         language: None,
     };
     assert!(looks_like_tree(&block));
@@ -207,11 +196,7 @@ fn error_output_in_block_not_tree() {
 fn indentation_tree_still_detected() {
     let block = FencedBlock {
         start_line: 1,
-        lines: vec![
-            "docs/".to_string(),
-            "  README.md".to_string(),
-            "  overview.md".to_string(),
-        ],
+        lines: vec!["docs/".to_string(), "  README.md".to_string(), "  overview.md".to_string()],
         language: None,
     };
     assert!(looks_like_tree(&block));
@@ -280,11 +265,7 @@ fn extract_empty_block() {
 fn parse_box_drawing_tree() {
     let block = FencedBlock {
         start_line: 1,
-        lines: vec![
-            "src/".to_string(),
-            "├── lib.rs".to_string(),
-            "└── main.rs".to_string(),
-        ],
+        lines: vec!["src/".to_string(), "├── lib.rs".to_string(), "└── main.rs".to_string()],
         language: None,
     };
     let entries = parse_tree_block(&block);
@@ -301,11 +282,7 @@ fn parse_box_drawing_tree() {
 fn parse_indentation_tree() {
     let block = FencedBlock {
         start_line: 1,
-        lines: vec![
-            "src/".to_string(),
-            "  lib.rs".to_string(),
-            "  main.rs".to_string(),
-        ],
+        lines: vec!["src/".to_string(), "  lib.rs".to_string(), "  main.rs".to_string()],
         language: None,
     };
     let entries = parse_tree_block(&block);
@@ -368,10 +345,7 @@ fn looks_like_tree_detects_paths() {
 fn looks_like_tree_rejects_code() {
     let block = FencedBlock {
         start_line: 1,
-        lines: vec![
-            "fn main() {".to_string(),
-            "    println!(\"hi\");".to_string(),
-        ],
+        lines: vec!["fn main() {".to_string(), "    println!(\"hi\");".to_string()],
         language: None,
     };
     assert!(!looks_like_tree(&block));
@@ -379,11 +353,7 @@ fn looks_like_tree_rejects_code() {
 
 #[test]
 fn empty_block_not_tree() {
-    let block = FencedBlock {
-        start_line: 1,
-        lines: vec![],
-        language: None,
-    };
+    let block = FencedBlock { start_line: 1, lines: vec![], language: None };
     assert!(!looks_like_tree(&block));
 }
 
@@ -402,11 +372,7 @@ fn deeply_nested_tree() {
         language: None,
     };
     let entries = parse_tree_block(&block);
-    assert!(
-        entries
-            .iter()
-            .any(|e| e.path == "crates/cli/src/checks/docs/toc.rs")
-    );
+    assert!(entries.iter().any(|e| e.path == "crates/cli/src/checks/docs/toc.rs"));
 }
 
 // === Ellipsis and dot entries ignored ===
@@ -415,11 +381,7 @@ fn deeply_nested_tree() {
 fn ellipsis_entry_ignored() {
     let block = FencedBlock {
         start_line: 1,
-        lines: vec![
-            "src/".to_string(),
-            "├── lib.rs".to_string(),
-            "└── ...".to_string(),
-        ],
+        lines: vec!["src/".to_string(), "├── lib.rs".to_string(), "└── ...".to_string()],
         language: None,
     };
     let entries = parse_tree_block(&block);
@@ -432,11 +394,7 @@ fn ellipsis_entry_ignored() {
 fn dot_entry_ignored() {
     let block = FencedBlock {
         start_line: 1,
-        lines: vec![
-            ".".to_string(),
-            "├── src/".to_string(),
-            "│   └── lib.rs".to_string(),
-        ],
+        lines: vec![".".to_string(), "├── src/".to_string(), "│   └── lib.rs".to_string()],
         language: None,
     };
     let entries = parse_tree_block(&block);
@@ -461,11 +419,7 @@ fn double_dot_entry_ignored() {
 fn four_dots_not_ignored() {
     let block = FencedBlock {
         start_line: 1,
-        lines: vec![
-            "src/".to_string(),
-            "├── lib.rs".to_string(),
-            "└── ....".to_string(),
-        ],
+        lines: vec!["src/".to_string(), "├── lib.rs".to_string(), "└── ....".to_string()],
         language: None,
     };
     let entries = parse_tree_block(&block);
@@ -609,12 +563,7 @@ fn entry_resolved_by_any_strategy_is_not_reported() {
     ));
 
     // But NOT with RelativeToRoot (no file at root/benchmarks/run.sh)
-    assert!(!try_resolve(
-        root,
-        &md_file,
-        "benchmarks/run.sh",
-        ResolutionStrategy::RelativeToRoot
-    ));
+    assert!(!try_resolve(root, &md_file, "benchmarks/run.sh", ResolutionStrategy::RelativeToRoot));
 }
 
 // === Glob pattern detection ===
@@ -729,12 +678,7 @@ src/
     // All file entries should resolve
     for entry in file_entries {
         assert!(
-            try_resolve(
-                root,
-                &md_file,
-                &entry.path,
-                ResolutionStrategy::RelativeToFile
-            ),
+            try_resolve(root, &md_file, &entry.path, ResolutionStrategy::RelativeToFile),
             "Entry {} should resolve",
             entry.path
         );

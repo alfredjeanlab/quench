@@ -21,18 +21,12 @@ use crate::prelude::*;
 /// > --limit <N> and --no-limit should become --[no-]limit [N]
 #[test]
 fn check_help_shows_consolidated_limit_flag() {
-    let output = quench_cmd()
-        .args(["check", "--help"])
-        .output()
-        .expect("command should run");
+    let output = quench_cmd().args(["check", "--help"]).output().expect("command should run");
 
     let stdout = String::from_utf8_lossy(&output.stdout);
 
     // Should show consolidated format with optional value
-    assert!(
-        stdout.contains("--[no-]limit"),
-        "Expected --[no-]limit in help, got:\n{stdout}"
-    );
+    assert!(stdout.contains("--[no-]limit"), "Expected --[no-]limit in help, got:\n{stdout}");
 }
 
 /// Spec: Help preserves standalone --no-cache (no --cache counterpart)
@@ -40,18 +34,12 @@ fn check_help_shows_consolidated_limit_flag() {
 /// > Flags without a positive counterpart should remain as-is
 #[test]
 fn check_help_preserves_standalone_no_cache() {
-    let output = quench_cmd()
-        .args(["check", "--help"])
-        .output()
-        .expect("command should run");
+    let output = quench_cmd().args(["check", "--help"]).output().expect("command should run");
 
     let stdout = String::from_utf8_lossy(&output.stdout);
 
     // Should have --no-cache as standalone
-    assert!(
-        stdout.contains("--no-cache"),
-        "Expected --no-cache in help, got:\n{stdout}"
-    );
+    assert!(stdout.contains("--no-cache"), "Expected --no-cache in help, got:\n{stdout}");
 
     // Should NOT be consolidated (no --cache counterpart exists)
     assert!(
@@ -65,21 +53,13 @@ fn check_help_preserves_standalone_no_cache() {
 /// > All 8 check toggles should show as --[no-]<check>
 #[test]
 fn check_help_shows_consolidated_check_toggles() {
-    let output = quench_cmd()
-        .args(["check", "--help"])
-        .output()
-        .expect("command should run");
+    let output = quench_cmd().args(["check", "--help"]).output().expect("command should run");
 
     let stdout = String::from_utf8_lossy(&output.stdout);
 
-    for check in [
-        "cloc", "escapes", "agents", "docs", "tests", "git", "build", "license",
-    ] {
+    for check in ["cloc", "escapes", "agents", "docs", "tests", "git", "build", "license"] {
         let consolidated = format!("--[no-]{check}");
-        assert!(
-            stdout.contains(&consolidated),
-            "Expected {consolidated} in help, got:\n{stdout}"
-        );
+        assert!(stdout.contains(&consolidated), "Expected {consolidated} in help, got:\n{stdout}");
     }
 }
 
@@ -88,16 +68,11 @@ fn check_help_shows_consolidated_check_toggles() {
 /// > Report command should also consolidate filter flags
 #[test]
 fn report_help_shows_consolidated_check_toggles() {
-    let output = quench_cmd()
-        .args(["report", "--help"])
-        .output()
-        .expect("command should run");
+    let output = quench_cmd().args(["report", "--help"]).output().expect("command should run");
 
     let stdout = String::from_utf8_lossy(&output.stdout);
 
-    for check in [
-        "cloc", "escapes", "agents", "docs", "tests", "git", "build", "license",
-    ] {
+    for check in ["cloc", "escapes", "agents", "docs", "tests", "git", "build", "license"] {
         let consolidated = format!("--[no-]{check}");
         assert!(
             stdout.contains(&consolidated),
@@ -115,10 +90,7 @@ fn report_help_shows_consolidated_check_toggles() {
 /// > Help should show usage, subcommands, and options sections
 #[test]
 fn main_help_contains_all_sections() {
-    let output = quench_cmd()
-        .arg("--help")
-        .output()
-        .expect("command should run");
+    let output = quench_cmd().arg("--help").output().expect("command should run");
 
     let stdout = String::from_utf8_lossy(&output.stdout);
 
@@ -135,10 +107,7 @@ fn main_help_contains_all_sections() {
 /// > Check --help should list all available options
 #[test]
 fn check_help_contains_all_options() {
-    let output = quench_cmd()
-        .args(["check", "--help"])
-        .output()
-        .expect("command should run");
+    let output = quench_cmd().args(["check", "--help"]).output().expect("command should run");
 
     let stdout = String::from_utf8_lossy(&output.stdout);
 
@@ -158,17 +127,12 @@ fn check_help_contains_all_options() {
 /// > Each flag should appear exactly once in help output
 #[test]
 fn check_help_has_no_duplicate_entries() {
-    let output = quench_cmd()
-        .args(["check", "--help"])
-        .output()
-        .expect("command should run");
+    let output = quench_cmd().args(["check", "--help"]).output().expect("command should run");
 
     let stdout = String::from_utf8_lossy(&output.stdout);
 
     // Count occurrences of each check toggle
-    for check in [
-        "cloc", "escapes", "agents", "docs", "tests", "git", "build", "license",
-    ] {
+    for check in ["cloc", "escapes", "agents", "docs", "tests", "git", "build", "license"] {
         // After consolidation, we should see exactly one line containing --[no-]<check>
         // and zero lines with standalone --<check> or --no-<check>
         let consolidated = format!("--[no-]{check}");
@@ -181,28 +145,18 @@ fn check_help_has_no_duplicate_entries() {
         let consolidated_count = lines.iter().filter(|l| l.contains(&consolidated)).count();
 
         // Count standalone positive (excluding consolidated)
-        let positive_count = lines
-            .iter()
-            .filter(|l| l.contains(&positive) && !l.contains(&consolidated))
-            .count();
+        let positive_count =
+            lines.iter().filter(|l| l.contains(&positive) && !l.contains(&consolidated)).count();
 
         // Count standalone negative (excluding consolidated)
-        let negative_count = lines
-            .iter()
-            .filter(|l| l.contains(&negative) && !l.contains(&consolidated))
-            .count();
+        let negative_count =
+            lines.iter().filter(|l| l.contains(&negative) && !l.contains(&consolidated)).count();
 
         assert_eq!(
             consolidated_count, 1,
             "Expected exactly one {consolidated}, found {consolidated_count}"
         );
-        assert_eq!(
-            positive_count, 0,
-            "Found standalone {positive} (should be consolidated)"
-        );
-        assert_eq!(
-            negative_count, 0,
-            "Found standalone {negative} (should be consolidated)"
-        );
+        assert_eq!(positive_count, 0, "Found standalone {positive} (should be consolidated)");
+        assert_eq!(negative_count, 0, "Found standalone {negative} (should be consolidated)");
     }
 }

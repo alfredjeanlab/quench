@@ -150,10 +150,7 @@ fn parse_vitest_json(stdout: &str, total_time: Duration) -> TestRunResult {
 
     for file in output.test_results {
         for assertion in file.assertion_results {
-            let duration = assertion
-                .duration
-                .map(Duration::from_millis)
-                .unwrap_or(Duration::ZERO);
+            let duration = assertion.duration.map(Duration::from_millis).unwrap_or(Duration::ZERO);
 
             let passed = assertion.status == "passed";
             if !passed {

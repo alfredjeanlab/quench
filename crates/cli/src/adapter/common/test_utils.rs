@@ -41,11 +41,7 @@ pub fn assert_violation<P: PolicyConfig>(
     classify: impl Fn(&Path) -> FileKind,
 ) {
     let result = check_policy(files, policy, classify);
-    assert!(
-        result.standalone_violated,
-        "expected violation, but got none for files: {:?}",
-        files
-    );
+    assert!(result.standalone_violated, "expected violation, but got none for files: {:?}", files);
 }
 
 /// Macro to generate standard policy tests for an adapter.

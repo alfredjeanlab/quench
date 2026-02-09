@@ -24,12 +24,7 @@ fn fixture_path(name: &str) -> PathBuf {
 
 fn quench_bin() -> PathBuf {
     let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-    manifest_dir
-        .parent()
-        .unwrap()
-        .parent()
-        .unwrap()
-        .join("target/release/quench")
+    manifest_dir.parent().unwrap().parent().unwrap().join("target/release/quench")
 }
 
 /// Cold run must complete within 2 seconds (unacceptable threshold).
@@ -63,18 +58,10 @@ fn cold_run_under_2s() {
     // Log actual time for debugging
     eprintln!("Cold run time: {:?}", elapsed);
 
-    assert!(
-        elapsed < Duration::from_secs(2),
-        "Cold run took {:?}, exceeds 2s limit",
-        elapsed
-    );
+    assert!(elapsed < Duration::from_secs(2), "Cold run took {:?}, exceeds 2s limit", elapsed);
 
     // Also verify it ran successfully (exit 0 or 1 for violations)
-    assert!(
-        output.status.code().unwrap_or(-1) <= 1,
-        "Unexpected exit code: {:?}",
-        output.status
-    );
+    assert!(output.status.code().unwrap_or(-1) <= 1, "Unexpected exit code: {:?}", output.status);
 }
 
 /// Warm run must complete within 500ms (unacceptable threshold).
@@ -104,10 +91,7 @@ fn warm_run_under_500ms() {
         .expect("warmup should run");
 
     // Verify cache exists
-    assert!(
-        cache_dir.join("cache.bin").exists(),
-        "Cache not created during warmup"
-    );
+    assert!(cache_dir.join("cache.bin").exists(), "Cache not created during warmup");
 
     let start = Instant::now();
     let output = Command::new(&bin)
@@ -125,11 +109,7 @@ fn warm_run_under_500ms() {
         elapsed
     );
 
-    assert!(
-        output.status.code().unwrap_or(-1) <= 1,
-        "Unexpected exit code: {:?}",
-        output.status
-    );
+    assert!(output.status.code().unwrap_or(-1) <= 1, "Unexpected exit code: {:?}", output.status);
 }
 
 /// Cache speedup should be at least 2x.
@@ -188,10 +168,7 @@ fn cache_provides_speedup() {
 
     // Skip speedup check if cold run is too fast (< 50ms) - fixture is too small
     if cold_time.as_millis() < 50 {
-        eprintln!(
-            "Skipping speedup check: cold run too fast ({}ms < 50ms)",
-            cold_time.as_millis()
-        );
+        eprintln!("Skipping speedup check: cold run too fast ({}ms < 50ms)", cold_time.as_millis());
         eprintln!("Fixture is too small to measure meaningful cache speedup");
         return;
     }
@@ -246,11 +223,7 @@ fn tests_ci_mode_under_30s() {
     );
 
     // Should complete successfully (tests pass)
-    assert!(
-        output.status.code().unwrap_or(-1) <= 1,
-        "Unexpected exit code: {:?}",
-        output.status
-    );
+    assert!(output.status.code().unwrap_or(-1) <= 1, "Unexpected exit code: {:?}", output.status);
 }
 
 /// CI mode overhead should be bounded relative to fast mode.
@@ -278,13 +251,7 @@ fn tests_ci_mode_overhead_bounded() {
     // Fast mode time (correlation only)
     let fast_start = Instant::now();
     Command::new(&bin)
-        .args([
-            "check",
-            "--tests",
-            "--no-cloc",
-            "--no-escapes",
-            "--no-agents",
-        ])
+        .args(["check", "--tests", "--no-cloc", "--no-escapes", "--no-agents"])
         .current_dir(&path)
         .output()
         .expect("fast mode should run");
@@ -293,14 +260,7 @@ fn tests_ci_mode_overhead_bounded() {
     // CI mode time (run tests + metrics)
     let ci_start = Instant::now();
     Command::new(&bin)
-        .args([
-            "check",
-            "--tests",
-            "--no-cloc",
-            "--no-escapes",
-            "--no-agents",
-            "--ci",
-        ])
+        .args(["check", "--tests", "--no-cloc", "--no-escapes", "--no-agents", "--ci"])
         .current_dir(&path)
         .output()
         .expect("CI mode should run");

@@ -27,10 +27,7 @@ check = "comment"
 comment = "// NOTE(compat):"
 "#,
     );
-    temp.file(
-        "Cargo.toml",
-        "[package]\nname = \"test\"\nversion = \"0.1.0\"",
-    );
+    temp.file("Cargo.toml", "[package]\nname = \"test\"\nversion = \"0.1.0\"");
     // Using per-lint pattern should pass
     temp.file(
         "src/lib.rs",
@@ -54,15 +51,9 @@ check = "comment"
 comment = "// NOTE(compat):"
 "#,
     );
-    temp.file(
-        "Cargo.toml",
-        "[package]\nname = \"test\"\nversion = \"0.1.0\"",
-    );
+    temp.file("Cargo.toml", "[package]\nname = \"test\"\nversion = \"0.1.0\"");
     // Using wrong pattern should fail
-    temp.file(
-        "src/lib.rs",
-        "// Some other comment\n#[allow(dead_code)]\nfn old_function() {}",
-    );
+    temp.file("src/lib.rs", "// Some other comment\n#[allow(dead_code)]\nfn old_function() {}");
 
     let escapes = check("escapes").pwd(temp.path()).json().fails();
     let violations = escapes.require("violations").as_array().unwrap();
@@ -73,14 +64,8 @@ comment = "// NOTE(compat):"
         "should have suppress_missing_comment violation"
     );
     // Error message should reference the per-lint pattern
-    let advice = violations[0]
-        .get("advice")
-        .and_then(|a| a.as_str())
-        .unwrap();
-    assert!(
-        advice.contains("NOTE(compat)"),
-        "advice should mention per-lint pattern"
-    );
+    let advice = violations[0].get("advice").and_then(|a| a.as_str()).unwrap();
+    assert!(advice.contains("NOTE(compat)"), "advice should mention per-lint pattern");
 }
 
 /// Spec: Fallback to global pattern when no per-lint pattern
@@ -98,10 +83,7 @@ comment = "// REASON:"
 comment = "// NOTE(compat):"
 "#,
     );
-    temp.file(
-        "Cargo.toml",
-        "[package]\nname = \"test\"\nversion = \"0.1.0\"",
-    );
+    temp.file("Cargo.toml", "[package]\nname = \"test\"\nversion = \"0.1.0\"");
     // unused_variables has no per-lint pattern, should use global
     temp.file(
         "src/lib.rs",
@@ -171,14 +153,8 @@ MY_VAR="value"
         "should have shellcheck_missing_comment violation"
     );
     // Error message should reference the per-lint pattern
-    let advice = violations[0]
-        .get("advice")
-        .and_then(|a| a.as_str())
-        .unwrap();
-    assert!(
-        advice.contains("UNUSED_VAR"),
-        "advice should mention per-lint pattern"
-    );
+    let advice = violations[0].get("advice").and_then(|a| a.as_str()).unwrap();
+    assert!(advice.contains("UNUSED_VAR"), "advice should mention per-lint pattern");
 }
 
 // =============================================================================
@@ -229,10 +205,7 @@ fn suppress_missing_comment_message_format() {
 check = "comment"
 "#,
     );
-    temp.file(
-        "Cargo.toml",
-        "[package]\nname = \"test\"\nversion = \"0.1.0\"",
-    );
+    temp.file("Cargo.toml", "[package]\nname = \"test\"\nversion = \"0.1.0\"");
 
     // Test dead_code with multiple patterns
     temp.file("src/lib.rs", "#[allow(dead_code)]\nfn unused() {}");
@@ -264,10 +237,7 @@ fn suppress_missing_comment_single_pattern() {
 check = "comment"
 "#,
     );
-    temp.file(
-        "Cargo.toml",
-        "[package]\nname = \"test\"\nversion = \"0.1.0\"",
-    );
+    temp.file("Cargo.toml", "[package]\nname = \"test\"\nversion = \"0.1.0\"");
 
     temp.file(
         "src/lib.rs",
@@ -298,10 +268,7 @@ fn suppress_missing_comment_cast_truncation() {
 check = "comment"
 "#,
     );
-    temp.file(
-        "Cargo.toml",
-        "[package]\nname = \"test\"\nversion = \"0.1.0\"",
-    );
+    temp.file("Cargo.toml", "[package]\nname = \"test\"\nversion = \"0.1.0\"");
 
     temp.file(
         "src/lib.rs",
@@ -334,15 +301,9 @@ check = "comment"
 # No global pattern, no per-lint patterns for unused_variables
 "#,
     );
-    temp.file(
-        "Cargo.toml",
-        "[package]\nname = \"test\"\nversion = \"0.1.0\"",
-    );
+    temp.file("Cargo.toml", "[package]\nname = \"test\"\nversion = \"0.1.0\"");
 
-    temp.file(
-        "src/lib.rs",
-        "#[allow(unused_variables)]\nfn test() { let x = 1; }",
-    );
+    temp.file("src/lib.rs", "#[allow(unused_variables)]\nfn test() { let x = 1; }");
 
     check("escapes").pwd(temp.path()).fails().stdout_eq(
         r#"escapes: FAIL

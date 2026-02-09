@@ -26,9 +26,8 @@ static CONVENTIONAL_COMMIT: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^([a-z]+)(\(([^)]+)\))?!?:\s*(.+)$").expect("valid regex"));
 
 /// Default conventional commit types.
-pub const DEFAULT_TYPES: &[&str] = &[
-    "feat", "fix", "chore", "docs", "test", "refactor", "perf", "ci", "build", "style",
-];
+pub const DEFAULT_TYPES: &[&str] =
+    &["feat", "fix", "chore", "docs", "test", "refactor", "perf", "ci", "build", "style"];
 
 /// A parsed conventional commit message.
 #[derive(Debug, Clone, PartialEq, Eq)]

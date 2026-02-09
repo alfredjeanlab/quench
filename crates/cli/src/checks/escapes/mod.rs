@@ -254,10 +254,8 @@ impl Check for EscapesCheck {
                 // This prevents duplicate violations when pattern appears multiple
                 // times on same line (e.g., in code AND in a comment)
                 let mut seen_lines = HashSet::new();
-                let unique_matches: Vec<_> = matches
-                    .into_iter()
-                    .filter(|m| seen_lines.insert(m.line))
-                    .collect();
+                let unique_matches: Vec<_> =
+                    matches.into_iter().filter(|m| seen_lines.insert(m.line)).collect();
 
                 for m in unique_matches {
                     // Calculate offset of match within the line
@@ -455,11 +453,7 @@ fn find_package(path: &Path, root: &Path, packages: &[String]) -> Option<String>
 /// Check if a file is a source code file (for escape pattern checking).
 /// Excludes configuration files, documentation, and data files.
 fn is_source_file(path: &Path) -> bool {
-    let ext = path
-        .extension()
-        .and_then(|e| e.to_str())
-        .unwrap_or("")
-        .to_lowercase();
+    let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
 
     matches!(
         ext.as_str(),
@@ -537,10 +531,7 @@ fn check_suppress_violations(
 
         // Get scope config and check level
         let (scope_config, scope_check) = if is_test_file || is_test_line {
-            (
-                &config.test,
-                config.test.check.unwrap_or(SuppressLevel::Allow),
-            )
+            (&config.test, config.test.check.unwrap_or(SuppressLevel::Allow))
         } else {
             (&config.source, config.source.check.unwrap_or(config.check))
         };
@@ -572,10 +563,7 @@ fn check_suppress_violations(
                     );
                     ("suppress_forbidden", advice)
                 }
-                SuppressViolationKind::MissingComment {
-                    ref lint_code,
-                    ref required_patterns,
-                } => {
+                SuppressViolationKind::MissingComment { ref lint_code, ref required_patterns } => {
                     let advice = suppress_common::build_suppress_missing_comment_advice(
                         "rust",
                         lint_code.as_deref(),
@@ -616,9 +604,7 @@ struct ExcludeMatcher {
 impl ExcludeMatcher {
     /// Create a new exclude matcher from config patterns.
     fn new(exclude_patterns: &[String]) -> Self {
-        Self {
-            exclude_patterns: build_glob_set(exclude_patterns),
-        }
+        Self { exclude_patterns: build_glob_set(exclude_patterns) }
     }
 
     /// Check if a file should be excluded from escape checks.

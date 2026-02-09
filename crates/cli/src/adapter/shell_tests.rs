@@ -81,10 +81,7 @@ fn should_exclude_with_custom_patterns() {
         exclude: vec!["tmp/**".to_string()],
     };
     let adapter = ShellAdapter::with_patterns(patterns);
-    assert!(
-        adapter.should_exclude(Path::new("tmp/test.sh")),
-        "tmp/ should be excluded"
-    );
+    assert!(adapter.should_exclude(Path::new("tmp/test.sh")), "tmp/ should be excluded");
     assert!(
         !adapter.should_exclude(Path::new("scripts/build.sh")),
         "scripts/ should not be excluded"

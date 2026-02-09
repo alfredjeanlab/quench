@@ -18,12 +18,7 @@ fn javascript_config_defaults() {
     assert!(config.javascript.source.contains(&"**/*.tsx".to_string()));
     assert!(config.javascript.tests.contains(&"**/*.test.*".to_string()));
     assert!(config.javascript.tests.contains(&"**/*.spec.*".to_string()));
-    assert!(
-        config
-            .javascript
-            .exclude
-            .contains(&"node_modules/**".to_string())
-    );
+    assert!(config.javascript.exclude.contains(&"node_modules/**".to_string()));
     assert!(config.javascript.exclude.contains(&"dist/**".to_string()));
 }
 
@@ -47,34 +42,13 @@ exclude = ["node_modules/**"]
 fn javascript_suppress_defaults() {
     let config = parse_config("version = 1\n");
     assert_eq!(config.javascript.suppress.check, SuppressLevel::Comment);
-    assert_eq!(
-        config.javascript.suppress.test.check,
-        Some(SuppressLevel::Allow)
-    );
+    assert_eq!(config.javascript.suppress.test.check, Some(SuppressLevel::Allow));
 }
 
 #[test]
 fn javascript_policy_defaults() {
     let config = parse_config("version = 1\n");
-    assert!(
-        config
-            .javascript
-            .policy
-            .lint_config
-            .contains(&"eslint.config.js".to_string())
-    );
-    assert!(
-        config
-            .javascript
-            .policy
-            .lint_config
-            .contains(&"biome.json".to_string())
-    );
-    assert!(
-        config
-            .javascript
-            .policy
-            .lint_config
-            .contains(&"tsconfig.json".to_string())
-    );
+    assert!(config.javascript.policy.lint_config.contains(&"eslint.config.js".to_string()));
+    assert!(config.javascript.policy.lint_config.contains(&"biome.json".to_string()));
+    assert!(config.javascript.policy.lint_config.contains(&"tsconfig.json".to_string()));
 }

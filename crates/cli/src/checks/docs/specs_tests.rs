@@ -58,11 +58,7 @@ fn detects_index_md() {
     std::fs::write(temp.path().join("docs/specs/index.md"), "# Index").unwrap();
 
     let result = detect_index_file(temp.path(), "docs/specs");
-    assert_eq!(
-        result,
-        Some(PathBuf::from("docs/specs/index.md")),
-        "index.md should be detected"
-    );
+    assert_eq!(result, Some(PathBuf::from("docs/specs/index.md")), "index.md should be detected");
 }
 
 #[test]

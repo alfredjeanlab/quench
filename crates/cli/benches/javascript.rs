@@ -43,15 +43,13 @@ fn bench_js_classify(c: &mut Criterion) {
     let js_adapter = JavaScriptAdapter::new();
 
     // Generate test paths
-    let source_paths: Vec<PathBuf> = (0..1000)
-        .map(|i| PathBuf::from(format!("src/components/component_{}.tsx", i)))
-        .collect();
+    let source_paths: Vec<PathBuf> =
+        (0..1000).map(|i| PathBuf::from(format!("src/components/component_{}.tsx", i))).collect();
     let test_paths: Vec<PathBuf> = (0..1000)
         .map(|i| PathBuf::from(format!("src/components/component_{}.test.tsx", i)))
         .collect();
-    let node_modules_paths: Vec<PathBuf> = (0..1000)
-        .map(|i| PathBuf::from(format!("node_modules/pkg_{}/index.js", i)))
-        .collect();
+    let node_modules_paths: Vec<PathBuf> =
+        (0..1000).map(|i| PathBuf::from(format!("node_modules/pkg_{}/index.js", i))).collect();
 
     let mut group = c.benchmark_group("js_classify");
 
@@ -204,9 +202,8 @@ fn bench_js_suppress_parse(c: &mut Criterion) {
         })
         .collect();
 
-    let content_without: String = (0..100)
-        .map(|i| format!("const value_{} = {};\n", i, i))
-        .collect();
+    let content_without: String =
+        (0..100).map(|i| format!("const value_{} = {};\n", i, i)).collect();
 
     let mut group = c.benchmark_group("js_suppress_parse");
 

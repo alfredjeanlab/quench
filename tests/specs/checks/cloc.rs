@@ -30,10 +30,7 @@ fn cloc_counts_nonblank_lines_as_loc() {
     let metrics = cloc.require("metrics");
 
     // src/counted.rs has exactly 10 non-blank lines
-    assert_eq!(
-        metrics.get("source_lines").and_then(|v| v.as_u64()),
-        Some(10)
-    );
+    assert_eq!(metrics.get("source_lines").and_then(|v| v.as_u64()), Some(10));
 }
 
 /// Spec: docs/specs/checks/cloc.md#metrics-output
@@ -46,10 +43,7 @@ fn cloc_does_not_count_blank_lines() {
 
     // File has 15 total lines but only 10 non-blank
     // If blank lines were counted, we'd see 15
-    assert_eq!(
-        metrics.get("source_lines").and_then(|v| v.as_u64()),
-        Some(10)
-    );
+    assert_eq!(metrics.get("source_lines").and_then(|v| v.as_u64()), Some(10));
 }
 
 // =============================================================================
@@ -65,15 +59,9 @@ fn cloc_separates_source_and_test_by_pattern() {
     let cloc = check("cloc").on("cloc/source-test").json().passes();
     let metrics = cloc.require("metrics");
 
-    assert_eq!(
-        metrics.get("source_lines").and_then(|v| v.as_u64()),
-        Some(10)
-    );
+    assert_eq!(metrics.get("source_lines").and_then(|v| v.as_u64()), Some(10));
     assert_eq!(metrics.get("test_lines").and_then(|v| v.as_u64()), Some(8));
-    assert_eq!(
-        metrics.get("source_files").and_then(|v| v.as_u64()),
-        Some(1)
-    );
+    assert_eq!(metrics.get("source_files").and_then(|v| v.as_u64()), Some(1));
     assert_eq!(metrics.get("test_files").and_then(|v| v.as_u64()), Some(1));
 }
 
@@ -87,11 +75,7 @@ fn cloc_calculates_source_to_test_ratio() {
 
     // 8 test lines / 10 source lines = 0.8
     let ratio = metrics.get("ratio").and_then(|v| v.as_f64()).unwrap();
-    assert!(
-        (ratio - 0.8).abs() < 0.01,
-        "Expected ratio ~0.8, got {}",
-        ratio
-    );
+    assert!((ratio - 0.8).abs() < 0.01, "Expected ratio ~0.8, got {}", ratio);
 }
 
 // =============================================================================
@@ -106,14 +90,8 @@ fn cloc_json_includes_required_metrics() {
     let cloc = check("cloc").on("cloc/basic").json().passes();
     let metrics = cloc.require("metrics");
 
-    assert!(
-        metrics.get("source_lines").is_some(),
-        "missing source_lines"
-    );
-    assert!(
-        metrics.get("source_files").is_some(),
-        "missing source_files"
-    );
+    assert!(metrics.get("source_lines").is_some(), "missing source_lines");
+    assert!(metrics.get("source_files").is_some(), "missing source_files");
     assert!(metrics.get("test_lines").is_some(), "missing test_lines");
     assert!(metrics.get("test_files").is_some(), "missing test_files");
     assert!(metrics.get("ratio").is_some(), "missing ratio");
@@ -128,9 +106,7 @@ fn cloc_json_omits_violations_when_none() {
 
     // No oversized files in basic fixture
     assert!(
-        cloc.get("violations")
-            .map(|v| v.as_array().unwrap().is_empty())
-            .unwrap_or(true),
+        cloc.get("violations").map(|v| v.as_array().unwrap().is_empty()).unwrap_or(true),
         "violations should be empty or omitted"
     );
 }
@@ -169,12 +145,9 @@ fn cloc_fails_on_source_file_over_max_lines() {
     let violations = cloc.require("violations").as_array().unwrap();
     assert!(!violations.is_empty(), "should have violations");
     assert!(
-        violations.iter().any(|v| {
-            v.get("file")
-                .and_then(|f| f.as_str())
-                .unwrap()
-                .ends_with("big.rs")
-        }),
+        violations
+            .iter()
+            .any(|v| { v.get("file").and_then(|f| f.as_str()).unwrap().ends_with("big.rs") }),
         "violation should reference oversized file"
     );
 }
@@ -190,12 +163,9 @@ fn cloc_fails_on_test_file_over_max_lines_test() {
 
     let violations = cloc.require("violations").as_array().unwrap();
     assert!(
-        violations.iter().any(|v| {
-            v.get("file")
-                .and_then(|f| f.as_str())
-                .unwrap()
-                .ends_with("big_test.rs")
-        }),
+        violations
+            .iter()
+            .any(|v| { v.get("file").and_then(|f| f.as_str()).unwrap().ends_with("big_test.rs") }),
         "violation should reference oversized test file"
     );
 }
@@ -212,9 +182,7 @@ fn cloc_fails_on_file_over_max_tokens() {
     // Fixture has max_tokens = 100, verify a violation with that threshold exists
     let violations = cloc.require("violations").as_array().unwrap();
     assert!(
-        violations
-            .iter()
-            .any(|v| { v.get("threshold").and_then(|t| t.as_i64()) == Some(100) }),
+        violations.iter().any(|v| { v.get("threshold").and_then(|t| t.as_i64()) == Some(100) }),
         "should have violation with token threshold (100)"
     );
 }
@@ -243,15 +211,9 @@ fn cloc_source_violation_has_default_advice() {
         })
         .expect("should have source file violation");
 
-    let advice = source_violation
-        .get("advice")
-        .and_then(|a| a.as_str())
-        .unwrap();
+    let advice = source_violation.get("advice").and_then(|a| a.as_str()).unwrap();
     // Rust files use Rust-specific advice
-    assert_eq!(
-        advice,
-        include_str!("../../../docs/specs/templates/cloc.advice.rust.txt").trim()
-    );
+    assert_eq!(advice, include_str!("../../../docs/specs/templates/cloc.advice.rust.txt").trim());
 }
 
 /// Spec: docs/specs/checks/cloc.md#configuration
@@ -273,14 +235,8 @@ fn cloc_test_violation_has_default_advice() {
         })
         .expect("should have test file violation");
 
-    let advice = test_violation
-        .get("advice")
-        .and_then(|a| a.as_str())
-        .unwrap();
-    assert_eq!(
-        advice,
-        include_str!("../../../docs/specs/templates/cloc.advice-test.txt").trim()
-    );
+    let advice = test_violation.get("advice").and_then(|a| a.as_str()).unwrap();
+    assert_eq!(advice, include_str!("../../../docs/specs/templates/cloc.advice-test.txt").trim());
 }
 
 /// Spec: docs/specs/checks/cloc.md#configuration
@@ -295,18 +251,12 @@ max_lines = 5
 advice = "Custom source advice here."
 "#,
     );
-    temp.file(
-        "src/big.rs",
-        "fn a() {}\nfn b() {}\nfn c() {}\nfn d() {}\nfn e() {}\nfn f() {}\n",
-    );
+    temp.file("src/big.rs", "fn a() {}\nfn b() {}\nfn c() {}\nfn d() {}\nfn e() {}\nfn f() {}\n");
 
     let cloc = check("cloc").pwd(temp.path()).json().fails();
     let violations = cloc.require("violations").as_array().unwrap();
 
-    let advice = violations[0]
-        .get("advice")
-        .and_then(|a| a.as_str())
-        .unwrap();
+    let advice = violations[0].get("advice").and_then(|a| a.as_str()).unwrap();
     assert_eq!(advice, "Custom source advice here.");
 }
 
@@ -330,10 +280,7 @@ advice_test = "Custom test advice here."
     let cloc = check("cloc").pwd(temp.path()).json().fails();
     let violations = cloc.require("violations").as_array().unwrap();
 
-    let advice = violations[0]
-        .get("advice")
-        .and_then(|a| a.as_str())
-        .unwrap();
+    let advice = violations[0].get("advice").and_then(|a| a.as_str()).unwrap();
     assert_eq!(advice, "Custom test advice here.");
 }
 
@@ -402,10 +349,7 @@ fn cloc_json_includes_token_metrics() {
     let cloc = check("cloc").on("cloc/basic").json().passes();
     let metrics = cloc.require("metrics");
 
-    assert!(
-        metrics.get("source_tokens").is_some(),
-        "missing source_tokens"
-    );
+    assert!(metrics.get("source_tokens").is_some(), "missing source_tokens");
     assert!(metrics.get("test_tokens").is_some(), "missing test_tokens");
 }
 
@@ -493,16 +437,10 @@ metric = "nonblank"
     let v = &violations[0];
 
     // violation type should be file_too_large_nonblank
-    assert_eq!(
-        v.get("type").and_then(|v| v.as_str()),
-        Some("file_too_large_nonblank")
-    );
+    assert_eq!(v.get("type").and_then(|v| v.as_str()), Some("file_too_large_nonblank"));
 
     // value should equal nonblank, not total lines
     let value = v.get("value").and_then(|v| v.as_i64()).unwrap();
     let nonblank = v.get("nonblank").and_then(|v| v.as_i64()).unwrap();
-    assert_eq!(
-        value, nonblank,
-        "metric=nonblank should use nonblank for value"
-    );
+    assert_eq!(value, nonblank, "metric=nonblank should use nonblank for value");
 }

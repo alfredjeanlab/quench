@@ -98,11 +98,8 @@ fn recognizes_commonjs_extensions() {
     use crate::adapter::common::test_utils::check_policy;
 
     let policy = default_policy();
-    let result = check_policy(
-        &["src/config.cjs", "src/types.cts", ".eslintrc"],
-        &policy,
-        js_classifier,
-    );
+    let result =
+        check_policy(&["src/config.cjs", "src/types.cts", ".eslintrc"], &policy, js_classifier);
 
     assert!(result.standalone_violated);
     assert_eq!(result.changed_source.len(), 2);

@@ -23,10 +23,7 @@ Some content.
 
     assert_eq!(result.missing.len(), 1);
     assert_eq!(result.missing[0].name, "Landing the Plane");
-    assert_eq!(
-        result.missing[0].advice,
-        Some("Checklist before work".to_string())
-    );
+    assert_eq!(result.missing[0].advice, Some("Checklist before work".to_string()));
 }
 
 #[test]
@@ -38,10 +35,7 @@ fn validate_passes_when_required_section_exists() {
 - [ ] Run tests
 "#;
     let config = SectionsConfig {
-        required: vec![RequiredSection {
-            name: "Landing the Plane".to_string(),
-            advice: None,
-        }],
+        required: vec![RequiredSection { name: "Landing the Plane".to_string(), advice: None }],
         forbid: Vec::new(),
     };
 
@@ -59,10 +53,7 @@ fn validate_required_section_case_insensitive() {
 - [ ] Run tests
 "#;
     let config = SectionsConfig {
-        required: vec![RequiredSection {
-            name: "Landing the Plane".to_string(),
-            advice: None,
-        }],
+        required: vec![RequiredSection { name: "Landing the Plane".to_string(), advice: None }],
         forbid: Vec::new(),
     };
 
@@ -79,10 +70,7 @@ fn validate_finds_forbidden_section() {
 
 DO NOT put secrets here!
 "#;
-    let config = SectionsConfig {
-        required: Vec::new(),
-        forbid: vec!["Secrets".to_string()],
-    };
+    let config = SectionsConfig { required: Vec::new(), forbid: vec!["Secrets".to_string()] };
 
     let result = validate_sections(content, &config);
 
@@ -99,10 +87,7 @@ fn validate_forbidden_section_case_insensitive() {
 
 DO NOT put secrets here!
 "#;
-    let config = SectionsConfig {
-        required: Vec::new(),
-        forbid: vec!["Secrets".to_string()],
-    };
+    let config = SectionsConfig { required: Vec::new(), forbid: vec!["Secrets".to_string()] };
 
     let result = validate_sections(content, &config);
 
@@ -117,10 +102,7 @@ fn validate_forbidden_glob_star() {
 
 This is a test plan.
 "#;
-    let config = SectionsConfig {
-        required: Vec::new(),
-        forbid: vec!["Test*".to_string()],
-    };
+    let config = SectionsConfig { required: Vec::new(), forbid: vec!["Test*".to_string()] };
 
     let result = validate_sections(content, &config);
 
@@ -137,10 +119,7 @@ fn validate_forbidden_glob_question() {
 
 The API key.
 "#;
-    let config = SectionsConfig {
-        required: Vec::new(),
-        forbid: vec!["API?Key".to_string()],
-    };
+    let config = SectionsConfig { required: Vec::new(), forbid: vec!["API?Key".to_string()] };
 
     let result = validate_sections(content, &config);
 
@@ -155,10 +134,7 @@ fn validate_glob_no_match() {
 
 Some content.
 "#;
-    let config = SectionsConfig {
-        required: Vec::new(),
-        forbid: vec!["Test*".to_string()],
-    };
+    let config = SectionsConfig { required: Vec::new(), forbid: vec!["Test*".to_string()] };
 
     let result = validate_sections(content, &config);
 

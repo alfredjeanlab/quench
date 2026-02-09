@@ -147,9 +147,7 @@ struct ParseState {
 
 /// Extract function name from a line like "fn test_foo() {"
 fn extract_fn_name(line: &str) -> Option<&str> {
-    line.strip_prefix("fn ")?
-        .split(|c: char| c == '(' || c.is_whitespace())
-        .next()
+    line.strip_prefix("fn ")?.split(|c: char| c == '(' || c.is_whitespace()).next()
 }
 
 #[cfg(test)]

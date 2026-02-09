@@ -66,10 +66,9 @@ pub fn check_lint_policy(ctx: &CheckContext) -> PolicyCheckResult {
             ctx.config.javascript.policy.lint_changes,
             JavaScriptAdapter::new,
         ),
-        ProjectLanguage::Generic => PolicyCheckResult {
-            violations: Vec::new(),
-            check_level: CheckLevel::Off,
-        },
+        ProjectLanguage::Generic => {
+            PolicyCheckResult { violations: Vec::new(), check_level: CheckLevel::Off }
+        }
     }
 }
 
@@ -89,24 +88,15 @@ where
     let check_level = ctx.config.policy_check_level_for_language(language);
 
     if check_level == CheckLevel::Off {
-        return PolicyCheckResult {
-            violations: Vec::new(),
-            check_level,
-        };
+        return PolicyCheckResult { violations: Vec::new(), check_level };
     }
 
     if lint_changes != LintChangesPolicy::Standalone {
-        return PolicyCheckResult {
-            violations: Vec::new(),
-            check_level,
-        };
+        return PolicyCheckResult { violations: Vec::new(), check_level };
     }
 
     let Some(changed_files) = ctx.changed_files else {
-        return PolicyCheckResult {
-            violations: Vec::new(),
-            check_level,
-        };
+        return PolicyCheckResult { violations: Vec::new(), check_level };
     };
 
     let adapter = make_adapter();

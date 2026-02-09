@@ -16,10 +16,7 @@ use crate::prelude::*;
 /// > The escapes check detects patterns that bypass type safety or error handling.
 #[test]
 fn escapes_detects_pattern_matches_in_source() {
-    check("escapes")
-        .on("escapes/basic")
-        .fails()
-        .stdout_has("escapes: FAIL");
+    check("escapes").on("escapes/basic").fails().stdout_has("escapes: FAIL");
 }
 
 /// Spec: docs/specs/checks/escape-hatches.md#output
@@ -31,9 +28,7 @@ fn escapes_reports_line_number_of_match() {
     let violations = escapes.require("violations").as_array().unwrap();
 
     assert!(
-        violations
-            .iter()
-            .any(|v| { v.get("line").and_then(|l| l.as_u64()).is_some() }),
+        violations.iter().any(|v| { v.get("line").and_then(|l| l.as_u64()).is_some() }),
         "violations should include line numbers"
     );
 }
@@ -139,9 +134,7 @@ fn escapes_forbid_action_always_fails_in_source_code() {
     let violations = escapes.require("violations").as_array().unwrap();
 
     assert!(
-        violations
-            .iter()
-            .any(|v| { v.get("type").and_then(|t| t.as_str()) == Some("forbidden") }),
+        violations.iter().any(|v| { v.get("type").and_then(|t| t.as_str()) == Some("forbidden") }),
         "should have forbidden violation"
     );
 }
@@ -193,10 +186,7 @@ advice = "Use .context() from anyhow instead."
     let escapes = check("escapes").pwd(temp.path()).json().fails();
     let violations = escapes.require("violations").as_array().unwrap();
 
-    let advice = violations[0]
-        .get("advice")
-        .and_then(|a| a.as_str())
-        .unwrap();
+    let advice = violations[0].get("advice").and_then(|a| a.as_str()).unwrap();
     assert_eq!(advice, "Use .context() from anyhow instead.");
 }
 
@@ -256,10 +246,7 @@ action = "forbid"
 #[test]
 fn escapes_exclude_skips_matching_files() {
     let temp = super::exclude_project();
-    temp.file(
-        "src/generated/bindings.rs",
-        "pub fn f() { None::<i32>.unwrap(); }",
-    );
+    temp.file("src/generated/bindings.rs", "pub fn f() { None::<i32>.unwrap(); }");
     check("escapes").pwd(temp.path()).passes();
 }
 
@@ -270,8 +257,5 @@ fn escapes_exclude_skips_matching_files() {
 fn escapes_exclude_does_not_skip_non_matching_files() {
     let temp = super::exclude_project();
     temp.file("src/lib.rs", "pub fn f() { None::<i32>.unwrap(); }");
-    check("escapes")
-        .pwd(temp.path())
-        .fails()
-        .stdout_has("forbidden");
+    check("escapes").pwd(temp.path()).fails().stdout_has("forbidden");
 }

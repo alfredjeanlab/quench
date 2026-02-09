@@ -245,11 +245,7 @@ impl PythonAdapter {
 /// Looks for [project].name per PEP 621.
 pub fn parse_pyproject_toml(content: &str) -> Option<String> {
     let table: toml::Table = content.parse().ok()?;
-    table
-        .get("project")?
-        .get("name")?
-        .as_str()
-        .map(|s| s.to_string())
+    table.get("project")?.get("name")?.as_str().map(|s| s.to_string())
 }
 
 /// Parse setup.py to extract package name.
@@ -257,9 +253,7 @@ pub fn parse_pyproject_toml(content: &str) -> Option<String> {
 pub fn parse_setup_py(content: &str) -> Option<String> {
     // Match: name="package" or name='package' or name = "package"
     let re = regex::Regex::new(r#"name\s*=\s*["']([^"']+)["']"#).ok()?;
-    re.captures(content)
-        .and_then(|c| c.get(1))
-        .map(|m| m.as_str().to_string())
+    re.captures(content).and_then(|c| c.get(1)).map(|m| m.as_str().to_string())
 }
 
 // =============================================================================

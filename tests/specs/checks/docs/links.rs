@@ -26,11 +26,7 @@ fn valid_markdown_link_passes() {
 /// > Markdown links to local files are validated.
 #[test]
 fn markdown_link_to_missing_file_generates_violation() {
-    check("docs")
-        .on("docs/link-broken")
-        .fails()
-        .stdout_has("docs: FAIL")
-        .stdout_has("broken_link");
+    check("docs").on("docs/link-broken").fails().stdout_has("docs: FAIL").stdout_has("broken_link");
 }
 
 /// Spec: docs/specs/checks/docs.md#what-gets-validated-1
@@ -65,13 +61,7 @@ fn broken_link_includes_file_and_line() {
 #[test]
 fn relative_path_links_validated() {
     let temp = default_project();
-    temp.file(
-        "docs/specs/overview.md",
-        "See [config](../config.md) for details.\n",
-    );
+    temp.file("docs/specs/overview.md", "See [config](../config.md) for details.\n");
     // ../config.md doesn't exist relative to docs/specs/overview.md
-    check("docs")
-        .pwd(temp.path())
-        .fails()
-        .stdout_has("config.md");
+    check("docs").pwd(temp.path()).fails().stdout_has("config.md");
 }

@@ -54,11 +54,7 @@ fn test_covered() { assert_eq!(test_project::covered(), 42); }
     );
 
     // Should PASS (exit 0) even with low coverage when check = "warn"
-    let result = check("tests")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .passes();
+    let result = check("tests").pwd(temp.path()).args(&["--ci"]).json().passes();
 
     // But should still report the violation
     assert!(result.has_violation("coverage_below_min"));
@@ -99,11 +95,7 @@ fn test_covered() { assert_eq!(test_project::covered(), 42); }
     );
 
     // Should PASS with no coverage violations when check = "off"
-    let result = check("tests")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .passes();
+    let result = check("tests").pwd(temp.path()).args(&["--ci"]).json().passes();
 
     // No coverage_below_min violation should be generated
     assert!(
@@ -135,11 +127,7 @@ check = "warn"
     );
 
     // Should PASS (exit 0) even with exceeded time when check = "warn"
-    let result = check("tests")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .passes();
+    let result = check("tests").pwd(temp.path()).args(&["--ci"]).json().passes();
 
     // But should still report the violation
     assert!(result.has_violation("time_total_exceeded"));
@@ -164,11 +152,7 @@ check = "off"
     );
 
     // Should PASS with no time violations when check = "off"
-    let result = check("tests")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .passes();
+    let result = check("tests").pwd(temp.path()).args(&["--ci"]).json().passes();
 
     // No time_total_exceeded violation should be generated
     assert!(
@@ -215,11 +199,7 @@ fn test_covered() { assert_eq!(test_project::covered(), 42); }
 "#,
     );
 
-    let result = check("tests")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .fails();
+    let result = check("tests").pwd(temp.path()).args(&["--ci"]).json().fails();
 
     let v = result.require_violation("coverage_below_min");
     let advice = v.get("advice").and_then(|v| v.as_str()).unwrap();
@@ -261,20 +241,12 @@ check = "error"
 "#,
     );
 
-    let result = check("tests")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .fails();
+    let result = check("tests").pwd(temp.path()).args(&["--ci"]).json().fails();
 
     let v = result.require_violation("time_test_exceeded");
     let advice = v.get("advice").and_then(|v| v.as_str()).unwrap();
     // Advice should include the test name
-    assert!(
-        advice.contains("the_slow_test_name"),
-        "advice should include test name: {}",
-        advice
-    );
+    assert!(advice.contains("the_slow_test_name"), "advice should include test name: {}", advice);
 }
 
 /// Spec: docs/specs/checks/tests.md#test-time
@@ -294,11 +266,7 @@ check = "error"
 "#,
     );
 
-    let result = check("tests")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .fails();
+    let result = check("tests").pwd(temp.path()).args(&["--ci"]).json().fails();
 
     let v = result.require_violation("time_total_exceeded");
     let advice = v.get("advice").and_then(|v| v.as_str()).unwrap();
@@ -345,23 +313,13 @@ fn test_covered() { assert_eq!(test_project::covered(), 42); }
 "#,
     );
 
-    let result = check("tests")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .fails();
+    let result = check("tests").pwd(temp.path()).args(&["--ci"]).json().fails();
 
     let v = result.require_violation("coverage_below_min");
 
     // Violation should have value (actual coverage) and threshold (min required)
-    assert!(
-        v.get("value").is_some(),
-        "coverage violation should have value field"
-    );
-    assert!(
-        v.get("threshold").is_some(),
-        "coverage violation should have threshold field"
-    );
+    assert!(v.get("value").is_some(), "coverage violation should have value field");
+    assert!(v.get("threshold").is_some(), "coverage violation should have threshold field");
 }
 
 /// Spec: docs/specs/checks/tests.md#json-output
@@ -381,23 +339,13 @@ check = "error"
 "#,
     );
 
-    let result = check("tests")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .fails();
+    let result = check("tests").pwd(temp.path()).args(&["--ci"]).json().fails();
 
     let v = result.require_violation("time_total_exceeded");
 
     // Should have value and threshold for ratcheting
-    assert!(
-        v.get("value").is_some(),
-        "time violation should have value field"
-    );
-    assert!(
-        v.get("threshold").is_some(),
-        "time violation should have threshold field"
-    );
+    assert!(v.get("value").is_some(), "time violation should have value field");
+    assert!(v.get("threshold").is_some(), "time violation should have threshold field");
 }
 
 // =============================================================================
@@ -509,11 +457,7 @@ fn test_covered() { assert_eq!(test_project::covered(), 42); }
     );
 
     // Should FAIL due to time error, not coverage warn
-    let result = check("tests")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .fails();
+    let result = check("tests").pwd(temp.path()).args(&["--ci"]).json().fails();
 
     // Both violations should be present
     assert!(result.has_violation("coverage_below_min"));

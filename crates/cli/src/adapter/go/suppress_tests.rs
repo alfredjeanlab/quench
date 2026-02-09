@@ -16,10 +16,7 @@ fn parse_nolint_directive(content: &str, expected_line: usize, expected_codes: &
     assert_eq!(directives[0].line, expected_line);
     assert_eq!(
         directives[0].codes,
-        expected_codes
-            .iter()
-            .map(|s| s.to_string())
-            .collect::<Vec<_>>()
+        expected_codes.iter().map(|s| s.to_string()).collect::<Vec<_>>()
     );
 }
 

@@ -51,11 +51,7 @@ fn timing_phases_show_milliseconds() {
     );
     temp.file("src/main.rs", "fn main() {}");
 
-    cli()
-        .args(&["--timing", "--cloc"])
-        .pwd(temp.path())
-        .passes()
-        .stderr_has("ms");
+    cli().args(&["--timing", "--cloc"]).pwd(temp.path()).passes().stderr_has("ms");
 }
 
 // =============================================================================
@@ -188,11 +184,7 @@ fn timing_shows_file_count() {
     temp.file("src/main.rs", "fn main() {}");
     temp.file("src/lib.rs", "pub fn hello() {}");
 
-    cli()
-        .args(&["--timing", "--cloc"])
-        .pwd(temp.path())
-        .passes()
-        .stderr_has("files:");
+    cli().args(&["--timing", "--cloc"]).pwd(temp.path()).passes().stderr_has("files:");
 }
 
 /// Spec: --timing shows cache statistics
@@ -208,18 +200,10 @@ fn timing_shows_cache_stats() {
     temp.file("src/main.rs", "fn main() {}");
 
     // First run - cold cache
-    cli()
-        .args(&["--timing", "--cloc"])
-        .pwd(temp.path())
-        .passes()
-        .stderr_has("cache:");
+    cli().args(&["--timing", "--cloc"]).pwd(temp.path()).passes().stderr_has("cache:");
 
     // Second run - warm cache (should show hits)
-    cli()
-        .args(&["--timing", "--cloc"])
-        .pwd(temp.path())
-        .passes()
-        .stderr_has("cache:");
+    cli().args(&["--timing", "--cloc"]).pwd(temp.path()).passes().stderr_has("cache:");
 }
 
 /// Spec: JSON timing includes cache statistics
@@ -262,11 +246,7 @@ fn timing_works_with_failures() {
         "fn main() {\n    let a = 1;\n    let b = 2;\n    let c = 3;\n    let d = 4;\n    let e = 5;\n    let f = 6;\n}",
     );
 
-    cli()
-        .args(&["--timing", "--cloc"])
-        .pwd(temp.path())
-        .fails()
-        .stderr_has("total:");
+    cli().args(&["--timing", "--cloc"]).pwd(temp.path()).fails().stderr_has("total:");
 }
 
 /// Spec: --timing with --no-cache shows zero cache hits
@@ -285,9 +265,5 @@ fn timing_no_cache_shows_zero_hits() {
     temp.file("src/main.rs", "fn main() {}");
 
     // Test framework already uses --no-cache, so we just verify the output format
-    cli()
-        .args(&["--timing", "--cloc"])
-        .pwd(temp.path())
-        .passes()
-        .stderr_has("cache: 0/");
+    cli().args(&["--timing", "--cloc"]).pwd(temp.path()).passes().stderr_has("cache: 0/");
 }

@@ -130,11 +130,8 @@ pub fn check_cursor_reconciliation(
         match parse_mdc(&content, path.clone()) {
             Ok(rule) => rules.push(rule),
             Err(err) => {
-                let rel_path = path
-                    .strip_prefix(root)
-                    .unwrap_or(&path)
-                    .to_string_lossy()
-                    .to_string();
+                let rel_path =
+                    path.strip_prefix(root).unwrap_or(&path).to_string_lossy().to_string();
                 ctx.violations.push(ReconcileViolation {
                     file: rel_path,
                     violation_type: "cursor_parse_error",
@@ -168,10 +165,8 @@ fn determine_agent_file(agent_files: &[String]) -> String {
 
 /// Reconcile all `alwaysApply: true` rules against the root agent file.
 fn reconcile_always_apply(ctx: &mut ReconcileCtx, rules: &[MdcRule]) {
-    let always_apply_rules: Vec<&MdcRule> = rules
-        .iter()
-        .filter(|r| classify_scope(r) == RuleScope::AlwaysApply)
-        .collect();
+    let always_apply_rules: Vec<&MdcRule> =
+        rules.iter().filter(|r| classify_scope(r) == RuleScope::AlwaysApply).collect();
 
     if always_apply_rules.is_empty() {
         return;
@@ -186,30 +181,17 @@ fn reconcile_always_apply(ctx: &mut ReconcileCtx, rules: &[MdcRule]) {
     for rule in &always_apply_rules {
         let body = mdc::strip_leading_header(&rule.body);
         let sections = sync::parse_sections(body);
-        let rel_path = rule
-            .path
-            .strip_prefix(ctx.root)
-            .unwrap_or(&rule.path)
-            .to_string_lossy()
-            .to_string();
+        let rel_path =
+            rule.path.strip_prefix(ctx.root).unwrap_or(&rule.path).to_string_lossy().to_string();
 
         for section in sections {
-            cursor_sections.push(CursorSection {
-                section,
-                source_file: rel_path.clone(),
-            });
+            cursor_sections.push(CursorSection { section, source_file: rel_path.clone() });
         }
     }
 
     // Forward check: cursor → claude
     if *ctx.direction != ReconcileDirection::ClaudeToCursor {
-        check_cursor_to_agent(
-            ctx,
-            &cursor_sections,
-            &agent_sections,
-            &agent_path,
-            &agent_content,
-        );
+        check_cursor_to_agent(ctx, &cursor_sections, &agent_sections, &agent_path, &agent_content);
     }
 
     // Reverse check: claude → cursor
@@ -296,10 +278,8 @@ fn check_cursor_to_agent(
         if !ctx.dry_run && std::fs::write(agent_path, &new_content).is_err() {
             return;
         }
-        ctx.fixes.push(ReconcileFix {
-            target_path: agent_path.to_path_buf(),
-            content: new_content,
-        });
+        ctx.fixes
+            .push(ReconcileFix { target_path: agent_path.to_path_buf(), content: new_content });
     }
 }
 
@@ -309,10 +289,8 @@ fn check_agent_to_cursor(
     cursor_sections: &[CursorSection],
     agent_sections: &[Section],
 ) {
-    let cursor_names: HashSet<&str> = cursor_sections
-        .iter()
-        .map(|cs| cs.section.name.as_str())
-        .collect();
+    let cursor_names: HashSet<&str> =
+        cursor_sections.iter().map(|cs| cs.section.name.as_str()).collect();
 
     for section in agent_sections {
         if !cursor_names.contains(section.name.as_str()) {
@@ -340,12 +318,8 @@ fn reconcile_directory_scoped(ctx: &mut ReconcileCtx, rules: &[MdcRule]) {
             continue;
         };
 
-        let rel_mdc = rule
-            .path
-            .strip_prefix(ctx.root)
-            .unwrap_or(&rule.path)
-            .to_string_lossy()
-            .to_string();
+        let rel_mdc =
+            rule.path.strip_prefix(ctx.root).unwrap_or(&rule.path).to_string_lossy().to_string();
 
         let agent_path = ctx.root.join(dir).join(ctx.agent_filename);
         let dir_agent = format!("{}/{}", dir.display(), ctx.agent_filename);
@@ -378,10 +352,7 @@ fn reconcile_directory_scoped(ctx: &mut ReconcileCtx, rules: &[MdcRule]) {
                         continue;
                     }
                 }
-                ctx.fixes.push(ReconcileFix {
-                    target_path: agent_path,
-                    content,
-                });
+                ctx.fixes.push(ReconcileFix { target_path: agent_path, content });
             }
 
             continue;
@@ -446,21 +417,12 @@ fn reconcile_directory_scoped(ctx: &mut ReconcileCtx, rules: &[MdcRule]) {
 
 /// Display name for a section (heading or "(preamble)" for empty names).
 fn section_name_display(section: &Section) -> String {
-    if section.name.is_empty() {
-        "(preamble)".to_string()
-    } else {
-        section.heading.clone()
-    }
+    if section.name.is_empty() { "(preamble)".to_string() } else { section.heading.clone() }
 }
 
 /// Normalize content for comparison (same as sync::normalize_content).
 fn normalize_content(content: &str) -> String {
-    content
-        .lines()
-        .map(|l| l.trim())
-        .filter(|l| !l.is_empty())
-        .collect::<Vec<_>>()
-        .join("\n")
+    content.lines().map(|l| l.trim()).filter(|l| !l.is_empty()).collect::<Vec<_>>().join("\n")
 }
 
 /// Convert a `ReconcileViolation` to a `Violation`.

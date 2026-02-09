@@ -200,25 +200,17 @@ fn colorize_option_line(line: &str) -> Option<String> {
     let colored_long = if long.contains("[no-]") {
         // Split into prefix and name: --[no-]limit -> [no-] + limit
         let without_dashes = long.strip_prefix("--").unwrap_or(long);
-        let name = without_dashes
-            .strip_prefix("[no-]")
-            .unwrap_or(without_dashes);
+        let name = without_dashes.strip_prefix("[no-]").unwrap_or(without_dashes);
         format!("--{}{}", color::context("[no-]"), color::literal(name))
     } else {
         color::literal(long)
     };
 
     // Colorize value placeholder
-    let colored_value = if value.is_empty() {
-        String::new()
-    } else {
-        format!(" {}", color::context(value.trim()))
-    };
+    let colored_value =
+        if value.is_empty() { String::new() } else { format!(" {}", color::context(value.trim())) };
 
-    Some(format!(
-        "{}{}{}{}{}",
-        indent, colored_short, colored_long, colored_value, desc
-    ))
+    Some(format!("{}{}{}{}{}", indent, colored_short, colored_long, colored_value, desc))
 }
 
 /// Parsed option line information.
@@ -279,10 +271,7 @@ fn consolidate_negatable_flags(help: &str) -> String {
 
     // Process --no-X flags
     for no_info in no_flags {
-        let positive_name = no_info
-            .long_name
-            .strip_prefix("no-")
-            .unwrap_or(&no_info.long_name);
+        let positive_name = no_info.long_name.strip_prefix("no-").unwrap_or(&no_info.long_name);
 
         if let Some(positive_info) = options.get(positive_name) {
             // Found a matching positive flag - consolidate!
@@ -337,11 +326,8 @@ fn build_consolidated_line(positive: &OptionInfo, _negative: &OptionInfo) -> Str
     // Standard clap help aligns descriptions at column 31
     let opt_len = parts.iter().map(|s| s.len()).sum::<usize>();
     let target_len = 31; // Match clap's description column
-    let padding = if opt_len < target_len {
-        " ".repeat(target_len - opt_len)
-    } else {
-        "  ".to_string()
-    };
+    let padding =
+        if opt_len < target_len { " ".repeat(target_len - opt_len) } else { "  ".to_string() };
 
     // Description (use positive flag's description as primary)
     let desc = if positive.description.is_empty() {

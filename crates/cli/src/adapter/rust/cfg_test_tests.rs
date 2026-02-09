@@ -355,11 +355,7 @@ mod tests {
 "#;
     let info = CfgTestInfo::parse(content);
 
-    assert_eq!(
-        info.test_ranges.len(),
-        1,
-        "should detect multi-line cfg(test)"
-    );
+    assert_eq!(info.test_ranges.len(), 1, "should detect multi-line cfg(test)");
     assert!(!info.is_test_line(1)); // pub fn source_code
     assert!(info.is_test_line(5)); // #[cfg(
     assert!(info.is_test_line(8)); // mod tests

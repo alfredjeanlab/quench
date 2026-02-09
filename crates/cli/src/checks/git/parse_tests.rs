@@ -119,11 +119,7 @@ fn default_types_accepted() {
         let ParseResult::Conventional(parsed) = result else {
             panic!("expected Conventional for {}", commit_type);
         };
-        assert!(
-            parsed.is_type_allowed(None),
-            "{} should be in default types",
-            commit_type
-        );
+        assert!(parsed.is_type_allowed(None), "{} should be in default types", commit_type);
     }
 }
 
@@ -234,9 +230,7 @@ fn detects_merge_pull_request() {
 
 #[test]
 fn detects_merge_remote_tracking() {
-    assert!(is_merge_commit(
-        "Merge remote-tracking branch 'origin/main'"
-    ));
+    assert!(is_merge_commit("Merge remote-tracking branch 'origin/main'"));
 }
 
 #[test]

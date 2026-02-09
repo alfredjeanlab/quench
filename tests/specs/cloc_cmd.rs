@@ -67,10 +67,7 @@ fn cloc_cmd_json_output_is_valid() {
     assert!(output.status.success());
     let json: serde_json::Value =
         serde_json::from_slice(&output.stdout).expect("should be valid JSON");
-    assert!(
-        json.get("languages").is_some(),
-        "should have languages array"
-    );
+    assert!(json.get("languages").is_some(), "should have languages array");
     assert!(json.get("totals").is_some(), "should have totals object");
 }
 
@@ -150,10 +147,7 @@ exclude = ["generated"]
         "[package]\nname = \"test\"\nversion = \"0.1.0\"\nedition = \"2021\"\n",
     );
     temp.file("src/lib.rs", "pub fn main() {}\n");
-    temp.file(
-        "generated/big.rs",
-        "fn generated_code() {}\nfn more() {}\nfn even_more() {}\n",
-    );
+    temp.file("generated/big.rs", "fn generated_code() {}\nfn more() {}\nfn even_more() {}\n");
 
     let mut cmd = quench_cmd();
     cmd.args(["cloc", "--output", "json"]);
@@ -209,22 +203,10 @@ fn cloc_cmd_shows_package_breakdown() {
     assert!(output.status.success(), "expected cloc to succeed");
     let stdout = String::from_utf8_lossy(&output.stdout);
     // Package rows are indented with 2 spaces, no separate Package header
-    assert!(
-        !stdout.contains("Package"),
-        "should not have Package header"
-    );
-    assert!(
-        stdout.contains("  my-cli"),
-        "should show cli package indented"
-    );
-    assert!(
-        stdout.contains("  my-core"),
-        "should show core package indented"
-    );
-    assert!(
-        stdout.contains("  my-shared"),
-        "should show shared package indented"
-    );
+    assert!(!stdout.contains("Package"), "should not have Package header");
+    assert!(stdout.contains("  my-cli"), "should show cli package indented");
+    assert!(stdout.contains("  my-core"), "should show core package indented");
+    assert!(stdout.contains("  my-shared"), "should show shared package indented");
 }
 
 /// `quench cloc --output json` includes packages array inside language entries
@@ -237,10 +219,7 @@ fn cloc_cmd_json_includes_packages() {
     assert!(output.status.success());
     let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
     // No top-level packages object
-    assert!(
-        json.get("packages").is_none(),
-        "should not have top-level packages"
-    );
+    assert!(json.get("packages").is_none(), "should not have top-level packages");
     // Packages are nested inside language entries
     let languages = json["languages"].as_array().unwrap();
     let pkg_names: Vec<String> = languages
@@ -253,18 +232,9 @@ fn cloc_cmd_json_includes_packages() {
                 .filter_map(|p| p.get("name").and_then(|n| n.as_str()).map(String::from))
         })
         .collect();
-    assert!(
-        pkg_names.contains(&"my-cli".to_string()),
-        "should have cli package"
-    );
-    assert!(
-        pkg_names.contains(&"my-core".to_string()),
-        "should have core package"
-    );
-    assert!(
-        pkg_names.contains(&"my-shared".to_string()),
-        "should have shared package"
-    );
+    assert!(pkg_names.contains(&"my-cli".to_string()), "should have cli package");
+    assert!(pkg_names.contains(&"my-core".to_string()), "should have core package");
+    assert!(pkg_names.contains(&"my-shared".to_string()), "should have shared package");
 }
 
 /// Per-package JSON contains name, files, blank, comment, code fields (no ratio)
@@ -302,10 +272,7 @@ fn cloc_cmd_json_omits_packages_when_unconfigured() {
     assert!(output.status.success());
     let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
     // cloc-cmd fixture has no packages configured and is a single crate
-    assert!(
-        json.get("packages").is_none(),
-        "should not have top-level packages"
-    );
+    assert!(json.get("packages").is_none(), "should not have top-level packages");
     // No language entry should have packages either
     let languages = json["languages"].as_array().unwrap();
     for lang in languages {
@@ -326,10 +293,7 @@ fn cloc_cmd_auto_detect_workspace_packages() {
     assert!(output.status.success());
     let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
     // No top-level packages
-    assert!(
-        json.get("packages").is_none(),
-        "should not have top-level packages"
-    );
+    assert!(json.get("packages").is_none(), "should not have top-level packages");
     // Packages are nested inside language entries
     let languages = json["languages"].as_array().unwrap();
     let pkg_names: Vec<String> = languages
@@ -342,12 +306,6 @@ fn cloc_cmd_auto_detect_workspace_packages() {
                 .filter_map(|p| p.get("name").and_then(|n| n.as_str()).map(String::from))
         })
         .collect();
-    assert!(
-        pkg_names.contains(&"alpha".to_string()),
-        "should have alpha package"
-    );
-    assert!(
-        pkg_names.contains(&"beta".to_string()),
-        "should have beta package"
-    );
+    assert!(pkg_names.contains(&"alpha".to_string()), "should have alpha package");
+    assert!(pkg_names.contains(&"beta".to_string()), "should have beta package");
 }

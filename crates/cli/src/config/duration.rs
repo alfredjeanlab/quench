@@ -29,19 +29,13 @@ pub fn parse_duration(s: &str) -> Result<Duration, String> {
 
     // Check for milliseconds first (longer suffix)
     if let Some(ms) = s.strip_suffix("ms") {
-        let n: u64 = ms
-            .trim()
-            .parse()
-            .map_err(|_| format!("invalid duration: {s}"))?;
+        let n: u64 = ms.trim().parse().map_err(|_| format!("invalid duration: {s}"))?;
         return Ok(Duration::from_millis(n));
     }
 
     // Check for seconds (supports fractional)
     if let Some(secs) = s.strip_suffix('s') {
-        let n: f64 = secs
-            .trim()
-            .parse()
-            .map_err(|_| format!("invalid duration: {s}"))?;
+        let n: f64 = secs.trim().parse().map_err(|_| format!("invalid duration: {s}"))?;
         if n < 0.0 {
             return Err(format!("negative duration: {s}"));
         }
@@ -50,16 +44,11 @@ pub fn parse_duration(s: &str) -> Result<Duration, String> {
 
     // Check for minutes
     if let Some(mins) = s.strip_suffix('m') {
-        let n: u64 = mins
-            .trim()
-            .parse()
-            .map_err(|_| format!("invalid duration: {s}"))?;
+        let n: u64 = mins.trim().parse().map_err(|_| format!("invalid duration: {s}"))?;
         return Ok(Duration::from_secs(n * 60));
     }
 
-    Err(format!(
-        "invalid duration format: {s} (use 30s, 500ms, or 1m)"
-    ))
+    Err(format!("invalid duration format: {s} (use 30s, 500ms, or 1m)"))
 }
 
 /// Deserialize an optional duration string.
@@ -70,9 +59,7 @@ where
     let opt: Option<String> = Option::deserialize(deserializer)?;
     match opt {
         None => Ok(None),
-        Some(s) => parse_duration(&s)
-            .map(Some)
-            .map_err(serde::de::Error::custom),
+        Some(s) => parse_duration(&s).map(Some).map_err(serde::de::Error::custom),
     }
 }
 

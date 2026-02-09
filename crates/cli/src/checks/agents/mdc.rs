@@ -115,13 +115,7 @@ pub fn parse_mdc(content: &str, path: PathBuf) -> Result<MdcRule, MdcParseError>
         remaining.join("\n")
     };
 
-    Ok(MdcRule {
-        description,
-        globs,
-        always_apply,
-        body,
-        path,
-    })
+    Ok(MdcRule { description, globs, always_apply, body, path })
 }
 
 /// Classify the scope of an `MdcRule`.
@@ -179,19 +173,11 @@ fn parse_globs(value: &str) -> Vec<String> {
     if trimmed.starts_with('[') && trimmed.ends_with(']') {
         // YAML array: ["src/**", "lib/**"]
         let inner = &trimmed[1..trimmed.len() - 1];
-        inner
-            .split(',')
-            .map(|s| unquote(s.trim()))
-            .filter(|s| !s.is_empty())
-            .collect()
+        inner.split(',').map(|s| unquote(s.trim())).filter(|s| !s.is_empty()).collect()
     } else {
         // Single value
         let unquoted = unquote(trimmed);
-        if unquoted.is_empty() {
-            vec![]
-        } else {
-            vec![unquoted]
-        }
+        if unquoted.is_empty() { vec![] } else { vec![unquoted] }
     }
 }
 
@@ -203,9 +189,7 @@ pub fn strip_leading_header(content: &str) -> &str {
     let trimmed = content.trim_start();
     if let Some(rest) = trimmed.strip_prefix("# ") {
         // Find end of header line
-        rest.find('\n')
-            .map(|i| rest[i + 1..].trim_start_matches('\n'))
-            .unwrap_or("")
+        rest.find('\n').map(|i| rest[i + 1..].trim_start_matches('\n')).unwrap_or("")
     } else {
         content
     }
@@ -226,11 +210,7 @@ pub fn discover_mdc_files(root: &Path) -> Vec<PathBuf> {
         .filter_map(|e| {
             let entry = e.ok()?;
             let path = entry.path();
-            if path.extension().is_some_and(|ext| ext == "mdc") {
-                Some(path)
-            } else {
-                None
-            }
+            if path.extension().is_some_and(|ext| ext == "mdc") { Some(path) } else { None }
         })
         .collect();
 

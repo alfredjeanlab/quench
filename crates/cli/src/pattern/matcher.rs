@@ -74,13 +74,9 @@ impl CompiledPattern {
     /// - Complex regex -> RegexMatcher
     pub fn compile(pattern: &str) -> Result<Self, PatternError> {
         if is_literal(pattern) {
-            Ok(CompiledPattern::Literal(Box::new(LiteralMatcher::new(
-                pattern,
-            ))))
+            Ok(CompiledPattern::Literal(Box::new(LiteralMatcher::new(pattern))))
         } else if let Some(literals) = extract_alternation_literals(pattern) {
-            Ok(CompiledPattern::MultiLiteral(MultiLiteralMatcher::new(
-                &literals,
-            )?))
+            Ok(CompiledPattern::MultiLiteral(MultiLiteralMatcher::new(&literals)?))
         } else {
             Ok(CompiledPattern::Regex(RegexMatcher::new(pattern)?))
         }
@@ -103,12 +99,7 @@ impl CompiledPattern {
                 let line = byte_offset_to_line(content, m.start);
                 let text = content[m.start..m.end].to_string();
                 let line_content = get_line_at_offset(content, m.start).to_string();
-                LineMatch {
-                    line,
-                    text,
-                    offset: m.start,
-                    line_content,
-                }
+                LineMatch { line, text, offset: m.start, line_content }
             })
             .collect()
     }
@@ -152,19 +143,13 @@ impl LiteralMatcher {
     /// for the program duration.
     pub fn new(pattern: &str) -> Self {
         let pattern_static: &'static str = Box::leak(pattern.to_string().into_boxed_str());
-        Self {
-            pattern: pattern_static,
-            finder: Finder::new(pattern_static),
-        }
+        Self { pattern: pattern_static, finder: Finder::new(pattern_static) }
     }
 
     pub fn find_all(&self, content: &str) -> Vec<PatternMatch> {
         self.finder
             .find_iter(content.as_bytes())
-            .map(|pos| PatternMatch {
-                start: pos,
-                end: pos + self.pattern.len(),
-            })
+            .map(|pos| PatternMatch { start: pos, end: pos + self.pattern.len() })
             .collect()
     }
 }
@@ -180,10 +165,7 @@ impl MultiLiteralMatcher {
     pub fn find_all(&self, content: &str) -> Vec<PatternMatch> {
         self.automaton
             .find_iter(content)
-            .map(|m| PatternMatch {
-                start: m.start(),
-                end: m.end(),
-            })
+            .map(|m| PatternMatch { start: m.start(), end: m.end() })
             .collect()
     }
 }
@@ -198,10 +180,7 @@ impl RegexMatcher {
     pub fn find_all(&self, content: &str) -> Vec<PatternMatch> {
         self.regex
             .find_iter(content)
-            .map(|m| PatternMatch {
-                start: m.start(),
-                end: m.end(),
-            })
+            .map(|m| PatternMatch { start: m.start(), end: m.end() })
             .collect()
     }
 }
@@ -215,20 +194,14 @@ pub fn byte_offset_to_line(content: &str, offset: usize) -> u32 {
 /// Get the full line containing a byte offset.
 pub fn get_line_at_offset(content: &str, offset: usize) -> &str {
     let start = content[..offset].rfind('\n').map(|i| i + 1).unwrap_or(0);
-    let end = content[offset..]
-        .find('\n')
-        .map(|i| offset + i)
-        .unwrap_or(content.len());
+    let end = content[offset..].find('\n').map(|i| offset + i).unwrap_or(content.len());
     &content[start..end]
 }
 
 /// Get the line number and content for all lines in content.
 /// Returns iterator of (1-based line number, line content).
 pub fn lines_with_numbers(content: &str) -> impl Iterator<Item = (u32, &str)> {
-    content
-        .lines()
-        .enumerate()
-        .map(|(i, line)| (i as u32 + 1, line))
+    content.lines().enumerate().map(|(i, line)| (i as u32 + 1, line))
 }
 
 #[cfg(test)]

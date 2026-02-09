@@ -223,24 +223,16 @@ impl TestsCheck {
         let mut time_violations = Vec::new();
         let active_suites = filter_suites_for_mode(&ctx.config.check.tests.suite, ctx.ci_mode);
         for (suite, result) in active_suites.iter().zip(suite_results.suites.iter()) {
-            time_violations.extend(check_time_thresholds(
-                &ctx.config.check.tests,
-                suite,
-                result,
-            ));
+            time_violations.extend(check_time_thresholds(&ctx.config.check.tests, suite, result));
         }
 
         // Combine all threshold violations
-        let all_threshold_violations: Vec<(Violation, bool)> = coverage_violations
-            .into_iter()
-            .chain(time_violations)
-            .collect();
+        let all_threshold_violations: Vec<(Violation, bool)> =
+            coverage_violations.into_iter().chain(time_violations).collect();
 
         let has_threshold_errors = all_threshold_violations.iter().any(|(_, is_err)| *is_err);
-        let threshold_violations: Vec<Violation> = all_threshold_violations
-            .into_iter()
-            .map(|(v, _)| v)
-            .collect();
+        let threshold_violations: Vec<Violation> =
+            all_threshold_violations.into_iter().map(|(v, _)| v).collect();
 
         if suite_results.passed && threshold_violations.is_empty() {
             CheckResult::passed(self.name()).with_metrics(metrics)
@@ -438,10 +430,7 @@ fn build_suite_violations(suites: &[&SuiteResult]) -> Vec<Violation> {
         .iter()
         .filter(|&&s| !s.passed && !s.skipped)
         .map(|&s| {
-            let advice = s
-                .error
-                .clone()
-                .unwrap_or_else(|| "test suite failed".to_string());
+            let advice = s.error.clone().unwrap_or_else(|| "test suite failed".to_string());
             Violation::file_only(format!("<suite:{}>", s.name), "test_suite_failed", advice)
         })
         .collect()

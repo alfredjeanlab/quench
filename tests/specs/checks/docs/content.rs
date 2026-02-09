@@ -30,11 +30,7 @@ sections.required = ["Purpose"]
     temp.file("docs/specs/CLAUDE.md", "# Overview\n");
     temp.file("docs/specs/feature.md", "# Feature\n\nSome content.\n");
 
-    check("docs")
-        .pwd(temp.path())
-        .fails()
-        .stdout_has("missing")
-        .stdout_has("section");
+    check("docs").pwd(temp.path()).fails().stdout_has("missing").stdout_has("section");
 }
 
 /// Spec: docs/specs/checks/docs.md#section-validation
@@ -49,14 +45,8 @@ sections.required = ["Purpose"]
 "#,
     );
     // Both spec files need the required section
-    temp.file(
-        "docs/specs/CLAUDE.md",
-        "# Overview\n\n## Purpose\n\nIndex purpose.\n",
-    );
-    temp.file(
-        "docs/specs/feature.md",
-        "# Feature\n\n## Purpose\n\nExplains the feature.\n",
-    );
+    temp.file("docs/specs/CLAUDE.md", "# Overview\n\n## Purpose\n\nIndex purpose.\n");
+    temp.file("docs/specs/feature.md", "# Feature\n\n## Purpose\n\nExplains the feature.\n");
 
     check("docs").pwd(temp.path()).passes();
 }
@@ -73,15 +63,9 @@ sections.forbid = ["TODO", "Draft*"]
 "#,
     );
     temp.file("docs/specs/CLAUDE.md", "# Overview\n");
-    temp.file(
-        "docs/specs/feature.md",
-        "# Feature\n\n## Draft Notes\n\nWork in progress.\n",
-    );
+    temp.file("docs/specs/feature.md", "# Feature\n\n## Draft Notes\n\nWork in progress.\n");
 
-    check("docs")
-        .pwd(temp.path())
-        .fails()
-        .stdout_has("forbidden section");
+    check("docs").pwd(temp.path()).fails().stdout_has("forbidden section");
 }
 
 // =============================================================================
@@ -95,10 +79,7 @@ sections.forbid = ["TODO", "Draft*"]
 fn spec_tables_allowed_by_default() {
     let temp = default_project();
     temp.file("docs/specs/CLAUDE.md", "# Overview\n");
-    temp.file(
-        "docs/specs/feature.md",
-        "# Feature\n\n| A | B |\n|---|---|\n| 1 | 2 |\n",
-    );
+    temp.file("docs/specs/feature.md", "# Feature\n\n| A | B |\n|---|---|\n| 1 | 2 |\n");
 
     check("docs").pwd(temp.path()).passes();
 }
@@ -115,15 +96,9 @@ tables = "forbid"
 "#,
     );
     temp.file("docs/specs/CLAUDE.md", "# Overview\n");
-    temp.file(
-        "docs/specs/feature.md",
-        "# Feature\n\n| A | B |\n|---|---|\n| 1 | 2 |\n",
-    );
+    temp.file("docs/specs/feature.md", "# Feature\n\n| A | B |\n|---|---|\n| 1 | 2 |\n");
 
-    check("docs")
-        .pwd(temp.path())
-        .fails()
-        .stdout_has("forbidden table");
+    check("docs").pwd(temp.path()).fails().stdout_has("forbidden table");
 }
 
 /// Spec: docs/specs/checks/docs.md#content-rules
@@ -133,10 +108,7 @@ tables = "forbid"
 fn spec_box_diagrams_allowed_by_default() {
     let temp = default_project();
     temp.file("docs/specs/CLAUDE.md", "# Overview\n");
-    temp.file(
-        "docs/specs/feature.md",
-        "# Feature\n\n```\n┌───┐\n│ A │\n└───┘\n```\n",
-    );
+    temp.file("docs/specs/feature.md", "# Feature\n\n```\n┌───┐\n│ A │\n└───┘\n```\n");
 
     check("docs").pwd(temp.path()).passes();
 }
@@ -153,15 +125,9 @@ box_diagrams = "forbid"
 "#,
     );
     temp.file("docs/specs/CLAUDE.md", "# Overview\n");
-    temp.file(
-        "docs/specs/feature.md",
-        "# Feature\n\n┌───┐\n│ A │\n└───┘\n",
-    );
+    temp.file("docs/specs/feature.md", "# Feature\n\n┌───┐\n│ A │\n└───┘\n");
 
-    check("docs")
-        .pwd(temp.path())
-        .fails()
-        .stdout_has("forbidden box diagram");
+    check("docs").pwd(temp.path()).fails().stdout_has("forbidden box diagram");
 }
 
 /// Spec: docs/specs/checks/docs.md#content-rules
@@ -171,10 +137,7 @@ box_diagrams = "forbid"
 fn spec_mermaid_allowed_by_default() {
     let temp = default_project();
     temp.file("docs/specs/CLAUDE.md", "# Overview\n");
-    temp.file(
-        "docs/specs/feature.md",
-        "# Feature\n\n```mermaid\ngraph TD;\nA-->B;\n```\n",
-    );
+    temp.file("docs/specs/feature.md", "# Feature\n\n```mermaid\ngraph TD;\nA-->B;\n```\n");
 
     check("docs").pwd(temp.path()).passes();
 }
@@ -191,15 +154,9 @@ mermaid = "forbid"
 "#,
     );
     temp.file("docs/specs/CLAUDE.md", "# Overview\n");
-    temp.file(
-        "docs/specs/feature.md",
-        "# Feature\n\n```mermaid\ngraph TD;\nA-->B;\n```\n",
-    );
+    temp.file("docs/specs/feature.md", "# Feature\n\n```mermaid\ngraph TD;\nA-->B;\n```\n");
 
-    check("docs")
-        .pwd(temp.path())
-        .fails()
-        .stdout_has("forbidden mermaid");
+    check("docs").pwd(temp.path()).fails().stdout_has("forbidden mermaid");
 }
 
 // =============================================================================
@@ -233,10 +190,7 @@ max_lines = 10
     temp.file("docs/specs/CLAUDE.md", "# Overview\n");
     temp.file("docs/specs/feature.md", &"line\n".repeat(20));
 
-    check("docs")
-        .pwd(temp.path())
-        .fails()
-        .stdout_has("spec_too_large");
+    check("docs").pwd(temp.path()).fails().stdout_has("spec_too_large");
 }
 
 /// Spec: docs/specs/checks/docs.md#size-limits
@@ -274,11 +228,7 @@ max_lines = false
     // ~500 chars / 4 = ~125 tokens, exceeds 100
     temp.file("docs/specs/feature.md", &"a".repeat(500));
 
-    check("docs")
-        .pwd(temp.path())
-        .fails()
-        .stdout_has("spec_too_large")
-        .stdout_has("tokens");
+    check("docs").pwd(temp.path()).fails().stdout_has("spec_too_large").stdout_has("tokens");
 }
 
 // =============================================================================

@@ -35,10 +35,7 @@ fn normalizes_mixed_patterns() {
         ".venv".to_string(),
     ];
     let normalized = normalize_exclude_patterns(&patterns);
-    assert_eq!(
-        normalized,
-        vec!["vendor/**", "build/**", "**/*.pyc", ".venv/**"]
-    );
+    assert_eq!(normalized, vec!["vendor/**", "build/**", "**/*.pyc", ".venv/**"]);
 }
 
 #[test]
@@ -55,21 +52,13 @@ fn handles_empty_input() {
 #[test]
 fn check_exclude_matches_globset() {
     let patterns = build_glob_set(&["vendor/**".to_string()]);
-    assert!(check_exclude_patterns(
-        Path::new("vendor/lib.go"),
-        &patterns,
-        None
-    ));
+    assert!(check_exclude_patterns(Path::new("vendor/lib.go"), &patterns, None));
 }
 
 #[test]
 fn check_exclude_no_match_returns_false() {
     let patterns = build_glob_set(&["vendor/**".to_string()]);
-    assert!(!check_exclude_patterns(
-        Path::new("src/main.go"),
-        &patterns,
-        None
-    ));
+    assert!(!check_exclude_patterns(Path::new("src/main.go"), &patterns, None));
 }
 
 #[test]
@@ -96,31 +85,15 @@ fn check_exclude_fast_prefix_no_match() {
 fn check_exclude_fast_prefix_and_globset_combined() {
     let patterns = build_glob_set(&["build/**".to_string()]);
     // Fast prefix match
-    assert!(check_exclude_patterns(
-        Path::new("dist/bundle.js"),
-        &patterns,
-        Some(&["dist"]),
-    ));
+    assert!(check_exclude_patterns(Path::new("dist/bundle.js"), &patterns, Some(&["dist"]),));
     // GlobSet match
-    assert!(check_exclude_patterns(
-        Path::new("build/output.js"),
-        &patterns,
-        Some(&["dist"]),
-    ));
+    assert!(check_exclude_patterns(Path::new("build/output.js"), &patterns, Some(&["dist"]),));
     // No match
-    assert!(!check_exclude_patterns(
-        Path::new("src/lib.js"),
-        &patterns,
-        Some(&["dist"]),
-    ));
+    assert!(!check_exclude_patterns(Path::new("src/lib.js"), &patterns, Some(&["dist"]),));
 }
 
 #[test]
 fn check_exclude_empty_patterns_no_prefixes() {
     let patterns = build_glob_set(&[]);
-    assert!(!check_exclude_patterns(
-        Path::new("anything/file.rs"),
-        &patterns,
-        None
-    ));
+    assert!(!check_exclude_patterns(Path::new("anything/file.rs"), &patterns, None));
 }

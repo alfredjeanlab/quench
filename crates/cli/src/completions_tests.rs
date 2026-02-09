@@ -129,10 +129,7 @@ fn test_shell_kind_rc_file_returns_correct_paths() {
     }
 
     if let Some(rc) = ShellKind::Zsh.rc_file() {
-        assert!(
-            rc.to_string_lossy().ends_with(".zshrc"),
-            "Zsh rc_file should end with .zshrc"
-        );
+        assert!(rc.to_string_lossy().ends_with(".zshrc"), "Zsh rc_file should end with .zshrc");
     }
 
     if let Some(rc) = ShellKind::Fish.rc_file() {

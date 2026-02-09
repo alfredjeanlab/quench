@@ -17,10 +17,7 @@ fn parse_always_apply_rule() {
     let rule = parse_mdc(content, PathBuf::from("general.mdc")).unwrap();
 
     assert!(rule.always_apply);
-    assert_eq!(
-        rule.description.as_deref(),
-        Some("General coding standards")
-    );
+    assert_eq!(rule.description.as_deref(), Some("General coding standards"));
     assert!(rule.globs.is_none());
     assert!(rule.body.contains("## Code Style"));
     assert!(rule.body.contains("Use 4 spaces."));
@@ -151,10 +148,7 @@ fn classify_single_directory_double_star() {
         path: PathBuf::from("api.mdc"),
     };
 
-    assert_eq!(
-        classify_scope(&rule),
-        RuleScope::SingleDirectory(PathBuf::from("src/api"))
-    );
+    assert_eq!(classify_scope(&rule), RuleScope::SingleDirectory(PathBuf::from("src/api")));
 }
 
 #[test]
@@ -167,10 +161,7 @@ fn classify_single_directory_star() {
         path: PathBuf::from("api.mdc"),
     };
 
-    assert_eq!(
-        classify_scope(&rule),
-        RuleScope::SingleDirectory(PathBuf::from("src/api"))
-    );
+    assert_eq!(classify_scope(&rule), RuleScope::SingleDirectory(PathBuf::from("src/api")));
 }
 
 #[test]
@@ -183,10 +174,7 @@ fn classify_single_directory_double_star_star() {
         path: PathBuf::from("api.mdc"),
     };
 
-    assert_eq!(
-        classify_scope(&rule),
-        RuleScope::SingleDirectory(PathBuf::from("src/api"))
-    );
+    assert_eq!(classify_scope(&rule), RuleScope::SingleDirectory(PathBuf::from("src/api")));
 }
 
 #[test]
@@ -330,10 +318,7 @@ fn parse_globs_single() {
 
 #[test]
 fn parse_globs_array() {
-    assert_eq!(
-        parse_globs("[\"src/**\", \"lib/**\"]"),
-        vec!["src/**", "lib/**"]
-    );
+    assert_eq!(parse_globs("[\"src/**\", \"lib/**\"]"), vec!["src/**", "lib/**"]);
 }
 
 #[test]

@@ -21,13 +21,7 @@ fn make_config(command: Option<&str>) -> TestSuiteConfig {
 }
 
 fn make_ctx<'a>(root: &'a std::path::Path, config: &'a crate::config::Config) -> RunnerContext<'a> {
-    RunnerContext {
-        root,
-        ci_mode: false,
-        collect_coverage: false,
-        config,
-        verbose: false,
-    }
+    RunnerContext { root, ci_mode: false, collect_coverage: false, config, verbose: false }
 }
 
 #[test]

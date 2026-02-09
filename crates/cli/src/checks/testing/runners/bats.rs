@@ -152,11 +152,7 @@ fn collect_bats_shell_coverage(
     let test_command = vec!["bats".to_string(), test_path.to_string()];
 
     let coverage = collect_shell_coverage(&scripts, &test_command, ctx.root);
-    if coverage.success {
-        Some(coverage)
-    } else {
-        None
-    }
+    if coverage.success { Some(coverage) } else { None }
 }
 
 /// Parse TAP output from bats --timing.

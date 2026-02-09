@@ -35,25 +35,18 @@ fn fixture_path(name: &str) -> PathBuf {
 fn bench_adapter_creation(c: &mut Criterion) {
     let mut group = c.benchmark_group("adapter_creation");
 
-    group.bench_function("RustAdapter::new", |b| {
-        b.iter(|| black_box(RustAdapter::new()))
-    });
+    group.bench_function("RustAdapter::new", |b| b.iter(|| black_box(RustAdapter::new())));
 
     group.bench_function("GenericAdapter::with_defaults", |b| {
         b.iter(|| black_box(GenericAdapter::with_defaults()))
     });
 
-    group.bench_function("ShellAdapter::new", |b| {
-        b.iter(|| black_box(ShellAdapter::new()))
-    });
+    group.bench_function("ShellAdapter::new", |b| b.iter(|| black_box(ShellAdapter::new())));
 
     // GenericAdapter with custom patterns (like a configured project)
     let source_patterns: Vec<String> = vec!["**/*.rs".to_string(), "**/*.py".to_string()];
-    let test_patterns: Vec<String> = vec![
-        "tests/**".to_string(),
-        "*_test.rs".to_string(),
-        "test_*.py".to_string(),
-    ];
+    let test_patterns: Vec<String> =
+        vec!["tests/**".to_string(), "*_test.rs".to_string(), "test_*.py".to_string()];
 
     group.bench_function("GenericAdapter::new_with_patterns", |b| {
         b.iter(|| black_box(GenericAdapter::new(&source_patterns, &test_patterns)))
@@ -191,29 +184,22 @@ fn bench_classify(c: &mut Criterion) {
     let shell_adapter = ShellAdapter::new();
 
     // Generate test paths
-    let source_paths: Vec<PathBuf> = (0..1000)
-        .map(|i| PathBuf::from(format!("src/module_{}.rs", i)))
-        .collect();
-    let test_paths: Vec<PathBuf> = (0..1000)
-        .map(|i| PathBuf::from(format!("tests/test_{}.rs", i)))
-        .collect();
-    let nested_paths: Vec<PathBuf> = (0..1000)
-        .map(|i| PathBuf::from(format!("crates/pkg_{}/src/lib.rs", i)))
-        .collect();
+    let source_paths: Vec<PathBuf> =
+        (0..1000).map(|i| PathBuf::from(format!("src/module_{}.rs", i))).collect();
+    let test_paths: Vec<PathBuf> =
+        (0..1000).map(|i| PathBuf::from(format!("tests/test_{}.rs", i))).collect();
+    let nested_paths: Vec<PathBuf> =
+        (0..1000).map(|i| PathBuf::from(format!("crates/pkg_{}/src/lib.rs", i))).collect();
 
     // Shell paths
-    let shell_source_paths: Vec<PathBuf> = (0..1000)
-        .map(|i| PathBuf::from(format!("scripts/script_{}.sh", i)))
-        .collect();
-    let shell_bash_paths: Vec<PathBuf> = (0..1000)
-        .map(|i| PathBuf::from(format!("lib/util_{}.bash", i)))
-        .collect();
-    let shell_test_paths: Vec<PathBuf> = (0..1000)
-        .map(|i| PathBuf::from(format!("tests/test_{}.bats", i)))
-        .collect();
-    let shell_bin_paths: Vec<PathBuf> = (0..1000)
-        .map(|i| PathBuf::from(format!("bin/cmd_{}.sh", i)))
-        .collect();
+    let shell_source_paths: Vec<PathBuf> =
+        (0..1000).map(|i| PathBuf::from(format!("scripts/script_{}.sh", i))).collect();
+    let shell_bash_paths: Vec<PathBuf> =
+        (0..1000).map(|i| PathBuf::from(format!("lib/util_{}.bash", i))).collect();
+    let shell_test_paths: Vec<PathBuf> =
+        (0..1000).map(|i| PathBuf::from(format!("tests/test_{}.bats", i))).collect();
+    let shell_bin_paths: Vec<PathBuf> =
+        (0..1000).map(|i| PathBuf::from(format!("bin/cmd_{}.sh", i))).collect();
 
     let mut group = c.benchmark_group("classify");
 
@@ -307,9 +293,8 @@ fn bench_cfg_test_parse(c: &mut Criterion) {
         .collect();
 
     // Content without #[cfg(test)]
-    let content_without_cfg: String = (0..100)
-        .map(|i| format!("pub fn func_{}() {{ /* impl */ }}\n", i))
-        .collect();
+    let content_without_cfg: String =
+        (0..100).map(|i| format!("pub fn func_{}() {{ /* impl */ }}\n", i)).collect();
 
     let mut group = c.benchmark_group("cfg_test_parse");
 
@@ -361,9 +346,8 @@ fn bench_classify_lines(c: &mut Criterion) {
         .collect();
 
     // Pure source content (no inline tests)
-    let source_content: String = (0..100)
-        .map(|i| format!("pub fn func_{}() {{ /* implementation */ }}\n", i))
-        .collect();
+    let source_content: String =
+        (0..100).map(|i| format!("pub fn func_{}() {{ /* implementation */ }}\n", i)).collect();
 
     let mut group = c.benchmark_group("classify_lines");
 
@@ -443,9 +427,7 @@ fn bench_suppress_parse(c: &mut Criterion) {
         .collect();
 
     // Content without suppress attributes
-    let content_without: String = (0..100)
-        .map(|i| format!("pub fn func_{}() {{}}\n", i))
-        .collect();
+    let content_without: String = (0..100).map(|i| format!("pub fn func_{}() {{}}\n", i)).collect();
 
     let mut group = c.benchmark_group("suppress_parse");
 
@@ -459,12 +441,7 @@ fn bench_suppress_parse(c: &mut Criterion) {
 
     // With required comment pattern
     group.bench_function("with_attrs_100_lines_pattern", |b| {
-        b.iter(|| {
-            black_box(parse_suppress_attrs(
-                &content_with_suppresses,
-                Some("// REASON:"),
-            ))
-        })
+        b.iter(|| black_box(parse_suppress_attrs(&content_with_suppresses, Some("// REASON:"))))
     });
 
     // Larger file
@@ -507,12 +484,7 @@ fn bench_shellcheck_suppress_parse(c: &mut Criterion) {
 
     // With comment pattern requirement
     group.bench_function("with_suppresses_100_lines_pattern", |b| {
-        b.iter(|| {
-            black_box(parse_shellcheck_suppresses(
-                &content_with_suppresses,
-                Some("# OK:"),
-            ))
-        })
+        b.iter(|| black_box(parse_shellcheck_suppresses(&content_with_suppresses, Some("# OK:"))))
     });
 
     // Larger file (~1000 lines)
@@ -542,15 +514,12 @@ fn bench_go_classify(c: &mut Criterion) {
     let go_adapter = GoAdapter::new();
 
     // Generate test paths
-    let source_paths: Vec<PathBuf> = (0..1000)
-        .map(|i| PathBuf::from(format!("pkg/module_{}/handler.go", i)))
-        .collect();
-    let test_paths: Vec<PathBuf> = (0..1000)
-        .map(|i| PathBuf::from(format!("pkg/module_{}/handler_test.go", i)))
-        .collect();
-    let vendor_paths: Vec<PathBuf> = (0..1000)
-        .map(|i| PathBuf::from(format!("vendor/github.com/pkg/lib_{}.go", i)))
-        .collect();
+    let source_paths: Vec<PathBuf> =
+        (0..1000).map(|i| PathBuf::from(format!("pkg/module_{}/handler.go", i))).collect();
+    let test_paths: Vec<PathBuf> =
+        (0..1000).map(|i| PathBuf::from(format!("pkg/module_{}/handler_test.go", i))).collect();
+    let vendor_paths: Vec<PathBuf> =
+        (0..1000).map(|i| PathBuf::from(format!("vendor/github.com/pkg/lib_{}.go", i))).collect();
 
     let mut group = c.benchmark_group("go_classify");
 
@@ -604,13 +573,9 @@ require (
 
     let mut group = c.benchmark_group("go_mod_parse");
 
-    group.bench_function("simple_go_mod", |b| {
-        b.iter(|| black_box(parse_go_mod(simple_go_mod)))
-    });
+    group.bench_function("simple_go_mod", |b| b.iter(|| black_box(parse_go_mod(simple_go_mod))));
 
-    group.bench_function("complex_go_mod", |b| {
-        b.iter(|| black_box(parse_go_mod(complex_go_mod)))
-    });
+    group.bench_function("complex_go_mod", |b| b.iter(|| black_box(parse_go_mod(complex_go_mod))));
 
     group.finish();
 }
@@ -667,9 +632,8 @@ fn bench_nolint_parse(c: &mut Criterion) {
         })
         .collect();
 
-    let content_without: String = (0..100)
-        .map(|i| format!("func handler_{}() {{}}\n", i))
-        .collect();
+    let content_without: String =
+        (0..100).map(|i| format!("func handler_{}() {{}}\n", i)).collect();
 
     let mut group = c.benchmark_group("nolint_parse");
 
@@ -682,12 +646,7 @@ fn bench_nolint_parse(c: &mut Criterion) {
     });
 
     group.bench_function("with_nolint_100_lines_pattern", |b| {
-        b.iter(|| {
-            black_box(parse_nolint_directives(
-                &content_with_nolint,
-                Some("// REASON:"),
-            ))
-        })
+        b.iter(|| black_box(parse_nolint_directives(&content_with_nolint, Some("// REASON:"))))
     });
 
     // Larger file

@@ -80,12 +80,7 @@ impl LanguageDefaults for RubyDefaults {
     }
 
     fn default_exclude() -> Vec<String> {
-        vec![
-            "vendor/".to_string(),
-            "tmp/".to_string(),
-            "log/".to_string(),
-            "coverage/".to_string(),
-        ]
+        vec!["vendor/".to_string(), "tmp/".to_string(), "log/".to_string(), "coverage/".to_string()]
     }
 
     fn default_cloc_advice(threshold: usize) -> String {
@@ -168,7 +163,4 @@ impl RubySuppressConfig {
     }
 }
 
-define_policy_config!(
-    RubyPolicyConfig,
-    [".rubocop.yml", ".rubocop_todo.yml", ".standard.yml",]
-);
+define_policy_config!(RubyPolicyConfig, [".rubocop.yml", ".rubocop_todo.yml", ".standard.yml",]);

@@ -61,10 +61,7 @@ fn for_project_generic_fallback() {
 
     let registry = AdapterRegistry::for_project(dir.path());
     // Without Rust adapter, .rs files fall back to generic
-    assert_eq!(
-        registry.adapter_for(Path::new("src/lib.rs")).name(),
-        "generic"
-    );
+    assert_eq!(registry.adapter_for(Path::new("src/lib.rs")).name(), "generic");
 }
 
 #[test]

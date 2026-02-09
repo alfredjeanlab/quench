@@ -62,13 +62,7 @@ fn eslint_next_line_with_required_pattern_matching() {
 
     assert_eq!(result.len(), 1);
     assert!(result[0].has_comment);
-    assert!(
-        result[0]
-            .comment_text
-            .as_ref()
-            .unwrap()
-            .starts_with("JUSTIFIED:")
-    );
+    assert!(result[0].comment_text.as_ref().unwrap().starts_with("JUSTIFIED:"));
 }
 
 #[test]
@@ -157,10 +151,7 @@ fn biome_ignore_with_comment_above() {
     assert_eq!(result.len(), 1);
     assert!(!result[0].has_explanation);
     assert!(result[0].has_comment);
-    assert_eq!(
-        result[0].comment_text.as_deref(),
-        Some("Legacy code needs this")
-    );
+    assert_eq!(result[0].comment_text.as_deref(), Some("Legacy code needs this"));
 }
 
 // =============================================================================
@@ -249,8 +240,5 @@ fn finds_comment_above_directive() {
 
     assert_eq!(result.len(), 1);
     assert!(result[0].has_comment);
-    assert_eq!(
-        result[0].comment_text.as_deref(),
-        Some("This is needed because...")
-    );
+    assert_eq!(result[0].comment_text.as_deref(), Some("This is needed because..."));
 }

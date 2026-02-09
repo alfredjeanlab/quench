@@ -25,10 +25,8 @@ use crate::adapter::javascript::PackageManager;
 fn coverage_dir_for(test_path: Option<&str>) -> String {
     match test_path {
         Some(path) => {
-            let safe: String = path
-                .chars()
-                .map(|c| if c.is_alphanumeric() { c } else { '-' })
-                .collect();
+            let safe: String =
+                path.chars().map(|c| if c.is_alphanumeric() { c } else { '-' }).collect();
             let safe = safe.trim_matches('-');
             format!(".coverage-{safe}")
         }
@@ -58,10 +56,7 @@ pub fn collect_jest_coverage(root: &Path, test_path: Option<&str>) -> CoverageRe
     // as a test pattern filter instead of a reporter name. We want jest to
     // run all tests (for full coverage), using the test_path only via the
     // reporters array (harmless: the unknown reporter is ignored after lcov).
-    cmd.arg(format!(
-        "--coverageDirectory={}",
-        root.join(&coverage_dir).display()
-    ));
+    cmd.arg(format!("--coverageDirectory={}", root.join(&coverage_dir).display()));
     cmd.arg("--coverageReporters=lcov");
     if let Some(path) = test_path {
         cmd.arg(path);
@@ -114,10 +109,7 @@ pub fn collect_vitest_coverage(root: &Path, test_path: Option<&str>) -> Coverage
     let mut cmd = Command::new(&exec_cmd[0]);
     cmd.args(&exec_cmd[1..]);
     cmd.args(["vitest", "run", "--coverage", "--coverage.reporter=lcov"]);
-    cmd.arg(format!(
-        "--coverage.reportsDirectory={}",
-        root.join(&coverage_dir).display()
-    ));
+    cmd.arg(format!("--coverage.reportsDirectory={}", root.join(&coverage_dir).display()));
     if let Some(path) = test_path {
         cmd.arg(path);
     }
@@ -165,10 +157,7 @@ pub fn collect_bun_coverage(root: &Path, test_path: Option<&str>) -> CoverageRes
 
     let mut cmd = Command::new("bun");
     cmd.args(["test", "--coverage", "--coverage-reporter=lcov"]);
-    cmd.arg(format!(
-        "--coverage-dir={}",
-        root.join(&coverage_dir).display()
-    ));
+    cmd.arg(format!("--coverage-dir={}", root.join(&coverage_dir).display()));
     if let Some(path) = test_path {
         cmd.arg(path);
     }
@@ -318,20 +307,10 @@ fn calculate_coverage_result(
         .collect();
 
     // Calculate overall line coverage
-    let line_coverage = if total_found > 0 {
-        Some((total_hit as f64 / total_found as f64) * 100.0)
-    } else {
-        None
-    };
+    let line_coverage =
+        if total_found > 0 { Some((total_hit as f64 / total_found as f64) * 100.0) } else { None };
 
-    CoverageResult {
-        success: true,
-        error: None,
-        duration,
-        line_coverage,
-        files,
-        packages,
-    }
+    CoverageResult { success: true, error: None, duration, line_coverage, files, packages }
 }
 
 // =============================================================================
@@ -357,15 +336,7 @@ pub fn normalize_js_path(path: &str) -> String {
 
     // Find project-relative path markers
     // Check monorepo patterns first (packages/, apps/, libs/) before src/
-    for marker in [
-        "packages/",
-        "apps/",
-        "libs/",
-        "src/",
-        "lib/",
-        "dist/",
-        "tests/",
-    ] {
+    for marker in ["packages/", "apps/", "libs/", "src/", "lib/", "dist/", "tests/"] {
         if let Some(idx) = path.find(marker) {
             return path[idx..].to_string();
         }

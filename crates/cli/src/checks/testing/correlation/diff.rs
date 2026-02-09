@@ -37,9 +37,7 @@ fn get_file_diff(file_path: &Path, root: &Path, range: DiffRange<'_>) -> Result<
     use std::process::Command;
 
     let rel_path = file_path.strip_prefix(root).unwrap_or(file_path);
-    let rel_path_str = rel_path
-        .to_str()
-        .ok_or_else(|| "invalid path".to_string())?;
+    let rel_path_str = rel_path.to_str().ok_or_else(|| "invalid path".to_string())?;
 
     let range_str = match range {
         DiffRange::Staged => String::new(),

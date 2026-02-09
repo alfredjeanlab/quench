@@ -24,15 +24,10 @@ use crate::prelude::*;
 /// > Rust #[ignore] tests are counted in metrics.placeholders.rust.ignore
 #[test]
 fn tests_check_includes_rust_ignore_metrics() {
-    let result = check("tests")
-        .on("placeholders/rust-ignore")
-        .json()
-        .passes();
+    let result = check("tests").on("placeholders/rust-ignore").json().passes();
 
     let metrics = result.require("metrics");
-    let placeholders = metrics
-        .get("placeholders")
-        .expect("missing placeholders metrics");
+    let placeholders = metrics.get("placeholders").expect("missing placeholders metrics");
     let rust_ignore = placeholders["rust"]["ignore"].as_u64().unwrap();
     assert_eq!(rust_ignore, 1, "should detect one #[ignore] test");
 }
@@ -45,9 +40,7 @@ fn tests_check_includes_rust_todo_metrics() {
     let result = check("tests").on("placeholders/rust-todo").json().passes();
 
     let metrics = result.require("metrics");
-    let placeholders = metrics
-        .get("placeholders")
-        .expect("missing placeholders metrics");
+    let placeholders = metrics.get("placeholders").expect("missing placeholders metrics");
     let rust_todo = placeholders["rust"]["todo"].as_u64().unwrap();
     assert_eq!(rust_todo, 1, "should detect one todo!() in test body");
 }
@@ -61,15 +54,10 @@ fn tests_check_includes_rust_todo_metrics() {
 /// > JavaScript test.todo() calls are counted in metrics.placeholders.javascript.todo
 #[test]
 fn tests_check_includes_js_todo_metrics() {
-    let result = check("tests")
-        .on("placeholders/javascript-todo")
-        .json()
-        .passes();
+    let result = check("tests").on("placeholders/javascript-todo").json().passes();
 
     let metrics = result.require("metrics");
-    let placeholders = metrics
-        .get("placeholders")
-        .expect("missing placeholders metrics");
+    let placeholders = metrics.get("placeholders").expect("missing placeholders metrics");
     let js_todo = placeholders["javascript"]["todo"].as_u64().unwrap();
     assert_eq!(js_todo, 2, "should detect two test.todo() calls");
 }
@@ -79,15 +67,10 @@ fn tests_check_includes_js_todo_metrics() {
 /// > JavaScript test.fixme() calls are counted in metrics.placeholders.javascript.fixme
 #[test]
 fn tests_check_includes_js_fixme_metrics() {
-    let result = check("tests")
-        .on("placeholders/javascript-fixme")
-        .json()
-        .passes();
+    let result = check("tests").on("placeholders/javascript-fixme").json().passes();
 
     let metrics = result.require("metrics");
-    let placeholders = metrics
-        .get("placeholders")
-        .expect("missing placeholders metrics");
+    let placeholders = metrics.get("placeholders").expect("missing placeholders metrics");
     let js_fixme = placeholders["javascript"]["fixme"].as_u64().unwrap();
     assert_eq!(js_fixme, 2, "should detect two test.fixme() calls");
 }
@@ -101,15 +84,10 @@ fn tests_check_includes_js_fixme_metrics() {
 /// > JSON output includes placeholders object with rust and javascript subobjects
 #[test]
 fn tests_check_placeholder_metrics_structure() {
-    let result = check("tests")
-        .on("placeholders/rust-ignore")
-        .json()
-        .passes();
+    let result = check("tests").on("placeholders/rust-ignore").json().passes();
 
     let metrics = result.require("metrics");
-    let placeholders = metrics
-        .get("placeholders")
-        .expect("missing placeholders metrics");
+    let placeholders = metrics.get("placeholders").expect("missing placeholders metrics");
 
     // Verify rust structure
     let rust = placeholders.get("rust").expect("missing rust metrics");
@@ -117,9 +95,7 @@ fn tests_check_placeholder_metrics_structure() {
     assert!(rust.get("todo").is_some(), "missing rust.todo");
 
     // Verify javascript structure
-    let js = placeholders
-        .get("javascript")
-        .expect("missing javascript metrics");
+    let js = placeholders.get("javascript").expect("missing javascript metrics");
     assert!(js.get("todo").is_some(), "missing javascript.todo");
     assert!(js.get("fixme").is_some(), "missing javascript.fixme");
     assert!(js.get("skip").is_some(), "missing javascript.skip");
@@ -188,9 +164,7 @@ fn test_parser() { todo!() }
     // Even with placeholders = "forbid", metrics should still be collected
     let result = check("tests").pwd(temp.path()).json().passes();
     let metrics = result.require("metrics");
-    let placeholders = metrics
-        .get("placeholders")
-        .expect("metrics should include placeholders");
+    let placeholders = metrics.get("placeholders").expect("metrics should include placeholders");
     assert!(
         placeholders["rust"]["ignore"].as_u64().unwrap() >= 1,
         "should count #[ignore] even when correlation disabled"

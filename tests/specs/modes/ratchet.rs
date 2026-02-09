@@ -123,17 +123,11 @@ fn fix_creates_baseline() {
         .success()
         .stderr(predicates::str::contains("created initial baseline"));
 
-    assert!(
-        temp.path().join(".quench/baseline.json").exists(),
-        "baseline file should be created"
-    );
+    assert!(temp.path().join(".quench/baseline.json").exists(), "baseline file should be created");
 
     // Verify baseline contains the escape count
     let baseline_content = fs::read_to_string(temp.path().join(".quench/baseline.json")).unwrap();
-    assert!(
-        baseline_content.contains("\"unsafe\""),
-        "baseline should track unsafe escapes"
-    );
+    assert!(baseline_content.contains("\"unsafe\""), "baseline should track unsafe escapes");
 }
 
 /// Spec: docs/specs/04-ratcheting.md#regression-fails
@@ -165,10 +159,7 @@ fn regression_fails() {
     // Source has 2 unsafe blocks on different lines -> regression
     temp.file("src/lib.rs", "fn f() {\n    unsafe {}\n    unsafe {}\n}");
 
-    cli()
-        .pwd(temp.path())
-        .fails()
-        .stdout_has("escapes.unsafe: 2 (max: 1 from baseline)");
+    cli().pwd(temp.path()).fails().stdout_has("escapes.unsafe: 2 (max: 1 from baseline)");
 }
 
 /// Spec: docs/specs/04-ratcheting.md#same-value-passes
@@ -273,10 +264,7 @@ fn fix_updates_baseline_on_improvement() {
 
     // Verify baseline was updated
     let baseline_content = fs::read_to_string(temp.path().join(".quench/baseline.json")).unwrap();
-    assert!(
-        baseline_content.contains("\"unsafe\": 2"),
-        "baseline should be updated to new value"
-    );
+    assert!(baseline_content.contains("\"unsafe\": 2"), "baseline should be updated to new value");
 }
 
 /// Spec: docs/specs/04-ratcheting.md#fix-message-variants
@@ -628,14 +616,9 @@ fn stale_baseline_warns() {
     temp.file("src/lib.rs", "fn f() { unsafe {} }");
 
     // Check passes but warns about stale baseline
-    quench_cmd()
-        .args(["check"])
-        .current_dir(temp.path())
-        .assert()
-        .success()
-        .stderr(
-            predicates::str::contains("baseline is").and(predicates::str::contains("days old")),
-        );
+    quench_cmd().args(["check"]).current_dir(temp.path()).assert().success().stderr(
+        predicates::str::contains("baseline is").and(predicates::str::contains("days old")),
+    );
 }
 
 // =============================================================================
@@ -686,10 +669,7 @@ fn warn_level_reports_but_passes() {
     .unwrap();
 
     // Source has 3 unsafe blocks -> regression, but warn level
-    temp.file(
-        "src/lib.rs",
-        "fn f() {\n    unsafe {}\n    unsafe {}\n    unsafe {}\n}",
-    );
+    temp.file("src/lib.rs", "fn f() {\n    unsafe {}\n    unsafe {}\n    unsafe {}\n}");
 
     // Should pass (exit 0) but show warning
     quench_cmd()
@@ -698,9 +678,7 @@ fn warn_level_reports_but_passes() {
         .assert()
         .success()
         .stdout(predicates::str::contains("ratchet: WARN"))
-        .stdout(predicates::str::contains(
-            "escapes.unsafe: 3 (max: 1 from baseline)",
-        ));
+        .stdout(predicates::str::contains("escapes.unsafe: 3 (max: 1 from baseline)"));
 }
 
 // =============================================================================
@@ -874,8 +852,5 @@ fn base_ref_uses_baseline_from_that_commit() {
 
     // Using --base HEAD~1 should use the baseline from the first commit
     // Use --no-git since CLAUDE.md doesn't have Commits section
-    cli()
-        .pwd(temp.path())
-        .args(&["--base", "HEAD~1", "--no-git"])
-        .passes();
+    cli().pwd(temp.path()).args(&["--base", "HEAD~1", "--no-git"]).passes();
 }

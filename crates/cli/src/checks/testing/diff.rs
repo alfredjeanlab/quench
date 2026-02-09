@@ -53,9 +53,7 @@ pub fn run_git_diff(root: &Path, args: &[&str]) -> Result<String, String> {
     let mut cmd = Command::new("git");
     cmd.arg("diff").args(args).current_dir(root);
 
-    let output = cmd
-        .output()
-        .map_err(|e| format!("failed to run git: {}", e))?;
+    let output = cmd.output().map_err(|e| format!("failed to run git: {}", e))?;
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
@@ -77,19 +75,12 @@ fn merge_diff_outputs(
     let mut result = Vec::new();
 
     // Create a map of path -> (lines_added, lines_deleted)
-    let counts_map: HashMap<PathBuf, (usize, usize)> = line_counts
-        .into_iter()
-        .map(|(path, added, deleted)| (path, (added, deleted)))
-        .collect();
+    let counts_map: HashMap<PathBuf, (usize, usize)> =
+        line_counts.into_iter().map(|(path, added, deleted)| (path, (added, deleted))).collect();
 
     for (path, change_type) in change_types {
         let (lines_added, lines_deleted) = counts_map.get(&path).copied().unwrap_or((0, 0));
-        result.push(FileChange {
-            path: root.join(&path),
-            change_type,
-            lines_added,
-            lines_deleted,
-        });
+        result.push(FileChange { path: root.join(&path), change_type, lines_added, lines_deleted });
     }
 
     Ok(result)
@@ -193,11 +184,7 @@ pub fn get_commits_since(root: &Path, base: &str) -> Result<Vec<CommitChanges>, 
         .lines()
         .filter_map(|line| {
             let parts: Vec<&str> = line.splitn(2, '|').collect();
-            if parts.len() == 2 {
-                Some((parts[0].to_string(), parts[1].to_string()))
-            } else {
-                None
-            }
+            if parts.len() == 2 { Some((parts[0].to_string(), parts[1].to_string())) } else { None }
         })
         .collect();
 
@@ -205,11 +192,7 @@ pub fn get_commits_since(root: &Path, base: &str) -> Result<Vec<CommitChanges>, 
     let mut result = Vec::new();
     for (hash, message) in commits.into_iter().rev() {
         let changes = get_commit_changes(root, &hash)?;
-        result.push(CommitChanges {
-            hash,
-            message,
-            changes,
-        });
+        result.push(CommitChanges { hash, message, changes });
     }
 
     Ok(result)

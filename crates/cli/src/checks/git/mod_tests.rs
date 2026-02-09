@@ -16,10 +16,7 @@ use crate::git::Commit;
 
 /// Create a test commit with the given hash and message.
 fn test_commit(hash: &str, message: &str) -> Commit {
-    Commit {
-        hash: hash.to_string(),
-        message: message.to_string(),
-    }
+    Commit { hash: hash.to_string(), message: message.to_string() }
 }
 
 // =============================================================================
@@ -114,19 +111,14 @@ fn accepts_default_type() {
 #[test]
 fn accepts_all_default_types() {
     let config = GitCommitConfig::default();
-    let default_types = [
-        "feat", "fix", "chore", "docs", "test", "refactor", "perf", "ci", "build", "style",
-    ];
+    let default_types =
+        ["feat", "fix", "chore", "docs", "test", "refactor", "perf", "ci", "build", "style"];
 
     for commit_type in default_types {
         let commit = test_commit("abc1234", &format!("{}: do something", commit_type));
         let mut violations = Vec::new();
         validate_commit(&commit, &config, &mut violations);
-        assert!(
-            violations.is_empty(),
-            "type '{}' should be allowed by default",
-            commit_type
-        );
+        assert!(violations.is_empty(), "type '{}' should be allowed by default", commit_type);
     }
 }
 
@@ -360,10 +352,7 @@ fn validates_breaking_change_marker() {
 
     validate_commit(&commit, &config, &mut violations);
 
-    assert!(
-        violations.is_empty(),
-        "Breaking change marker should be valid"
-    );
+    assert!(violations.is_empty(), "Breaking change marker should be valid");
 }
 
 #[test]
@@ -375,10 +364,7 @@ fn validates_breaking_change_with_scope() {
 
     validate_commit(&commit, &config, &mut violations);
 
-    assert!(
-        violations.is_empty(),
-        "Breaking change with scope should be valid"
-    );
+    assert!(violations.is_empty(), "Breaking change with scope should be valid");
 }
 
 #[test]
@@ -387,11 +373,7 @@ fn validates_revert_commit() {
     let commit = test_commit("abc1234", "revert: undo previous change");
     let mut config = GitCommitConfig::default();
     // Add "revert" to allowed types
-    config.types = Some(vec![
-        "feat".to_string(),
-        "fix".to_string(),
-        "revert".to_string(),
-    ]);
+    config.types = Some(vec!["feat".to_string(), "fix".to_string(), "revert".to_string()]);
     let mut violations = Vec::new();
 
     validate_commit(&commit, &config, &mut violations);

@@ -85,10 +85,7 @@ pub(super) fn create_threshold_violation(
 /// Format comment advice with the required pattern.
 pub(super) fn format_comment_advice(custom_advice: &str, comment_pattern: &str) -> String {
     if custom_advice.is_empty() || custom_advice == default_advice(&EscapeAction::Comment) {
-        format!(
-            "Add a {} comment explaining why this is necessary.",
-            comment_pattern
-        )
+        format!("Add a {} comment explaining why this is necessary.", comment_pattern)
     } else {
         custom_advice.to_string()
     }

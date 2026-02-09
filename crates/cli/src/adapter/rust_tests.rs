@@ -74,10 +74,7 @@ mod tests {
         // Source: pub fn add, a + b, } = 3 non-blank lines before #[cfg(test)]
         // Test: #[cfg(test)], mod tests, use super::*, #[test], fn test_add, assert_eq, }, } = 8 lines
         assert!(classification.source_lines > 0, "should have source lines");
-        assert!(
-            classification.test_lines > 0,
-            "should have test lines from #[cfg(test)]"
-        );
+        assert!(classification.test_lines > 0, "should have test lines from #[cfg(test)]");
     }
 
     #[test]
@@ -93,14 +90,8 @@ fn test_something() {
 "#;
         let classification = adapter.classify_lines(Path::new("tests/test.rs"), content);
 
-        assert_eq!(
-            classification.source_lines, 0,
-            "test file should have no source lines"
-        );
-        assert!(
-            classification.test_lines > 0,
-            "test file should have test lines"
-        );
+        assert_eq!(classification.source_lines, 0, "test file should have no source lines");
+        assert!(classification.test_lines > 0, "test file should have test lines");
     }
 
     #[test]
@@ -141,11 +132,7 @@ fn default_escape_pattern(
         .unwrap_or_else(|| panic!("pattern {:?} not found", name));
 
     assert_eq!(pattern.action, expected_action, "pattern {:?} action", name);
-    assert_eq!(
-        pattern.comment, expected_comment,
-        "pattern {:?} comment",
-        name
-    );
+    assert_eq!(pattern.comment, expected_comment, "pattern {:?} comment", name);
 }
 
 #[test]
@@ -158,11 +145,7 @@ fn returns_two_default_patterns() {
 fn all_patterns_have_advice() {
     let adapter = RustAdapter::new();
     for pattern in adapter.default_escapes() {
-        assert!(
-            !pattern.advice.is_empty(),
-            "Pattern {} should have advice",
-            pattern.name
-        );
+        assert!(!pattern.advice.is_empty(), "Pattern {} should have advice", pattern.name);
     }
 }
 

@@ -126,10 +126,7 @@ fn bench_correlation_detection(c: &mut Criterion) {
 fn generate_changes_for_fixture(root: &Path) -> Vec<FileChange> {
     let mut changes = Vec::new();
 
-    let walker = ignore::WalkBuilder::new(root)
-        .hidden(true)
-        .git_ignore(true)
-        .build();
+    let walker = ignore::WalkBuilder::new(root).hidden(true).git_ignore(true).build();
 
     for entry in walker.filter_map(|e| e.ok()) {
         if entry.file_type().map(|t| t.is_file()).unwrap_or(false) {
@@ -230,9 +227,8 @@ fn bench_glob_matching(c: &mut Criterion) {
     }
 
     // Bulk matching benchmark
-    let many_paths: Vec<PathBuf> = (0..1000)
-        .map(|i| PathBuf::from(format!("src/module{}_tests.rs", i)))
-        .collect();
+    let many_paths: Vec<PathBuf> =
+        (0..1000).map(|i| PathBuf::from(format!("src/module{}_tests.rs", i))).collect();
 
     group.bench_function("1000_paths", |b| {
         b.iter(|| {
@@ -250,9 +246,8 @@ fn bench_has_correlated_test(c: &mut Criterion) {
     let mut group = c.benchmark_group("tests-has-correlated");
 
     // Simulate changed test files
-    let test_changes: Vec<PathBuf> = (0..100)
-        .map(|i| PathBuf::from(format!("tests/module{}_tests.rs", i)))
-        .collect();
+    let test_changes: Vec<PathBuf> =
+        (0..100).map(|i| PathBuf::from(format!("tests/module{}_tests.rs", i))).collect();
 
     // Pre-extract base names
     let test_base_names: Vec<String> = test_changes
@@ -405,10 +400,7 @@ fn bench_cli_check(c: &mut Criterion) {
         // Note: In practice cache behavior depends on file mtime
         group.bench_function(BenchmarkId::new("warm", name), |b| {
             // Pre-warm the cache
-            let _ = Command::new(quench_bin)
-                .arg("check")
-                .current_dir(&path)
-                .output();
+            let _ = Command::new(quench_bin).arg("check").current_dir(&path).output();
 
             b.iter(|| {
                 let output = Command::new(quench_bin)
@@ -433,9 +425,8 @@ fn bench_optimization_comparison(c: &mut Criterion) {
     let mut group = c.benchmark_group("tests-optimization");
 
     // Generate test files for index
-    let test_files: Vec<PathBuf> = (0..100)
-        .map(|i| PathBuf::from(format!("tests/module{}_tests.rs", i)))
-        .collect();
+    let test_files: Vec<PathBuf> =
+        (0..100).map(|i| PathBuf::from(format!("tests/module{}_tests.rs", i))).collect();
 
     // Pre-extract base names for the old linear approach
     let test_base_names: Vec<String> = test_files
@@ -448,9 +439,7 @@ fn bench_optimization_comparison(c: &mut Criterion) {
         .collect();
 
     // Benchmark: Index creation
-    group.bench_function("index_creation", |b| {
-        b.iter(|| black_box(TestIndex::new(&test_files)))
-    });
+    group.bench_function("index_creation", |b| b.iter(|| black_box(TestIndex::new(&test_files))));
 
     // Create index once for lookup benchmarks
     let index = TestIndex::new(&test_files);
@@ -479,9 +468,8 @@ fn bench_optimization_comparison(c: &mut Criterion) {
     });
 
     // Benchmark: Multiple lookups (realistic scenario)
-    let source_files: Vec<PathBuf> = (0..50)
-        .map(|i| PathBuf::from(format!("src/module{}.rs", i)))
-        .collect();
+    let source_files: Vec<PathBuf> =
+        (0..50).map(|i| PathBuf::from(format!("src/module{}.rs", i))).collect();
 
     group.bench_function("index_50_lookups", |b| {
         b.iter(|| {

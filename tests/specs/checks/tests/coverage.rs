@@ -56,11 +56,7 @@ fn test_covered() { assert_eq!(test_project::covered(), 42); }
 "#,
     );
 
-    let result = check("tests")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .passes();
+    let result = check("tests").pwd(temp.path()).args(&["--ci"]).json().passes();
     let metrics = result.require("metrics");
 
     // Should report Rust coverage percentage
@@ -71,11 +67,7 @@ fn test_covered() { assert_eq!(test_project::covered(), 42); }
     assert!(rust_coverage.is_some());
     // Coverage should be ~50% (one function covered, one not)
     let pct = rust_coverage.unwrap();
-    assert!(
-        pct > 40.0 && pct < 60.0,
-        "Expected ~50% coverage, got {}",
-        pct
-    );
+    assert!(pct > 40.0 && pct < 60.0, "Expected ~50% coverage, got {}", pct);
 }
 
 // =============================================================================
@@ -120,11 +112,7 @@ setup() { source scripts/helper.sh; }
 "#,
     );
 
-    let result = check("tests")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .passes();
+    let result = check("tests").pwd(temp.path()).args(&["--ci"]).json().passes();
     let metrics = result.require("metrics");
 
     // Should report shell coverage
@@ -190,11 +178,7 @@ fn main() {
 "#,
     );
 
-    let result = check("tests")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .passes();
+    let result = check("tests").pwd(temp.path()).args(&["--ci"]).json().passes();
     let metrics = result.require("metrics");
 
     // Should report coverage for Rust binary
@@ -278,11 +262,7 @@ fn test_other() { assert_eq!(myapp::other(), 0); }
 "#,
     );
 
-    let result = check("tests")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .passes();
+    let result = check("tests").pwd(temp.path()).args(&["--ci"]).json().passes();
     let metrics = result.require("metrics");
 
     // Coverage should be merged from both suites
@@ -333,11 +313,7 @@ targets = []  # Explicit: timing only
 #[test]
 fn jest_runner_collects_javascript_coverage() {
     setup_js_fixture("javascript/jest-coverage");
-    let result = check("tests")
-        .on("javascript/jest-coverage")
-        .args(&["--ci"])
-        .json()
-        .passes();
+    let result = check("tests").on("javascript/jest-coverage").args(&["--ci"]).json().passes();
     let metrics = result.require("metrics");
 
     // Should report JavaScript coverage percentage
@@ -349,11 +325,7 @@ fn jest_runner_collects_javascript_coverage() {
 
     // Coverage should be ~50% (one function covered, one not)
     let pct = js_coverage.unwrap();
-    assert!(
-        pct > 40.0 && pct < 60.0,
-        "Expected ~50% coverage, got {}",
-        pct
-    );
+    assert!(pct > 40.0 && pct < 60.0, "Expected ~50% coverage, got {}", pct);
 }
 
 /// Spec: docs/specs/11-test-runners.md#implicit-coverage
@@ -365,11 +337,7 @@ fn jest_runner_collects_javascript_coverage() {
 #[test]
 fn vitest_runner_collects_javascript_coverage() {
     setup_js_fixture("javascript/vitest-coverage");
-    let result = check("tests")
-        .on("javascript/vitest-coverage")
-        .args(&["--ci"])
-        .json()
-        .passes();
+    let result = check("tests").on("javascript/vitest-coverage").args(&["--ci"]).json().passes();
     let metrics = result.require("metrics");
 
     // Should report JavaScript coverage percentage
@@ -380,11 +348,7 @@ fn vitest_runner_collects_javascript_coverage() {
     assert!(js_coverage.is_some(), "Expected javascript coverage");
 
     let pct = js_coverage.unwrap();
-    assert!(
-        pct > 40.0 && pct < 60.0,
-        "Expected ~50% coverage, got {}",
-        pct
-    );
+    assert!(pct > 40.0 && pct < 60.0, "Expected ~50% coverage, got {}", pct);
 }
 
 /// Spec: docs/specs/11-test-runners.md#implicit-coverage
@@ -393,11 +357,7 @@ fn vitest_runner_collects_javascript_coverage() {
 #[test]
 fn vitest_coverage_on_fixture() {
     setup_js_fixture("js-simple");
-    let result = check("tests")
-        .on("js-simple")
-        .args(&["--ci"])
-        .json()
-        .passes();
+    let result = check("tests").on("js-simple").args(&["--ci"]).json().passes();
     let metrics = result.require("metrics");
 
     // Should report JavaScript coverage
@@ -405,18 +365,11 @@ fn vitest_coverage_on_fixture() {
     assert!(coverage.is_some(), "Expected coverage metrics");
 
     let js_coverage = coverage.unwrap().get("javascript").and_then(|v| v.as_f64());
-    assert!(
-        js_coverage.is_some(),
-        "Expected javascript coverage percentage"
-    );
+    assert!(js_coverage.is_some(), "Expected javascript coverage percentage");
 
     // js-simple fixture has good test coverage (near 100%)
     let pct = js_coverage.unwrap();
-    assert!(
-        pct > 80.0,
-        "Expected >80% coverage on js-simple fixture, got {}",
-        pct
-    );
+    assert!(pct > 80.0, "Expected >80% coverage on js-simple fixture, got {}", pct);
 }
 
 /// Spec: docs/specs/11-test-runners.md#implicit-coverage
@@ -463,11 +416,7 @@ test('covered function', () => { expect(covered()).toBe(42); });
 "#,
     );
 
-    let result = check("tests")
-        .pwd(temp.path())
-        .args(&["--ci"])
-        .json()
-        .passes();
+    let result = check("tests").pwd(temp.path()).args(&["--ci"]).json().passes();
     let metrics = result.require("metrics");
 
     // Should report JavaScript coverage percentage
@@ -478,11 +427,7 @@ test('covered function', () => { expect(covered()).toBe(42); });
     assert!(js_coverage.is_some());
     // Coverage should be ~60% (3 lines covered out of 5: function lines + body of covered)
     let pct = js_coverage.unwrap();
-    assert!(
-        pct > 50.0 && pct < 70.0,
-        "Expected ~60% coverage, got {}",
-        pct
-    );
+    assert!(pct > 50.0 && pct < 70.0, "Expected ~60% coverage, got {}", pct);
 }
 
 /// Spec: docs/specs/11-test-runners.md#aggregation
@@ -491,11 +436,8 @@ test('covered function', () => { expect(covered()).toBe(42); });
 #[test]
 fn multiple_js_suite_coverages_merged() {
     setup_js_fixture("javascript/jest-merged-coverage");
-    let result = check("tests")
-        .on("javascript/jest-merged-coverage")
-        .args(&["--ci"])
-        .json()
-        .passes();
+    let result =
+        check("tests").on("javascript/jest-merged-coverage").args(&["--ci"]).json().passes();
     let metrics = result.require("metrics");
 
     // Coverage should be merged from both suites
@@ -506,8 +448,5 @@ fn multiple_js_suite_coverages_merged() {
     assert!(js_coverage.is_some(), "Expected javascript coverage");
 
     // Both add() and subtract() should be covered (~100%)
-    assert!(
-        js_coverage.unwrap() > 90.0,
-        "Expected ~100% merged coverage"
-    );
+    assert!(js_coverage.unwrap() > 90.0, "Expected ~100% merged coverage");
 }

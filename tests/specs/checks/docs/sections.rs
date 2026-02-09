@@ -49,14 +49,8 @@ path = "docs/specs"
 sections.required = ["purpose"]
 "#,
     );
-    temp.file(
-        "docs/specs/CLAUDE.md",
-        "# Specs\n\n## Purpose\n\nSpecs index.\n",
-    );
-    temp.file(
-        "docs/specs/feature.md",
-        "# Feature\n\n## PURPOSE\n\nThis is the purpose.\n",
-    );
+    temp.file("docs/specs/CLAUDE.md", "# Specs\n\n## Purpose\n\nSpecs index.\n");
+    temp.file("docs/specs/feature.md", "# Feature\n\n## PURPOSE\n\nThis is the purpose.\n");
 
     // "PURPOSE" should match required "purpose"
     check("docs").pwd(temp.path()).passes();

@@ -92,11 +92,7 @@ fn test_memory_bench_small() {
         println!("bench-small peak memory: {}MB", peak_mb);
 
         // Target: < 100MB, Hard limit: 500MB
-        assert!(
-            peak_mb < 500,
-            "Memory exceeded hard limit: {}MB > 500MB",
-            peak_mb
-        );
+        assert!(peak_mb < 500, "Memory exceeded hard limit: {}MB > 500MB", peak_mb);
 
         if peak_mb > 100 {
             eprintln!("WARNING: Memory above target: {}MB > 100MB", peak_mb);
@@ -113,11 +109,7 @@ fn test_memory_bench_medium() {
         println!("bench-medium peak memory: {}MB", peak_mb);
 
         // Target: < 100MB, Hard limit: 500MB
-        assert!(
-            peak_mb < 500,
-            "Memory exceeded hard limit: {}MB > 500MB",
-            peak_mb
-        );
+        assert!(peak_mb < 500, "Memory exceeded hard limit: {}MB > 500MB", peak_mb);
 
         if peak_mb > 100 {
             eprintln!("WARNING: Memory above target: {}MB > 100MB", peak_mb);
@@ -134,11 +126,7 @@ fn test_memory_bench_large() {
         println!("bench-large peak memory: {}MB", peak_mb);
 
         // CI target: < 500MB, Hard limit: 2GB
-        assert!(
-            peak_mb < 2048,
-            "Memory exceeded hard limit: {}MB > 2GB",
-            peak_mb
-        );
+        assert!(peak_mb < 2048, "Memory exceeded hard limit: {}MB > 2GB", peak_mb);
 
         if peak_mb > 500 {
             eprintln!("WARNING: Memory above target: {}MB > 500MB", peak_mb);

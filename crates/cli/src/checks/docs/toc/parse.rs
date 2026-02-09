@@ -133,11 +133,7 @@ fn parse_tree_line(
         path_stack.push(name.to_string());
     }
 
-    Some(TreeEntry {
-        line_offset,
-        path: full_path,
-        is_dir,
-    })
+    Some(TreeEntry { line_offset, path: full_path, is_dir })
 }
 
 /// Extract indent level and name from a tree line.
@@ -190,11 +186,7 @@ fn extract_indent_and_name(line: &str) -> Option<(usize, String)> {
         let remaining: String = chars.collect();
         let name = remaining.trim().to_string();
 
-        if name.is_empty() {
-            None
-        } else {
-            Some((indent, name))
-        }
+        if name.is_empty() { None } else { Some((indent, name)) }
     } else {
         // Indentation format (spaces/tabs)
         let mut indent = 0usize;
@@ -224,21 +216,13 @@ fn extract_indent_and_name(line: &str) -> Option<(usize, String)> {
         let remaining: String = chars.collect();
         let name = remaining.trim().to_string();
 
-        if name.is_empty() {
-            None
-        } else {
-            Some((indent, name))
-        }
+        if name.is_empty() { None } else { Some((indent, name)) }
     }
 }
 
 /// Strip comment suffix (everything after #).
 fn strip_comment(name: &str) -> &str {
-    if let Some(pos) = name.find('#') {
-        name[..pos].trim()
-    } else {
-        name.trim()
-    }
+    if let Some(pos) = name.find('#') { name[..pos].trim() } else { name.trim() }
 }
 
 /// Normalize a path by stripping `.`/`./` prefix when it represents current directory.

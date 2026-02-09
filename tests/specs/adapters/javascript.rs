@@ -29,11 +29,7 @@ fn auto_detected_when_package_json_present() {
     let checks = result.checks();
 
     // escapes check should have JS-specific patterns active
-    assert!(
-        checks
-            .iter()
-            .any(|c| c.get("name").and_then(|n| n.as_str()) == Some("escapes"))
-    );
+    assert!(checks.iter().any(|c| c.get("name").and_then(|n| n.as_str()) == Some("escapes")));
 }
 
 /// Spec: docs/specs/langs/javascript.md#detection
@@ -44,11 +40,7 @@ fn auto_detected_when_tsconfig_json_present() {
     let result = cli().on("javascript/tsconfig-detect").json().passes();
     let checks = result.checks();
 
-    assert!(
-        checks
-            .iter()
-            .any(|c| c.get("name").and_then(|n| n.as_str()) == Some("escapes"))
-    );
+    assert!(checks.iter().any(|c| c.get("name").and_then(|n| n.as_str()) == Some("escapes")));
 }
 
 /// Spec: docs/specs/langs/javascript.md#detection
@@ -59,11 +51,7 @@ fn auto_detected_when_jsconfig_json_present() {
     let result = cli().on("javascript/jsconfig-detect").json().passes();
     let checks = result.checks();
 
-    assert!(
-        checks
-            .iter()
-            .any(|c| c.get("name").and_then(|n| n.as_str()) == Some("escapes"))
-    );
+    assert!(checks.iter().any(|c| c.get("name").and_then(|n| n.as_str()) == Some("escapes")));
 }
 
 // =============================================================================
@@ -75,16 +63,10 @@ fn auto_detected_when_jsconfig_json_present() {
 /// > source = ["**/*.js", "**/*.jsx", "**/*.ts", "**/*.tsx", "**/*.mjs", "**/*.mts", "**/*.cjs", "**/*.cts"]
 #[test]
 fn default_source_pattern_matches_js_ts_files() {
-    let cloc = check("cloc")
-        .on("javascript/default-patterns")
-        .json()
-        .passes();
+    let cloc = check("cloc").on("javascript/default-patterns").json().passes();
     let metrics = cloc.require("metrics");
 
-    let source_lines = metrics
-        .get("source_lines")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(0);
+    let source_lines = metrics.get("source_lines").and_then(|v| v.as_u64()).unwrap_or(0);
     assert!(source_lines > 0, "should count .js/.ts files as source");
 }
 
@@ -98,20 +80,11 @@ fn default_source_pattern_matches_js_ts_files() {
 /// > ]
 #[test]
 fn default_test_pattern_matches_test_files() {
-    let cloc = check("cloc")
-        .on("javascript/default-patterns")
-        .json()
-        .passes();
+    let cloc = check("cloc").on("javascript/default-patterns").json().passes();
     let metrics = cloc.require("metrics");
 
-    let test_lines = metrics
-        .get("test_lines")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(0);
-    assert!(
-        test_lines > 0,
-        "should count *.test.*, *.spec.*, __tests__/** as test"
-    );
+    let test_lines = metrics.get("test_lines").and_then(|v| v.as_u64()).unwrap_or(0);
+    assert!(test_lines > 0, "should count *.test.*, *.spec.*, __tests__/** as test");
 }
 
 /// Spec: docs/specs/langs/javascript.md#default-patterns
@@ -119,21 +92,12 @@ fn default_test_pattern_matches_test_files() {
 /// > ignore = ["node_modules/", "dist/", "build/", ".next/", "coverage/"]
 #[test]
 fn default_ignores_node_modules_directory() {
-    let cloc = check("cloc")
-        .on("javascript/node-modules-ignore")
-        .json()
-        .passes();
+    let cloc = check("cloc").on("javascript/node-modules-ignore").json().passes();
     let metrics = cloc.require("metrics");
 
     // Only src/index.js should be counted, not node_modules or dist
-    let source_lines = metrics
-        .get("source_lines")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(0);
-    assert!(
-        source_lines < 50,
-        "node_modules/, dist/, build/ should be ignored"
-    );
+    let source_lines = metrics.get("source_lines").and_then(|v| v.as_u64()).unwrap_or(0);
+    assert!(source_lines < 50, "node_modules/, dist/, build/ should be ignored");
 }
 
 /// Spec: docs/specs/langs/javascript.md#exclude
@@ -141,17 +105,11 @@ fn default_ignores_node_modules_directory() {
 /// > Custom exclude patterns are respected via [javascript].exclude config.
 #[test]
 fn custom_exclude_patterns_respected() {
-    let cloc = check("cloc")
-        .on("javascript/custom-exclude")
-        .json()
-        .passes();
+    let cloc = check("cloc").on("javascript/custom-exclude").json().passes();
     let metrics = cloc.require("metrics");
 
     // Only index.js should be counted (not node_modules/pkg.js)
-    let source_lines = metrics
-        .get("source_lines")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(0);
+    let source_lines = metrics.get("source_lines").and_then(|v| v.as_u64()).unwrap_or(0);
     assert!(
         source_lines < 20,
         "node_modules/ should be excluded via config, got {} source lines",
@@ -174,14 +132,8 @@ fn detects_npm_workspaces_from_package_json() {
     assert!(by_package.is_some(), "should have by_package breakdown");
     let by_package = by_package.unwrap();
 
-    assert!(
-        by_package.get("core").is_some(),
-        "should detect 'core' package"
-    );
-    assert!(
-        by_package.get("cli").is_some(),
-        "should detect 'cli' package"
-    );
+    assert!(by_package.get("core").is_some(), "should detect 'core' package");
+    assert!(by_package.get("cli").is_some(), "should detect 'cli' package");
 }
 
 /// Spec: docs/specs/langs/javascript.md (implied by Default Patterns)
@@ -189,10 +141,7 @@ fn detects_npm_workspaces_from_package_json() {
 /// > Detects pnpm workspaces from pnpm-workspace.yaml
 #[test]
 fn detects_pnpm_workspaces() {
-    let cloc = check("cloc")
-        .on("javascript/workspace-pnpm")
-        .json()
-        .passes();
+    let cloc = check("cloc").on("javascript/workspace-pnpm").json().passes();
     let by_package = cloc.get("by_package");
 
     assert!(by_package.is_some(), "should have by_package breakdown");
@@ -256,10 +205,7 @@ fn ts_ignore_allowed_in_test_code() {
 /// > When `check = "comment"`, `eslint-disable` requires justification.
 #[test]
 fn eslint_disable_without_comment_fails_when_comment_required() {
-    check("escapes")
-        .on("javascript/eslint-disable-fail")
-        .fails()
-        .stdout_has("eslint-disable");
+    check("escapes").on("javascript/eslint-disable-fail").fails().stdout_has("eslint-disable");
 }
 
 /// Spec: docs/specs/langs/javascript.md#suppress
@@ -303,10 +249,7 @@ console.log('debug');
 /// > biome-ignore lint/suspicious/noExplicitAny: explanation required
 #[test]
 fn biome_ignore_without_explanation_fails() {
-    check("escapes")
-        .on("javascript/biome-ignore-fail")
-        .fails()
-        .stdout_has("biome-ignore");
+    check("escapes").on("javascript/biome-ignore-fail").fails().stdout_has("biome-ignore");
 }
 
 /// Spec: docs/specs/langs/javascript.md#supported-patterns
@@ -398,11 +341,7 @@ lint_config = ["eslint.config.js"]
     temp.file("package.json", r#"{"name": "test", "version": "1.0.0"}"#);
 
     // Initialize git repo
-    std::process::Command::new("git")
-        .args(["init"])
-        .current_dir(temp.path())
-        .output()
-        .unwrap();
+    std::process::Command::new("git").args(["init"]).current_dir(temp.path()).output().unwrap();
 
     std::process::Command::new("git")
         .args(["config", "user.email", "test@test.com"])
@@ -433,10 +372,7 @@ lint_config = ["eslint.config.js"]
 
     // Add both lint config and source changes
     temp.file("eslint.config.js", "export default [];\n");
-    temp.file(
-        "src/index.ts",
-        "export function main() {}\nexport function helper() {}\n",
-    );
+    temp.file("src/index.ts", "export function main() {}\nexport function helper() {}\n");
 
     std::process::Command::new("git")
         .args(["add", "-A"])
@@ -472,11 +408,7 @@ lint_config = ["eslint.config.js"]
     temp.file("package.json", r#"{"name": "test", "version": "1.0.0"}"#);
 
     // Initialize git repo
-    std::process::Command::new("git")
-        .args(["init"])
-        .current_dir(temp.path())
-        .output()
-        .unwrap();
+    std::process::Command::new("git").args(["init"]).current_dir(temp.path()).output().unwrap();
 
     std::process::Command::new("git")
         .args(["config", "user.email", "test@test.com"])
@@ -515,10 +447,7 @@ lint_config = ["eslint.config.js"]
         .unwrap();
 
     // Should pass - only lint config changed
-    check("escapes")
-        .pwd(temp.path())
-        .args(&["--base", "HEAD"])
-        .passes();
+    check("escapes").pwd(temp.path()).args(&["--base", "HEAD"]).passes();
 }
 
 // =============================================================================
@@ -543,22 +472,10 @@ fn js_simple_produces_expected_json_structure() {
     let metrics = cloc.get("metrics").expect("cloc should have metrics");
 
     // Verify key structure elements
-    assert!(
-        metrics.get("source_files").is_some(),
-        "should have source_files"
-    );
-    assert!(
-        metrics.get("test_files").is_some(),
-        "should have test_files"
-    );
-    assert!(
-        metrics.get("source_lines").is_some(),
-        "should have source_lines"
-    );
-    assert!(
-        metrics.get("test_lines").is_some(),
-        "should have test_lines"
-    );
+    assert!(metrics.get("source_files").is_some(), "should have source_files");
+    assert!(metrics.get("test_files").is_some(), "should have test_files");
+    assert!(metrics.get("source_lines").is_some(), "should have source_lines");
+    assert!(metrics.get("test_lines").is_some(), "should have test_lines");
 
     // Verify counts match expected
     // Note: vitest.config.ts is also counted as a source file
@@ -578,11 +495,7 @@ fn js_simple_produces_expected_json_structure() {
         .iter()
         .find(|c| c.get("name").and_then(|n| n.as_str()) == Some("escapes"))
         .expect("escapes check should exist");
-    assert_eq!(
-        escapes.get("passed").and_then(|v| v.as_bool()),
-        Some(true),
-        "escapes should pass"
-    );
+    assert_eq!(escapes.get("passed").and_then(|v| v.as_bool()), Some(true), "escapes should pass");
 }
 
 /// Checkpoint 49B: Validate js-monorepo detects all workspace packages
@@ -604,35 +517,17 @@ fn js_monorepo_produces_by_package_metrics() {
     let by_package = cloc.get("by_package").expect("should have by_package");
 
     // Verify both packages detected
-    assert!(
-        by_package.get("core").is_some(),
-        "should detect 'core' package"
-    );
-    assert!(
-        by_package.get("cli").is_some(),
-        "should detect 'cli' package"
-    );
+    assert!(by_package.get("core").is_some(), "should detect 'core' package");
+    assert!(by_package.get("cli").is_some(), "should detect 'cli' package");
 
     // Verify each package has metrics
     let core = by_package.get("core").unwrap();
-    assert!(
-        core.get("source_files").is_some(),
-        "core should have source_files"
-    );
-    assert!(
-        core.get("test_files").is_some(),
-        "core should have test_files"
-    );
+    assert!(core.get("source_files").is_some(), "core should have source_files");
+    assert!(core.get("test_files").is_some(), "core should have test_files");
 
     let cli_pkg = by_package.get("cli").unwrap();
-    assert!(
-        cli_pkg.get("source_files").is_some(),
-        "cli should have source_files"
-    );
-    assert!(
-        cli_pkg.get("test_files").is_some(),
-        "cli should have test_files"
-    );
+    assert!(cli_pkg.get("source_files").is_some(), "cli should have source_files");
+    assert!(cli_pkg.get("test_files").is_some(), "cli should have test_files");
 }
 
 /// Checkpoint 49B: Validate JavaScript-specific escapes detected in violations
@@ -641,21 +536,14 @@ fn js_monorepo_produces_by_package_metrics() {
 /// violations fixture's js/ subdirectory.
 #[test]
 fn violations_js_escapes_detected() {
-    let result = check("escapes")
-        .on("violations")
-        .args(&["--no-limit"])
-        .json()
-        .fails();
+    let result = check("escapes").on("violations").args(&["--no-limit"]).json().fails();
 
     // Verify JS-specific files are detected
     assert!(
         result.has_violation_for_file("as-unknown.ts"),
         "should detect as-unknown.ts violation"
     );
-    assert!(
-        result.has_violation_for_file("ts-ignore.ts"),
-        "should detect ts-ignore.ts violation"
-    );
+    assert!(result.has_violation_for_file("ts-ignore.ts"), "should detect ts-ignore.ts violation");
     assert!(
         result.has_violation_for_file("eslint-disable.ts"),
         "should detect eslint-disable.ts violation"
@@ -666,10 +554,7 @@ fn violations_js_escapes_detected() {
         .violations()
         .iter()
         .filter(|v| {
-            v.get("file")
-                .and_then(|f| f.as_str())
-                .map(|f| f.starts_with("js/"))
-                .unwrap_or(false)
+            v.get("file").and_then(|f| f.as_str()).map(|f| f.starts_with("js/")).unwrap_or(false)
         })
         .collect();
 

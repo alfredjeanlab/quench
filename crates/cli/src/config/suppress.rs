@@ -56,10 +56,7 @@ where
     D: Deserializer<'de>,
 {
     let user_config = SuppressScopeConfig::deserialize(deserializer)?;
-    Ok(merge_with_defaults(
-        user_config,
-        SuppressScopeConfig::default_for_source(),
-    ))
+    Ok(merge_with_defaults(user_config, SuppressScopeConfig::default_for_source()))
 }
 
 /// Custom deserializer for test scope that merges with defaults.
@@ -68,10 +65,7 @@ where
     D: Deserializer<'de>,
 {
     let user_config = SuppressScopeConfig::deserialize(deserializer)?;
-    Ok(merge_with_defaults(
-        user_config,
-        SuppressScopeConfig::default_for_test(),
-    ))
+    Ok(merge_with_defaults(user_config, SuppressScopeConfig::default_for_test()))
 }
 
 /// Merge user config with defaults: user patterns override, but defaults are preserved.
@@ -86,16 +80,8 @@ fn merge_with_defaults(
 
     SuppressScopeConfig {
         check: user.check.or(defaults.check),
-        allow: if user.allow.is_empty() {
-            defaults.allow
-        } else {
-            user.allow
-        },
-        forbid: if user.forbid.is_empty() {
-            defaults.forbid
-        } else {
-            user.forbid
-        },
+        allow: if user.allow.is_empty() { defaults.allow } else { user.allow },
+        forbid: if user.forbid.is_empty() { defaults.forbid } else { user.forbid },
         patterns: defaults.patterns,
     }
 }
@@ -237,30 +223,18 @@ impl SuppressScopeConfig {
             // too_many_arguments requires TODO(refactor) comment
             ("clippy::too_many_arguments", vec!["// TODO(refactor):"]),
             // casts require CORRECTNESS or SAFETY comment
-            (
-                "clippy::cast_possible_truncation",
-                vec!["// CORRECTNESS:", "// SAFETY:"],
-            ),
+            ("clippy::cast_possible_truncation", vec!["// CORRECTNESS:", "// SAFETY:"]),
             // deprecated requires TODO(refactor) or NOTE(compat) comment
             (
                 "deprecated",
-                vec![
-                    "// TODO(refactor):",
-                    "// NOTE(compat):",
-                    "// NOTE(compatibility):",
-                ],
+                vec!["// TODO(refactor):", "// NOTE(compat):", "// NOTE(compatibility):"],
             ),
         ]
         .into_iter()
         .map(|(k, v)| (k.to_string(), v.into_iter().map(String::from).collect()))
         .collect();
 
-        Self {
-            check: None,
-            allow: Vec::new(),
-            forbid: Vec::new(),
-            patterns,
-        }
+        Self { check: None, allow: Vec::new(), forbid: Vec::new(), patterns }
     }
 
     /// Default for test code: allow suppressions freely.

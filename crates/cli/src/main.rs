@@ -22,11 +22,7 @@ fn init_logging() {
     let filter = EnvFilter::try_from_env(quench::env::quench_log_var())
         .unwrap_or_else(|_| EnvFilter::new("off"));
 
-    fmt()
-        .with_env_filter(filter)
-        .with_writer(std::io::stderr)
-        .with_target(false)
-        .init();
+    fmt().with_env_filter(filter).with_writer(std::io::stderr).with_target(false).init();
 }
 
 fn main() {

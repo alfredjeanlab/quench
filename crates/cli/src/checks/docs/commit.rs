@@ -177,11 +177,7 @@ pub fn validate_commits(
     config: &DocsCommitConfig,
     areas: &HashMap<String, DocsAreaConfig>,
 ) -> CommitValidation {
-    let mut result = CommitValidation {
-        violations: Vec::new(),
-        feature_commits: 0,
-        with_docs: 0,
-    };
+    let mut result = CommitValidation { violations: Vec::new(), feature_commits: 0, with_docs: 0 };
 
     // Get branch commits
     let commits = match get_branch_commits(root, base) {
@@ -190,10 +186,8 @@ pub fn validate_commits(
     };
 
     // Filter to feature commits
-    let feature_commits: Vec<_> = commits
-        .into_iter()
-        .filter(|c| config.types.contains(&c.commit_type))
-        .collect();
+    let feature_commits: Vec<_> =
+        commits.into_iter().filter(|c| config.types.contains(&c.commit_type)).collect();
 
     result.feature_commits = feature_commits.len();
 
@@ -242,10 +236,7 @@ fn check_commit_has_docs(
         });
 
         // Scope match takes priority - don't add source matches for same area
-        return DocCheckResult {
-            has_docs,
-            matched_areas,
-        };
+        return DocCheckResult { has_docs, matched_areas };
     }
 
     // Priority 2: Check source-based matching
@@ -262,10 +253,7 @@ fn check_commit_has_docs(
         }
 
         let all_have_docs = matched_areas.iter().all(|a| a.has_docs);
-        return DocCheckResult {
-            has_docs: all_have_docs,
-            matched_areas,
-        };
+        return DocCheckResult { has_docs: all_have_docs, matched_areas };
     }
 
     // Fallback: No area matched, require generic docs/

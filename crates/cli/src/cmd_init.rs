@@ -23,11 +23,8 @@ const DEFAULT_GITIGNORE_ENTRIES: &[&str] = &[".quench/"];
 /// Ensure .quench/ is in .gitignore.
 fn ensure_gitignored(root: &Path) -> Result<()> {
     let gitignore = root.join(".gitignore");
-    let content = if gitignore.exists() {
-        std::fs::read_to_string(&gitignore)?
-    } else {
-        String::new()
-    };
+    let content =
+        if gitignore.exists() { std::fs::read_to_string(&gitignore)? } else { String::new() };
 
     let mut entries_to_add = Vec::new();
     for entry in DEFAULT_GITIGNORE_ENTRIES {
@@ -127,10 +124,7 @@ pub fn run(args: &InitArgs) -> Result<ExitCode> {
         cfg.push_str(default_template_suffix());
         cfg.push_str(&lang_config);
 
-        let msg = format!(
-            "Created quench.toml with profile(s): {}",
-            args.with_profiles.join(", ")
-        );
+        let msg = format!("Created quench.toml with profile(s): {}", args.with_profiles.join(", "));
         (cfg, msg)
     } else {
         // No --with: run auto-detection for both languages and agents
@@ -177,10 +171,7 @@ pub fn run(args: &InitArgs) -> Result<ExitCode> {
         let msg = if detected_names.is_empty() {
             "Created quench.toml".to_string()
         } else {
-            format!(
-                "Created quench.toml (detected: {})",
-                detected_names.join(", ")
-            )
+            format!("Created quench.toml (detected: {})", detected_names.join(", "))
         };
         (cfg, msg)
     };
@@ -194,10 +185,7 @@ pub fn run(args: &InitArgs) -> Result<ExitCode> {
 
     // Install shell completions
     if let Err(e) = completions::install_all() {
-        eprintln!(
-            "quench: warning: failed to install shell completions: {}",
-            e
-        );
+        eprintln!("quench: warning: failed to install shell completions: {}", e);
     }
 
     println!("{}", message);

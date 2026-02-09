@@ -139,11 +139,8 @@ fn detect_parcel_parcelrc() {
 #[test]
 fn detect_parcel_devdependency() {
     let dir = TempDir::new().unwrap();
-    std::fs::write(
-        dir.path().join("package.json"),
-        r#"{"devDependencies": {"parcel": "^2.0.0"}}"#,
-    )
-    .unwrap();
+    std::fs::write(dir.path().join("package.json"), r#"{"devDependencies": {"parcel": "^2.0.0"}}"#)
+        .unwrap();
 
     assert_eq!(detect_bundler(dir.path()), Bundler::Parcel);
 }

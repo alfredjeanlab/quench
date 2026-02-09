@@ -68,14 +68,7 @@ forbid = ["unsafe_code"]
 "#;
     let config = parse_with_warnings(content, &path).unwrap();
     // Default patterns should still be present
-    assert!(
-        config
-            .rust
-            .suppress
-            .source
-            .patterns
-            .contains_key("dead_code")
-    );
+    assert!(config.rust.suppress.source.patterns.contains_key("dead_code"));
 }
 
 #[test]
@@ -92,22 +85,8 @@ forbid = ["unsafe_code"]
 comment = "// LEGACY:"
 "#;
     let config = parse_with_warnings(content, &path).unwrap();
-    assert!(
-        config
-            .rust
-            .suppress
-            .source
-            .allow
-            .contains(&"clippy::unwrap_used".to_string())
-    );
-    assert!(
-        config
-            .rust
-            .suppress
-            .source
-            .forbid
-            .contains(&"unsafe_code".to_string())
-    );
+    assert!(config.rust.suppress.source.allow.contains(&"clippy::unwrap_used".to_string()));
+    assert!(config.rust.suppress.source.forbid.contains(&"unsafe_code".to_string()));
     // User-specified pattern overrides default
     assert_eq!(
         config.rust.suppress.source.patterns.get("dead_code"),
@@ -130,10 +109,7 @@ deprecated = "// TODO(refactor):"
     // Array syntax
     assert_eq!(
         config.rust.suppress.source.patterns.get("dead_code"),
-        Some(&vec![
-            "// KEEP UNTIL:".to_string(),
-            "// NOTE(compat):".to_string()
-        ])
+        Some(&vec!["// KEEP UNTIL:".to_string(), "// NOTE(compat):".to_string()])
     );
 
     // String syntax (converted to single-element array)
@@ -150,47 +126,13 @@ fn rust_suppress_source_has_defaults() {
     let config = parse_with_warnings(content, &path).unwrap();
 
     // Default patterns should be present
-    assert!(
-        config
-            .rust
-            .suppress
-            .source
-            .patterns
-            .contains_key("dead_code")
-    );
-    assert!(
-        config
-            .rust
-            .suppress
-            .source
-            .patterns
-            .contains_key("clippy::too_many_arguments")
-    );
-    assert!(
-        config
-            .rust
-            .suppress
-            .source
-            .patterns
-            .contains_key("clippy::cast_possible_truncation")
-    );
-    assert!(
-        config
-            .rust
-            .suppress
-            .source
-            .patterns
-            .contains_key("deprecated")
-    );
+    assert!(config.rust.suppress.source.patterns.contains_key("dead_code"));
+    assert!(config.rust.suppress.source.patterns.contains_key("clippy::too_many_arguments"));
+    assert!(config.rust.suppress.source.patterns.contains_key("clippy::cast_possible_truncation"));
+    assert!(config.rust.suppress.source.patterns.contains_key("deprecated"));
 
     // Check dead_code has multiple patterns
-    let dead_code_patterns = config
-        .rust
-        .suppress
-        .source
-        .patterns
-        .get("dead_code")
-        .unwrap();
+    let dead_code_patterns = config.rust.suppress.source.patterns.get("dead_code").unwrap();
     assert!(dead_code_patterns.contains(&"// KEEP UNTIL:".to_string()));
     assert!(dead_code_patterns.contains(&"// NOTE(compat):".to_string()));
     assert!(dead_code_patterns.contains(&"// NOTE(lifetime):".to_string()));

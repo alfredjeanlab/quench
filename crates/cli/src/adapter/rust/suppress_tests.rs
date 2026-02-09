@@ -39,10 +39,7 @@ fn detects_comment_justification() {
 
     assert_eq!(attrs.len(), 1);
     assert!(attrs[0].has_comment);
-    assert_eq!(
-        attrs[0].comment_text,
-        Some("This is needed for FFI compatibility".to_string())
-    );
+    assert_eq!(attrs[0].comment_text, Some("This is needed for FFI compatibility".to_string()));
 }
 
 #[test]
@@ -86,10 +83,7 @@ fn clippy_lint_codes() {
     let content = "#[allow(clippy::unwrap_used, clippy::expect_used)]\nfn f() {}";
     let attrs = parse_suppress_attrs(content, None);
 
-    assert_eq!(
-        attrs[0].codes,
-        vec!["clippy::unwrap_used", "clippy::expect_used"]
-    );
+    assert_eq!(attrs[0].codes, vec!["clippy::unwrap_used", "clippy::expect_used"]);
 }
 
 #[test]
@@ -142,10 +136,7 @@ fn detects_inner_attribute_with_comment() {
 
     assert_eq!(attrs.len(), 1);
     assert!(attrs[0].has_comment);
-    assert_eq!(
-        attrs[0].comment_text,
-        Some("Module suppression for FFI compatibility".to_string())
-    );
+    assert_eq!(attrs[0].comment_text, Some("Module suppression for FFI compatibility".to_string()));
 }
 
 #[test]
@@ -164,10 +155,7 @@ fn inner_attribute_with_multiple_codes() {
     let attrs = parse_suppress_attrs(content, None);
 
     assert_eq!(attrs.len(), 1);
-    assert_eq!(
-        attrs[0].codes,
-        vec!["dead_code", "unused_variables", "clippy::unwrap_used"]
-    );
+    assert_eq!(attrs[0].codes, vec!["dead_code", "unused_variables", "clippy::unwrap_used"]);
 }
 
 // =============================================================================
@@ -202,10 +190,7 @@ fn multiline_allow_with_comment() {
 
     assert_eq!(attrs.len(), 1);
     assert!(attrs[0].has_comment);
-    assert_eq!(
-        attrs[0].comment_text,
-        Some("This is a justification comment".to_string())
-    );
+    assert_eq!(attrs[0].comment_text, Some("This is a justification comment".to_string()));
 }
 
 #[test]
@@ -224,10 +209,7 @@ fn multiline_allow_with_clippy_lints() {
     let attrs = parse_suppress_attrs(content, None);
 
     assert_eq!(attrs.len(), 1);
-    assert_eq!(
-        attrs[0].codes,
-        vec!["clippy::unwrap_used", "clippy::expect_used"]
-    );
+    assert_eq!(attrs[0].codes, vec!["clippy::unwrap_used", "clippy::expect_used"]);
 }
 
 #[test]

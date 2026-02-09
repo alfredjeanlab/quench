@@ -31,11 +31,8 @@ fn fixture_path(name: &str) -> PathBuf {
 /// Check if the quench binary has a `check` command.
 fn has_check_command() -> bool {
     let quench_bin = env!("CARGO_BIN_EXE_quench");
-    let output = Command::new(quench_bin)
-        .arg("check")
-        .arg("--help")
-        .output()
-        .expect("quench should run");
+    let output =
+        Command::new(quench_bin).arg("check").arg("--help").output().expect("quench should run");
 
     output.status.success()
 }
@@ -50,12 +47,7 @@ fn bench_check_cold(c: &mut Criterion) {
         // Run a minimal benchmark to keep criterion happy
         let mut group = c.benchmark_group("check_cold");
         group.bench_function("placeholder", |b| {
-            b.iter(|| {
-                Command::new(quench_bin)
-                    .arg("--help")
-                    .output()
-                    .expect("quench should run")
-            })
+            b.iter(|| Command::new(quench_bin).arg("--help").output().expect("quench should run"))
         });
         group.finish();
         return;
@@ -127,19 +119,15 @@ fn bench_check_large_files(c: &mut Criterion) {
         return;
     }
 
-    group.bench_with_input(
-        BenchmarkId::new("check", "bench-large-files"),
-        &path,
-        |b, path| {
-            b.iter(|| {
-                Command::new(quench_bin)
-                    .arg("check")
-                    .current_dir(path)
-                    .output()
-                    .expect("quench check should run")
-            })
-        },
-    );
+    group.bench_with_input(BenchmarkId::new("check", "bench-large-files"), &path, |b, path| {
+        b.iter(|| {
+            Command::new(quench_bin)
+                .arg("check")
+                .current_dir(path)
+                .output()
+                .expect("quench check should run")
+        })
+    });
 
     group.finish();
 }

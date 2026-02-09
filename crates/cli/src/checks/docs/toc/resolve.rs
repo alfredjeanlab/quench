@@ -73,9 +73,7 @@ fn normalize_toc_path(path: &str) -> String {
     let path = path.trim_end_matches('/');
 
     // Decode URL-encoded characters
-    percent_encoding::percent_decode_str(path)
-        .decode_utf8_lossy()
-        .into_owned()
+    percent_encoding::percent_decode_str(path).decode_utf8_lossy().into_owned()
 }
 
 /// Try to resolve a path using a specific strategy.
@@ -154,9 +152,5 @@ pub(super) fn try_resolve_block<'a>(
         .filter(|e| !e.is_dir && !try_resolve(root, md_file, &e.path, strategy))
         .collect();
 
-    if unresolved.is_empty() {
-        None
-    } else {
-        Some(unresolved)
-    }
+    if unresolved.is_empty() { None } else { Some(unresolved) }
 }

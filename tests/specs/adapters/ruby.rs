@@ -29,11 +29,7 @@ fn auto_detected_when_gemfile_present() {
     let checks = result.checks();
 
     // escapes check should have Ruby-specific patterns active
-    assert!(
-        checks
-            .iter()
-            .any(|c| c.get("name").and_then(|n| n.as_str()) == Some("escapes"))
-    );
+    assert!(checks.iter().any(|c| c.get("name").and_then(|n| n.as_str()) == Some("escapes")));
 }
 
 /// Spec: docs/specs/langs/ruby.md#detection
@@ -44,11 +40,7 @@ fn auto_detected_when_gemspec_present() {
     let result = cli().on("ruby/gemspec-detect").json().passes();
     let checks = result.checks();
 
-    assert!(
-        checks
-            .iter()
-            .any(|c| c.get("name").and_then(|n| n.as_str()) == Some("escapes"))
-    );
+    assert!(checks.iter().any(|c| c.get("name").and_then(|n| n.as_str()) == Some("escapes")));
 }
 
 /// Spec: docs/specs/langs/ruby.md#detection
@@ -59,11 +51,7 @@ fn auto_detected_when_config_ru_present() {
     let result = cli().on("ruby/config-ru-detect").json().passes();
     let checks = result.checks();
 
-    assert!(
-        checks
-            .iter()
-            .any(|c| c.get("name").and_then(|n| n.as_str()) == Some("escapes"))
-    );
+    assert!(checks.iter().any(|c| c.get("name").and_then(|n| n.as_str()) == Some("escapes")));
 }
 
 /// Spec: docs/specs/langs/ruby.md#detection
@@ -74,11 +62,7 @@ fn auto_detected_when_rails_config_present() {
     let result = cli().on("ruby/rails-detect").json().passes();
     let checks = result.checks();
 
-    assert!(
-        checks
-            .iter()
-            .any(|c| c.get("name").and_then(|n| n.as_str()) == Some("escapes"))
-    );
+    assert!(checks.iter().any(|c| c.get("name").and_then(|n| n.as_str()) == Some("escapes")));
 }
 
 // =============================================================================
@@ -93,10 +77,7 @@ fn default_source_pattern_matches_rb_files() {
     let cloc = check("cloc").on("ruby/auto-detect").json().passes();
     let metrics = cloc.require("metrics");
 
-    let source_lines = metrics
-        .get("source_lines")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(0);
+    let source_lines = metrics.get("source_lines").and_then(|v| v.as_u64()).unwrap_or(0);
     assert!(source_lines > 0, "should count .rb files as source");
 }
 
@@ -108,10 +89,7 @@ fn default_source_pattern_matches_rake_files() {
     let cloc = check("cloc").on("ruby/rake-files").json().passes();
     let metrics = cloc.require("metrics");
 
-    let source_lines = metrics
-        .get("source_lines")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(0);
+    let source_lines = metrics.get("source_lines").and_then(|v| v.as_u64()).unwrap_or(0);
     assert!(source_lines > 0, "should count .rake files as source");
 }
 
@@ -123,10 +101,7 @@ fn default_test_pattern_matches_spec_files() {
     let cloc = check("cloc").on("ruby/auto-detect").json().passes();
     let metrics = cloc.require("metrics");
 
-    let test_lines = metrics
-        .get("test_lines")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(0);
+    let test_lines = metrics.get("test_lines").and_then(|v| v.as_u64()).unwrap_or(0);
     assert!(test_lines > 0, "should count spec/**/*_spec.rb as test");
 }
 
@@ -138,10 +113,7 @@ fn default_test_pattern_matches_test_files() {
     let cloc = check("cloc").on("ruby/test-unit").json().passes();
     let metrics = cloc.require("metrics");
 
-    let test_lines = metrics
-        .get("test_lines")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(0);
+    let test_lines = metrics.get("test_lines").and_then(|v| v.as_u64()).unwrap_or(0);
     assert!(test_lines > 0, "should count test/**/*_test.rb as test");
 }
 
@@ -153,10 +125,7 @@ fn default_test_pattern_matches_features() {
     let cloc = check("cloc").on("ruby/cucumber-features").json().passes();
     let metrics = cloc.require("metrics");
 
-    let test_lines = metrics
-        .get("test_lines")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(0);
+    let test_lines = metrics.get("test_lines").and_then(|v| v.as_u64()).unwrap_or(0);
     assert!(test_lines > 0, "should count features/**/*.rb as test");
 }
 
@@ -170,9 +139,7 @@ fn default_ignores_vendor_directory() {
 
     if let Some(files) = files {
         assert!(
-            !files
-                .iter()
-                .any(|f| f.as_str().map(|s| s.contains("vendor/")).unwrap_or(false)),
+            !files.iter().any(|f| f.as_str().map(|s| s.contains("vendor/")).unwrap_or(false)),
             "vendor/ directory should be ignored"
         );
     }
@@ -188,9 +155,7 @@ fn default_ignores_tmp_directory() {
 
     if let Some(files) = files {
         assert!(
-            !files
-                .iter()
-                .any(|f| f.as_str().map(|s| s.contains("tmp/")).unwrap_or(false)),
+            !files.iter().any(|f| f.as_str().map(|s| s.contains("tmp/")).unwrap_or(false)),
             "tmp/ directory should be ignored"
         );
     }
@@ -206,9 +171,7 @@ fn default_ignores_log_directory() {
 
     if let Some(files) = files {
         assert!(
-            !files
-                .iter()
-                .any(|f| f.as_str().map(|s| s.contains("log/")).unwrap_or(false)),
+            !files.iter().any(|f| f.as_str().map(|s| s.contains("log/")).unwrap_or(false)),
             "log/ directory should be ignored"
         );
     }
@@ -224,9 +187,7 @@ fn default_ignores_coverage_directory() {
 
     if let Some(files) = files {
         assert!(
-            !files
-                .iter()
-                .any(|f| f.as_str().map(|s| s.contains("coverage/")).unwrap_or(false)),
+            !files.iter().any(|f| f.as_str().map(|s| s.contains("coverage/")).unwrap_or(false)),
             "coverage/ directory should be ignored"
         );
     }
@@ -337,10 +298,7 @@ fn debugger_forbidden_in_source() {
 #[test]
 fn debugger_forbidden_even_in_test() {
     // Unlike metaprogramming, debuggers should fail in test code too
-    check("escapes")
-        .on("ruby/debugger-test-fail")
-        .fails()
-        .stdout_has("forbidden");
+    check("escapes").on("ruby/debugger-test-fail").fails().stdout_has("forbidden");
 }
 
 /// Spec: docs/specs/langs/ruby.md#profile-defaults
@@ -381,10 +339,7 @@ fn rubocop_disable_with_comment_passes() {
 /// > # rubocop:disable A, B (multiple cops)
 #[test]
 fn rubocop_disable_multiple_cops_detected() {
-    check("escapes")
-        .on("ruby/rubocop-multiple-fail")
-        .fails()
-        .stdout_has("rubocop:disable");
+    check("escapes").on("ruby/rubocop-multiple-fail").fails().stdout_has("rubocop:disable");
 }
 
 /// Spec: docs/specs/langs/ruby.md#supported-patterns
@@ -392,10 +347,7 @@ fn rubocop_disable_multiple_cops_detected() {
 /// > # rubocop:todo (same as disable)
 #[test]
 fn rubocop_todo_detected() {
-    check("escapes")
-        .on("ruby/rubocop-todo-fail")
-        .fails()
-        .stdout_has("rubocop:todo");
+    check("escapes").on("ruby/rubocop-todo-fail").fails().stdout_has("rubocop:todo");
 }
 
 /// Spec: docs/specs/langs/ruby.md#supported-patterns
@@ -403,10 +355,7 @@ fn rubocop_todo_detected() {
 /// > # standard:disable (StandardRB variant)
 #[test]
 fn standard_disable_detected() {
-    check("escapes")
-        .on("ruby/standard-disable-fail")
-        .fails()
-        .stdout_has("standard:disable");
+    check("escapes").on("ruby/standard-disable-fail").fails().stdout_has("standard:disable");
 }
 
 /// Spec: docs/specs/langs/ruby.md#supported-patterns
@@ -414,10 +363,7 @@ fn standard_disable_detected() {
 /// > Same-line disable detected
 #[test]
 fn rubocop_disable_inline_detected() {
-    check("escapes")
-        .on("ruby/rubocop-inline-fail")
-        .fails()
-        .stdout_has("rubocop:disable");
+    check("escapes").on("ruby/rubocop-inline-fail").fails().stdout_has("rubocop:disable");
 }
 
 /// Spec: docs/specs/langs/ruby.md#suppress
@@ -449,11 +395,7 @@ lint_config = [".rubocop.yml"]
     temp.file("Gemfile", "source 'https://rubygems.org'\n");
 
     // Initialize git repo
-    std::process::Command::new("git")
-        .args(["init"])
-        .current_dir(temp.path())
-        .output()
-        .unwrap();
+    std::process::Command::new("git").args(["init"]).current_dir(temp.path()).output().unwrap();
 
     std::process::Command::new("git")
         .args(["config", "user.email", "test@test.com"])
@@ -518,11 +460,7 @@ lint_config = [".rubocop.yml"]
     temp.file("Gemfile", "source 'https://rubygems.org'\n");
 
     // Initialize git repo
-    std::process::Command::new("git")
-        .args(["init"])
-        .current_dir(temp.path())
-        .output()
-        .unwrap();
+    std::process::Command::new("git").args(["init"]).current_dir(temp.path()).output().unwrap();
 
     std::process::Command::new("git")
         .args(["config", "user.email", "test@test.com"])
@@ -561,8 +499,5 @@ lint_config = [".rubocop.yml"]
         .unwrap();
 
     // Should pass - only lint config changed
-    check("escapes")
-        .pwd(temp.path())
-        .args(&["--base", "HEAD"])
-        .passes();
+    check("escapes").pwd(temp.path()).args(&["--base", "HEAD"]).passes();
 }

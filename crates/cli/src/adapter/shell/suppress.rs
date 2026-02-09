@@ -71,11 +71,8 @@ fn parse_shellcheck_disable(line: &str) -> Option<Vec<String>> {
     // Strip inline comment if present (e.g., "SC2090  # explanation")
     let codes_str = codes_str.split('#').next().unwrap_or(codes_str);
 
-    let codes: Vec<String> = codes_str
-        .split(',')
-        .map(|s| s.trim().to_string())
-        .filter(|s| !s.is_empty())
-        .collect();
+    let codes: Vec<String> =
+        codes_str.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect();
 
     if codes.is_empty() {
         return None;

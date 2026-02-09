@@ -68,11 +68,8 @@ fn detects_jest_from_config_json() {
 #[test]
 fn detects_vitest_from_dev_dependencies() {
     let temp = temp_project();
-    fs::write(
-        temp.path().join("package.json"),
-        r#"{"devDependencies": {"vitest": "^2.0.0"}}"#,
-    )
-    .unwrap();
+    fs::write(temp.path().join("package.json"), r#"{"devDependencies": {"vitest": "^2.0.0"}}"#)
+        .unwrap();
 
     let result = detect_js_runner(temp.path());
     assert!(result.is_some());
@@ -84,11 +81,8 @@ fn detects_vitest_from_dev_dependencies() {
 #[test]
 fn detects_jest_from_dev_dependencies() {
     let temp = temp_project();
-    fs::write(
-        temp.path().join("package.json"),
-        r#"{"devDependencies": {"jest": "^29.0.0"}}"#,
-    )
-    .unwrap();
+    fs::write(temp.path().join("package.json"), r#"{"devDependencies": {"jest": "^29.0.0"}}"#)
+        .unwrap();
 
     let result = detect_js_runner(temp.path());
     assert!(result.is_some());
@@ -100,11 +94,8 @@ fn detects_jest_from_dev_dependencies() {
 #[test]
 fn detects_bun_from_bun_types() {
     let temp = temp_project();
-    fs::write(
-        temp.path().join("package.json"),
-        r#"{"devDependencies": {"bun-types": "^1.0.0"}}"#,
-    )
-    .unwrap();
+    fs::write(temp.path().join("package.json"), r#"{"devDependencies": {"bun-types": "^1.0.0"}}"#)
+        .unwrap();
 
     let result = detect_js_runner(temp.path());
     assert!(result.is_some());
@@ -120,11 +111,7 @@ fn detects_bun_from_bun_types() {
 #[test]
 fn detects_vitest_from_test_script() {
     let temp = temp_project();
-    fs::write(
-        temp.path().join("package.json"),
-        r#"{"scripts": {"test": "vitest run"}}"#,
-    )
-    .unwrap();
+    fs::write(temp.path().join("package.json"), r#"{"scripts": {"test": "vitest run"}}"#).unwrap();
 
     let result = detect_js_runner(temp.path());
     assert!(result.is_some());
@@ -136,11 +123,8 @@ fn detects_vitest_from_test_script() {
 #[test]
 fn detects_jest_from_test_script() {
     let temp = temp_project();
-    fs::write(
-        temp.path().join("package.json"),
-        r#"{"scripts": {"test": "jest --coverage"}}"#,
-    )
-    .unwrap();
+    fs::write(temp.path().join("package.json"), r#"{"scripts": {"test": "jest --coverage"}}"#)
+        .unwrap();
 
     let result = detect_js_runner(temp.path());
     assert!(result.is_some());
@@ -152,11 +136,7 @@ fn detects_jest_from_test_script() {
 #[test]
 fn detects_bun_from_test_script() {
     let temp = temp_project();
-    fs::write(
-        temp.path().join("package.json"),
-        r#"{"scripts": {"test": "bun test"}}"#,
-    )
-    .unwrap();
+    fs::write(temp.path().join("package.json"), r#"{"scripts": {"test": "bun test"}}"#).unwrap();
 
     let result = detect_js_runner(temp.path());
     assert!(result.is_some());
@@ -174,11 +154,8 @@ fn config_file_takes_priority_over_dependencies() {
     let temp = temp_project();
     // Has both vitest config AND jest in devDependencies
     fs::write(temp.path().join("vitest.config.ts"), "export default {}").unwrap();
-    fs::write(
-        temp.path().join("package.json"),
-        r#"{"devDependencies": {"jest": "^29.0.0"}}"#,
-    )
-    .unwrap();
+    fs::write(temp.path().join("package.json"), r#"{"devDependencies": {"jest": "^29.0.0"}}"#)
+        .unwrap();
 
     let result = detect_js_runner(temp.path());
     assert!(result.is_some());
@@ -296,11 +273,8 @@ fn detection_source_to_metric_string() {
 fn bun_lock_detection_respects_bun_installation() {
     let temp = temp_project();
     fs::write(temp.path().join("bun.lock"), "").unwrap();
-    fs::write(
-        temp.path().join("package.json"),
-        r#"{"devDependencies": {"vitest": "^2.0.0"}}"#,
-    )
-    .unwrap();
+    fs::write(temp.path().join("package.json"), r#"{"devDependencies": {"vitest": "^2.0.0"}}"#)
+        .unwrap();
 
     let result = detect_js_runner(temp.path());
     assert!(result.is_some());
@@ -321,11 +295,7 @@ fn bun_lock_detection_respects_bun_installation() {
 fn bun_lockb_detection_respects_bun_installation() {
     let temp = temp_project();
     fs::write(temp.path().join("bun.lockb"), "").unwrap();
-    fs::write(
-        temp.path().join("package.json"),
-        r#"{"scripts": {"test": "jest"}}"#,
-    )
-    .unwrap();
+    fs::write(temp.path().join("package.json"), r#"{"scripts": {"test": "jest"}}"#).unwrap();
 
     let result = detect_js_runner(temp.path());
     assert!(result.is_some());

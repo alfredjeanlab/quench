@@ -39,11 +39,7 @@ fn find_json_delimited(s: &str, open: char, close: char) -> Option<&str> {
         }
     }
 
-    if depth == 0 && end > start {
-        Some(&s[start..end])
-    } else {
-        None
-    }
+    if depth == 0 && end > start { Some(&s[start..end]) } else { None }
 }
 
 #[cfg(test)]

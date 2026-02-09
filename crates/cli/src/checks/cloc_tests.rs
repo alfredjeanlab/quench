@@ -156,11 +156,7 @@ fn exclude_matcher_exclusion(pattern: &str, path: &str, expected: bool) {
 fn file_metrics_tokens(content: &str, expected: usize) {
     let file = temp_file_with_content(content);
     let metrics = count_file_metrics(file.path()).unwrap();
-    assert_eq!(
-        metrics.tokens, expected,
-        "content {:?} should have {} tokens",
-        content, expected
-    );
+    assert_eq!(metrics.tokens, expected, "content {:?} should have {} tokens", content, expected);
 }
 
 #[test]
@@ -193,9 +189,8 @@ fn bench_pattern_matching() {
         ],
     );
 
-    let paths: Vec<PathBuf> = (0..1000)
-        .map(|i| PathBuf::from(format!("src/module_{}.rs", i)))
-        .collect();
+    let paths: Vec<PathBuf> =
+        (0..1000).map(|i| PathBuf::from(format!("src/module_{}.rs", i))).collect();
 
     let start = std::time::Instant::now();
     for _ in 0..100 {
@@ -206,9 +201,5 @@ fn bench_pattern_matching() {
     let elapsed = start.elapsed();
     println!("100K pattern matches: {:?}", elapsed);
     // Target: < 100ms for 100K matches
-    assert!(
-        elapsed.as_millis() < 100,
-        "Pattern matching too slow: {:?}",
-        elapsed
-    );
+    assert!(elapsed.as_millis() < 100, "Pattern matching too slow: {:?}", elapsed);
 }

@@ -7,11 +7,7 @@ use super::*;
 fn metrics_to_json_structure() {
     let metrics = PlaceholderMetrics {
         rust: RustMetrics { ignore: 2, todo: 1 },
-        javascript: JsMetrics {
-            todo: 3,
-            fixme: 1,
-            skip: 0,
-        },
+        javascript: JsMetrics { todo: 3, fixme: 1, skip: 0 },
     };
 
     let json = metrics.to_json();
@@ -33,11 +29,7 @@ fn metrics_has_placeholders_true_when_present() {
 
     let metrics = PlaceholderMetrics {
         rust: RustMetrics::default(),
-        javascript: JsMetrics {
-            todo: 1,
-            fixme: 0,
-            skip: 0,
-        },
+        javascript: JsMetrics { todo: 1, fixme: 0, skip: 0 },
     };
     assert!(metrics.has_placeholders());
 }

@@ -17,11 +17,7 @@ fn init_auto_detects_shell_from_root_sh() {
     let temp = Project::empty();
     temp.file("build.sh", "#!/bin/bash\necho hello\n");
 
-    quench_cmd()
-        .args(["init"])
-        .current_dir(temp.path())
-        .assert()
-        .success();
+    quench_cmd().args(["init"]).current_dir(temp.path()).assert().success();
 
     let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
     assert!(config.contains("[shell]"));
@@ -35,11 +31,7 @@ fn init_auto_detects_shell_from_bin_dir() {
     let temp = Project::empty();
     temp.file("bin/run.sh", "#!/bin/bash\n");
 
-    quench_cmd()
-        .args(["init"])
-        .current_dir(temp.path())
-        .assert()
-        .success();
+    quench_cmd().args(["init"]).current_dir(temp.path()).assert().success();
 
     let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
     assert!(config.contains("[shell]"));
@@ -53,11 +45,7 @@ fn init_detects_shell_from_scripts_dir() {
     let temp = Project::empty();
     temp.file("scripts/build.sh", "#!/bin/bash\necho hello\n");
 
-    quench_cmd()
-        .args(["init"])
-        .current_dir(temp.path())
-        .assert()
-        .success();
+    quench_cmd().args(["init"]).current_dir(temp.path()).assert().success();
 
     let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
     assert!(config.contains("[shell]"));
@@ -75,11 +63,7 @@ fn init_detects_rust_from_cargo_toml() {
     let temp = Project::empty();
     temp.file("Cargo.toml", "[package]\nname = \"test\"\n");
 
-    quench_cmd()
-        .args(["init"])
-        .current_dir(temp.path())
-        .assert()
-        .success();
+    quench_cmd().args(["init"]).current_dir(temp.path()).assert().success();
 
     let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
     assert!(config.contains("[rust]"));
@@ -94,11 +78,7 @@ fn init_detects_golang_from_go_mod() {
     let temp = Project::empty();
     temp.file("go.mod", "module test\n");
 
-    quench_cmd()
-        .args(["init"])
-        .current_dir(temp.path())
-        .assert()
-        .success();
+    quench_cmd().args(["init"]).current_dir(temp.path()).assert().success();
 
     let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
     assert!(config.contains("[golang]"));
@@ -112,11 +92,7 @@ fn init_detects_javascript_from_package_json() {
     let temp = Project::empty();
     temp.file("package.json", "{\"name\": \"test\"}\n");
 
-    quench_cmd()
-        .args(["init"])
-        .current_dir(temp.path())
-        .assert()
-        .success();
+    quench_cmd().args(["init"]).current_dir(temp.path()).assert().success();
 
     let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
     assert!(config.contains("[javascript]"));
@@ -131,11 +107,7 @@ fn init_detection_is_additive() {
     temp.file("Cargo.toml", "[package]\nname = \"test\"\n");
     temp.file("scripts/deploy.sh", "#!/bin/bash\n");
 
-    quench_cmd()
-        .args(["init"])
-        .current_dir(temp.path())
-        .assert()
-        .success();
+    quench_cmd().args(["init"]).current_dir(temp.path()).assert().success();
 
     let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
     assert!(config.contains("[rust]"), "should detect rust");
@@ -154,11 +126,7 @@ fn init_auto_detects_ruby_from_gemfile() {
     let temp = Project::empty();
     temp.file("Gemfile", "source 'https://rubygems.org'\n");
 
-    quench_cmd()
-        .args(["init"])
-        .current_dir(temp.path())
-        .assert()
-        .success();
+    quench_cmd().args(["init"]).current_dir(temp.path()).assert().success();
 
     let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
     assert!(config.contains("[ruby]"));
@@ -172,11 +140,7 @@ fn init_auto_detects_ruby_from_gemspec() {
     let temp = Project::empty();
     temp.file("myapp.gemspec", "Gem::Specification.new do |s|\nend\n");
 
-    quench_cmd()
-        .args(["init"])
-        .current_dir(temp.path())
-        .assert()
-        .success();
+    quench_cmd().args(["init"]).current_dir(temp.path()).assert().success();
 
     let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
     assert!(config.contains("[ruby]"));
@@ -190,11 +154,7 @@ fn init_auto_detects_ruby_from_config_ru() {
     let temp = Project::empty();
     temp.file("config.ru", "run MyApp\n");
 
-    quench_cmd()
-        .args(["init"])
-        .current_dir(temp.path())
-        .assert()
-        .success();
+    quench_cmd().args(["init"]).current_dir(temp.path()).assert().success();
 
     let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
     assert!(config.contains("[ruby]"));
@@ -208,11 +168,7 @@ fn init_auto_detects_ruby_from_rails() {
     let temp = Project::empty();
     temp.file("config/application.rb", "module MyApp\nend\n");
 
-    quench_cmd()
-        .args(["init"])
-        .current_dir(temp.path())
-        .assert()
-        .success();
+    quench_cmd().args(["init"]).current_dir(temp.path()).assert().success();
 
     let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
     assert!(config.contains("[ruby]"));
@@ -230,11 +186,7 @@ fn init_auto_detects_python_from_pyproject_toml() {
     let temp = Project::empty();
     temp.file("pyproject.toml", "[project]\nname = \"test\"\n");
 
-    quench_cmd()
-        .args(["init"])
-        .current_dir(temp.path())
-        .assert()
-        .success();
+    quench_cmd().args(["init"]).current_dir(temp.path()).assert().success();
 
     let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
     assert!(config.contains("[python]"));
@@ -248,11 +200,7 @@ fn init_auto_detects_python_from_setup_py() {
     let temp = Project::empty();
     temp.file("setup.py", "from setuptools import setup\n");
 
-    quench_cmd()
-        .args(["init"])
-        .current_dir(temp.path())
-        .assert()
-        .success();
+    quench_cmd().args(["init"]).current_dir(temp.path()).assert().success();
 
     let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
     assert!(config.contains("[python]"));
@@ -266,11 +214,7 @@ fn init_auto_detects_python_from_requirements_txt() {
     let temp = Project::empty();
     temp.file("requirements.txt", "requests>=2.28.0\n");
 
-    quench_cmd()
-        .args(["init"])
-        .current_dir(temp.path())
-        .assert()
-        .success();
+    quench_cmd().args(["init"]).current_dir(temp.path()).assert().success();
 
     let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
     assert!(config.contains("[python]"));
@@ -288,11 +232,7 @@ fn init_detects_claude_from_claude_md() {
     let temp = Project::empty();
     temp.file("CLAUDE.md", "# Project\n");
 
-    quench_cmd()
-        .args(["init"])
-        .current_dir(temp.path())
-        .assert()
-        .success();
+    quench_cmd().args(["init"]).current_dir(temp.path()).assert().success();
 
     let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
     assert!(config.contains("[check.agents]"));
@@ -307,11 +247,7 @@ fn init_detects_cursor_from_cursorrules() {
     let temp = Project::empty();
     temp.file(".cursorrules", "# Cursor rules\n");
 
-    quench_cmd()
-        .args(["init"])
-        .current_dir(temp.path())
-        .assert()
-        .success();
+    quench_cmd().args(["init"]).current_dir(temp.path()).assert().success();
 
     let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
     assert!(config.contains("[check.agents]"));
@@ -326,11 +262,7 @@ fn init_detects_cursor_from_mdc_rules() {
     let temp = Project::empty();
     temp.file(".cursor/rules/project.mdc", "# Cursor rules\n");
 
-    quench_cmd()
-        .args(["init"])
-        .current_dir(temp.path())
-        .assert()
-        .success();
+    quench_cmd().args(["init"]).current_dir(temp.path()).assert().success();
 
     let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
     assert!(config.contains("[check.agents]"));

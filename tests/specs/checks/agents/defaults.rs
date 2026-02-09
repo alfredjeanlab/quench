@@ -147,10 +147,7 @@ fn default_requires_directory_structure_section() {
 fn default_requires_landing_the_plane_section() {
     let temp = Project::empty();
     temp.config("");
-    temp.file(
-        "CLAUDE.md",
-        "# Project\n\n## Directory Structure\n\nLayout\n",
-    );
+    temp.file("CLAUDE.md", "# Project\n\n## Directory Structure\n\nLayout\n");
 
     let result = check("agents").pwd(temp.path()).json().fails();
     let violations = result.violations();
@@ -163,10 +160,7 @@ fn default_requires_landing_the_plane_section() {
                 .unwrap_or(false)
     });
 
-    assert!(
-        has_missing_landing,
-        "should fail with missing_section for 'Landing the Plane'"
-    );
+    assert!(has_missing_landing, "should fail with missing_section for 'Landing the Plane'");
 }
 
 /// Spec: docs/specs/checks/agents.md#zero-config-defaults

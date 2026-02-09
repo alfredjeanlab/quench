@@ -40,10 +40,7 @@ fn bench_large_files(c: &mut Criterion) {
         let content: String = (0..lines)
             .map(|i| {
                 if i % 100 == 50 {
-                    format!(
-                        "{}\nmod tests_{} {{ #[test] fn t() {{}} }}\n",
-                        cfg_test_attr, i
-                    )
+                    format!("{}\nmod tests_{} {{ #[test] fn t() {{}} }}\n", cfg_test_attr, i)
                 } else {
                     format!("pub fn func_{}() {{ }}\n", i)
                 }
@@ -76,9 +73,7 @@ fn bench_many_cfg_test_blocks(c: &mut Criterion) {
         })
         .collect();
 
-    group.bench_function("50_blocks", |b| {
-        b.iter(|| black_box(CfgTestInfo::parse(&content)))
-    });
+    group.bench_function("50_blocks", |b| b.iter(|| black_box(CfgTestInfo::parse(&content))));
 
     group.finish();
 }

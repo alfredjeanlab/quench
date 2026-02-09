@@ -40,10 +40,7 @@ fn classify_with_source_patterns() {
     assert_eq!(adapter.classify(Path::new("src/main.rs")), FileKind::Source);
     assert_eq!(adapter.classify(Path::new("lib/util.rs")), FileKind::Source);
     assert_eq!(adapter.classify(Path::new("bin/cli.rs")), FileKind::Other);
-    assert_eq!(
-        adapter.classify(Path::new("src/tests/unit.rs")),
-        FileKind::Test
-    );
+    assert_eq!(adapter.classify(Path::new("src/tests/unit.rs")), FileKind::Test);
 }
 
 #[test]

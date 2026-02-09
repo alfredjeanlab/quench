@@ -149,10 +149,7 @@ impl RustAdapter {
         if file_kind == FileKind::Test {
             // Entire file is test code
             let total_lines = content.lines().filter(|l| !l.trim().is_empty()).count();
-            return LineClassification {
-                source_lines: 0,
-                test_lines: total_lines,
-            };
+            return LineClassification { source_lines: 0, test_lines: total_lines };
         }
 
         if file_kind != FileKind::Source {
@@ -177,10 +174,7 @@ impl RustAdapter {
             }
         }
 
-        LineClassification {
-            source_lines,
-            test_lines,
-        }
+        LineClassification { source_lines, test_lines }
     }
 
     /// Check lint policy against changed files.

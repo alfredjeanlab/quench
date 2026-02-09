@@ -87,10 +87,7 @@ fn ignores_shellcheck_source_directive() {
     let content = "# shellcheck source=./lib.sh\n. ./lib.sh";
     let suppresses = parse_shellcheck_suppresses(content, None);
 
-    assert!(
-        suppresses.is_empty(),
-        "source directive should not be detected"
-    );
+    assert!(suppresses.is_empty(), "source directive should not be detected");
 }
 
 #[test]
@@ -98,10 +95,7 @@ fn ignores_other_shellcheck_directives() {
     let content = "# shellcheck shell=bash\necho 'test'";
     let suppresses = parse_shellcheck_suppresses(content, None);
 
-    assert!(
-        suppresses.is_empty(),
-        "shell directive should not be detected"
-    );
+    assert!(suppresses.is_empty(), "shell directive should not be detected");
 }
 
 #[test]
@@ -131,10 +125,7 @@ fn comment_not_found_when_code_above() {
     let suppresses = parse_shellcheck_suppresses(content, None);
 
     assert_eq!(suppresses.len(), 1);
-    assert!(
-        !suppresses[0].has_comment,
-        "code above should stop comment search"
-    );
+    assert!(!suppresses[0].has_comment, "code above should stop comment search");
 }
 
 #[test]

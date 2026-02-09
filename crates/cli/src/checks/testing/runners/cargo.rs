@@ -110,10 +110,7 @@ impl TestRunner for CargoRunner {
 /// - Inline helper for test line parsing
 pub fn parse_cargo_output(stdout: &str, total_time: Duration) -> TestRunResult {
     // Pre-count lines starting with "test " for capacity hint
-    let test_line_count = stdout
-        .lines()
-        .filter(|l| l.trim_start().starts_with("test "))
-        .count();
+    let test_line_count = stdout.lines().filter(|l| l.trim_start().starts_with("test ")).count();
 
     let mut tests = Vec::with_capacity(test_line_count);
     let mut suite_passed = true;

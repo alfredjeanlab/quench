@@ -6,10 +6,7 @@ use super::*;
 #[test]
 fn parse_duration_seconds() {
     assert_eq!(parse_duration("5s").unwrap(), Duration::from_secs(5));
-    assert_eq!(
-        parse_duration("1.5s").unwrap(),
-        Duration::from_secs_f64(1.5)
-    );
+    assert_eq!(parse_duration("1.5s").unwrap(), Duration::from_secs_f64(1.5));
 }
 
 #[test]
@@ -116,10 +113,7 @@ use crate::config::RatchetConfig;
 #[test]
 fn coverage_tolerance_as_percentage_points() {
     // 0.5 means 0.5 percentage points, not 0.5%
-    let config = RatchetConfig {
-        coverage_tolerance: Some(0.5),
-        ..Default::default()
-    };
+    let config = RatchetConfig { coverage_tolerance: Some(0.5), ..Default::default() };
     assert_eq!(config.coverage_tolerance_pct(), Some(0.5));
 }
 

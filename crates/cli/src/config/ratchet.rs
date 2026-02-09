@@ -98,16 +98,12 @@ impl RatchetConfig {
 
     /// Get binary size tolerance in bytes.
     pub fn binary_size_tolerance_bytes(&self) -> Option<u64> {
-        self.binary_size_tolerance
-            .as_ref()
-            .and_then(|s| parse_size(s).ok())
+        self.binary_size_tolerance.as_ref().and_then(|s| parse_size(s).ok())
     }
 
     /// Get build time tolerance as Duration.
     pub fn build_time_tolerance_duration(&self) -> Option<Duration> {
-        self.build_time_tolerance
-            .as_ref()
-            .and_then(|s| parse_duration(s).ok())
+        self.build_time_tolerance.as_ref().and_then(|s| parse_duration(s).ok())
     }
 
     /// Get test time tolerance as Duration (uses build_time_tolerance if not separately configured).
@@ -122,20 +118,14 @@ impl RatchetConfig {
     ///
     /// Returns the package-specific setting if configured, otherwise the global setting.
     pub fn is_coverage_ratcheted(&self, package: &str) -> bool {
-        self.package
-            .get(package)
-            .and_then(|p| p.coverage)
-            .unwrap_or(self.coverage)
+        self.package.get(package).and_then(|p| p.coverage).unwrap_or(self.coverage)
     }
 
     /// Check if escapes are ratcheted for a specific package.
     ///
     /// Returns the package-specific setting if configured, otherwise the global setting.
     pub fn is_escapes_ratcheted(&self, package: &str) -> bool {
-        self.package
-            .get(package)
-            .and_then(|p| p.escapes)
-            .unwrap_or(self.escapes)
+        self.package.get(package).and_then(|p| p.escapes).unwrap_or(self.escapes)
     }
 }
 

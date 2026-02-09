@@ -105,13 +105,9 @@ fn markdown_format_empty_to_matches_format_empty() {
 fn markdown_format_escapes_sorted_alphabetically() {
     let mut baseline = create_test_baseline();
     baseline.metrics.escapes = Some(EscapesMetrics {
-        source: [
-            ("zebra".to_string(), 1),
-            ("alpha".to_string(), 2),
-            ("middle".to_string(), 3),
-        ]
-        .into_iter()
-        .collect(),
+        source: [("zebra".to_string(), 1), ("alpha".to_string(), 2), ("middle".to_string(), 3)]
+            .into_iter()
+            .collect(),
         test: None,
     });
 

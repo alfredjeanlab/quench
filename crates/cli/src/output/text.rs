@@ -147,29 +147,13 @@ impl TextFormatter {
 
     fn write_diff_preview(&mut self, preview: &serde_json::Value) -> std::io::Result<()> {
         let file = preview.get("file").and_then(|f| f.as_str()).unwrap_or("?");
-        let source = preview
-            .get("source")
-            .and_then(|s| s.as_str())
-            .unwrap_or("?");
-        let old_content = preview
-            .get("old_content")
-            .and_then(|c| c.as_str())
-            .unwrap_or("");
-        let new_content = preview
-            .get("new_content")
-            .and_then(|c| c.as_str())
-            .unwrap_or("");
-        let sections = preview
-            .get("sections")
-            .and_then(|n| n.as_i64())
-            .unwrap_or(0);
+        let source = preview.get("source").and_then(|s| s.as_str()).unwrap_or("?");
+        let old_content = preview.get("old_content").and_then(|c| c.as_str()).unwrap_or("");
+        let new_content = preview.get("new_content").and_then(|c| c.as_str()).unwrap_or("");
+        let sections = preview.get("sections").and_then(|n| n.as_i64()).unwrap_or(0);
 
         // Header
-        writeln!(
-            self.stdout,
-            "  Would sync {} from {} ({} sections)",
-            file, source, sections
-        )?;
+        writeln!(self.stdout, "  Would sync {} from {} ({} sections)", file, source, sections)?;
 
         // Unified diff
         self.write_unified_diff(file, old_content, new_content)?;
@@ -190,12 +174,7 @@ impl TextFormatter {
         let new_lines: Vec<_> = new.lines().collect();
 
         // Hunk header showing line counts
-        writeln!(
-            self.stdout,
-            "  @@ -1,{} +1,{} @@",
-            old_lines.len(),
-            new_lines.len()
-        )?;
+        writeln!(self.stdout, "  @@ -1,{} +1,{} @@", old_lines.len(), new_lines.len())?;
 
         // Show removed lines (old content)
         for line in &old_lines {
@@ -338,19 +317,13 @@ impl TextFormatter {
             "missing_header" => "missing license header".to_string(),
             "wrong_license" => match (&v.expected, &v.found) {
                 (Some(expected), Some(found)) => {
-                    format!(
-                        "wrong license identifier (expected: {}, found: {})",
-                        expected, found
-                    )
+                    format!("wrong license identifier (expected: {}, found: {})", expected, found)
                 }
                 _ => "wrong license identifier".to_string(),
             },
             "outdated_year" => match (&v.expected, &v.found) {
                 (Some(expected), Some(found)) => {
-                    format!(
-                        "outdated copyright year (expected: {}, found: {})",
-                        expected, found
-                    )
+                    format!("outdated copyright year (expected: {}, found: {})", expected, found)
                 }
                 _ => "outdated copyright year".to_string(),
             },
@@ -418,11 +391,8 @@ impl TextFormatter {
             for comp in &result.comparisons {
                 if !comp.passed {
                     // Coverage uses "min" (floor), others use "max" (ceiling)
-                    let threshold_label = if comp.name.starts_with("coverage.") {
-                        "min"
-                    } else {
-                        "max"
-                    };
+                    let threshold_label =
+                        if comp.name.starts_with("coverage.") { "min" } else { "max" };
                     writeln!(
                         self.stdout,
                         "  {}: {} ({}: {} from baseline)",
@@ -458,12 +428,8 @@ impl TextFormatter {
 
     /// Write the summary listing each check by status.
     pub fn write_summary(&mut self, output: &CheckOutput) -> std::io::Result<()> {
-        let passed: Vec<_> = output
-            .checks
-            .iter()
-            .filter(|c| c.passed && !c.stub)
-            .map(|c| c.name.as_str())
-            .collect();
+        let passed: Vec<_> =
+            output.checks.iter().filter(|c| c.passed && !c.stub).map(|c| c.name.as_str()).collect();
         let failed: Vec<_> = output
             .checks
             .iter()
@@ -506,11 +472,7 @@ impl TextFormatter {
     /// Check if output was truncated.
     pub fn was_truncated(&self) -> bool {
         // Truncated if we either explicitly stopped writing, or if we hit the limit
-        self.truncated
-            || self
-                .options
-                .limit
-                .is_some_and(|limit| self.violations_shown >= limit)
+        self.truncated || self.options.limit.is_some_and(|limit| self.violations_shown >= limit)
     }
 
     /// Get the number of violations shown.

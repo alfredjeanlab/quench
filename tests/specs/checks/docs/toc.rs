@@ -27,11 +27,7 @@ fn toc_tree_entries_validated_against_filesystem() {
 /// > broken_toc: File does not exist.
 #[test]
 fn broken_toc_path_generates_violation() {
-    check("docs")
-        .on("docs/toc-broken")
-        .fails()
-        .stdout_has("docs: FAIL")
-        .stdout_has("broken_toc");
+    check("docs").on("docs/toc-broken").fails().stdout_has("docs: FAIL").stdout_has("broken_toc");
 }
 
 /// Spec: docs/specs/checks/docs.md#output
@@ -71,10 +67,7 @@ FAIL: docs
 #[test]
 fn toc_box_drawing_format_supported() {
     let temp = default_project();
-    temp.file(
-        "docs/specs/overview.md",
-        "# Overview\n\n## Purpose\n\nTest.\n",
-    );
+    temp.file("docs/specs/overview.md", "# Overview\n\n## Purpose\n\nTest.\n");
     temp.file(
         "docs/CLAUDE.md",
         r#"# Docs
@@ -89,10 +82,7 @@ docs/specs/
 "#,
     );
     // config.md doesn't exist - should fail
-    check("docs")
-        .pwd(temp.path())
-        .fails()
-        .stdout_has("config.md");
+    check("docs").pwd(temp.path()).fails().stdout_has("config.md");
 }
 
 /// Spec: docs/specs/checks/docs.md#what-gets-validated
@@ -101,10 +91,7 @@ docs/specs/
 #[test]
 fn toc_indentation_format_supported() {
     let temp = default_project();
-    temp.file(
-        "docs/specs/overview.md",
-        "# Overview\n\n## Purpose\n\nTest.\n",
-    );
+    temp.file("docs/specs/overview.md", "# Overview\n\n## Purpose\n\nTest.\n");
     temp.file(
         "docs/CLAUDE.md",
         r#"# Docs
@@ -119,10 +106,7 @@ docs/specs/
 "#,
     );
     // missing.md doesn't exist - should fail
-    check("docs")
-        .pwd(temp.path())
-        .fails()
-        .stdout_has("missing.md");
+    check("docs").pwd(temp.path()).fails().stdout_has("missing.md");
 }
 
 /// Spec: docs/specs/checks/docs.md#resolution
@@ -308,11 +292,7 @@ TEMPNAME/
     // Replace TEMPNAME with actual directory name
     let dir_name = temp.path().file_name().unwrap().to_str().unwrap();
     let content = std::fs::read_to_string(temp.path().join("CLAUDE.md")).unwrap();
-    std::fs::write(
-        temp.path().join("CLAUDE.md"),
-        content.replace("TEMPNAME", dir_name),
-    )
-    .unwrap();
+    std::fs::write(temp.path().join("CLAUDE.md"), content.replace("TEMPNAME", dir_name)).unwrap();
     check("docs").pwd(temp.path()).passes();
 }
 
@@ -448,11 +428,7 @@ src/
 ```
 "#,
     );
-    check("docs")
-        .pwd(temp.path())
-        .fails()
-        .stdout_has("broken_toc")
-        .stdout_has("missing.rs");
+    check("docs").pwd(temp.path()).fails().stdout_has("broken_toc").stdout_has("missing.rs");
 }
 
 /// Spec: docs/specs/checks/docs.md#explicit-toc-syntax

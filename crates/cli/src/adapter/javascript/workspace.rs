@@ -55,12 +55,7 @@ impl JsWorkspace {
         }
 
         let (package_paths, package_names) = expand_workspace_patterns(&patterns, root);
-        Some(Self {
-            is_workspace: true,
-            package_paths,
-            package_names,
-            patterns,
-        })
+        Some(Self { is_workspace: true, package_paths, package_names, patterns })
     }
 
     fn from_package_json(root: &Path) -> Option<Self> {
@@ -72,10 +67,7 @@ impl JsWorkspace {
 
         // Handle both array and object forms
         let patterns: Vec<String> = match workspaces {
-            Value::Array(arr) => arr
-                .iter()
-                .filter_map(|v| v.as_str().map(String::from))
-                .collect(),
+            Value::Array(arr) => arr.iter().filter_map(|v| v.as_str().map(String::from)).collect(),
             Value::Object(obj) => {
                 // { "packages": ["..."] } form
                 obj.get("packages")?
@@ -92,12 +84,7 @@ impl JsWorkspace {
         }
 
         let (package_paths, package_names) = expand_workspace_patterns(&patterns, root);
-        Some(Self {
-            is_workspace: true,
-            package_paths,
-            package_names,
-            patterns,
-        })
+        Some(Self { is_workspace: true, package_paths, package_names, patterns })
     }
 }
 

@@ -307,26 +307,12 @@ impl AggregatedCoverage {
 
     /// Check if any coverage data is available.
     pub fn has_data(&self) -> bool {
-        self.rust
-            .as_ref()
-            .is_some_and(|r| r.line_coverage.is_some())
-            || self
-                .shell
-                .as_ref()
-                .is_some_and(|r| r.line_coverage.is_some())
+        self.rust.as_ref().is_some_and(|r| r.line_coverage.is_some())
+            || self.shell.as_ref().is_some_and(|r| r.line_coverage.is_some())
             || self.go.as_ref().is_some_and(|r| r.line_coverage.is_some())
-            || self
-                .javascript
-                .as_ref()
-                .is_some_and(|r| r.line_coverage.is_some())
-            || self
-                .ruby
-                .as_ref()
-                .is_some_and(|r| r.line_coverage.is_some())
-            || self
-                .python
-                .as_ref()
-                .is_some_and(|r| r.line_coverage.is_some())
+            || self.javascript.as_ref().is_some_and(|r| r.line_coverage.is_some())
+            || self.ruby.as_ref().is_some_and(|r| r.line_coverage.is_some())
+            || self.python.as_ref().is_some_and(|r| r.line_coverage.is_some())
     }
 }
 
@@ -445,11 +431,7 @@ pub fn run_with_timeout(mut child: Child, timeout: Option<Duration>) -> io::Resu
                                 buf
                             })
                             .unwrap_or_default();
-                        return Ok(Output {
-                            status,
-                            stdout,
-                            stderr,
-                        });
+                        return Ok(Output { status, stdout, stderr });
                     }
                     Ok(None) => {
                         // Process still running

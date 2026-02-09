@@ -23,10 +23,7 @@ use crate::prelude::*;
 /// > quench (bare invocation) shows help
 #[test]
 fn bare_invocation_shows_help() {
-    quench_cmd()
-        .assert()
-        .success()
-        .stdout(predicates::str::contains("Usage:"));
+    quench_cmd().assert().success().stdout(predicates::str::contains("Usage:"));
 }
 
 /// Spec: docs/specs/01-cli.md#exit-codes
@@ -34,11 +31,7 @@ fn bare_invocation_shows_help() {
 /// > Exit code 0 when invoked with --help
 #[test]
 fn help_exits_successfully() {
-    quench_cmd()
-        .arg("--help")
-        .assert()
-        .success()
-        .stdout(predicates::str::contains("quench"));
+    quench_cmd().arg("--help").assert().success().stdout(predicates::str::contains("quench"));
 }
 
 /// Spec: docs/specs/01-cli.md#commands
@@ -46,11 +39,7 @@ fn help_exits_successfully() {
 /// > quench help shows help
 #[test]
 fn help_command_shows_help() {
-    quench_cmd()
-        .arg("help")
-        .assert()
-        .success()
-        .stdout(predicates::str::contains("Usage:"));
+    quench_cmd().arg("help").assert().success().stdout(predicates::str::contains("Usage:"));
 }
 
 /// Spec: docs/specs/01-cli.md#exit-codes
@@ -69,11 +58,7 @@ fn check_command_exists() {
     let temp = Project::empty();
     temp.config(MINIMAL_CONFIG);
 
-    quench_cmd()
-        .arg("check")
-        .current_dir(temp.path())
-        .assert()
-        .success();
+    quench_cmd().arg("check").current_dir(temp.path()).assert().success();
 }
 
 /// Spec: docs/specs/01-cli.md#commands
@@ -90,11 +75,7 @@ fn report_command_exists() {
 #[test]
 fn init_command_exists() {
     let temp = Project::empty();
-    quench_cmd()
-        .arg("init")
-        .current_dir(temp.path())
-        .assert()
-        .success();
+    quench_cmd().arg("init").current_dir(temp.path()).assert().success();
 }
 
 /// Spec: docs/specs/01-cli.md#exit-codes

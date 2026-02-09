@@ -24,18 +24,9 @@ fn init_shell_profile_generates_config() {
         .stdout(predicates::str::contains("Created quench.toml"));
 
     let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
-    assert!(
-        config.contains("[shell]"),
-        "config should have [shell] section"
-    );
-    assert!(
-        config.contains("[shell.suppress]"),
-        "config should have [shell.suppress] section"
-    );
-    assert!(
-        config.contains("[shell.policy]"),
-        "config should have [shell.policy] section"
-    );
+    assert!(config.contains("[shell]"), "config should have [shell] section");
+    assert!(config.contains("[shell.suppress]"), "config should have [shell.suppress] section");
+    assert!(config.contains("[shell.policy]"), "config should have [shell.policy] section");
 }
 
 /// Spec: docs/specs/01-cli.md#profile-selection-recommended
@@ -45,25 +36,12 @@ fn init_shell_profile_generates_config() {
 fn init_shell_profile_includes_escape_patterns() {
     let temp = Project::empty();
 
-    quench_cmd()
-        .args(["init", "--with", "shell"])
-        .current_dir(temp.path())
-        .assert()
-        .success();
+    quench_cmd().args(["init", "--with", "shell"]).current_dir(temp.path()).assert().success();
 
     let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
-    assert!(
-        config.contains("[shell]"),
-        "config should have [shell] section"
-    );
-    assert!(
-        config.contains("[shell.suppress]"),
-        "config should have [shell.suppress] section"
-    );
-    assert!(
-        config.contains("[shell.policy]"),
-        "config should have [shell.policy] section"
-    );
+    assert!(config.contains("[shell]"), "config should have [shell] section");
+    assert!(config.contains("[shell.suppress]"), "config should have [shell.suppress] section");
+    assert!(config.contains("[shell.policy]"), "config should have [shell.policy] section");
 }
 
 /// Spec: docs/specs/01-cli.md#profile-selection-recommended
@@ -112,11 +90,7 @@ fn init_with_ruby_configures_ruby_defaults() {
 fn init_with_rb_alias() {
     let temp = Project::empty();
 
-    quench_cmd()
-        .args(["init", "--with", "rb"])
-        .current_dir(temp.path())
-        .assert()
-        .success();
+    quench_cmd().args(["init", "--with", "rb"]).current_dir(temp.path()).assert().success();
 
     let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
     assert!(config.contains("[ruby]"));
@@ -129,25 +103,12 @@ fn init_with_rb_alias() {
 fn init_ruby_profile_includes_debugger_patterns() {
     let temp = Project::empty();
 
-    quench_cmd()
-        .args(["init", "--with", "ruby"])
-        .current_dir(temp.path())
-        .assert()
-        .success();
+    quench_cmd().args(["init", "--with", "ruby"]).current_dir(temp.path()).assert().success();
 
     let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
-    assert!(
-        config.contains("[ruby]"),
-        "config should have [ruby] section"
-    );
-    assert!(
-        config.contains("[ruby.suppress]"),
-        "config should have [ruby.suppress] section"
-    );
-    assert!(
-        config.contains("[ruby.policy]"),
-        "config should have [ruby.policy] section"
-    );
+    assert!(config.contains("[ruby]"), "config should have [ruby] section");
+    assert!(config.contains("[ruby.suppress]"), "config should have [ruby.suppress] section");
+    assert!(config.contains("[ruby.policy]"), "config should have [ruby.policy] section");
 }
 
 // =============================================================================
@@ -181,11 +142,7 @@ fn init_with_python_configures_python_defaults() {
 fn init_with_py_alias() {
     let temp = Project::empty();
 
-    quench_cmd()
-        .args(["init", "--with", "py"])
-        .current_dir(temp.path())
-        .assert()
-        .success();
+    quench_cmd().args(["init", "--with", "py"]).current_dir(temp.path()).assert().success();
 
     let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
     assert!(config.contains("[python]"));
@@ -198,23 +155,10 @@ fn init_with_py_alias() {
 fn init_python_profile_includes_debugger_patterns() {
     let temp = Project::empty();
 
-    quench_cmd()
-        .args(["init", "--with", "python"])
-        .current_dir(temp.path())
-        .assert()
-        .success();
+    quench_cmd().args(["init", "--with", "python"]).current_dir(temp.path()).assert().success();
 
     let config = std::fs::read_to_string(temp.path().join("quench.toml")).unwrap();
-    assert!(
-        config.contains("[python]"),
-        "config should have [python] section"
-    );
-    assert!(
-        config.contains("[python.suppress]"),
-        "config should have [python.suppress] section"
-    );
-    assert!(
-        config.contains("[python.policy]"),
-        "config should have [python.policy] section"
-    );
+    assert!(config.contains("[python]"), "config should have [python] section");
+    assert!(config.contains("[python.suppress]"), "config should have [python.suppress] section");
+    assert!(config.contains("[python.policy]"), "config should have [python.policy] section");
 }

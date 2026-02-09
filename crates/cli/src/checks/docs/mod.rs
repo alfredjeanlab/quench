@@ -34,9 +34,7 @@ pub(super) struct PathCache {
 
 impl PathCache {
     pub fn new() -> Self {
-        Self {
-            exists: DashMap::new(),
-        }
+        Self { exists: DashMap::new() }
     }
 
     /// Check if a path exists, using cache.
@@ -164,11 +162,7 @@ impl Check for DocsCheck {
             CheckResult::failed("docs", violations)
         };
 
-        if let Some(m) = metrics {
-            result.with_metrics(m)
-        } else {
-            result
-        }
+        if let Some(m) = metrics { result.with_metrics(m) } else { result }
     }
 
     fn default_enabled(&self) -> bool {

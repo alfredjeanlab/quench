@@ -30,9 +30,7 @@ fn auto_detected_when_pyproject_toml_present() {
     let result = cli().on("python/auto-detect-pyproject").json().passes();
     let checks = result.checks();
     assert!(
-        checks
-            .iter()
-            .any(|c| c.get("name").and_then(|n| n.as_str()) == Some("cloc")),
+        checks.iter().any(|c| c.get("name").and_then(|n| n.as_str()) == Some("cloc")),
         "cloc check should be present for Python project"
     );
 }
@@ -45,9 +43,7 @@ fn auto_detected_when_setup_py_present() {
     let result = cli().on("python/auto-detect-setup-py").json().passes();
     let checks = result.checks();
     assert!(
-        checks
-            .iter()
-            .any(|c| c.get("name").and_then(|n| n.as_str()) == Some("cloc")),
+        checks.iter().any(|c| c.get("name").and_then(|n| n.as_str()) == Some("cloc")),
         "cloc check should be present for Python project"
     );
 }
@@ -60,9 +56,7 @@ fn auto_detected_when_requirements_txt_present() {
     let result = cli().on("python/auto-detect-requirements").json().passes();
     let checks = result.checks();
     assert!(
-        checks
-            .iter()
-            .any(|c| c.get("name").and_then(|n| n.as_str()) == Some("cloc")),
+        checks.iter().any(|c| c.get("name").and_then(|n| n.as_str()) == Some("cloc")),
         "cloc check should be present for Python project"
     );
 }
@@ -76,11 +70,7 @@ fn python_adapter_auto_detected_when_pyproject_toml_present() {
     let checks = result.checks();
 
     // escapes check should have python-specific patterns active
-    assert!(
-        checks
-            .iter()
-            .any(|c| c.get("name").and_then(|n| n.as_str()) == Some("escapes"))
-    );
+    assert!(checks.iter().any(|c| c.get("name").and_then(|n| n.as_str()) == Some("escapes")));
 }
 
 /// Spec: docs/specs/langs/python.md#detection
@@ -91,11 +81,7 @@ fn python_adapter_auto_detected_when_setup_py_present() {
     let result = cli().on("python/setup-py").json().passes();
     let checks = result.checks();
 
-    assert!(
-        checks
-            .iter()
-            .any(|c| c.get("name").and_then(|n| n.as_str()) == Some("escapes"))
-    );
+    assert!(checks.iter().any(|c| c.get("name").and_then(|n| n.as_str()) == Some("escapes")));
 }
 
 /// Spec: docs/specs/langs/python.md#detection
@@ -106,11 +92,7 @@ fn python_adapter_auto_detected_when_setup_cfg_present() {
     let result = cli().on("python/setup-cfg").json().passes();
     let checks = result.checks();
 
-    assert!(
-        checks
-            .iter()
-            .any(|c| c.get("name").and_then(|n| n.as_str()) == Some("escapes"))
-    );
+    assert!(checks.iter().any(|c| c.get("name").and_then(|n| n.as_str()) == Some("escapes")));
 }
 
 /// Spec: docs/specs/langs/python.md#detection
@@ -121,11 +103,7 @@ fn python_adapter_auto_detected_when_requirements_txt_present() {
     let result = cli().on("python/requirements").json().passes();
     let checks = result.checks();
 
-    assert!(
-        checks
-            .iter()
-            .any(|c| c.get("name").and_then(|n| n.as_str()) == Some("escapes"))
-    );
+    assert!(checks.iter().any(|c| c.get("name").and_then(|n| n.as_str()) == Some("escapes")));
 }
 
 // =============================================================================
@@ -137,15 +115,9 @@ fn python_adapter_auto_detected_when_requirements_txt_present() {
 /// > Default source patterns (**/*.py)
 #[test]
 fn default_source_pattern_matches_py_files() {
-    let cloc = check("cloc")
-        .on("python/auto-detect-pyproject")
-        .json()
-        .passes();
+    let cloc = check("cloc").on("python/auto-detect-pyproject").json().passes();
     let metrics = cloc.require("metrics");
-    let source_lines = metrics
-        .get("source_lines")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(0);
+    let source_lines = metrics.get("source_lines").and_then(|v| v.as_u64()).unwrap_or(0);
     assert!(source_lines > 0, "should count .py files as source");
 }
 
@@ -154,15 +126,9 @@ fn default_source_pattern_matches_py_files() {
 /// > Default test patterns (tests/**/*.py, test_*.py, *_test.py, conftest.py)
 #[test]
 fn default_test_pattern_matches_test_files() {
-    let cloc = check("cloc")
-        .on("python/auto-detect-pyproject")
-        .json()
-        .passes();
+    let cloc = check("cloc").on("python/auto-detect-pyproject").json().passes();
     let metrics = cloc.require("metrics");
-    let test_lines = metrics
-        .get("test_lines")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(0);
+    let test_lines = metrics.get("test_lines").and_then(|v| v.as_u64()).unwrap_or(0);
     assert!(test_lines > 0, "should count test_*.py files as test");
 }
 
@@ -173,16 +139,9 @@ fn default_test_pattern_matches_test_files() {
 fn default_ignores_venv_directory() {
     let cloc = check("cloc").on("python/venv-ignore").json().passes();
     let metrics = cloc.require("metrics");
-    let source_lines = metrics
-        .get("source_lines")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(0);
+    let source_lines = metrics.get("source_lines").and_then(|v| v.as_u64()).unwrap_or(0);
     // Only src/myproject/__init__.py should be counted, not .venv/lib/site.py
-    assert!(
-        source_lines < 20,
-        ".venv/ should be ignored, got {} lines",
-        source_lines
-    );
+    assert!(source_lines < 20, ".venv/ should be ignored, got {} lines", source_lines);
 }
 
 /// Spec: docs/specs/langs/python.md#default-patterns
@@ -194,10 +153,7 @@ fn python_adapter_default_source_pattern_matches_py_files() {
     let metrics = cloc.require("metrics");
 
     // Should count .py files as source
-    let source_lines = metrics
-        .get("source_lines")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(0);
+    let source_lines = metrics.get("source_lines").and_then(|v| v.as_u64()).unwrap_or(0);
     assert!(source_lines > 0, "should count .py files as source");
 }
 
@@ -209,16 +165,10 @@ fn python_adapter_default_test_pattern_matches_test_files() {
     let cloc = check("cloc").on("python/auto-detect").json().passes();
     let metrics = cloc.require("metrics");
 
-    let test_lines = metrics
-        .get("test_lines")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(0);
+    let test_lines = metrics.get("test_lines").and_then(|v| v.as_u64()).unwrap_or(0);
 
     // tests/test_app.py should be counted as test LOC
-    assert!(
-        test_lines > 0,
-        "test files in tests/ should be counted as test LOC"
-    );
+    assert!(test_lines > 0, "test files in tests/ should be counted as test LOC");
 }
 
 /// Spec: docs/specs/langs/python.md#default-patterns
@@ -227,10 +177,7 @@ fn python_adapter_default_test_pattern_matches_test_files() {
 #[test]
 fn python_adapter_default_ignores_venv_directory() {
     let temp = Project::empty();
-    temp.file(
-        "pyproject.toml",
-        "[project]\nname = \"test\"\nversion = \"0.1.0\"\n",
-    );
+    temp.file("pyproject.toml", "[project]\nname = \"test\"\nversion = \"0.1.0\"\n");
     temp.file("src/app.py", "def main(): pass");
     temp.file(".venv/lib/site.py", "# should be ignored");
 
@@ -239,9 +186,7 @@ fn python_adapter_default_ignores_venv_directory() {
 
     if let Some(files) = files {
         assert!(
-            !files
-                .iter()
-                .any(|f| { f.as_str().map(|s| s.contains(".venv/")).unwrap_or(false) }),
+            !files.iter().any(|f| { f.as_str().map(|s| s.contains(".venv/")).unwrap_or(false) }),
             ".venv/ directory should be ignored"
         );
     }
@@ -253,10 +198,7 @@ fn python_adapter_default_ignores_venv_directory() {
 #[test]
 fn python_adapter_default_ignores_pycache_directory() {
     let temp = Project::empty();
-    temp.file(
-        "pyproject.toml",
-        "[project]\nname = \"test\"\nversion = \"0.1.0\"\n",
-    );
+    temp.file("pyproject.toml", "[project]\nname = \"test\"\nversion = \"0.1.0\"\n");
     temp.file("src/app.py", "def main(): pass");
     temp.file("src/__pycache__/app.cpython-311.pyc", "# compiled");
 
@@ -265,11 +207,9 @@ fn python_adapter_default_ignores_pycache_directory() {
 
     if let Some(files) = files {
         assert!(
-            !files.iter().any(|f| {
-                f.as_str()
-                    .map(|s| s.contains("__pycache__/"))
-                    .unwrap_or(false)
-            }),
+            !files
+                .iter()
+                .any(|f| { f.as_str().map(|s| s.contains("__pycache__/")).unwrap_or(false) }),
             "__pycache__/ directory should be ignored"
         );
     }
@@ -286,10 +226,7 @@ fn python_adapter_default_ignores_pycache_directory() {
 fn detects_src_layout_structure() {
     let cloc = check("cloc").on("python/src-layout").json().passes();
     let metrics = cloc.require("metrics");
-    let source_lines = metrics
-        .get("source_lines")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(0);
+    let source_lines = metrics.get("source_lines").and_then(|v| v.as_u64()).unwrap_or(0);
     assert!(source_lines > 0, "should detect src-layout");
 }
 
@@ -300,10 +237,7 @@ fn detects_src_layout_structure() {
 fn detects_flat_layout_structure() {
     let cloc = check("cloc").on("python/flat-layout").json().passes();
     let metrics = cloc.require("metrics");
-    let source_lines = metrics
-        .get("source_lines")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(0);
+    let source_lines = metrics.get("source_lines").and_then(|v| v.as_u64()).unwrap_or(0);
     assert!(source_lines > 0, "should detect flat-layout");
 }
 
@@ -320,10 +254,7 @@ fn python_adapter_detects_package_name_from_pyproject_toml() {
 
     // Package detection should identify "test-project" from pyproject.toml
     let by_package = cloc.get("by_package");
-    assert!(
-        by_package.is_some(),
-        "should detect package from pyproject.toml"
-    );
+    assert!(by_package.is_some(), "should detect package from pyproject.toml");
 }
 
 /// Spec: docs/specs/langs/python.md#package-detection
@@ -347,10 +278,7 @@ fn python_adapter_detects_src_layout_package() {
 
     // Should detect "mypackage" from src/mypackage/__init__.py
     let by_package = cloc.get("by_package");
-    assert!(
-        by_package.is_some(),
-        "should detect package from src-layout structure"
-    );
+    assert!(by_package.is_some(), "should detect package from src-layout structure");
 }
 
 /// Spec: docs/specs/langs/python.md#package-detection
@@ -362,10 +290,7 @@ fn python_adapter_detects_flat_layout_package() {
 
     // Should detect "mypackage" from mypackage/__init__.py
     let by_package = cloc.get("by_package");
-    assert!(
-        by_package.is_some(),
-        "should detect package from flat-layout structure"
-    );
+    assert!(by_package.is_some(), "should detect package from flat-layout structure");
 }
 
 // =============================================================================
@@ -398,16 +323,10 @@ fn python_adapter_eval_with_comment_passes() {
 #[test]
 fn python_adapter_exec_without_comment_fails() {
     let temp = Project::empty();
-    temp.file(
-        "pyproject.toml",
-        "[project]\nname = \"test\"\nversion = \"0.1.0\"\n",
-    );
+    temp.file("pyproject.toml", "[project]\nname = \"test\"\nversion = \"0.1.0\"\n");
     temp.file("src/runner.py", "exec(code_string)");
 
-    check("escapes")
-        .pwd(temp.path())
-        .fails()
-        .stdout_has("# EXEC:");
+    check("escapes").pwd(temp.path()).fails().stdout_has("# EXEC:");
 }
 
 /// Spec: docs/specs/langs/python.md#default-escape-patterns
@@ -416,16 +335,10 @@ fn python_adapter_exec_without_comment_fails() {
 #[test]
 fn python_adapter_dynamic_import_without_comment_fails() {
     let temp = Project::empty();
-    temp.file(
-        "pyproject.toml",
-        "[project]\nname = \"test\"\nversion = \"0.1.0\"\n",
-    );
+    temp.file("pyproject.toml", "[project]\nname = \"test\"\nversion = \"0.1.0\"\n");
     temp.file("src/loader.py", "mod = __import__(module_name)");
 
-    check("escapes")
-        .pwd(temp.path())
-        .fails()
-        .stdout_has("# DYNAMIC:");
+    check("escapes").pwd(temp.path()).fails().stdout_has("# DYNAMIC:");
 }
 
 /// Spec: docs/specs/langs/python.md#default-escape-patterns
@@ -433,10 +346,7 @@ fn python_adapter_dynamic_import_without_comment_fails() {
 /// > breakpoint() | forbid
 #[test]
 fn python_adapter_breakpoint_always_fails() {
-    check("escapes")
-        .on("python/debugger-fail")
-        .fails()
-        .stdout_has("breakpoint()");
+    check("escapes").on("python/debugger-fail").fails().stdout_has("breakpoint()");
 }
 
 /// Spec: docs/specs/langs/python.md#default-escape-patterns
@@ -445,16 +355,10 @@ fn python_adapter_breakpoint_always_fails() {
 #[test]
 fn python_adapter_pdb_set_trace_always_fails() {
     let temp = Project::empty();
-    temp.file(
-        "pyproject.toml",
-        "[project]\nname = \"test\"\nversion = \"0.1.0\"\n",
-    );
+    temp.file("pyproject.toml", "[project]\nname = \"test\"\nversion = \"0.1.0\"\n");
     temp.file("src/debug.py", "import pdb; pdb.set_trace()");
 
-    check("escapes")
-        .pwd(temp.path())
-        .fails()
-        .stdout_has("pdb.set_trace()");
+    check("escapes").pwd(temp.path()).fails().stdout_has("pdb.set_trace()");
 }
 
 /// Spec: docs/specs/langs/python.md#default-escape-patterns
@@ -463,16 +367,10 @@ fn python_adapter_pdb_set_trace_always_fails() {
 #[test]
 fn python_adapter_import_pdb_always_fails() {
     let temp = Project::empty();
-    temp.file(
-        "pyproject.toml",
-        "[project]\nname = \"test\"\nversion = \"0.1.0\"\n",
-    );
+    temp.file("pyproject.toml", "[project]\nname = \"test\"\nversion = \"0.1.0\"\n");
     temp.file("src/debug.py", "import pdb\n\ndef debug(): pass");
 
-    check("escapes")
-        .pwd(temp.path())
-        .fails()
-        .stdout_has("import pdb");
+    check("escapes").pwd(temp.path()).fails().stdout_has("import pdb");
 }
 
 // =============================================================================
@@ -484,10 +382,7 @@ fn python_adapter_import_pdb_always_fails() {
 /// > "comment" - Requires justification comment
 #[test]
 fn python_adapter_noqa_without_comment_fails_when_configured() {
-    check("escapes")
-        .on("python/suppress-fail")
-        .fails()
-        .stdout_has("# noqa");
+    check("escapes").on("python/suppress-fail").fails().stdout_has("# noqa");
 }
 
 /// Spec: docs/specs/langs/python.md#suppress
@@ -501,15 +396,9 @@ fn python_adapter_noqa_with_comment_passes() {
 check = "comment"
 "#,
     );
-    temp.file(
-        "pyproject.toml",
-        "[project]\nname = \"test\"\nversion = \"0.1.0\"\n",
-    );
+    temp.file("pyproject.toml", "[project]\nname = \"test\"\nversion = \"0.1.0\"\n");
     // Noqa with justification
-    temp.file(
-        "src/app.py",
-        "# Legacy API compatibility\nx = 1  # noqa: E501",
-    );
+    temp.file("src/app.py", "# Legacy API compatibility\nx = 1  # noqa: E501");
 
     check("escapes").pwd(temp.path()).passes();
 }
@@ -525,16 +414,10 @@ fn python_adapter_type_ignore_without_comment_fails_when_configured() {
 check = "comment"
 "#,
     );
-    temp.file(
-        "pyproject.toml",
-        "[project]\nname = \"test\"\nversion = \"0.1.0\"\n",
-    );
+    temp.file("pyproject.toml", "[project]\nname = \"test\"\nversion = \"0.1.0\"\n");
     temp.file("src/app.py", "x: int = \"not int\"  # type: ignore");
 
-    check("escapes")
-        .pwd(temp.path())
-        .fails()
-        .stdout_has("# type: ignore");
+    check("escapes").pwd(temp.path()).fails().stdout_has("# type: ignore");
 }
 
 /// Spec: docs/specs/langs/python.md#suppress
@@ -550,10 +433,7 @@ check = "comment"
 check = "allow"
 "#,
     );
-    temp.file(
-        "pyproject.toml",
-        "[project]\nname = \"test\"\nversion = \"0.1.0\"\n",
-    );
+    temp.file("pyproject.toml", "[project]\nname = \"test\"\nversion = \"0.1.0\"\n");
     temp.file("tests/test_app.py", "x = 1  # noqa\n\ndef test_x(): pass");
 
     check("escapes").pwd(temp.path()).passes();
@@ -570,19 +450,10 @@ fn python_adapter_pylint_disable_without_comment_fails_when_configured() {
 check = "comment"
 "#,
     );
-    temp.file(
-        "pyproject.toml",
-        "[project]\nname = \"test\"\nversion = \"0.1.0\"\n",
-    );
-    temp.file(
-        "src/app.py",
-        "# pylint: disable=missing-docstring\ndef f(): pass",
-    );
+    temp.file("pyproject.toml", "[project]\nname = \"test\"\nversion = \"0.1.0\"\n");
+    temp.file("src/app.py", "# pylint: disable=missing-docstring\ndef f(): pass");
 
-    check("escapes")
-        .pwd(temp.path())
-        .fails()
-        .stdout_has("# pylint: disable");
+    check("escapes").pwd(temp.path()).fails().stdout_has("# pylint: disable");
 }
 
 // =============================================================================
@@ -605,17 +476,10 @@ lint_config = ["pyproject.toml"]
     );
 
     // Setup pyproject.toml
-    temp.file(
-        "pyproject.toml",
-        "[project]\nname = \"test\"\nversion = \"0.1.0\"\n",
-    );
+    temp.file("pyproject.toml", "[project]\nname = \"test\"\nversion = \"0.1.0\"\n");
 
     // Initialize git repo
-    std::process::Command::new("git")
-        .args(["init"])
-        .current_dir(temp.path())
-        .output()
-        .unwrap();
+    std::process::Command::new("git").args(["init"]).current_dir(temp.path()).output().unwrap();
 
     std::process::Command::new("git")
         .args(["config", "user.email", "test@test.com"])
@@ -682,17 +546,10 @@ lint_config = ["ruff.toml"]
     );
 
     // Setup pyproject.toml
-    temp.file(
-        "pyproject.toml",
-        "[project]\nname = \"test\"\nversion = \"0.1.0\"\n",
-    );
+    temp.file("pyproject.toml", "[project]\nname = \"test\"\nversion = \"0.1.0\"\n");
 
     // Initialize git repo
-    std::process::Command::new("git")
-        .args(["init"])
-        .current_dir(temp.path())
-        .output()
-        .unwrap();
+    std::process::Command::new("git").args(["init"]).current_dir(temp.path()).output().unwrap();
 
     std::process::Command::new("git")
         .args(["config", "user.email", "test@test.com"])
@@ -731,8 +588,5 @@ lint_config = ["ruff.toml"]
         .unwrap();
 
     // Should pass - only lint config changed
-    check("escapes")
-        .pwd(temp.path())
-        .args(&["--base", "HEAD"])
-        .passes();
+    check("escapes").pwd(temp.path()).args(&["--base", "HEAD"]).passes();
 }

@@ -148,10 +148,8 @@ pub fn detect_box_diagrams(content: &str) -> Vec<ContentIssue> {
         // Check for box-drawing characters (need at least 2 to be a diagram)
         let box_count = line.chars().filter(|c| box_chars.contains(c)).count();
         if box_count >= 2 {
-            issues.push(ContentIssue {
-                line: (i + 1) as u32,
-                content_type: ContentType::BoxDiagram,
-            });
+            issues
+                .push(ContentIssue { line: (i + 1) as u32, content_type: ContentType::BoxDiagram });
             // Only report first occurrence per file to avoid noise
             break;
         }

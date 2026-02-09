@@ -18,12 +18,7 @@ fn bench_cli_startup(c: &mut Criterion) {
     let quench_bin = env!("CARGO_BIN_EXE_quench");
 
     c.bench_function("cli_startup", |b| {
-        b.iter(|| {
-            Command::new(quench_bin)
-                .arg("--help")
-                .output()
-                .expect("quench should run")
-        })
+        b.iter(|| Command::new(quench_bin).arg("--help").output().expect("quench should run"))
     });
 }
 
@@ -32,12 +27,7 @@ fn bench_version_check(c: &mut Criterion) {
     let quench_bin = env!("CARGO_BIN_EXE_quench");
 
     c.bench_function("version_check", |b| {
-        b.iter(|| {
-            Command::new(quench_bin)
-                .arg("--version")
-                .output()
-                .expect("quench should run")
-        })
+        b.iter(|| Command::new(quench_bin).arg("--version").output().expect("quench should run"))
     });
 }
 

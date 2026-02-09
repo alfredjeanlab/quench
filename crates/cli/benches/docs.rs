@@ -41,11 +41,7 @@ fn stress_fixture_path(name: &str) -> PathBuf {
 fn generate_nested_tree(depth: usize) -> String {
     let mut lines = vec!["```".to_string(), "src/".to_string()];
     for level in 1..=depth {
-        let prefix = if level == depth {
-            "└── "
-        } else {
-            "├── "
-        };
+        let prefix = if level == depth { "└── " } else { "├── " };
         let indent = "│   ".repeat(level - 1);
         lines.push(format!("{}{}level_{}/", indent, prefix, level));
     }
@@ -69,9 +65,7 @@ fn generate_wide_tree(width: usize) -> String {
 
 /// Generate markdown content with N links.
 fn generate_content_with_links(count: usize) -> String {
-    (0..count)
-        .map(|i| format!("See [file {}](path/to/file_{}.md) for details.\n", i, i))
-        .collect()
+    (0..count).map(|i| format!("See [file {}](path/to/file_{}.md) for details.\n", i, i)).collect()
 }
 
 /// Benchmark TOC tree generation and parsing helpers.
@@ -82,20 +76,16 @@ fn bench_tree_generation(c: &mut Criterion) {
 
     // Benchmark tree generation at various depths
     for depth in [5, 10, 20] {
-        group.bench_with_input(
-            BenchmarkId::new("nested_depth", depth),
-            &depth,
-            |b, &depth| b.iter(|| black_box(generate_nested_tree(depth))),
-        );
+        group.bench_with_input(BenchmarkId::new("nested_depth", depth), &depth, |b, &depth| {
+            b.iter(|| black_box(generate_nested_tree(depth)))
+        });
     }
 
     // Benchmark wide tree generation
     for width in [10, 50, 100] {
-        group.bench_with_input(
-            BenchmarkId::new("wide_width", width),
-            &width,
-            |b, &width| b.iter(|| black_box(generate_wide_tree(width))),
-        );
+        group.bench_with_input(BenchmarkId::new("wide_width", width), &width, |b, &width| {
+            b.iter(|| black_box(generate_wide_tree(width)))
+        });
     }
 
     group.finish();

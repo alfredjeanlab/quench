@@ -98,10 +98,7 @@ fn compact_mode_produces_single_line() {
 
     // Compact JSON should not have embedded newlines (except possibly trailing)
     let trimmed = output.trim();
-    assert!(
-        !trimmed.contains('\n'),
-        "Compact output should be single line"
-    );
+    assert!(!trimmed.contains('\n'), "Compact output should be single line");
 }
 
 #[test]
@@ -111,10 +108,7 @@ fn non_compact_mode_is_pretty_printed() {
     let output = formatter.format(&baseline, &AllChecks).unwrap();
 
     // Pretty-printed JSON should have newlines
-    assert!(
-        output.contains('\n'),
-        "Non-compact output should be multi-line"
-    );
+    assert!(output.contains('\n'), "Non-compact output should be multi-line");
 }
 
 #[test]
@@ -123,10 +117,7 @@ fn default_mode_is_pretty_printed() {
     let formatter = JsonFormatter::default();
     let output = formatter.format(&baseline, &AllChecks).unwrap();
 
-    assert!(
-        output.contains('\n'),
-        "Default output should be pretty-printed"
-    );
+    assert!(output.contains('\n'), "Default output should be pretty-printed");
 }
 
 // =============================================================================
@@ -228,13 +219,9 @@ fn excludes_escapes_when_filtered() {
 fn json_format_escapes_includes_all_patterns() {
     let mut baseline = create_test_baseline();
     baseline.metrics.escapes = Some(EscapesMetrics {
-        source: [
-            ("unwrap".to_string(), 10),
-            ("expect".to_string(), 5),
-            ("panic".to_string(), 2),
-        ]
-        .into_iter()
-        .collect(),
+        source: [("unwrap".to_string(), 10), ("expect".to_string(), 5), ("panic".to_string(), 2)]
+            .into_iter()
+            .collect(),
         test: None,
     });
 

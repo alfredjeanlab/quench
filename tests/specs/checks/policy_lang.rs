@@ -16,11 +16,7 @@ use crate::prelude::*;
 
 /// Helper to setup git repo with initial commit
 fn setup_git_repo(temp: &Project) {
-    std::process::Command::new("git")
-        .args(["init"])
-        .current_dir(temp.path())
-        .output()
-        .unwrap();
+    std::process::Command::new("git").args(["init"]).current_dir(temp.path()).output().unwrap();
 
     std::process::Command::new("git")
         .args(["config", "user.email", "test@test.com"])
@@ -72,10 +68,7 @@ lint_changes = "standalone"
     );
 
     // Setup Cargo.toml
-    temp.file(
-        "Cargo.toml",
-        "[package]\nname = \"test\"\nversion = \"0.1.0\"\n",
-    );
+    temp.file("Cargo.toml", "[package]\nname = \"test\"\nversion = \"0.1.0\"\n");
 
     // Initialize git repo and create initial commit
     setup_git_repo(&temp);
@@ -89,10 +82,7 @@ lint_changes = "standalone"
     git_add_all(&temp);
 
     // Should pass - check is "off"
-    check("escapes")
-        .pwd(temp.path())
-        .args(&["--base", "HEAD"])
-        .passes();
+    check("escapes").pwd(temp.path()).args(&["--base", "HEAD"]).passes();
 }
 
 /// Spec: docs/specs/langs/rust.md#policy
@@ -112,10 +102,7 @@ lint_changes = "standalone"
     );
 
     // Setup Cargo.toml
-    temp.file(
-        "Cargo.toml",
-        "[package]\nname = \"test\"\nversion = \"0.1.0\"\n",
-    );
+    temp.file("Cargo.toml", "[package]\nname = \"test\"\nversion = \"0.1.0\"\n");
 
     // Initialize git repo and create initial commit
     setup_git_repo(&temp);
@@ -129,11 +116,7 @@ lint_changes = "standalone"
     git_add_all(&temp);
 
     // Should pass (warning only) but output warning message
-    check("escapes")
-        .pwd(temp.path())
-        .args(&["--base", "HEAD"])
-        .passes()
-        .stdout_has("lint_policy");
+    check("escapes").pwd(temp.path()).args(&["--base", "HEAD"]).passes().stdout_has("lint_policy");
 }
 
 // =============================================================================
@@ -171,10 +154,7 @@ lint_changes = "standalone"
     git_add_all(&temp);
 
     // Should pass - check is "off"
-    check("escapes")
-        .pwd(temp.path())
-        .args(&["--base", "HEAD"])
-        .passes();
+    check("escapes").pwd(temp.path()).args(&["--base", "HEAD"]).passes();
 }
 
 /// Spec: docs/specs/langs/golang.md#policy
@@ -208,11 +188,7 @@ lint_changes = "standalone"
     git_add_all(&temp);
 
     // Should pass (warning only) but output warning message
-    check("escapes")
-        .pwd(temp.path())
-        .args(&["--base", "HEAD"])
-        .passes()
-        .stdout_has("lint_policy");
+    check("escapes").pwd(temp.path()).args(&["--base", "HEAD"]).passes().stdout_has("lint_policy");
 }
 
 // =============================================================================
@@ -236,10 +212,7 @@ lint_changes = "standalone"
     );
 
     // Setup package.json
-    temp.file(
-        "package.json",
-        r#"{"name": "test", "version": "1.0.0", "type": "module"}"#,
-    );
+    temp.file("package.json", r#"{"name": "test", "version": "1.0.0", "type": "module"}"#);
 
     // Initialize git repo and create initial commit
     setup_git_repo(&temp);
@@ -253,10 +226,7 @@ lint_changes = "standalone"
     git_add_all(&temp);
 
     // Should pass - check is "off"
-    check("escapes")
-        .pwd(temp.path())
-        .args(&["--base", "HEAD"])
-        .passes();
+    check("escapes").pwd(temp.path()).args(&["--base", "HEAD"]).passes();
 }
 
 // =============================================================================
@@ -291,10 +261,7 @@ lint_changes = "standalone"
     git_add_all(&temp);
 
     // Should pass - check is "off"
-    check("escapes")
-        .pwd(temp.path())
-        .args(&["--base", "HEAD"])
-        .passes();
+    check("escapes").pwd(temp.path()).args(&["--base", "HEAD"]).passes();
 }
 
 // =============================================================================
@@ -325,10 +292,7 @@ lint_changes = "standalone"
     );
 
     // Setup Cargo.toml (Rust is the primary detected language)
-    temp.file(
-        "Cargo.toml",
-        "[package]\nname = \"test\"\nversion = \"0.1.0\"\n",
-    );
+    temp.file("Cargo.toml", "[package]\nname = \"test\"\nversion = \"0.1.0\"\n");
 
     // Initialize git repo and create initial commit
     setup_git_repo(&temp);
@@ -342,18 +306,11 @@ lint_changes = "standalone"
     git_add_all(&temp);
 
     // Rust policy violation should cause failure
-    let result = check("escapes")
-        .pwd(temp.path())
-        .args(&["--base", "HEAD"])
-        .json()
-        .fails();
+    let result = check("escapes").pwd(temp.path()).args(&["--base", "HEAD"]).json().fails();
 
     let violations = result.require("violations").as_array().unwrap();
     assert!(violations.iter().any(|v| {
-        v.get("type")
-            .and_then(|t| t.as_str())
-            .map(|t| t == "lint_policy")
-            .unwrap_or(false)
+        v.get("type").and_then(|t| t.as_str()).map(|t| t == "lint_policy").unwrap_or(false)
     }));
 }
 
@@ -377,10 +334,7 @@ lint_changes = "standalone"
     );
 
     // Setup Cargo.toml (Rust is the primary detected language)
-    temp.file(
-        "Cargo.toml",
-        "[package]\nname = \"test\"\nversion = \"0.1.0\"\n",
-    );
+    temp.file("Cargo.toml", "[package]\nname = \"test\"\nversion = \"0.1.0\"\n");
 
     // Initialize git repo and create initial commit
     setup_git_repo(&temp);
@@ -394,9 +348,5 @@ lint_changes = "standalone"
     git_add_all(&temp);
 
     // Rust violations should cause failure
-    check("escapes")
-        .pwd(temp.path())
-        .args(&["--base", "HEAD"])
-        .fails()
-        .stdout_has("lint_policy");
+    check("escapes").pwd(temp.path()).args(&["--base", "HEAD"]).fails().stdout_has("lint_policy");
 }

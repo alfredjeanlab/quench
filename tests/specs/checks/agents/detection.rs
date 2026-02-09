@@ -21,10 +21,7 @@ fn agents_detects_claude_md_at_project_root() {
     let agents = check("agents").on("agents/basic").json().passes();
     let metrics = agents.require("metrics");
     let files_found = metrics.get("files_found").unwrap().as_array().unwrap();
-    assert!(
-        files_found.iter().any(|f| f.as_str() == Some("CLAUDE.md")),
-        "should detect CLAUDE.md"
-    );
+    assert!(files_found.iter().any(|f| f.as_str() == Some("CLAUDE.md")), "should detect CLAUDE.md");
 }
 
 /// Spec: docs/specs/checks/agents.md#agent-files
@@ -36,9 +33,7 @@ fn agents_detects_cursorrules_at_project_root() {
     let metrics = agents.require("metrics");
     let files_found = metrics.get("files_found").unwrap().as_array().unwrap();
     assert!(
-        files_found
-            .iter()
-            .any(|f| f.as_str() == Some(".cursorrules")),
+        files_found.iter().any(|f| f.as_str() == Some(".cursorrules")),
         "should detect .cursorrules"
     );
 }
@@ -115,15 +110,9 @@ fn agents_missing_section_generates_violation_with_advice() {
         .iter()
         .find(|v| v.get("type").and_then(|t| t.as_str()) == Some("missing_section"));
 
-    assert!(
-        missing_section.is_some(),
-        "should have missing_section violation"
-    );
+    assert!(missing_section.is_some(), "should have missing_section violation");
 
-    let advice = missing_section
-        .unwrap()
-        .get("advice")
-        .and_then(|a| a.as_str());
+    let advice = missing_section.unwrap().get("advice").and_then(|a| a.as_str());
     assert!(
         advice.is_some() && !advice.unwrap().is_empty(),
         "missing_section violation should have advice"
@@ -131,14 +120,8 @@ fn agents_missing_section_generates_violation_with_advice() {
 
     // Verify advice includes section name and configured advice
     let advice_text = advice.unwrap();
-    assert!(
-        advice_text.contains("Landing the Plane"),
-        "advice should include section name"
-    );
-    assert!(
-        advice_text.contains("Checklist"),
-        "advice should include configured advice text"
-    );
+    assert!(advice_text.contains("Landing the Plane"), "advice should include section name");
+    assert!(advice_text.contains("Checklist"), "advice should include configured advice text");
 }
 
 /// Spec: docs/specs/checks/agents.md#forbidden-sections
@@ -146,10 +129,7 @@ fn agents_missing_section_generates_violation_with_advice() {
 /// > Having a forbidden section generates a violation.
 #[test]
 fn agents_forbidden_section_generates_violation() {
-    let agents = check("agents")
-        .on("agents/forbidden-section")
-        .json()
-        .fails();
+    let agents = check("agents").on("agents/forbidden-section").json().fails();
     let violations = agents.require("violations").as_array().unwrap();
 
     assert!(
@@ -165,10 +145,7 @@ fn agents_forbidden_section_generates_violation() {
 /// > Glob patterns match multiple section names.
 #[test]
 fn agents_forbidden_section_glob_matches() {
-    let agents = check("agents")
-        .on("agents/forbidden-section")
-        .json()
-        .fails();
+    let agents = check("agents").on("agents/forbidden-section").json().fails();
     let violations = agents.require("violations").as_array().unwrap();
 
     let matches_test = violations.iter().any(|v| {

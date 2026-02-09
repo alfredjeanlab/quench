@@ -92,10 +92,7 @@ pub fn parse_suppress_attrs(content: &str, comment_pattern: Option<&str>) -> Vec
                 }
             } else {
                 // Multi-line attribute starts here
-                pending = Some(PendingAttr {
-                    content: trimmed.to_string(),
-                    start_line: line_idx,
-                });
+                pending = Some(PendingAttr { content: trimmed.to_string(), start_line: line_idx });
             }
         }
     }
@@ -153,11 +150,8 @@ fn parse_suppress_line(line: &str) -> Option<ParsedAttr> {
     }
 
     let codes_str = &line[start..end];
-    let codes: Vec<String> = codes_str
-        .split(',')
-        .map(|s| s.trim().to_string())
-        .filter(|s| !s.is_empty())
-        .collect();
+    let codes: Vec<String> =
+        codes_str.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect();
 
     Some(ParsedAttr { kind, codes })
 }

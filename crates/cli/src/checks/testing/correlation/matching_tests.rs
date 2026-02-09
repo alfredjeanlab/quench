@@ -14,34 +14,16 @@ use super::*;
 
 #[test]
 fn correlation_base_name_extracts_stem() {
-    assert_eq!(
-        correlation_base_name(Path::new("src/parser.rs")),
-        Some("parser")
-    );
-    assert_eq!(
-        correlation_base_name(Path::new("src/foo/bar.rs")),
-        Some("bar")
-    );
+    assert_eq!(correlation_base_name(Path::new("src/parser.rs")), Some("parser"));
+    assert_eq!(correlation_base_name(Path::new("src/foo/bar.rs")), Some("bar"));
 }
 
 #[test]
 fn extract_base_name_strips_test_suffix() {
-    assert_eq!(
-        extract_base_name(Path::new("tests/parser_tests.rs")),
-        Some("parser".to_string())
-    );
-    assert_eq!(
-        extract_base_name(Path::new("tests/parser_test.rs")),
-        Some("parser".to_string())
-    );
-    assert_eq!(
-        extract_base_name(Path::new("tests/test_parser.rs")),
-        Some("parser".to_string())
-    );
-    assert_eq!(
-        extract_base_name(Path::new("tests/parser.rs")),
-        Some("parser".to_string())
-    );
+    assert_eq!(extract_base_name(Path::new("tests/parser_tests.rs")), Some("parser".to_string()));
+    assert_eq!(extract_base_name(Path::new("tests/parser_test.rs")), Some("parser".to_string()));
+    assert_eq!(extract_base_name(Path::new("tests/test_parser.rs")), Some("parser".to_string()));
+    assert_eq!(extract_base_name(Path::new("tests/parser.rs")), Some("parser".to_string()));
 }
 
 // =============================================================================
@@ -117,11 +99,7 @@ fn has_correlated_test_no_match() {
     let test_changes = vec![PathBuf::from("tests/lexer_tests.rs")];
     let test_base_names = vec!["lexer".to_string()];
 
-    assert!(!has_correlated_test(
-        source,
-        &test_changes,
-        &test_base_names
-    ));
+    assert!(!has_correlated_test(source, &test_changes, &test_base_names));
 }
 
 // =============================================================================
@@ -130,10 +108,8 @@ fn has_correlated_test_no_match() {
 
 #[test]
 fn test_index_has_test_for_direct_match() {
-    let test_changes = vec![
-        PathBuf::from("tests/parser_tests.rs"),
-        PathBuf::from("tests/lexer_tests.rs"),
-    ];
+    let test_changes =
+        vec![PathBuf::from("tests/parser_tests.rs"), PathBuf::from("tests/lexer_tests.rs")];
     let index = TestIndex::new(&test_changes);
 
     assert!(index.has_test_for(Path::new("src/parser.rs")));
@@ -143,10 +119,8 @@ fn test_index_has_test_for_direct_match() {
 
 #[test]
 fn test_index_has_test_for_suffixed_names() {
-    let test_changes = vec![
-        PathBuf::from("tests/parser_test.rs"),
-        PathBuf::from("tests/test_lexer.rs"),
-    ];
+    let test_changes =
+        vec![PathBuf::from("tests/parser_test.rs"), PathBuf::from("tests/test_lexer.rs")];
     let index = TestIndex::new(&test_changes);
 
     assert!(index.has_test_for(Path::new("src/parser.rs")));
@@ -155,10 +129,7 @@ fn test_index_has_test_for_suffixed_names() {
 
 #[test]
 fn test_index_has_inline_test() {
-    let test_changes = vec![
-        PathBuf::from("src/parser.rs"),
-        PathBuf::from("tests/lexer_tests.rs"),
-    ];
+    let test_changes = vec![PathBuf::from("src/parser.rs"), PathBuf::from("tests/lexer_tests.rs")];
     let index = TestIndex::new(&test_changes);
 
     assert!(index.has_inline_test(Path::new("src/parser.rs")));
@@ -167,10 +138,8 @@ fn test_index_has_inline_test() {
 
 #[test]
 fn test_index_has_test_at_location() {
-    let test_changes = vec![
-        PathBuf::from("tests/parser_tests.rs"),
-        PathBuf::from("src/lexer_tests.rs"),
-    ];
+    let test_changes =
+        vec![PathBuf::from("tests/parser_tests.rs"), PathBuf::from("src/lexer_tests.rs")];
     let index = TestIndex::new(&test_changes);
 
     assert!(index.has_test_at_location(Path::new("src/parser.rs")));
@@ -202,10 +171,8 @@ fn test_index_handles_source_with_test_suffix() {
 
 #[test]
 fn test_index_handles_confusing_names() {
-    let test_changes = vec![
-        PathBuf::from("tests/helper_tests.rs"),
-        PathBuf::from("tests/utils_test.rs"),
-    ];
+    let test_changes =
+        vec![PathBuf::from("tests/helper_tests.rs"), PathBuf::from("tests/utils_test.rs")];
     let index = TestIndex::new(&test_changes);
 
     assert!(index.has_test_for(Path::new("src/helper.rs")));

@@ -534,11 +534,7 @@ impl CheckOutput {
     pub fn new(timestamp: String, checks: Vec<CheckResult>) -> Self {
         // Overall passed = all non-skipped checks passed
         let passed = checks.iter().all(|c| c.passed || c.skipped);
-        Self {
-            timestamp,
-            passed,
-            checks,
-        }
+        Self { timestamp, passed, checks }
     }
 
     /// Count total violations across all checks.

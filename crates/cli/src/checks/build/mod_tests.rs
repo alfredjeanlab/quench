@@ -131,17 +131,9 @@ fn build_metrics_json_structure() {
     // Verify time values (as floats)
     let time = json.get("time").unwrap();
     let cold = time.get("cold").and_then(|v| v.as_f64()).unwrap();
-    assert!(
-        (cold - 45.234).abs() < 0.001,
-        "cold time should be ~45.234, got {}",
-        cold
-    );
+    assert!((cold - 45.234).abs() < 0.001, "cold time should be ~45.234, got {}", cold);
     let hot = time.get("hot").and_then(|v| v.as_f64()).unwrap();
-    assert!(
-        (hot - 2.456).abs() < 0.001,
-        "hot time should be ~2.456, got {}",
-        hot
-    );
+    assert!((hot - 2.456).abs() < 0.001, "hot time should be ~2.456, got {}", hot);
 }
 
 #[test]
@@ -153,14 +145,8 @@ fn build_metrics_json_empty_time() {
 
     // Verify time object exists with null cold and hot
     let time = json.get("time").unwrap();
-    assert!(
-        time.get("cold").unwrap().is_null(),
-        "cold should be null when not measured"
-    );
-    assert!(
-        time.get("hot").unwrap().is_null(),
-        "hot should be null when not measured"
-    );
+    assert!(time.get("cold").unwrap().is_null(), "cold should be null when not measured");
+    assert!(time.get("hot").unwrap().is_null(), "hot should be null when not measured");
 }
 
 #[test]
@@ -172,10 +158,7 @@ fn build_metrics_json_empty_sizes() {
     // Size should be an empty object
     let size = json.get("size").unwrap();
     assert!(size.is_object(), "size should be an object");
-    assert!(
-        size.as_object().unwrap().is_empty(),
-        "size should be empty when no targets"
-    );
+    assert!(size.as_object().unwrap().is_empty(), "size should be empty when no targets");
 }
 
 #[test]
@@ -187,32 +170,21 @@ fn build_metrics_json_size_is_integer() {
 
     // Size values should be integers, not floats
     let size_value = json.get("size").unwrap().get("myapp").unwrap();
-    assert!(
-        size_value.is_u64(),
-        "size should be an integer, not a float"
-    );
+    assert!(size_value.is_u64(), "size should be an integer, not a float");
 }
 
 #[test]
 fn build_metrics_json_time_is_float() {
-    let metrics = BuildMetrics {
-        time_cold: Some(Duration::from_millis(1500)),
-        ..Default::default()
-    };
+    let metrics =
+        BuildMetrics { time_cold: Some(Duration::from_millis(1500)), ..Default::default() };
 
     let json = metrics.to_json();
 
     // Time values should be floats (seconds)
     let cold_value = json.get("time").unwrap().get("cold").unwrap();
-    assert!(
-        cold_value.is_f64(),
-        "time should be a float representing seconds"
-    );
+    assert!(cold_value.is_f64(), "time should be a float representing seconds");
     let cold_secs = cold_value.as_f64().unwrap();
-    assert!(
-        (cold_secs - 1.5).abs() < 0.001,
-        "1500ms should be 1.5 seconds"
-    );
+    assert!((cold_secs - 1.5).abs() < 0.001, "1500ms should be 1.5 seconds");
 }
 
 // =============================================================================
@@ -223,17 +195,12 @@ fn build_metrics_json_time_is_float() {
 fn build_metrics_json_with_gzip_sizes() {
     let mut metrics = BuildMetrics::default();
     metrics.sizes.insert("dist/index.js".to_string(), 100_000);
-    metrics
-        .sizes_gzip
-        .insert("dist/index.js".to_string(), 25_000);
+    metrics.sizes_gzip.insert("dist/index.js".to_string(), 25_000);
 
     let json = metrics.to_json();
 
     // Verify size_gzip is present
-    assert!(
-        json.get("size_gzip").is_some(),
-        "should have size_gzip when gzip sizes exist"
-    );
+    assert!(json.get("size_gzip").is_some(), "should have size_gzip when gzip sizes exist");
 
     let size_gzip = json.get("size_gzip").unwrap();
     assert_eq!(
@@ -252,10 +219,7 @@ fn build_metrics_json_no_gzip_without_js() {
     let json = metrics.to_json();
 
     // size_gzip should not be present
-    assert!(
-        json.get("size_gzip").is_none(),
-        "should not have size_gzip when no gzip sizes"
-    );
+    assert!(json.get("size_gzip").is_none(), "should not have size_gzip when no gzip sizes");
 }
 
 #[test]
@@ -268,10 +232,7 @@ fn build_metrics_has_metrics_with_sizes() {
 
 #[test]
 fn build_metrics_has_metrics_with_time() {
-    let metrics = BuildMetrics {
-        time_cold: Some(Duration::from_secs(1)),
-        ..Default::default()
-    };
+    let metrics = BuildMetrics { time_cold: Some(Duration::from_secs(1)), ..Default::default() };
 
     assert!(metrics.has_metrics());
 }

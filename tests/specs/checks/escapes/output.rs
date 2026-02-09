@@ -51,11 +51,7 @@ fn escapes_violation_type_is_one_of_expected_values() {
     ];
     for violation in violations {
         let vtype = violation.get("type").and_then(|t| t.as_str()).unwrap();
-        assert!(
-            valid_types.contains(&vtype),
-            "unexpected violation type: {}",
-            vtype
-        );
+        assert!(valid_types.contains(&vtype), "unexpected violation type: {}", vtype);
     }
 }
 

@@ -12,26 +12,14 @@ use std::process::Command;
 
 /// Initialize a git repo with user config and initial commit.
 fn init_git_repo(path: &std::path::Path) {
-    Command::new("git")
-        .args(["init", "-b", "main"])
-        .current_dir(path)
-        .output()
-        .unwrap();
+    Command::new("git").args(["init", "-b", "main"]).current_dir(path).output().unwrap();
     Command::new("git")
         .args(["config", "user.email", "test@test.com"])
         .current_dir(path)
         .output()
         .unwrap();
-    Command::new("git")
-        .args(["config", "user.name", "Test"])
-        .current_dir(path)
-        .output()
-        .unwrap();
-    Command::new("git")
-        .args(["add", "."])
-        .current_dir(path)
-        .output()
-        .unwrap();
+    Command::new("git").args(["config", "user.name", "Test"]).current_dir(path).output().unwrap();
+    Command::new("git").args(["add", "."]).current_dir(path).output().unwrap();
     Command::new("git")
         .args(["commit", "-m", "chore: initial commit", "--allow-empty"])
         .current_dir(path)
@@ -41,34 +29,18 @@ fn init_git_repo(path: &std::path::Path) {
 
 /// Stage files without committing.
 fn git_stage(path: &std::path::Path) {
-    Command::new("git")
-        .args(["add", "."])
-        .current_dir(path)
-        .output()
-        .unwrap();
+    Command::new("git").args(["add", "."]).current_dir(path).output().unwrap();
 }
 
 /// Add and commit all changes.
 fn git_commit(path: &std::path::Path, msg: &str) {
-    Command::new("git")
-        .args(["add", "."])
-        .current_dir(path)
-        .output()
-        .unwrap();
-    Command::new("git")
-        .args(["commit", "-m", msg])
-        .current_dir(path)
-        .output()
-        .unwrap();
+    Command::new("git").args(["add", "."]).current_dir(path).output().unwrap();
+    Command::new("git").args(["commit", "-m", msg]).current_dir(path).output().unwrap();
 }
 
 /// Create a feature branch.
 fn git_branch(path: &std::path::Path, name: &str) {
-    Command::new("git")
-        .args(["checkout", "-b", name])
-        .current_dir(path)
-        .output()
-        .unwrap();
+    Command::new("git").args(["checkout", "-b", name]).current_dir(path).output().unwrap();
 }
 
 // =============================================================================
@@ -89,17 +61,13 @@ check = "error"
     temp.file("src/feature.rs", "pub fn feature() {}");
     git_stage(temp.path());
 
-    check("tests")
-        .pwd(temp.path())
-        .args(&["--staged"])
-        .fails()
-        .stdout_eq(
-            "tests: FAIL
+    check("tests").pwd(temp.path()).args(&["--staged"]).fails().stdout_eq(
+        "tests: FAIL
   src/feature.rs: missing_tests
     Add tests in tests/feature.rs or a sibling feature_tests.rs file
 FAIL: tests
 ",
-        );
+    );
 }
 
 /// Spec: Text output format for branch mode with multiple violations
@@ -141,20 +109,13 @@ check = "error"
     temp.file("src/feature.rs", "pub fn feature() {}\npub fn more() {}");
     git_stage(temp.path());
 
-    let result = check("tests")
-        .pwd(temp.path())
-        .args(&["--staged"])
-        .json()
-        .fails();
+    let result = check("tests").pwd(temp.path()).args(&["--staged"]).json().fails();
 
     let violations = result.violations();
     assert_eq!(violations.len(), 1);
 
     let v = &violations[0];
-    assert_eq!(
-        v.get("type").and_then(|v| v.as_str()),
-        Some("missing_tests")
-    );
+    assert_eq!(v.get("type").and_then(|v| v.as_str()), Some("missing_tests"));
     assert_eq!(v.get("change_type").and_then(|v| v.as_str()), Some("added"));
     assert_eq!(v.get("lines_changed").and_then(|v| v.as_i64()), Some(2));
 }

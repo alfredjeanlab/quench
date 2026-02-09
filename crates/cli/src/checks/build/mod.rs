@@ -61,14 +61,9 @@ impl Check for BuildCheck {
         let build_config = &ctx.config.check.build;
 
         // Parse time thresholds
-        let time_cold_max = build_config
-            .time_cold_max
-            .as_ref()
-            .and_then(|s| parse_duration(s).ok());
-        let time_hot_max = build_config
-            .time_hot_max
-            .as_ref()
-            .and_then(|s| parse_duration(s).ok());
+        let time_cold_max =
+            build_config.time_cold_max.as_ref().and_then(|s| parse_duration(s).ok());
+        let time_hot_max = build_config.time_hot_max.as_ref().and_then(|s| parse_duration(s).ok());
 
         // Resolve targets: explicit config > auto-detection
         let targets = resolve_targets(ctx, language);
@@ -80,9 +75,7 @@ impl Check for BuildCheck {
                 // JavaScript: measure bundle size (raw + gzip)
                 let target_path = ctx.root.join(target);
                 measure_bundle_size(&target_path).ok().map(|bundle_size| {
-                    metrics
-                        .sizes_gzip
-                        .insert(target.clone(), bundle_size.gzipped);
+                    metrics.sizes_gzip.insert(target.clone(), bundle_size.gzipped);
                     bundle_size.raw
                 })
             } else {
@@ -337,12 +330,7 @@ fn get_size_threshold(ctx: &CheckContext, target: &str) -> Option<u64> {
     }
 
     // Fall back to global threshold
-    ctx.config
-        .check
-        .build
-        .size_max
-        .as_ref()
-        .and_then(|s| parse_size(s).ok())
+    ctx.config.check.build.size_max.as_ref().and_then(|s| parse_size(s).ok())
 }
 
 /// Measure binary size for a target.
@@ -361,11 +349,7 @@ fn measure_cold_build(root: &Path, language: ProjectLanguage) -> Option<Duration
     match language {
         ProjectLanguage::Rust => {
             // Clean first
-            let output = Command::new("cargo")
-                .args(["clean"])
-                .current_dir(root)
-                .output()
-                .ok()?;
+            let output = Command::new("cargo").args(["clean"]).current_dir(root).output().ok()?;
 
             if !output.status.success() {
                 return None;
@@ -379,19 +363,12 @@ fn measure_cold_build(root: &Path, language: ProjectLanguage) -> Option<Duration
                 .output()
                 .ok()?;
 
-            if output.status.success() {
-                Some(start.elapsed())
-            } else {
-                None
-            }
+            if output.status.success() { Some(start.elapsed()) } else { None }
         }
         ProjectLanguage::Go => {
             // Clean first
-            let output = Command::new("go")
-                .args(["clean", "-cache"])
-                .current_dir(root)
-                .output()
-                .ok()?;
+            let output =
+                Command::new("go").args(["clean", "-cache"]).current_dir(root).output().ok()?;
 
             if !output.status.success() {
                 return None;
@@ -399,17 +376,10 @@ fn measure_cold_build(root: &Path, language: ProjectLanguage) -> Option<Duration
 
             // Time the build
             let start = Instant::now();
-            let output = Command::new("go")
-                .args(["build", "./..."])
-                .current_dir(root)
-                .output()
-                .ok()?;
+            let output =
+                Command::new("go").args(["build", "./..."]).current_dir(root).output().ok()?;
 
-            if output.status.success() {
-                Some(start.elapsed())
-            } else {
-                None
-            }
+            if output.status.success() { Some(start.elapsed()) } else { None }
         }
         ProjectLanguage::JavaScript => {
             // Check if build script exists
@@ -429,17 +399,10 @@ fn measure_cold_build(root: &Path, language: ProjectLanguage) -> Option<Duration
             let run_cmd = pkg_mgr.run_command("build");
 
             let start = Instant::now();
-            let output = Command::new(&run_cmd[0])
-                .args(&run_cmd[1..])
-                .current_dir(root)
-                .output()
-                .ok()?;
+            let output =
+                Command::new(&run_cmd[0]).args(&run_cmd[1..]).current_dir(root).output().ok()?;
 
-            if output.status.success() {
-                Some(start.elapsed())
-            } else {
-                None
-            }
+            if output.status.success() { Some(start.elapsed()) } else { None }
         }
         _ => None,
     }
@@ -455,10 +418,7 @@ fn measure_hot_build(root: &Path, language: ProjectLanguage) -> Option<Duration>
 
             // Touch a source file to trigger incremental rebuild
             if touch_path.exists() {
-                let _ = Command::new("touch")
-                    .arg(&touch_path)
-                    .current_dir(root)
-                    .output();
+                let _ = Command::new("touch").arg(&touch_path).current_dir(root).output();
             }
 
             // Time the build
@@ -469,36 +429,22 @@ fn measure_hot_build(root: &Path, language: ProjectLanguage) -> Option<Duration>
                 .output()
                 .ok()?;
 
-            if output.status.success() {
-                Some(start.elapsed())
-            } else {
-                None
-            }
+            if output.status.success() { Some(start.elapsed()) } else { None }
         }
         ProjectLanguage::Go => {
             let touch_path = root.join("main.go");
 
             // Touch a source file to trigger incremental rebuild
             if touch_path.exists() {
-                let _ = Command::new("touch")
-                    .arg(&touch_path)
-                    .current_dir(root)
-                    .output();
+                let _ = Command::new("touch").arg(&touch_path).current_dir(root).output();
             }
 
             // Time the build
             let start = Instant::now();
-            let output = Command::new("go")
-                .args(["build", "./..."])
-                .current_dir(root)
-                .output()
-                .ok()?;
+            let output =
+                Command::new("go").args(["build", "./..."]).current_dir(root).output().ok()?;
 
-            if output.status.success() {
-                Some(start.elapsed())
-            } else {
-                None
-            }
+            if output.status.success() { Some(start.elapsed()) } else { None }
         }
         ProjectLanguage::JavaScript => {
             // Check if build script exists
@@ -527,17 +473,10 @@ fn measure_hot_build(root: &Path, language: ProjectLanguage) -> Option<Duration>
             let run_cmd = pkg_mgr.run_command("build");
 
             let start = Instant::now();
-            let output = Command::new(&run_cmd[0])
-                .args(&run_cmd[1..])
-                .current_dir(root)
-                .output()
-                .ok()?;
+            let output =
+                Command::new(&run_cmd[0]).args(&run_cmd[1..]).current_dir(root).output().ok()?;
 
-            if output.status.success() {
-                Some(start.elapsed())
-            } else {
-                None
-            }
+            if output.status.success() { Some(start.elapsed()) } else { None }
         }
         _ => None,
     }

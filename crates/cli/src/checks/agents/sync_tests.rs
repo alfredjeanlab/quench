@@ -122,10 +122,7 @@ fn compare_content_differs() {
     assert!(!comparison.in_sync);
     assert_eq!(comparison.differences.len(), 1);
     assert_eq!(comparison.differences[0].section, "code style");
-    assert_eq!(
-        comparison.differences[0].diff_type,
-        DiffType::ContentDiffers
-    );
+    assert_eq!(comparison.differences[0].diff_type, DiffType::ContentDiffers);
 }
 
 #[test]
@@ -137,10 +134,7 @@ fn compare_missing_in_target() {
     assert!(!comparison.in_sync);
     assert_eq!(comparison.differences.len(), 1);
     assert_eq!(comparison.differences[0].section, "testing");
-    assert_eq!(
-        comparison.differences[0].diff_type,
-        DiffType::MissingInTarget
-    );
+    assert_eq!(comparison.differences[0].diff_type, DiffType::MissingInTarget);
 }
 
 #[test]
@@ -182,10 +176,7 @@ fn compare_preamble_differs() {
     assert!(!comparison.in_sync);
     assert_eq!(comparison.differences.len(), 1);
     assert_eq!(comparison.differences[0].section, ""); // Preamble
-    assert_eq!(
-        comparison.differences[0].diff_type,
-        DiffType::ContentDiffers
-    );
+    assert_eq!(comparison.differences[0].diff_type, DiffType::ContentDiffers);
 }
 
 #[test]

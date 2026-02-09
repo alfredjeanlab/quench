@@ -21,19 +21,10 @@ fn classifies_source_files() {
 
     assert_eq!(adapter.classify(Path::new("app.py")), FileKind::Source);
     assert_eq!(adapter.classify(Path::new("src/app.py")), FileKind::Source);
-    assert_eq!(
-        adapter.classify(Path::new("lib/utils.py")),
-        FileKind::Source
-    );
+    assert_eq!(adapter.classify(Path::new("lib/utils.py")), FileKind::Source);
     assert_eq!(adapter.classify(Path::new("main.py")), FileKind::Source);
-    assert_eq!(
-        adapter.classify(Path::new("src/mypackage/main.py")),
-        FileKind::Source
-    );
-    assert_eq!(
-        adapter.classify(Path::new("package/module.py")),
-        FileKind::Source
-    );
+    assert_eq!(adapter.classify(Path::new("src/mypackage/main.py")), FileKind::Source);
+    assert_eq!(adapter.classify(Path::new("package/module.py")), FileKind::Source);
 }
 
 #[test]
@@ -41,49 +32,25 @@ fn classifies_test_files() {
     let adapter = PythonAdapter::new();
 
     // tests/ directory
-    assert_eq!(
-        adapter.classify(Path::new("tests/test_app.py")),
-        FileKind::Test
-    );
-    assert_eq!(
-        adapter.classify(Path::new("tests/test_main.py")),
-        FileKind::Test
-    );
-    assert_eq!(
-        adapter.classify(Path::new("tests/unit/test_models.py")),
-        FileKind::Test
-    );
-    assert_eq!(
-        adapter.classify(Path::new("tests/unit/test_utils.py")),
-        FileKind::Test
-    );
+    assert_eq!(adapter.classify(Path::new("tests/test_app.py")), FileKind::Test);
+    assert_eq!(adapter.classify(Path::new("tests/test_main.py")), FileKind::Test);
+    assert_eq!(adapter.classify(Path::new("tests/unit/test_models.py")), FileKind::Test);
+    assert_eq!(adapter.classify(Path::new("tests/unit/test_utils.py")), FileKind::Test);
 
     // test_*.py pattern
     assert_eq!(adapter.classify(Path::new("test_main.py")), FileKind::Test);
     assert_eq!(adapter.classify(Path::new("test_app.py")), FileKind::Test);
-    assert_eq!(
-        adapter.classify(Path::new("src/test_utils.py")),
-        FileKind::Test
-    );
+    assert_eq!(adapter.classify(Path::new("src/test_utils.py")), FileKind::Test);
 
     // *_test.py pattern
     assert_eq!(adapter.classify(Path::new("app_test.py")), FileKind::Test);
     assert_eq!(adapter.classify(Path::new("utils_test.py")), FileKind::Test);
-    assert_eq!(
-        adapter.classify(Path::new("src/utils_test.py")),
-        FileKind::Test
-    );
+    assert_eq!(adapter.classify(Path::new("src/utils_test.py")), FileKind::Test);
 
     // conftest.py
     assert_eq!(adapter.classify(Path::new("conftest.py")), FileKind::Test);
-    assert_eq!(
-        adapter.classify(Path::new("tests/conftest.py")),
-        FileKind::Test
-    );
-    assert_eq!(
-        adapter.classify(Path::new("tests/unit/conftest.py")),
-        FileKind::Test
-    );
+    assert_eq!(adapter.classify(Path::new("tests/conftest.py")), FileKind::Test);
+    assert_eq!(adapter.classify(Path::new("tests/unit/conftest.py")), FileKind::Test);
 }
 
 // =============================================================================
@@ -106,41 +73,26 @@ fn ignores_venv_directory() {
 #[test]
 fn ignores_pycache_directory() {
     let adapter = PythonAdapter::new();
-    assert_eq!(
-        adapter.classify(Path::new("__pycache__/module.cpython-311.pyc")),
-        FileKind::Other
-    );
-    assert_eq!(
-        adapter.classify(Path::new("src/__pycache__/module.py")),
-        FileKind::Other
-    );
+    assert_eq!(adapter.classify(Path::new("__pycache__/module.cpython-311.pyc")), FileKind::Other);
+    assert_eq!(adapter.classify(Path::new("src/__pycache__/module.py")), FileKind::Other);
 }
 
 #[test]
 fn ignores_mypy_cache() {
     let adapter = PythonAdapter::new();
-    assert_eq!(
-        adapter.classify(Path::new(".mypy_cache/3.11/module.py")),
-        FileKind::Other
-    );
+    assert_eq!(adapter.classify(Path::new(".mypy_cache/3.11/module.py")), FileKind::Other);
 }
 
 #[test]
 fn ignores_pytest_cache() {
     let adapter = PythonAdapter::new();
-    assert_eq!(
-        adapter.classify(Path::new(".pytest_cache/v/cache/foo.py")),
-        FileKind::Other
-    );
+    assert_eq!(adapter.classify(Path::new(".pytest_cache/v/cache/foo.py")), FileKind::Other);
 }
 
 #[test]
 fn ignores_ruff_cache() {
     let adapter = PythonAdapter::new();
-    assert_eq!(
-        adapter.classify(Path::new(".ruff_cache/foo.py")),
-        FileKind::Other
-    );
+    assert_eq!(adapter.classify(Path::new(".ruff_cache/foo.py")), FileKind::Other);
 }
 
 #[test]
@@ -155,19 +107,13 @@ fn ignores_dist_directory() {
 #[test]
 fn ignores_build_directory() {
     let adapter = PythonAdapter::new();
-    assert_eq!(
-        adapter.classify(Path::new("build/lib/mypackage/module.py")),
-        FileKind::Other
-    );
+    assert_eq!(adapter.classify(Path::new("build/lib/mypackage/module.py")), FileKind::Other);
 }
 
 #[test]
 fn ignores_egg_info_directory() {
     let adapter = PythonAdapter::new();
-    assert_eq!(
-        adapter.classify(Path::new("mypackage.egg-info/PKG-INFO")),
-        FileKind::Other
-    );
+    assert_eq!(adapter.classify(Path::new("mypackage.egg-info/PKG-INFO")), FileKind::Other);
 }
 
 #[test]
@@ -193,15 +139,9 @@ fn classifies_non_python_files() {
     let adapter = PythonAdapter::new();
 
     assert_eq!(adapter.classify(Path::new("README.md")), FileKind::Other);
-    assert_eq!(
-        adapter.classify(Path::new("pyproject.toml")),
-        FileKind::Other
-    );
+    assert_eq!(adapter.classify(Path::new("pyproject.toml")), FileKind::Other);
     assert_eq!(adapter.classify(Path::new("setup.py")), FileKind::Source); // This is Python!
-    assert_eq!(
-        adapter.classify(Path::new("requirements.txt")),
-        FileKind::Other
-    );
+    assert_eq!(adapter.classify(Path::new("requirements.txt")), FileKind::Other);
     assert_eq!(adapter.classify(Path::new("Makefile")), FileKind::Other);
 }
 
@@ -210,14 +150,8 @@ fn test_patterns_take_precedence_over_source() {
     let adapter = PythonAdapter::new();
 
     // A file matching both source and test patterns should be classified as test
-    assert_eq!(
-        adapter.classify(Path::new("tests/helpers.py")),
-        FileKind::Test
-    );
-    assert_eq!(
-        adapter.classify(Path::new("tests/test_lib.py")),
-        FileKind::Test
-    );
+    assert_eq!(adapter.classify(Path::new("tests/helpers.py")), FileKind::Test);
+    assert_eq!(adapter.classify(Path::new("tests/test_lib.py")), FileKind::Test);
 }
 
 #[test]
@@ -336,11 +270,7 @@ fn dynamic_execution_escapes_require_comment() {
             "dynamic {} should be Comment",
             escape.name
         );
-        assert!(
-            escape.comment.is_some(),
-            "dynamic {} should have comment pattern",
-            escape.name
-        );
+        assert!(escape.comment.is_some(), "dynamic {} should have comment pattern", escape.name);
     }
 }
 
@@ -409,10 +339,7 @@ fn with_patterns_uses_custom_patterns() {
     assert_eq!(adapter.classify(Path::new("src/app.py")), FileKind::Source);
 
     // Custom test pattern
-    assert_eq!(
-        adapter.classify(Path::new("test/test_app.py")),
-        FileKind::Test
-    );
+    assert_eq!(adapter.classify(Path::new("test/test_app.py")), FileKind::Test);
 
     // File outside custom patterns
     assert_eq!(adapter.classify(Path::new("lib/utils.py")), FileKind::Other);
@@ -438,10 +365,7 @@ fn parses_pyproject_toml_with_hyphens() {
 [project]
 name = "my-awesome-project"
 "#;
-    assert_eq!(
-        parse_pyproject_toml(content),
-        Some("my-awesome-project".to_string())
-    );
+    assert_eq!(parse_pyproject_toml(content), Some("my-awesome-project".to_string()));
 }
 
 #[test]
@@ -513,10 +437,7 @@ fn parses_setup_py_with_hyphens() {
     let content = r#"
 setup(name="my-awesome-project")
 "#;
-    assert_eq!(
-        parse_setup_py(content),
-        Some("my-awesome-project".to_string())
-    );
+    assert_eq!(parse_setup_py(content), Some("my-awesome-project".to_string()));
 }
 
 #[test]
@@ -547,10 +468,7 @@ fn detect_layout_finds_src_layout_with_package_name() {
     std::fs::create_dir_all(&pkg_dir).unwrap();
     std::fs::write(pkg_dir.join("__init__.py"), "").unwrap();
 
-    assert_eq!(
-        detect_layout(temp.path(), Some("mypackage")),
-        PythonLayout::SrcLayout
-    );
+    assert_eq!(detect_layout(temp.path(), Some("mypackage")), PythonLayout::SrcLayout);
 }
 
 #[test]
@@ -575,10 +493,7 @@ fn detect_layout_normalizes_hyphens_to_underscores() {
     std::fs::write(pkg_dir.join("__init__.py"), "").unwrap();
 
     // Query with hyphenated name
-    assert_eq!(
-        detect_layout(temp.path(), Some("my-package")),
-        PythonLayout::SrcLayout
-    );
+    assert_eq!(detect_layout(temp.path(), Some("my-package")), PythonLayout::SrcLayout);
 }
 
 #[test]
@@ -590,10 +505,7 @@ fn detect_layout_finds_flat_layout_with_package_name() {
     std::fs::create_dir_all(&pkg_dir).unwrap();
     std::fs::write(pkg_dir.join("__init__.py"), "").unwrap();
 
-    assert_eq!(
-        detect_layout(temp.path(), Some("mypackage")),
-        PythonLayout::FlatLayout
-    );
+    assert_eq!(detect_layout(temp.path(), Some("mypackage")), PythonLayout::FlatLayout);
 }
 
 #[test]
@@ -622,8 +534,5 @@ fn detect_layout_prefers_src_layout_over_flat() {
     std::fs::write(flat_pkg.join("__init__.py"), "").unwrap();
 
     // src-layout should take precedence
-    assert_eq!(
-        detect_layout(temp.path(), Some("mypackage")),
-        PythonLayout::SrcLayout
-    );
+    assert_eq!(detect_layout(temp.path(), Some("mypackage")), PythonLayout::SrcLayout);
 }

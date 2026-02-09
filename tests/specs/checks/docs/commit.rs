@@ -28,11 +28,7 @@ check = "error"
     );
 
     // Initialize git repo
-    Command::new("git")
-        .args(["init"])
-        .current_dir(temp.path())
-        .output()
-        .unwrap();
+    Command::new("git").args(["init"]).current_dir(temp.path()).output().unwrap();
     Command::new("git")
         .args(["config", "user.email", "test@test.com"])
         .current_dir(temp.path())
@@ -45,11 +41,7 @@ check = "error"
         .unwrap();
 
     // Create initial commit on main
-    Command::new("git")
-        .args(["add", "."])
-        .current_dir(temp.path())
-        .output()
-        .unwrap();
+    Command::new("git").args(["add", "."]).current_dir(temp.path()).output().unwrap();
     Command::new("git")
         .args(["commit", "-m", "chore: initial commit"])
         .current_dir(temp.path())
@@ -65,11 +57,7 @@ check = "error"
 
     // Add feature commit without docs
     temp.file("src/feature.rs", "pub fn new_feature() {}");
-    Command::new("git")
-        .args(["add", "."])
-        .current_dir(temp.path())
-        .output()
-        .unwrap();
+    Command::new("git").args(["add", "."]).current_dir(temp.path()).output().unwrap();
     Command::new("git")
         .args(["commit", "-m", "feat: add new feature"])
         .current_dir(temp.path())
@@ -100,11 +88,7 @@ source = "src/api/**"
     );
 
     // Initialize git repo with main branch
-    Command::new("git")
-        .args(["init"])
-        .current_dir(temp.path())
-        .output()
-        .unwrap();
+    Command::new("git").args(["init"]).current_dir(temp.path()).output().unwrap();
     Command::new("git")
         .args(["config", "user.email", "test@test.com"])
         .current_dir(temp.path())
@@ -117,11 +101,7 @@ source = "src/api/**"
         .unwrap();
 
     // Initial commit
-    Command::new("git")
-        .args(["add", "."])
-        .current_dir(temp.path())
-        .output()
-        .unwrap();
+    Command::new("git").args(["add", "."]).current_dir(temp.path()).output().unwrap();
     Command::new("git")
         .args(["commit", "-m", "chore: initial"])
         .current_dir(temp.path())
@@ -136,11 +116,7 @@ source = "src/api/**"
         .unwrap();
 
     temp.file("src/api/endpoint.rs", "pub fn endpoint() {}");
-    Command::new("git")
-        .args(["add", "."])
-        .current_dir(temp.path())
-        .output()
-        .unwrap();
+    Command::new("git").args(["add", "."]).current_dir(temp.path()).output().unwrap();
     Command::new("git")
         .args(["commit", "-m", "feat(api): add endpoint"])
         .current_dir(temp.path())
@@ -164,11 +140,7 @@ fn commit_checking_disabled_by_default() {
     // No [check.docs.commit] section - should be disabled
 
     // Initialize git repo
-    Command::new("git")
-        .args(["init"])
-        .current_dir(temp.path())
-        .output()
-        .unwrap();
+    Command::new("git").args(["init"]).current_dir(temp.path()).output().unwrap();
     Command::new("git")
         .args(["config", "user.email", "test@test.com"])
         .current_dir(temp.path())
@@ -179,11 +151,7 @@ fn commit_checking_disabled_by_default() {
         .current_dir(temp.path())
         .output()
         .unwrap();
-    Command::new("git")
-        .args(["add", "."])
-        .current_dir(temp.path())
-        .output()
-        .unwrap();
+    Command::new("git").args(["add", "."]).current_dir(temp.path()).output().unwrap();
     Command::new("git")
         .args(["commit", "-m", "chore: initial"])
         .current_dir(temp.path())
@@ -195,11 +163,7 @@ fn commit_checking_disabled_by_default() {
         .output()
         .unwrap();
     temp.file("new.rs", "fn new() {}");
-    Command::new("git")
-        .args(["add", "."])
-        .current_dir(temp.path())
-        .output()
-        .unwrap();
+    Command::new("git").args(["add", "."]).current_dir(temp.path()).output().unwrap();
     Command::new("git")
         .args(["commit", "-m", "feat: new thing"])
         .current_dir(temp.path())
@@ -216,26 +180,14 @@ fn commit_checking_disabled_by_default() {
 
 /// Helper to initialize a git repo with user config.
 fn init_git_repo(path: &std::path::Path) {
-    Command::new("git")
-        .args(["init", "-b", "main"])
-        .current_dir(path)
-        .output()
-        .unwrap();
+    Command::new("git").args(["init", "-b", "main"]).current_dir(path).output().unwrap();
     Command::new("git")
         .args(["config", "user.email", "test@test.com"])
         .current_dir(path)
         .output()
         .unwrap();
-    Command::new("git")
-        .args(["config", "user.name", "Test"])
-        .current_dir(path)
-        .output()
-        .unwrap();
-    Command::new("git")
-        .args(["add", "."])
-        .current_dir(path)
-        .output()
-        .unwrap();
+    Command::new("git").args(["config", "user.name", "Test"]).current_dir(path).output().unwrap();
+    Command::new("git").args(["add", "."]).current_dir(path).output().unwrap();
     Command::new("git")
         .args(["commit", "-m", "chore: initial"])
         .current_dir(path)
@@ -245,16 +197,8 @@ fn init_git_repo(path: &std::path::Path) {
 
 /// Helper to add and commit files.
 fn git_add_commit(path: &std::path::Path, msg: &str) {
-    Command::new("git")
-        .args(["add", "."])
-        .current_dir(path)
-        .output()
-        .unwrap();
-    Command::new("git")
-        .args(["commit", "-m", msg])
-        .current_dir(path)
-        .output()
-        .unwrap();
+    Command::new("git").args(["add", "."]).current_dir(path).output().unwrap();
+    Command::new("git").args(["commit", "-m", msg]).current_dir(path).output().unwrap();
 }
 
 /// Spec: docs/specs/checks/docs.md#source-based-area-matching

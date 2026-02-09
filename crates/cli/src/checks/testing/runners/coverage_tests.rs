@@ -51,14 +51,8 @@ fn handles_malformed_json() {
 
 #[test]
 fn normalizes_coverage_paths() {
-    assert_eq!(
-        normalize_coverage_path("/home/user/project/src/lib.rs"),
-        "src/lib.rs"
-    );
-    assert_eq!(
-        normalize_coverage_path("/workspace/tests/basic.rs"),
-        "tests/basic.rs"
-    );
+    assert_eq!(normalize_coverage_path("/home/user/project/src/lib.rs"), "src/lib.rs");
+    assert_eq!(normalize_coverage_path("/workspace/tests/basic.rs"), "tests/basic.rs");
     assert_eq!(normalize_coverage_path("/unknown/path/file.rs"), "file.rs");
 }
 
@@ -109,30 +103,15 @@ fn coverage_result_skipped_returns_success_without_data() {
 
 #[test]
 fn extracts_package_name_from_crates_pattern() {
-    assert_eq!(
-        extract_package_name("/project/crates/core/src/lib.rs"),
-        "core"
-    );
-    assert_eq!(
-        extract_package_name("/project/crates/cli/src/main.rs"),
-        "cli"
-    );
-    assert_eq!(
-        extract_package_name("/home/user/workspace/crates/utils/src/helpers.rs"),
-        "utils"
-    );
+    assert_eq!(extract_package_name("/project/crates/core/src/lib.rs"), "core");
+    assert_eq!(extract_package_name("/project/crates/cli/src/main.rs"), "cli");
+    assert_eq!(extract_package_name("/home/user/workspace/crates/utils/src/helpers.rs"), "utils");
 }
 
 #[test]
 fn extracts_package_name_from_packages_pattern() {
-    assert_eq!(
-        extract_package_name("/project/packages/utils/index.ts"),
-        "utils"
-    );
-    assert_eq!(
-        extract_package_name("/workspace/packages/api/src/routes.rs"),
-        "api"
-    );
+    assert_eq!(extract_package_name("/project/packages/utils/index.ts"), "utils");
+    assert_eq!(extract_package_name("/workspace/packages/api/src/routes.rs"), "api");
 }
 
 #[test]

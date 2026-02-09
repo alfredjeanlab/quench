@@ -15,12 +15,7 @@ fn shell_config_defaults() {
     let config = parse_config("version = 1\n");
     assert!(config.shell.source.contains(&"**/*.sh".to_string()));
     assert!(config.shell.source.contains(&"**/*.bash".to_string()));
-    assert!(
-        config
-            .shell
-            .tests
-            .contains(&"**/tests/**/*.bats".to_string())
-    );
+    assert!(config.shell.tests.contains(&"**/tests/**/*.bats".to_string()));
     assert!(config.shell.exclude.is_empty());
 }
 
@@ -35,13 +30,7 @@ fn shell_suppress_defaults_to_forbid() {
 #[test]
 fn shell_policy_defaults() {
     let config = parse_config("version = 1\n");
-    assert!(
-        config
-            .shell
-            .policy
-            .lint_config
-            .contains(&".shellcheckrc".to_string())
-    );
+    assert!(config.shell.policy.lint_config.contains(&".shellcheckrc".to_string()));
 }
 
 #[test]

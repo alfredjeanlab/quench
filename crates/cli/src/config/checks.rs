@@ -54,10 +54,7 @@ pub struct DocsCommitConfig {
 
 impl Default for DocsCommitConfig {
     fn default() -> Self {
-        Self {
-            check: Self::default_check(),
-            types: Self::default_types(),
-        }
+        Self { check: Self::default_check(), types: Self::default_types() }
     }
 }
 
@@ -67,12 +64,7 @@ impl DocsCommitConfig {
     }
 
     fn default_types() -> Vec<String> {
-        vec![
-            "feat".to_string(),
-            "feature".to_string(),
-            "story".to_string(),
-            "breaking".to_string(),
-        ]
+        vec!["feat".to_string(), "feature".to_string(), "story".to_string(), "breaking".to_string()]
     }
 }
 
@@ -106,11 +98,7 @@ pub struct TocConfig {
 
 impl Default for TocConfig {
     fn default() -> Self {
-        Self {
-            check: None,
-            include: Self::default_include(),
-            exclude: Self::default_exclude(),
-        }
+        Self { check: None, include: Self::default_include(), exclude: Self::default_exclude() }
     }
 }
 
@@ -149,11 +137,7 @@ pub struct LinksConfig {
 
 impl Default for LinksConfig {
     fn default() -> Self {
-        Self {
-            check: None,
-            include: Self::default_include(),
-            exclude: Self::default_exclude(),
-        }
+        Self { check: None, include: Self::default_include(), exclude: Self::default_exclude() }
     }
 }
 
@@ -482,9 +466,9 @@ where
     match MaxTokens::deserialize(deserializer)? {
         MaxTokens::Number(n) => Ok(Some(n)),
         MaxTokens::Bool(false) => Ok(None),
-        MaxTokens::Bool(true) => Err(de::Error::custom(
-            "max_tokens must be a number or false, not true",
-        )),
+        MaxTokens::Bool(true) => {
+            Err(de::Error::custom("max_tokens must be a number or false, not true"))
+        }
     }
 }
 

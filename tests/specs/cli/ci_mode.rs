@@ -53,11 +53,7 @@ fn ci_mode_enables_build_check() {
     );
 
     // With --ci, build check should run (no stub field or stub=false)
-    let result = cli()
-        .pwd(temp.path())
-        .args(&["--ci", "--build"])
-        .json()
-        .passes();
+    let result = cli().pwd(temp.path()).args(&["--ci", "--build"]).json().passes();
     let build = result
         .checks()
         .iter()
@@ -97,11 +93,7 @@ fn ci_mode_enables_license_check() {
     );
 
     // With --ci, license check runs (but passes because no license config)
-    let result = cli()
-        .pwd(temp.path())
-        .args(&["--ci", "--license"])
-        .json()
-        .passes();
+    let result = cli().pwd(temp.path()).args(&["--ci", "--license"]).json().passes();
     let license = result
         .checks()
         .iter()
@@ -125,11 +117,7 @@ fn ci_mode_enables_license_check() {
 fn ci_mode_shows_all_violations() {
     // Use fixture with >15 violations
     // Skip git check since it adds violations beyond what fixture intends
-    let result = cli()
-        .on("ci-mode")
-        .args(&["--ci", "--no-git"])
-        .json()
-        .fails();
+    let result = cli().on("ci-mode").args(&["--ci", "--no-git"]).json().fails();
 
     // Get total violations across all checks
     let total_violations: usize = result
@@ -139,11 +127,7 @@ fn ci_mode_shows_all_violations() {
         .map(|v| v.len())
         .sum();
 
-    assert!(
-        total_violations > 15,
-        "CI mode should show all violations (got {})",
-        total_violations
-    );
+    assert!(total_violations > 15, "CI mode should show all violations (got {})", total_violations);
 }
 
 /// Spec: docs/specs/01-cli.md#output-flags
@@ -190,11 +174,8 @@ fn ci_mode_auto_detects_main_branch() {
 
     // CI mode should detect main as base and compare
     // Use --no-git since default project CLAUDE.md doesn't have Commits section
-    let result = cli()
-        .pwd(temp.path())
-        .env("QUENCH_DEBUG", "1")
-        .args(&["--ci", "--no-git"])
-        .passes();
+    let result =
+        cli().pwd(temp.path()).env("QUENCH_DEBUG", "1").args(&["--ci", "--no-git"]).passes();
 
     // Debug output should mention the detected base
     result.stderr_has("main");
@@ -222,11 +203,8 @@ fn ci_mode_falls_back_to_master() {
 
     // CI mode should detect master as base
     // Use --no-git since default project CLAUDE.md doesn't have Commits section
-    let result = cli()
-        .pwd(temp.path())
-        .env("QUENCH_DEBUG", "1")
-        .args(&["--ci", "--no-git"])
-        .passes();
+    let result =
+        cli().pwd(temp.path()).env("QUENCH_DEBUG", "1").args(&["--ci", "--no-git"]).passes();
 
     result.stderr_has("master");
 }
@@ -243,10 +221,7 @@ fn save_writes_metrics_to_file() {
     let temp = default_project();
     let save_path = temp.path().join(".quench/metrics.json");
 
-    cli()
-        .pwd(temp.path())
-        .args(&["--ci", "--save", save_path.to_str().unwrap()])
-        .passes();
+    cli().pwd(temp.path()).args(&["--ci", "--save", save_path.to_str().unwrap()]).passes();
 
     // File should exist and contain valid JSON
     assert!(save_path.exists(), "metrics file should be created");
@@ -267,15 +242,9 @@ fn save_creates_parent_directories() {
     let temp = default_project();
     let save_path = temp.path().join("deep/nested/path/metrics.json");
 
-    cli()
-        .pwd(temp.path())
-        .args(&["--ci", "--save", save_path.to_str().unwrap()])
-        .passes();
+    cli().pwd(temp.path()).args(&["--ci", "--save", save_path.to_str().unwrap()]).passes();
 
-    assert!(
-        save_path.exists(),
-        "metrics file should be created with parents"
-    );
+    assert!(save_path.exists(), "metrics file should be created with parents");
 }
 
 /// Spec: docs/specs/01-cli.md#output-flags
@@ -287,10 +256,7 @@ fn save_works_only_with_ci_mode() {
     let save_path = temp.path().join("metrics.json");
 
     // Without --ci, --save should still work but may warn
-    cli()
-        .pwd(temp.path())
-        .args(&["--save", save_path.to_str().unwrap()])
-        .passes();
+    cli().pwd(temp.path()).args(&["--save", save_path.to_str().unwrap()]).passes();
 
     // Metrics should still be saved
     assert!(save_path.exists(), "--save should work without --ci");
@@ -310,10 +276,7 @@ fn fix_saves_to_git_notes_by_default() {
     git_initial_commit(&temp);
 
     // Use --no-git since default project CLAUDE.md doesn't have Commits section
-    cli()
-        .pwd(temp.path())
-        .args(&["--ci", "--fix", "--no-git"])
-        .passes();
+    cli().pwd(temp.path()).args(&["--ci", "--fix", "--no-git"]).passes();
 
     // Git notes should be created for HEAD with baseline content
     let output = std::process::Command::new("git")
@@ -343,10 +306,7 @@ fn fix_uses_quench_namespace() {
     git_initial_commit(&temp);
 
     // Use --no-git since default project CLAUDE.md doesn't have Commits section
-    cli()
-        .pwd(temp.path())
-        .args(&["--ci", "--fix", "--no-git"])
-        .passes();
+    cli().pwd(temp.path()).args(&["--ci", "--fix", "--no-git"]).passes();
 
     // Check that refs/notes/quench exists
     let output = std::process::Command::new("git")
@@ -380,17 +340,11 @@ fn check_writes_latest_json_cache() {
 
     // Assert: .quench/latest.json exists
     let latest_path = temp.path().join(".quench/latest.json");
-    assert!(
-        latest_path.exists(),
-        ".quench/latest.json should exist after check"
-    );
+    assert!(latest_path.exists(), ".quench/latest.json should exist after check");
 
     // Verify it's valid JSON with expected structure
     let content = std::fs::read_to_string(&latest_path).unwrap();
     let json: serde_json::Value = serde_json::from_str(&content).expect("valid JSON");
-    assert!(
-        json.get("updated").is_some(),
-        "should have updated timestamp"
-    );
+    assert!(json.get("updated").is_some(), "should have updated timestamp");
     assert!(json.get("output").is_some(), "should have output");
 }

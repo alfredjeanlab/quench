@@ -102,10 +102,7 @@ pub fn apply_language_defaults(root: &Path, config: &mut Config) -> Vec<String> 
                             .and_then(|p| p.get("name"))
                             .and_then(|n| n.as_str())
                     {
-                        config
-                            .project
-                            .package_names
-                            .insert(pkg.clone(), name.to_string());
+                        config.project.package_names.insert(pkg.clone(), name.to_string());
                     }
                 }
             }
@@ -191,15 +188,9 @@ pub fn apply_language_defaults(root: &Path, config: &mut Config) -> Vec<String> 
             if config.project.packages.is_empty()
                 && let Some((pkg_path, pkg_name)) = detect_python_package(root)
             {
-                config
-                    .project
-                    .package_names
-                    .insert(pkg_path.clone(), pkg_name);
+                config.project.package_names.insert(pkg_path.clone(), pkg_name);
                 config.project.packages.push(pkg_path);
-                tracing::debug!(
-                    "auto-detected Python package: {:?}",
-                    config.project.packages
-                );
+                tracing::debug!("auto-detected Python package: {:?}", config.project.packages);
             }
         }
         ProjectLanguage::Ruby => {

@@ -24,11 +24,7 @@ enum MockBehavior {
 
 impl MockCheck {
     fn new(name: &'static str, behavior: MockBehavior) -> Self {
-        Self {
-            name,
-            behavior,
-            ran: AtomicBool::new(false),
-        }
+        Self { name, behavior, ran: AtomicBool::new(false) }
     }
 
     fn did_run(&self) -> bool {

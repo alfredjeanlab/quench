@@ -12,14 +12,9 @@ pub fn has_placeholder_test(
     root: &Path,
 ) -> Result<bool, String> {
     let content = std::fs::read_to_string(root.join(test_path)).map_err(|e| e.to_string())?;
-    let prefixes = [
-        source_base.to_string(),
-        format!("test_{source_base}"),
-        format!("{source_base}_test"),
-    ];
-    Ok(find_rust_placeholders(&content)
-        .iter()
-        .any(|n| prefixes.iter().any(|p| n.contains(p))))
+    let prefixes =
+        [source_base.to_string(), format!("test_{source_base}"), format!("{source_base}_test")];
+    Ok(find_rust_placeholders(&content).iter().any(|n| prefixes.iter().any(|p| n.contains(p))))
 }
 
 /// Check if a JS/TS test file contains placeholder tests for a source file.
@@ -30,9 +25,7 @@ pub fn has_js_placeholder_test(
 ) -> Result<bool, String> {
     let content = std::fs::read_to_string(root.join(test_path)).map_err(|e| e.to_string())?;
     let base_lower = source_base.to_lowercase();
-    Ok(find_js_placeholders(&content)
-        .iter()
-        .any(|n| n.to_lowercase().contains(&base_lower)))
+    Ok(find_js_placeholders(&content).iter().any(|n| n.to_lowercase().contains(&base_lower)))
 }
 
 /// Parse JS/TS test file for test.todo(), it.todo(), test.skip(), etc.
@@ -68,11 +61,7 @@ pub fn find_js_placeholders(content: &str) -> Vec<String> {
     let mut results = Vec::new();
 
     // Helper to unescape captured content
-    let unescape = |s: &str| {
-        s.replace("\\'", "'")
-            .replace("\\\"", "\"")
-            .replace("\\`", "`")
-    };
+    let unescape = |s: &str| s.replace("\\'", "'").replace("\\\"", "\"").replace("\\`", "`");
 
     // Collect from each pattern
     if let Some(re) = pat_single.as_ref() {

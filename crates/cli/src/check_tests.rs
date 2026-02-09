@@ -30,12 +30,8 @@ fn check_result_passed() {
 
 #[test]
 fn check_result_failed() {
-    let violations = vec![Violation::file(
-        "src/main.rs",
-        42,
-        "file_too_large",
-        "Split into modules.",
-    )];
+    let violations =
+        vec![Violation::file("src/main.rs", 42, "file_too_large", "Split into modules.")];
     let result = CheckResult::failed("cloc", violations);
     assert!(!result.passed);
     assert!(!result.skipped);
@@ -59,10 +55,7 @@ fn check_output_passed_when_all_pass() {
 
 #[test]
 fn check_output_failed_when_any_fails() {
-    let checks = vec![
-        CheckResult::passed("cloc"),
-        CheckResult::failed("escapes", vec![]),
-    ];
+    let checks = vec![CheckResult::passed("cloc"), CheckResult::failed("escapes", vec![])];
     let output = CheckOutput::new("2024-01-01T00:00:00Z".to_string(), checks);
     assert!(!output.passed);
 }
@@ -97,9 +90,7 @@ fn check_result_includes_empty_violations_array() {
     let json = serde_json::to_value(&result).unwrap();
 
     // Violations array should always be present, even when empty
-    let violations = json
-        .get("violations")
-        .expect("violations should be present");
+    let violations = json.get("violations").expect("violations should be present");
     assert!(violations.as_array().unwrap().is_empty());
     assert!(json.get("skipped").is_none());
     assert!(json.get("error").is_none());

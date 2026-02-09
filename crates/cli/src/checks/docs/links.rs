@@ -51,10 +51,7 @@ pub(super) fn extract_links(content: &str) -> Vec<ExtractedLink> {
         // Use pre-compiled regex
         for cap in LINK_REGEX.captures_iter(line) {
             if let Some(target) = cap.get(1) {
-                links.push(ExtractedLink {
-                    line: line_num,
-                    target: target.as_str().to_string(),
-                });
+                links.push(ExtractedLink { line: line_num, target: target.as_str().to_string() });
             }
         }
     }
@@ -120,10 +117,7 @@ pub fn validate_links_parallel(
     let config = &ctx.config.check.docs.links;
 
     // Check if link validation is disabled
-    if !super::is_check_enabled(
-        config.check.as_deref(),
-        ctx.config.check.docs.check.as_deref(),
-    ) {
+    if !super::is_check_enabled(config.check.as_deref(), ctx.config.check.docs.check.as_deref()) {
         return Vec::new();
     }
 

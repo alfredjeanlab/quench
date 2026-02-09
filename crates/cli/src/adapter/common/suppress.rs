@@ -17,25 +17,15 @@ pub struct CommentStyle {
 
 impl CommentStyle {
     /// Rust comment style: `//` prefix, `#[` directives.
-    pub const RUST: Self = Self {
-        prefix: "//",
-        directive_patterns: &["#["],
-        skip_prefixes: &[],
-    };
+    pub const RUST: Self = Self { prefix: "//", directive_patterns: &["#["], skip_prefixes: &[] };
 
     /// Go comment style: `//` prefix, `//go:` directives.
-    pub const GO: Self = Self {
-        prefix: "//",
-        directive_patterns: &["//go:", "//nolint"],
-        skip_prefixes: &[],
-    };
+    pub const GO: Self =
+        Self { prefix: "//", directive_patterns: &["//go:", "//nolint"], skip_prefixes: &[] };
 
     /// Shell comment style: `#` prefix, `shellcheck` directives.
-    pub const SHELL: Self = Self {
-        prefix: "#",
-        directive_patterns: &["shellcheck", "!"],
-        skip_prefixes: &[],
-    };
+    pub const SHELL: Self =
+        Self { prefix: "#", directive_patterns: &["shellcheck", "!"], skip_prefixes: &[] };
 
     /// Ruby comment style: `#` prefix, rubocop/standard directives.
     pub const RUBY: Self = Self {

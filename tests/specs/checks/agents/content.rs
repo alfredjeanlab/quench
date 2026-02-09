@@ -101,10 +101,7 @@ fn agents_size_violation_includes_threshold() {
         .iter()
         .find(|v| v.get("type").and_then(|t| t.as_str()) == Some("file_too_large"));
 
-    assert!(
-        size_violation.is_some(),
-        "should have file_too_large violation"
-    );
+    assert!(size_violation.is_some(), "should have file_too_large violation");
 
     let v = size_violation.unwrap();
     assert!(v.get("value").is_some(), "should have value field");

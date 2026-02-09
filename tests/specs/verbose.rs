@@ -213,10 +213,7 @@ Ratchet:
 Summary:
   Total wall time: 0."#;
 
-    assert!(
-        stderr.starts_with(expected),
-        "Verbose output format mismatch.\nActual:\n{stderr}"
-    );
+    assert!(stderr.starts_with(expected), "Verbose output format mismatch.\nActual:\n{stderr}");
 
     // Verify timing line ends correctly
     assert!(stderr.trim().ends_with("s"), "Should end with seconds");
@@ -267,10 +264,7 @@ Ratchet:
 Summary:
   Total wall time: 0."#;
 
-    assert!(
-        stderr.starts_with(expected),
-        "Verbose output format mismatch.\nActual:\n{stderr}"
-    );
+    assert!(stderr.starts_with(expected), "Verbose output format mismatch.\nActual:\n{stderr}");
 
     // Verify timing line ends correctly
     assert!(stderr.trim().ends_with("s"), "Should end with seconds");

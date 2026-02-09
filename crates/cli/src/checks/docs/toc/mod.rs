@@ -38,10 +38,7 @@ pub fn validate_toc_parallel(ctx: &CheckContext, path_cache: &super::PathCache) 
     let config = &ctx.config.check.docs.toc;
 
     // Check if TOC validation is disabled
-    if !super::is_check_enabled(
-        config.check.as_deref(),
-        ctx.config.check.docs.check.as_deref(),
-    ) {
+    if !super::is_check_enabled(config.check.as_deref(), ctx.config.check.docs.check.as_deref()) {
         return Vec::new();
     }
 
@@ -93,9 +90,7 @@ fn validate_file_toc_cached(
 
         // Find entries that fail ALL strategies (truly broken)
         let resolves_any = |e: &&TreeEntry| {
-            strategies
-                .iter()
-                .any(|&s| try_resolve(ctx.root, &abs_file, &e.path, s))
+            strategies.iter().any(|&s| try_resolve(ctx.root, &abs_file, &e.path, s))
         };
         let failed_all: Vec<_> = file_entries.iter().filter(|e| !resolves_any(e)).collect();
 

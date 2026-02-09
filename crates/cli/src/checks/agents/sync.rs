@@ -117,10 +117,8 @@ pub fn compare_files(source_content: &str, target_content: &str) -> SyncComparis
     let mut differences = Vec::new();
 
     // Build lookup map for target sections
-    let target_map: HashMap<String, &Section> = target_sections
-        .iter()
-        .map(|s| (s.name.clone(), s))
-        .collect();
+    let target_map: HashMap<String, &Section> =
+        target_sections.iter().map(|s| (s.name.clone(), s)).collect();
 
     // Check each source section
     for source in &source_sections {
@@ -161,20 +159,12 @@ pub fn compare_files(source_content: &str, target_content: &str) -> SyncComparis
         }
     }
 
-    SyncComparison {
-        in_sync: differences.is_empty(),
-        differences,
-    }
+    SyncComparison { in_sync: differences.is_empty(), differences }
 }
 
 /// Normalize content for comparison (collapse whitespace).
 fn normalize_content(content: &str) -> String {
-    content
-        .lines()
-        .map(|l| l.trim())
-        .filter(|l| !l.is_empty())
-        .collect::<Vec<_>>()
-        .join("\n")
+    content.lines().map(|l| l.trim()).filter(|l| !l.is_empty()).collect::<Vec<_>>().join("\n")
 }
 
 #[cfg(test)]

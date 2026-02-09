@@ -20,11 +20,7 @@ fn file_cache_key_from_metadata() {
 #[test]
 fn cache_lookup_miss_on_empty() {
     let cache = FileCache::new(0);
-    let key = FileCacheKey {
-        mtime_secs: 100,
-        mtime_nanos: 0,
-        size: 50,
-    };
+    let key = FileCacheKey { mtime_secs: 100, mtime_nanos: 0, size: 50 };
 
     let result = cache.lookup(Path::new("nonexistent.rs"), &key);
     assert!(result.is_none());
@@ -35,11 +31,7 @@ fn cache_lookup_miss_on_empty() {
 fn cache_insert_and_lookup_hit() {
     let cache = FileCache::new(0);
     let path = PathBuf::from("src/main.rs");
-    let key = FileCacheKey {
-        mtime_secs: 100,
-        mtime_nanos: 0,
-        size: 50,
-    };
+    let key = FileCacheKey { mtime_secs: 100, mtime_nanos: 0, size: 50 };
 
     let violations = vec![CachedViolation {
         check: "cloc".to_string(),
@@ -68,11 +60,7 @@ fn cache_insert_and_lookup_hit() {
 fn cache_miss_on_mtime_change() {
     let cache = FileCache::new(0);
     let path = PathBuf::from("src/main.rs");
-    let old_key = FileCacheKey {
-        mtime_secs: 100,
-        mtime_nanos: 0,
-        size: 50,
-    };
+    let old_key = FileCacheKey { mtime_secs: 100, mtime_nanos: 0, size: 50 };
     let new_key = FileCacheKey {
         mtime_secs: 200, // Changed
         mtime_nanos: 0,
@@ -90,11 +78,7 @@ fn cache_miss_on_mtime_change() {
 fn cache_miss_on_size_change() {
     let cache = FileCache::new(0);
     let path = PathBuf::from("src/main.rs");
-    let old_key = FileCacheKey {
-        mtime_secs: 100,
-        mtime_nanos: 0,
-        size: 50,
-    };
+    let old_key = FileCacheKey { mtime_secs: 100, mtime_nanos: 0, size: 50 };
     let new_key = FileCacheKey {
         mtime_secs: 100,
         mtime_nanos: 0,
@@ -116,11 +100,7 @@ fn cache_persist_and_restore() {
     // Create and populate cache
     let cache = FileCache::new(config_hash);
     let file_path = PathBuf::from("src/lib.rs");
-    let key = FileCacheKey {
-        mtime_secs: 100,
-        mtime_nanos: 500,
-        size: 1000,
-    };
+    let key = FileCacheKey { mtime_secs: 100, mtime_nanos: 500, size: 1000 };
     cache.insert(
         file_path.clone(),
         key.clone(),
@@ -217,19 +197,12 @@ fn cache_persist_async_completes() {
     // Create and populate cache
     let cache = FileCache::new(config_hash);
     let file_path = PathBuf::from("src/lib.rs");
-    let key = FileCacheKey {
-        mtime_secs: 100,
-        mtime_nanos: 500,
-        size: 1000,
-    };
+    let key = FileCacheKey { mtime_secs: 100, mtime_nanos: 500, size: 1000 };
     cache.insert(file_path.clone(), key.clone(), vec![]);
 
     // Persist asynchronously and wait for completion
     let handle = cache.persist_async(cache_path.clone());
-    handle
-        .join()
-        .expect("thread panicked")
-        .expect("persist failed");
+    handle.join().expect("thread panicked").expect("persist failed");
 
     // Verify file exists and can be restored
     assert!(cache_path.exists());
@@ -244,11 +217,7 @@ fn cache_lookup_returns_arc_for_efficient_cloning() {
 
     let cache = FileCache::new(0);
     let path = PathBuf::from("src/main.rs");
-    let key = FileCacheKey {
-        mtime_secs: 100,
-        mtime_nanos: 0,
-        size: 50,
-    };
+    let key = FileCacheKey { mtime_secs: 100, mtime_nanos: 0, size: 50 };
 
     // Insert violations
     let violations = vec![CachedViolation {
@@ -304,11 +273,7 @@ fn cache_handles_pre_epoch_mtime_gracefully() {
 
     // Pre-epoch times get clamped to 0 by from_metadata (unwrap_or_default)
     // This simulates what would happen
-    let key = FileCacheKey {
-        mtime_secs: 0,
-        mtime_nanos: 0,
-        size: 50,
-    };
+    let key = FileCacheKey { mtime_secs: 0, mtime_nanos: 0, size: 50 };
 
     cache.insert(path.clone(), key.clone(), vec![]);
     let result = cache.lookup(&path, &key);
@@ -386,10 +351,7 @@ fn hash_config_changes_when_escapes_check_off() {
     config.check.escapes.check = CheckLevel::Off;
     let hash_off = hash_config(&config);
 
-    assert_ne!(
-        hash_default, hash_off,
-        "config hash must change when check.escapes.check changes"
-    );
+    assert_ne!(hash_default, hash_off, "config hash must change when check.escapes.check changes");
 }
 
 #[test]

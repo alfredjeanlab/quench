@@ -60,10 +60,7 @@ pub fn detect_go_runner(root: &Path) -> Option<GoDetectionResult> {
         .unwrap_or(false);
 
     if go_available {
-        Some(GoDetectionResult {
-            runner: GoRunner::Go,
-            source: GoDetectionSource::GoMod,
-        })
+        Some(GoDetectionResult { runner: GoRunner::Go, source: GoDetectionSource::GoMod })
     } else {
         None
     }

@@ -25,10 +25,7 @@ fn validates_clean_content() {
 fn detects_missing_required_section() {
     let config = SpecsConfig {
         sections: SpecsSectionsConfig {
-            required: vec![RequiredSection {
-                name: "Purpose".to_string(),
-                advice: None,
-            }],
+            required: vec![RequiredSection { name: "Purpose".to_string(), advice: None }],
             forbid: vec![],
         },
         ..default_config()
@@ -45,10 +42,7 @@ fn detects_missing_required_section() {
 fn accepts_present_required_section() {
     let config = SpecsConfig {
         sections: SpecsSectionsConfig {
-            required: vec![RequiredSection {
-                name: "Purpose".to_string(),
-                advice: None,
-            }],
+            required: vec![RequiredSection { name: "Purpose".to_string(), advice: None }],
             forbid: vec![],
         },
         ..default_config()
@@ -75,20 +69,13 @@ fn includes_advice_in_missing_section_violation() {
 
     let violations = validate_spec_content(Path::new("test.md"), content, &config);
     assert_eq!(violations.len(), 1);
-    assert!(
-        violations[0]
-            .advice
-            .contains("Explain why this spec exists")
-    );
+    assert!(violations[0].advice.contains("Explain why this spec exists"));
 }
 
 #[test]
 fn detects_forbidden_section() {
     let config = SpecsConfig {
-        sections: SpecsSectionsConfig {
-            required: vec![],
-            forbid: vec!["TODO".to_string()],
-        },
+        sections: SpecsSectionsConfig { required: vec![], forbid: vec!["TODO".to_string()] },
         ..default_config()
     };
     let content = "# My Spec\n\n## TODO\n\nFix this later.\n";
@@ -101,10 +88,7 @@ fn detects_forbidden_section() {
 #[test]
 fn forbidden_section_glob_pattern() {
     let config = SpecsConfig {
-        sections: SpecsSectionsConfig {
-            required: vec![],
-            forbid: vec!["Draft*".to_string()],
-        },
+        sections: SpecsSectionsConfig { required: vec![], forbid: vec!["Draft*".to_string()] },
         ..default_config()
     };
     let content = "# My Spec\n\n## Draft Notes\n\nWork in progress.\n";
@@ -127,10 +111,7 @@ fn tables_allowed_by_default() {
 
 #[test]
 fn tables_forbidden_when_configured() {
-    let config = SpecsConfig {
-        tables: ContentRule::Forbid,
-        ..default_config()
-    };
+    let config = SpecsConfig { tables: ContentRule::Forbid, ..default_config() };
     let content = "# Spec\n\n| A | B |\n|---|---|\n| 1 | 2 |\n";
 
     let violations = validate_spec_content(Path::new("test.md"), content, &config);
@@ -149,10 +130,7 @@ fn box_diagrams_allowed_by_default() {
 
 #[test]
 fn box_diagrams_forbidden_when_configured() {
-    let config = SpecsConfig {
-        box_diagrams: ContentRule::Forbid,
-        ..default_config()
-    };
+    let config = SpecsConfig { box_diagrams: ContentRule::Forbid, ..default_config() };
     let content = "# Spec\n\n┌───┐\n│ A │\n└───┘\n";
 
     let violations = validate_spec_content(Path::new("test.md"), content, &config);
@@ -171,10 +149,7 @@ fn mermaid_allowed_by_default() {
 
 #[test]
 fn mermaid_forbidden_when_configured() {
-    let config = SpecsConfig {
-        mermaid: ContentRule::Forbid,
-        ..default_config()
-    };
+    let config = SpecsConfig { mermaid: ContentRule::Forbid, ..default_config() };
     let content = "# Spec\n\n```mermaid\ngraph TD;\nA-->B;\n```\n";
 
     let violations = validate_spec_content(Path::new("test.md"), content, &config);
@@ -186,10 +161,7 @@ fn mermaid_forbidden_when_configured() {
 
 #[test]
 fn within_line_limit() {
-    let config = SpecsConfig {
-        max_lines: Some(100),
-        ..default_config()
-    };
+    let config = SpecsConfig { max_lines: Some(100), ..default_config() };
     let content = "line\n".repeat(50);
 
     let violations = validate_spec_content(Path::new("test.md"), &content, &config);
@@ -198,10 +170,7 @@ fn within_line_limit() {
 
 #[test]
 fn exceeds_line_limit() {
-    let config = SpecsConfig {
-        max_lines: Some(10),
-        ..default_config()
-    };
+    let config = SpecsConfig { max_lines: Some(10), ..default_config() };
     let content = "line\n".repeat(20);
 
     let violations = validate_spec_content(Path::new("test.md"), &content, &config);
@@ -212,18 +181,13 @@ fn exceeds_line_limit() {
 
 #[test]
 fn line_limit_disabled() {
-    let config = SpecsConfig {
-        max_lines: None,
-        ..default_config()
-    };
+    let config = SpecsConfig { max_lines: None, ..default_config() };
     let content = "line\n".repeat(2000);
 
     let violations = validate_spec_content(Path::new("test.md"), &content, &config);
     // Only token limit might trigger, check for line-specific violations
-    let line_violations: Vec<_> = violations
-        .iter()
-        .filter(|v| v.advice.contains("lines"))
-        .collect();
+    let line_violations: Vec<_> =
+        violations.iter().filter(|v| v.advice.contains("lines")).collect();
     assert!(line_violations.is_empty());
 }
 
@@ -245,11 +209,7 @@ fn exceeds_token_limit() {
 
 #[test]
 fn token_limit_disabled() {
-    let config = SpecsConfig {
-        max_tokens: None,
-        max_lines: None,
-        ..default_config()
-    };
+    let config = SpecsConfig { max_tokens: None, max_lines: None, ..default_config() };
     let content = "a".repeat(100000);
 
     let violations = validate_spec_content(Path::new("test.md"), &content, &config);
@@ -262,10 +222,7 @@ fn token_limit_disabled() {
 fn multiple_violations() {
     let config = SpecsConfig {
         sections: SpecsSectionsConfig {
-            required: vec![RequiredSection {
-                name: "Purpose".to_string(),
-                advice: None,
-            }],
+            required: vec![RequiredSection { name: "Purpose".to_string(), advice: None }],
             forbid: vec!["TODO".to_string()],
         },
         tables: ContentRule::Forbid,

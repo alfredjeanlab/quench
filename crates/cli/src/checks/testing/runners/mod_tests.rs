@@ -320,10 +320,8 @@ fn aggregated_coverage_has_data() {
     let agg_empty = AggregatedCoverage::default();
     assert!(!agg_empty.has_data());
 
-    let agg_skipped = AggregatedCoverage {
-        rust: Some(CoverageResult::skipped()),
-        ..Default::default()
-    };
+    let agg_skipped =
+        AggregatedCoverage { rust: Some(CoverageResult::skipped()), ..Default::default() };
     assert!(!agg_skipped.has_data()); // skipped has no line_coverage
 
     let agg_with_data = AggregatedCoverage {

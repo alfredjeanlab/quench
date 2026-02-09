@@ -29,11 +29,7 @@ fn shell_adapter_auto_detected_when_sh_files_in_scripts() {
     let checks = result.checks();
 
     // escapes check should have shell-specific patterns active
-    assert!(
-        checks
-            .iter()
-            .any(|c| c.get("name").and_then(|n| n.as_str()) == Some("escapes"))
-    );
+    assert!(checks.iter().any(|c| c.get("name").and_then(|n| n.as_str()) == Some("escapes")));
 }
 
 /// Spec: docs/specs/10-language-adapters.md#adapter-selection
@@ -47,11 +43,7 @@ fn shell_adapter_auto_detected_when_sh_files_in_bin() {
     let result = cli().pwd(temp.path()).json().passes();
     let checks = result.checks();
 
-    assert!(
-        checks
-            .iter()
-            .any(|c| c.get("name").and_then(|n| n.as_str()) == Some("escapes"))
-    );
+    assert!(checks.iter().any(|c| c.get("name").and_then(|n| n.as_str()) == Some("escapes")));
 }
 
 /// Spec: docs/specs/10-language-adapters.md#adapter-selection
@@ -65,11 +57,7 @@ fn shell_adapter_auto_detected_when_sh_files_in_root() {
     let result = cli().pwd(temp.path()).json().passes();
     let checks = result.checks();
 
-    assert!(
-        checks
-            .iter()
-            .any(|c| c.get("name").and_then(|n| n.as_str()) == Some("escapes"))
-    );
+    assert!(checks.iter().any(|c| c.get("name").and_then(|n| n.as_str()) == Some("escapes")));
 }
 
 // =============================================================================
@@ -85,10 +73,7 @@ fn shell_adapter_default_source_pattern_matches_sh_files() {
     let metrics = cloc.require("metrics");
 
     // Should count .sh files as source
-    let source_lines = metrics
-        .get("source_lines")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(0);
+    let source_lines = metrics.get("source_lines").and_then(|v| v.as_u64()).unwrap_or(0);
     assert!(source_lines > 0, "should count .sh files as source");
 }
 
@@ -103,10 +88,7 @@ fn shell_adapter_default_source_pattern_matches_bash_files() {
     let cloc = check("cloc").pwd(temp.path()).json().passes();
     let metrics = cloc.require("metrics");
 
-    let source_lines = metrics
-        .get("source_lines")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(0);
+    let source_lines = metrics.get("source_lines").and_then(|v| v.as_u64()).unwrap_or(0);
     assert!(source_lines > 0, "should count .bash files as source");
 }
 
@@ -125,10 +107,7 @@ fn shell_adapter_default_test_pattern_matches_bats_files() {
     let cloc = check("cloc").pwd(temp.path()).json().passes();
     let metrics = cloc.require("metrics");
 
-    let test_lines = metrics
-        .get("test_lines")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(0);
+    let test_lines = metrics.get("test_lines").and_then(|v| v.as_u64()).unwrap_or(0);
     assert!(test_lines > 0, "should count .bats files as test");
 }
 
@@ -139,18 +118,12 @@ fn shell_adapter_default_test_pattern_matches_bats_files() {
 fn shell_adapter_default_test_pattern_matches_test_sh_files() {
     let temp = default_project();
     temp.file("scripts/build.sh", "#!/bin/bash\necho 'building'\n");
-    temp.file(
-        "scripts/build_test.sh",
-        "#!/bin/bash\n./scripts/build.sh && echo 'passed'\n",
-    );
+    temp.file("scripts/build_test.sh", "#!/bin/bash\n./scripts/build.sh && echo 'passed'\n");
 
     let cloc = check("cloc").pwd(temp.path()).json().passes();
     let metrics = cloc.require("metrics");
 
-    let test_lines = metrics
-        .get("test_lines")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(0);
+    let test_lines = metrics.get("test_lines").and_then(|v| v.as_u64()).unwrap_or(0);
     assert!(test_lines > 0, "should count *_test.sh files as test");
 }
 
@@ -167,10 +140,7 @@ fn shell_adapter_custom_exclude_patterns_respected() {
     let metrics = cloc.require("metrics");
 
     // Only script.sh should be counted (not tmp/excluded.sh)
-    let source_lines = metrics
-        .get("source_lines")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(0);
+    let source_lines = metrics.get("source_lines").and_then(|v| v.as_u64()).unwrap_or(0);
     assert!(
         source_lines < 10,
         "tmp/ should be excluded via config, got {} source lines",
@@ -187,11 +157,7 @@ fn shell_adapter_custom_exclude_patterns_respected() {
 /// > set +e | comment | # OK:
 #[test]
 fn shell_adapter_set_plus_e_without_ok_comment_fails() {
-    check("escapes")
-        .on("shell/set-e-fail")
-        .fails()
-        .stdout_has("escapes: FAIL")
-        .stdout_has("# OK:");
+    check("escapes").on("shell/set-e-fail").fails().stdout_has("escapes: FAIL").stdout_has("# OK:");
 }
 
 /// Spec: docs/specs/langs/shell.md#default-escape-patterns
@@ -207,11 +173,7 @@ fn shell_adapter_set_plus_e_with_ok_comment_passes() {
 /// > eval | comment | # OK:
 #[test]
 fn shell_adapter_eval_without_ok_comment_fails() {
-    check("escapes")
-        .on("shell/eval-fail")
-        .fails()
-        .stdout_has("escapes: FAIL")
-        .stdout_has("# OK:");
+    check("escapes").on("shell/eval-fail").fails().stdout_has("escapes: FAIL").stdout_has("# OK:");
 }
 
 /// Spec: docs/specs/langs/shell.md#default-escape-patterns
@@ -247,10 +209,7 @@ fn shell_adapter_escape_patterns_allowed_in_tests() {
 /// > "forbid" - Never allowed (default)
 #[test]
 fn shell_adapter_shellcheck_disable_forbidden_by_default() {
-    check("escapes")
-        .on("shell/shellcheck-forbid")
-        .fails()
-        .stdout_has("shellcheck");
+    check("escapes").on("shell/shellcheck-forbid").fails().stdout_has("shellcheck");
 }
 
 /// Spec: docs/specs/langs/shell.md#suppress
@@ -295,10 +254,7 @@ allow = ["SC2034"]
 "#,
     );
     // SC2034 is in allow list, no comment needed
-    temp.file(
-        "scripts/build.sh",
-        "#!/bin/bash\n# shellcheck disable=SC2034\nUNUSED_VAR=1\n",
-    );
+    temp.file("scripts/build.sh", "#!/bin/bash\n# shellcheck disable=SC2034\nUNUSED_VAR=1\n");
 
     check("escapes").pwd(temp.path()).passes();
 }
@@ -323,11 +279,7 @@ lint_config = [".shellcheckrc"]
     );
 
     // Initialize git repo
-    std::process::Command::new("git")
-        .args(["init"])
-        .current_dir(temp.path())
-        .output()
-        .unwrap();
+    std::process::Command::new("git").args(["init"]).current_dir(temp.path()).output().unwrap();
 
     std::process::Command::new("git")
         .args(["config", "user.email", "test@test.com"])
@@ -358,10 +310,7 @@ lint_config = [".shellcheckrc"]
 
     // Add both lint config and source changes
     temp.file(".shellcheckrc", "enable=all\n");
-    temp.file(
-        "scripts/build.sh",
-        "#!/bin/bash\necho 'building'\necho 'more'\n",
-    );
+    temp.file("scripts/build.sh", "#!/bin/bash\necho 'building'\necho 'more'\n");
 
     std::process::Command::new("git")
         .args(["add", "-A"])
@@ -394,11 +343,7 @@ lint_config = [".shellcheckrc"]
     );
 
     // Initialize git repo
-    std::process::Command::new("git")
-        .args(["init"])
-        .current_dir(temp.path())
-        .output()
-        .unwrap();
+    std::process::Command::new("git").args(["init"]).current_dir(temp.path()).output().unwrap();
 
     std::process::Command::new("git")
         .args(["config", "user.email", "test@test.com"])
@@ -437,10 +382,7 @@ lint_config = [".shellcheckrc"]
         .unwrap();
 
     // Should pass - only lint config changed
-    check("escapes")
-        .pwd(temp.path())
-        .args(&["--base", "HEAD"])
-        .passes();
+    check("escapes").pwd(temp.path()).args(&["--base", "HEAD"]).passes();
 }
 
 /// Spec: docs/specs/langs/shell.md#policy
@@ -458,11 +400,7 @@ lint_changes = "none"
     );
 
     // Initialize git repo
-    std::process::Command::new("git")
-        .args(["init"])
-        .current_dir(temp.path())
-        .output()
-        .unwrap();
+    std::process::Command::new("git").args(["init"]).current_dir(temp.path()).output().unwrap();
 
     std::process::Command::new("git")
         .args(["config", "user.email", "test@test.com"])
@@ -493,10 +431,7 @@ lint_changes = "none"
 
     // Add both lint config and source changes
     temp.file(".shellcheckrc", "enable=all\n");
-    temp.file(
-        "scripts/build.sh",
-        "#!/bin/bash\necho 'building'\necho 'more'\n",
-    );
+    temp.file("scripts/build.sh", "#!/bin/bash\necho 'building'\necho 'more'\n");
 
     std::process::Command::new("git")
         .args(["add", "-A"])
@@ -505,10 +440,7 @@ lint_changes = "none"
         .unwrap();
 
     // Should pass - policy is disabled
-    check("escapes")
-        .pwd(temp.path())
-        .args(&["--base", "HEAD"])
-        .passes();
+    check("escapes").pwd(temp.path()).args(&["--base", "HEAD"]).passes();
 }
 
 /// Spec: docs/specs/langs/shell.md#policy
@@ -527,11 +459,7 @@ lint_config = [".shellcheckrc"]
     );
 
     // Initialize git repo
-    std::process::Command::new("git")
-        .args(["init"])
-        .current_dir(temp.path())
-        .output()
-        .unwrap();
+    std::process::Command::new("git").args(["init"]).current_dir(temp.path()).output().unwrap();
 
     std::process::Command::new("git")
         .args(["config", "user.email", "test@test.com"])
@@ -561,10 +489,7 @@ lint_config = [".shellcheckrc"]
         .unwrap();
 
     // Add ONLY source changes (no lint config)
-    temp.file(
-        "scripts/build.sh",
-        "#!/bin/bash\necho 'building'\necho 'more'\n",
-    );
+    temp.file("scripts/build.sh", "#!/bin/bash\necho 'building'\necho 'more'\n");
 
     std::process::Command::new("git")
         .args(["add", "-A"])
@@ -573,8 +498,5 @@ lint_config = [".shellcheckrc"]
         .unwrap();
 
     // Should pass - only source changed
-    check("escapes")
-        .pwd(temp.path())
-        .args(&["--base", "HEAD"])
-        .passes();
+    check("escapes").pwd(temp.path()).args(&["--base", "HEAD"]).passes();
 }

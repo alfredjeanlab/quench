@@ -15,11 +15,7 @@ pub struct StubCheck {
 
 impl StubCheck {
     pub fn new(name: &'static str, description: &'static str, default_enabled: bool) -> Self {
-        Self {
-            name,
-            description,
-            default_enabled,
-        }
+        Self { name, description, default_enabled }
     }
 }
 

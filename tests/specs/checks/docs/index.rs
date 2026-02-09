@@ -22,10 +22,7 @@ fn specs_directory_index_file_detected() {
     let docs = check("docs").on("docs/index-auto").json().passes();
     let metrics = docs.require("metrics");
 
-    assert!(
-        metrics.get("index_file").is_some(),
-        "should have index_file in metrics"
-    );
+    assert!(metrics.get("index_file").is_some(), "should have index_file in metrics");
 }
 
 /// Spec: docs/specs/checks/docs.md#toc-format
@@ -33,10 +30,7 @@ fn specs_directory_index_file_detected() {
 /// > `linked` mode: All spec files must be reachable via markdown links.
 #[test]
 fn unreachable_spec_file_generates_violation_linked_mode() {
-    check("docs")
-        .on("docs/unreachable-spec")
-        .fails()
-        .stdout_has("unreachable from index");
+    check("docs").on("docs/unreachable-spec").fails().stdout_has("unreachable from index");
 }
 
 /// Spec: docs/specs/checks/docs.md#index-file

@@ -5,12 +5,7 @@ use super::*;
 
 #[test]
 fn phase_timing_format_text() {
-    let timing = PhaseTiming {
-        discovery_ms: 10,
-        checking_ms: 50,
-        output_ms: 5,
-        total_ms: 65,
-    };
+    let timing = PhaseTiming { discovery_ms: 10, checking_ms: 50, output_ms: 5, total_ms: 65 };
     let text = timing.format_text();
     assert!(text.contains("discovery: 10ms"));
     assert!(text.contains("checking: 50ms"));
@@ -20,10 +15,7 @@ fn phase_timing_format_text() {
 
 #[test]
 fn timing_info_format_cache_with_hits() {
-    let info = TimingInfo {
-        cache_hits: 5,
-        ..Default::default()
-    };
+    let info = TimingInfo { cache_hits: 5, ..Default::default() };
     assert_eq!(info.format_cache(3), "cache: 5/8");
 }
 

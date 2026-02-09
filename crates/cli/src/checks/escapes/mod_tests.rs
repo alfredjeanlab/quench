@@ -292,10 +292,7 @@ mod benchmarks {
         let start = Instant::now();
         for _ in 0..iterations {
             let mut seen_lines = HashSet::new();
-            let _unique: Vec<_> = matches
-                .iter()
-                .filter(|m| seen_lines.insert(m.line))
-                .collect();
+            let _unique: Vec<_> = matches.iter().filter(|m| seen_lines.insert(m.line)).collect();
         }
         let elapsed = start.elapsed();
 
@@ -314,9 +311,8 @@ mod benchmarks {
 
         let root = std::path::Path::new("/project");
         let test_patterns = default_test_patterns();
-        let paths: Vec<PathBuf> = (0..1000)
-            .map(|i| PathBuf::from(format!("/project/src/module_{}.rs", i)))
-            .collect();
+        let paths: Vec<PathBuf> =
+            (0..1000).map(|i| PathBuf::from(format!("/project/src/module_{}.rs", i))).collect();
 
         // Measure adapter creation cost (done once)
         let start = Instant::now();
@@ -340,10 +336,7 @@ mod benchmarks {
             total_classifications / 1000,
             elapsed
         );
-        println!(
-            "Per classification: {:?}",
-            elapsed / total_classifications as u32
-        );
+        println!("Per classification: {:?}", elapsed / total_classifications as u32);
         println!("Target: < 1µs per classification");
     }
 }

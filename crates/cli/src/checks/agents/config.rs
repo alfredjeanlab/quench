@@ -231,10 +231,7 @@ pub struct SectionsConfig {
 
 impl Default for SectionsConfig {
     fn default() -> Self {
-        Self {
-            required: Self::default_required(),
-            forbid: Vec::new(),
-        }
+        Self { required: Self::default_required(), forbid: Vec::new() }
     }
 }
 
@@ -272,10 +269,7 @@ impl<'de> Deserialize<'de> for RequiredSection {
         #[serde(untagged, deny_unknown_fields)]
         enum RequiredSectionRepr {
             Simple(String),
-            Extended {
-                name: String,
-                advice: Option<String>,
-            },
+            Extended { name: String, advice: Option<String> },
         }
 
         match RequiredSectionRepr::deserialize(deserializer)? {

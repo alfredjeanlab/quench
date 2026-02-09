@@ -131,18 +131,12 @@ fn parse_go_json(stdout: &str, total_time: Duration) -> TestRunResult {
 
         match event.action.as_str() {
             "pass" => {
-                let duration = event
-                    .elapsed
-                    .map(Duration::from_secs_f64)
-                    .unwrap_or(Duration::ZERO);
+                let duration = event.elapsed.map(Duration::from_secs_f64).unwrap_or(Duration::ZERO);
                 let full_name = format_test_name(event.package.as_deref(), test_name);
                 tests.push(TestResult::passed(full_name, duration));
             }
             "fail" => {
-                let duration = event
-                    .elapsed
-                    .map(Duration::from_secs_f64)
-                    .unwrap_or(Duration::ZERO);
+                let duration = event.elapsed.map(Duration::from_secs_f64).unwrap_or(Duration::ZERO);
                 let full_name = format_test_name(event.package.as_deref(), test_name);
                 tests.push(TestResult::failed(full_name, duration));
                 all_passed = false;

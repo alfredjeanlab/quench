@@ -99,10 +99,7 @@ fn all_template_files_parse_correctly() {
 
         // Only test init.*.toml template files
         if path.extension().is_some_and(|ext| ext == "toml")
-            && path
-                .file_name()
-                .and_then(|n| n.to_str())
-                .is_some_and(|n| n.starts_with("init."))
+            && path.file_name().and_then(|n| n.to_str()).is_some_and(|n| n.starts_with("init."))
         {
             let file_name = path.file_name().unwrap().to_str().unwrap();
             tested_count += 1;
@@ -148,18 +145,10 @@ fn all_template_files_parse_correctly() {
     }
 
     // Ensure we actually tested some templates
-    assert!(
-        tested_count >= 7,
-        "Expected at least 7 template files, found {}",
-        tested_count
-    );
+    assert!(tested_count >= 7, "Expected at least 7 template files, found {}", tested_count);
 
     // Report all errors at once
     if !errors.is_empty() {
-        panic!(
-            "\n\n{} template(s) failed to parse:\n\n{}",
-            errors.len(),
-            errors.join("\n---\n")
-        );
+        panic!("\n\n{} template(s) failed to parse:\n\n{}", errors.len(), errors.join("\n---\n"));
     }
 }

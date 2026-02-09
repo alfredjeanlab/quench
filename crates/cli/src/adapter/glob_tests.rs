@@ -51,9 +51,6 @@ fn glob_star_matches_root_level() {
 
     // Verify **/*_test.sh matches root-level files
     let set2 = build_glob_set(&["**/*_test.sh".to_string()]);
-    assert!(
-        set2.is_match("foo_test.sh"),
-        "**/*_test.sh should match foo_test.sh"
-    );
+    assert!(set2.is_match("foo_test.sh"), "**/*_test.sh should match foo_test.sh");
     assert!(set2.is_match("tests/foo_test.sh"));
 }

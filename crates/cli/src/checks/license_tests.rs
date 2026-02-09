@@ -134,28 +134,19 @@ fn comment_prefix_unknown_defaults_to_slashes() {
 #[test]
 fn generate_header_rust() {
     let header = generate_header("MIT", "Test Org", 2026, "rs");
-    assert_eq!(
-        header,
-        "// SPDX-License-Identifier: MIT\n// Copyright (c) 2026 Test Org\n"
-    );
+    assert_eq!(header, "// SPDX-License-Identifier: MIT\n// Copyright (c) 2026 Test Org\n");
 }
 
 #[test]
 fn generate_header_shell() {
     let header = generate_header("MIT", "Test Org", 2026, "sh");
-    assert_eq!(
-        header,
-        "# SPDX-License-Identifier: MIT\n# Copyright (c) 2026 Test Org\n"
-    );
+    assert_eq!(header, "# SPDX-License-Identifier: MIT\n# Copyright (c) 2026 Test Org\n");
 }
 
 #[test]
 fn generate_header_python() {
     let header = generate_header("Apache-2.0", "ACME Corp", 2025, "py");
-    assert_eq!(
-        header,
-        "# SPDX-License-Identifier: Apache-2.0\n# Copyright (c) 2025 ACME Corp\n"
-    );
+    assert_eq!(header, "# SPDX-License-Identifier: Apache-2.0\n# Copyright (c) 2025 ACME Corp\n");
 }
 
 // =============================================================================

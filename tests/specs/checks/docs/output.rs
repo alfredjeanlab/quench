@@ -19,11 +19,7 @@ use crate::prelude::*;
 /// > On pass: "PASS: docs"
 #[test]
 fn docs_text_output_on_pass() {
-    cli()
-        .on("docs/toc-ok")
-        .args(&["--docs"])
-        .passes()
-        .stdout_has("PASS: docs");
+    cli().on("docs/toc-ok").args(&["--docs"]).passes().stdout_has("PASS: docs");
 }
 
 /// Spec: docs/specs/checks/docs.md#text-output
@@ -75,11 +71,7 @@ fn docs_violation_type_is_one_of_expected_values() {
 
     for violation in violations {
         let vtype = violation.get("type").and_then(|t| t.as_str()).unwrap();
-        assert!(
-            valid_types.contains(&vtype),
-            "unexpected violation type: {}",
-            vtype
-        );
+        assert!(valid_types.contains(&vtype), "unexpected violation type: {}", vtype);
     }
 }
 
@@ -135,10 +127,7 @@ fn missing_section_violation_structure() {
         .expect("should have missing_section violation");
 
     assert!(section_violation.get("file").is_some(), "missing file");
-    assert!(
-        section_violation.get("section").is_some(),
-        "missing section"
-    );
+    assert!(section_violation.get("section").is_some(), "missing section");
     assert!(section_violation.get("advice").is_some(), "missing advice");
 }
 
@@ -168,9 +157,6 @@ fn forbidden_section_violation_structure() {
         .expect("should have forbidden_section violation");
 
     assert!(section_violation.get("file").is_some(), "missing file");
-    assert!(
-        section_violation.get("section").is_some(),
-        "missing section"
-    );
+    assert!(section_violation.get("section").is_some(), "missing section");
     assert!(section_violation.get("advice").is_some(), "missing advice");
 }

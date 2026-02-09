@@ -65,11 +65,7 @@ fn parse_ruby_directive(
 
     // Find the comment portion of the line
     // Could be a full line comment or inline comment
-    let comment_start = if trimmed.starts_with('#') {
-        Some(0)
-    } else {
-        trimmed.find('#')
-    };
+    let comment_start = if trimmed.starts_with('#') { Some(0) } else { trimmed.find('#') };
 
     let comment_start = comment_start?;
     let comment = &trimmed[comment_start..];
@@ -102,11 +98,8 @@ fn parse_ruby_directive(
     // Strip any inline comment after the codes
     let codes_str = rest.split('#').next().unwrap_or(rest).trim();
 
-    let codes: Vec<String> = codes_str
-        .split(',')
-        .map(|s| s.trim().to_string())
-        .filter(|s| !s.is_empty())
-        .collect();
+    let codes: Vec<String> =
+        codes_str.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect();
 
     if codes.is_empty() {
         return None;
@@ -116,14 +109,7 @@ fn parse_ruby_directive(
     let (has_comment, comment_text) =
         check_justification_comment(lines, line_idx, comment_pattern, &CommentStyle::RUBY);
 
-    Some(RubySuppress {
-        line: line_idx,
-        kind,
-        codes,
-        has_comment,
-        comment_text,
-        is_todo,
-    })
+    Some(RubySuppress { line: line_idx, kind, codes, has_comment, comment_text, is_todo })
 }
 
 #[cfg(test)]

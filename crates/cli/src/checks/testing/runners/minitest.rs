@@ -145,11 +145,8 @@ fn try_parse_minitest_json(stdout: &str, total_time: Duration) -> Option<TestRun
         }
     }
 
-    let passed = output
-        .summary
-        .as_ref()
-        .map(|s| s.failed == 0)
-        .unwrap_or_else(|| output.status == "pass");
+    let passed =
+        output.summary.as_ref().map(|s| s.failed == 0).unwrap_or_else(|| output.status == "pass");
 
     let mut result = if passed {
         TestRunResult::passed(total_time)
@@ -197,11 +194,7 @@ pub(crate) fn parse_minitest_output(
     }
 
     // If we found a summary line, use that for pass/fail determination
-    let passed = if runs > 0 {
-        failures == 0 && errors == 0
-    } else {
-        exit_success
-    };
+    let passed = if runs > 0 { failures == 0 && errors == 0 } else { exit_success };
 
     // Create individual test results based on dot output
     let tests = parse_dot_output(stdout, runs, failures, errors, skips);
@@ -250,16 +243,7 @@ fn parse_summary_line(line: &str) -> Option<SummaryLine> {
         }
     }
 
-    if runs > 0 {
-        Some(SummaryLine {
-            runs,
-            failures,
-            errors,
-            skips,
-        })
-    } else {
-        None
-    }
+    if runs > 0 { Some(SummaryLine { runs, failures, errors, skips }) } else { None }
 }
 
 /// Parse dot output (. = pass, F = fail, E = error, S = skip)
@@ -280,22 +264,13 @@ fn parse_dot_output(
 
     // Create anonymous test results based on counts
     for i in 0..passes {
-        tests.push(TestResult::passed(
-            format!("test_{}", i + 1),
-            Duration::ZERO,
-        ));
+        tests.push(TestResult::passed(format!("test_{}", i + 1), Duration::ZERO));
     }
     for i in 0..failures {
-        tests.push(TestResult::failed(
-            format!("failed_test_{}", i + 1),
-            Duration::ZERO,
-        ));
+        tests.push(TestResult::failed(format!("failed_test_{}", i + 1), Duration::ZERO));
     }
     for i in 0..errors {
-        tests.push(TestResult::failed(
-            format!("error_test_{}", i + 1),
-            Duration::ZERO,
-        ));
+        tests.push(TestResult::failed(format!("error_test_{}", i + 1), Duration::ZERO));
     }
     for i in 0..skips {
         tests.push(TestResult::skipped(format!("skipped_test_{}", i + 1)));

@@ -53,12 +53,7 @@ fn forbidden_code_triggers_violation() {
     };
 
     let result = check_suppress_attr(&params, &attr);
-    assert_eq!(
-        result,
-        Some(SuppressViolationKind::Forbidden {
-            code: "unsafe_code".to_string()
-        })
-    );
+    assert_eq!(result, Some(SuppressViolationKind::Forbidden { code: "unsafe_code".to_string() }));
 }
 
 #[test]
@@ -93,10 +88,7 @@ fn forbid_level_rejects_all() {
         comment_text: Some("// Good reason"),
     };
 
-    assert_eq!(
-        check_suppress_attr(&params, &attr),
-        Some(SuppressViolationKind::AllForbidden)
-    );
+    assert_eq!(check_suppress_attr(&params, &attr), Some(SuppressViolationKind::AllForbidden));
 }
 
 #[test]

@@ -132,9 +132,7 @@ impl Check for LicenseCheck {
                         if !ctx.dry_run {
                             let _ = std::fs::write(&file.path, &new_content);
                         }
-                        fixes
-                            .headers_added
-                            .push(relative_path.display().to_string());
+                        fixes.headers_added.push(relative_path.display().to_string());
                     } else {
                         violations.push(Violation::file_only(
                             relative_path,
@@ -177,9 +175,7 @@ impl Check for LicenseCheck {
                             if !ctx.dry_run {
                                 let _ = std::fs::write(&file.path, &new_content);
                             }
-                            fixes
-                                .years_updated
-                                .push(relative_path.display().to_string());
+                            fixes.years_updated.push(relative_path.display().to_string());
                         } else {
                             violations.push(
                                 Violation::file(
@@ -338,18 +334,9 @@ fn get_header_lines(content: &str, max_lines: usize) -> String {
     let lines: Vec<&str> = content.lines().take(max_lines + 1).collect();
 
     // Skip shebang line
-    let start = if lines.first().map(|l| l.starts_with("#!")).unwrap_or(false) {
-        1
-    } else {
-        0
-    };
+    let start = if lines.first().map(|l| l.starts_with("#!")).unwrap_or(false) { 1 } else { 0 };
 
-    lines[start..]
-        .iter()
-        .take(max_lines)
-        .copied()
-        .collect::<Vec<_>>()
-        .join("\n")
+    lines[start..].iter().take(max_lines).copied().collect::<Vec<_>>().join("\n")
 }
 
 /// Find line number (1-indexed) of first occurrence of pattern.
@@ -376,10 +363,7 @@ fn year_includes_current(year_str: &str, current_year: i32) -> bool {
         false
     } else {
         // Single year: "2026"
-        year_str
-            .parse::<i32>()
-            .map(|y| y == current_year)
-            .unwrap_or(false)
+        year_str.parse::<i32>().map(|y| y == current_year).unwrap_or(false)
     }
 }
 
@@ -497,9 +481,7 @@ fn check_root_file(
                 if !dry_run {
                     let _ = std::fs::write(file_path, &new_content);
                 }
-                fixes
-                    .years_updated
-                    .push(relative_path.display().to_string());
+                fixes.years_updated.push(relative_path.display().to_string());
             } else {
                 violations.push(
                     Violation::file(

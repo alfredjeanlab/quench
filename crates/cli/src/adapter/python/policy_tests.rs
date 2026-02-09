@@ -29,10 +29,7 @@ fn classify_mock(path: &Path) -> FileKind {
 
 #[test]
 fn no_policy_allows_mixed_changes() {
-    let policy = PythonPolicyConfig {
-        lint_changes: LintChangesPolicy::None,
-        ..Default::default()
-    };
+    let policy = PythonPolicyConfig { lint_changes: LintChangesPolicy::None, ..Default::default() };
 
     let files = [Path::new("ruff.toml"), Path::new("src/app.py")];
     let refs: Vec<&Path> = files.to_vec();
@@ -43,10 +40,8 @@ fn no_policy_allows_mixed_changes() {
 
 #[test]
 fn standalone_policy_detects_mixed_changes() {
-    let policy = PythonPolicyConfig {
-        lint_changes: LintChangesPolicy::Standalone,
-        ..Default::default()
-    };
+    let policy =
+        PythonPolicyConfig { lint_changes: LintChangesPolicy::Standalone, ..Default::default() };
 
     let files = [Path::new("ruff.toml"), Path::new("src/app.py")];
     let refs: Vec<&Path> = files.to_vec();
@@ -59,10 +54,8 @@ fn standalone_policy_detects_mixed_changes() {
 
 #[test]
 fn standalone_policy_allows_lint_only_changes() {
-    let policy = PythonPolicyConfig {
-        lint_changes: LintChangesPolicy::Standalone,
-        ..Default::default()
-    };
+    let policy =
+        PythonPolicyConfig { lint_changes: LintChangesPolicy::Standalone, ..Default::default() };
 
     let files = [Path::new("ruff.toml"), Path::new(".flake8")];
     let refs: Vec<&Path> = files.to_vec();
@@ -73,10 +66,8 @@ fn standalone_policy_allows_lint_only_changes() {
 
 #[test]
 fn standalone_policy_allows_source_only_changes() {
-    let policy = PythonPolicyConfig {
-        lint_changes: LintChangesPolicy::Standalone,
-        ..Default::default()
-    };
+    let policy =
+        PythonPolicyConfig { lint_changes: LintChangesPolicy::Standalone, ..Default::default() };
 
     let files = [Path::new("src/app.py"), Path::new("src/models/user.py")];
     let refs: Vec<&Path> = files.to_vec();
@@ -87,10 +78,8 @@ fn standalone_policy_allows_source_only_changes() {
 
 #[test]
 fn detects_hidden_ruff_config() {
-    let policy = PythonPolicyConfig {
-        lint_changes: LintChangesPolicy::Standalone,
-        ..Default::default()
-    };
+    let policy =
+        PythonPolicyConfig { lint_changes: LintChangesPolicy::Standalone, ..Default::default() };
 
     let files = [Path::new(".ruff.toml"), Path::new("src/app.py")];
     let refs: Vec<&Path> = files.to_vec();
@@ -101,10 +90,8 @@ fn detects_hidden_ruff_config() {
 
 #[test]
 fn detects_flake8_config() {
-    let policy = PythonPolicyConfig {
-        lint_changes: LintChangesPolicy::Standalone,
-        ..Default::default()
-    };
+    let policy =
+        PythonPolicyConfig { lint_changes: LintChangesPolicy::Standalone, ..Default::default() };
 
     let files = [Path::new(".flake8"), Path::new("src/app.py")];
     let refs: Vec<&Path> = files.to_vec();
@@ -115,10 +102,8 @@ fn detects_flake8_config() {
 
 #[test]
 fn detects_pylintrc_config() {
-    let policy = PythonPolicyConfig {
-        lint_changes: LintChangesPolicy::Standalone,
-        ..Default::default()
-    };
+    let policy =
+        PythonPolicyConfig { lint_changes: LintChangesPolicy::Standalone, ..Default::default() };
 
     let files = [Path::new(".pylintrc"), Path::new("src/app.py")];
     let refs: Vec<&Path> = files.to_vec();
@@ -129,10 +114,8 @@ fn detects_pylintrc_config() {
 
 #[test]
 fn detects_pylintrc_without_dot() {
-    let policy = PythonPolicyConfig {
-        lint_changes: LintChangesPolicy::Standalone,
-        ..Default::default()
-    };
+    let policy =
+        PythonPolicyConfig { lint_changes: LintChangesPolicy::Standalone, ..Default::default() };
 
     let files = [Path::new("pylintrc"), Path::new("src/app.py")];
     let refs: Vec<&Path> = files.to_vec();
@@ -143,10 +126,8 @@ fn detects_pylintrc_without_dot() {
 
 #[test]
 fn detects_mypy_ini_config() {
-    let policy = PythonPolicyConfig {
-        lint_changes: LintChangesPolicy::Standalone,
-        ..Default::default()
-    };
+    let policy =
+        PythonPolicyConfig { lint_changes: LintChangesPolicy::Standalone, ..Default::default() };
 
     let files = [Path::new("mypy.ini"), Path::new("src/app.py")];
     let refs: Vec<&Path> = files.to_vec();
@@ -157,10 +138,8 @@ fn detects_mypy_ini_config() {
 
 #[test]
 fn detects_hidden_mypy_ini_config() {
-    let policy = PythonPolicyConfig {
-        lint_changes: LintChangesPolicy::Standalone,
-        ..Default::default()
-    };
+    let policy =
+        PythonPolicyConfig { lint_changes: LintChangesPolicy::Standalone, ..Default::default() };
 
     let files = [Path::new(".mypy.ini"), Path::new("src/app.py")];
     let refs: Vec<&Path> = files.to_vec();
@@ -171,10 +150,8 @@ fn detects_hidden_mypy_ini_config() {
 
 #[test]
 fn detects_pyproject_toml() {
-    let policy = PythonPolicyConfig {
-        lint_changes: LintChangesPolicy::Standalone,
-        ..Default::default()
-    };
+    let policy =
+        PythonPolicyConfig { lint_changes: LintChangesPolicy::Standalone, ..Default::default() };
 
     let files = [Path::new("pyproject.toml"), Path::new("src/app.py")];
     let refs: Vec<&Path> = files.to_vec();
@@ -185,10 +162,8 @@ fn detects_pyproject_toml() {
 
 #[test]
 fn detects_setup_cfg() {
-    let policy = PythonPolicyConfig {
-        lint_changes: LintChangesPolicy::Standalone,
-        ..Default::default()
-    };
+    let policy =
+        PythonPolicyConfig { lint_changes: LintChangesPolicy::Standalone, ..Default::default() };
 
     let files = [Path::new("setup.cfg"), Path::new("src/app.py")];
     let refs: Vec<&Path> = files.to_vec();
@@ -199,10 +174,8 @@ fn detects_setup_cfg() {
 
 #[test]
 fn test_files_trigger_violation() {
-    let policy = PythonPolicyConfig {
-        lint_changes: LintChangesPolicy::Standalone,
-        ..Default::default()
-    };
+    let policy =
+        PythonPolicyConfig { lint_changes: LintChangesPolicy::Standalone, ..Default::default() };
 
     let files = [Path::new("ruff.toml"), Path::new("tests/test_app.py")];
     let refs: Vec<&Path> = files.to_vec();
@@ -213,16 +186,10 @@ fn test_files_trigger_violation() {
 
 #[test]
 fn non_source_files_ignored() {
-    let policy = PythonPolicyConfig {
-        lint_changes: LintChangesPolicy::Standalone,
-        ..Default::default()
-    };
+    let policy =
+        PythonPolicyConfig { lint_changes: LintChangesPolicy::Standalone, ..Default::default() };
 
-    let files = [
-        Path::new("ruff.toml"),
-        Path::new("README.md"),
-        Path::new("Makefile"),
-    ];
+    let files = [Path::new("ruff.toml"), Path::new("README.md"), Path::new("Makefile")];
     let refs: Vec<&Path> = files.to_vec();
 
     let result = check_lint_policy(&refs, &policy, classify_mock);
@@ -246,15 +213,10 @@ fn custom_lint_config_files() {
 
 #[test]
 fn nested_lint_config_detected() {
-    let policy = PythonPolicyConfig {
-        lint_changes: LintChangesPolicy::Standalone,
-        ..Default::default()
-    };
+    let policy =
+        PythonPolicyConfig { lint_changes: LintChangesPolicy::Standalone, ..Default::default() };
 
-    let files = [
-        Path::new("packages/foo/pyproject.toml"),
-        Path::new("src/app.py"),
-    ];
+    let files = [Path::new("packages/foo/pyproject.toml"), Path::new("src/app.py")];
     let refs: Vec<&Path> = files.to_vec();
 
     let result = check_lint_policy(&refs, &policy, classify_mock);

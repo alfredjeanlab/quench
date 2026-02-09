@@ -29,9 +29,8 @@ use std::sync::Arc;
 use crate::check::Check;
 
 /// All registered check names in canonical order.
-pub const CHECK_NAMES: &[&str] = &[
-    "cloc", "escapes", "agents", "docs", "tests", "git", "build", "license",
-];
+pub const CHECK_NAMES: &[&str] =
+    &["cloc", "escapes", "agents", "docs", "tests", "git", "build", "license"];
 
 /// Checks enabled by default in fast mode.
 pub const DEFAULT_ENABLED: &[&str] = &["cloc", "escapes", "agents", "docs", "tests"];
@@ -66,14 +65,10 @@ pub fn filter_checks(enabled: &[String], disabled: &[String]) -> Vec<Arc<dyn Che
 
     if !enabled.is_empty() {
         // Explicit enable: only run specified checks
-        all.into_iter()
-            .filter(|c| enabled.iter().any(|e| e == c.name()))
-            .collect()
+        all.into_iter().filter(|c| enabled.iter().any(|e| e == c.name())).collect()
     } else {
         // Default mode: run all checks minus disabled
-        all.into_iter()
-            .filter(|c| !disabled.iter().any(|d| d == c.name()))
-            .collect()
+        all.into_iter().filter(|c| !disabled.iter().any(|d| d == c.name())).collect()
     }
 }
 

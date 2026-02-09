@@ -96,9 +96,7 @@ pub struct TestsTimeConfig {
 
 impl Default for TestsTimeConfig {
     fn default() -> Self {
-        Self {
-            check: Self::default_check(),
-        }
+        Self { check: Self::default_check() }
     }
 }
 
@@ -135,11 +133,7 @@ pub struct TestsPackageCoverageConfig {
 
 impl Default for TestsCoverageConfig {
     fn default() -> Self {
-        Self {
-            check: Self::default_check(),
-            min: None,
-            package: HashMap::new(),
-        }
+        Self { check: Self::default_check(), min: None, package: HashMap::new() }
     }
 }
 

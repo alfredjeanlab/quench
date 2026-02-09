@@ -11,10 +11,7 @@ fn consolidates_simple_pair() {
 
     let result = consolidate_negatable_flags(input);
 
-    assert!(
-        result.contains("--[no-]color"),
-        "Expected consolidated flag: {result}"
-    );
+    assert!(result.contains("--[no-]color"), "Expected consolidated flag: {result}");
     assert!(
         !result.lines().any(|l| l.trim().starts_with("--no-color")),
         "Should not have separate --no-color line: {result}"
@@ -28,14 +25,8 @@ fn preserves_standalone_no_flag() {
 
     let result = consolidate_negatable_flags(input);
 
-    assert!(
-        result.contains("--no-cache"),
-        "Should preserve --no-cache: {result}"
-    );
-    assert!(
-        !result.contains("--[no-]cache"),
-        "Should not consolidate without --cache: {result}"
-    );
+    assert!(result.contains("--no-cache"), "Should preserve --no-cache: {result}");
+    assert!(!result.contains("--[no-]cache"), "Should not consolidate without --cache: {result}");
 }
 
 #[test]
@@ -46,14 +37,8 @@ fn handles_flag_with_value() {
 
     let result = consolidate_negatable_flags(input);
 
-    assert!(
-        result.contains("--[no-]limit"),
-        "Expected consolidated flag: {result}"
-    );
-    assert!(
-        result.contains("[N]"),
-        "Value should become optional: {result}"
-    );
+    assert!(result.contains("--[no-]limit"), "Expected consolidated flag: {result}");
+    assert!(result.contains("[N]"), "Value should become optional: {result}");
 }
 
 #[test]
@@ -64,14 +49,8 @@ fn preserves_short_option() {
 
     let result = consolidate_negatable_flags(input);
 
-    assert!(
-        result.contains("-c"),
-        "Should preserve short option: {result}"
-    );
-    assert!(
-        result.contains("--[no-]color"),
-        "Should consolidate: {result}"
-    );
+    assert!(result.contains("-c"), "Should preserve short option: {result}");
+    assert!(result.contains("--[no-]color"), "Should consolidate: {result}");
 }
 
 #[test]
@@ -85,14 +64,8 @@ fn handles_multiple_pairs() {
 
     let result = consolidate_negatable_flags(input);
 
-    assert!(
-        result.contains("--[no-]color"),
-        "Expected --[no-]color: {result}"
-    );
-    assert!(
-        result.contains("--[no-]limit"),
-        "Expected --[no-]limit: {result}"
-    );
+    assert!(result.contains("--[no-]color"), "Expected --[no-]color: {result}");
+    assert!(result.contains("--[no-]limit"), "Expected --[no-]limit: {result}");
     assert!(result.contains("--fix"), "Should preserve --fix: {result}");
 
     // Count lines - should have fewer after consolidation
@@ -135,14 +108,8 @@ fn handles_check_toggles() {
 
     let result = consolidate_negatable_flags(input);
 
-    assert!(
-        result.contains("--[no-]cloc"),
-        "Expected --[no-]cloc: {result}"
-    );
-    assert!(
-        result.contains("--[no-]escapes"),
-        "Expected --[no-]escapes: {result}"
-    );
+    assert!(result.contains("--[no-]cloc"), "Expected --[no-]cloc: {result}");
+    assert!(result.contains("--[no-]escapes"), "Expected --[no-]escapes: {result}");
 }
 
 #[test]
@@ -158,25 +125,14 @@ fn format_help_with_real_command() {
     let stripped = strip_ansi(&help);
 
     // Verify consolidation happened for limit
-    assert!(
-        stripped.contains("--[no-]limit"),
-        "check --help should have --[no-]limit: {stripped}"
-    );
+    assert!(stripped.contains("--[no-]limit"), "check --help should have --[no-]limit: {stripped}");
 
     // Verify standalone --no-cache preserved
-    assert!(
-        stripped.contains("--no-cache"),
-        "check --help should have --no-cache: {stripped}"
-    );
-    assert!(
-        !stripped.contains("--[no-]cache"),
-        "Should not consolidate --no-cache: {stripped}"
-    );
+    assert!(stripped.contains("--no-cache"), "check --help should have --no-cache: {stripped}");
+    assert!(!stripped.contains("--[no-]cache"), "Should not consolidate --no-cache: {stripped}");
 
     // Verify all check toggles consolidated
-    for check in [
-        "cloc", "escapes", "agents", "docs", "tests", "git", "build", "license",
-    ] {
+    for check in ["cloc", "escapes", "agents", "docs", "tests", "git", "build", "license"] {
         assert!(
             stripped.contains(&format!("--[no-]{check}")),
             "check --help should have --[no-]{check}: {stripped}"

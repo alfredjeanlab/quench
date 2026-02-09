@@ -85,10 +85,7 @@ fn should_exclude_path(path: &str, expected: bool) {
 fn has_correct_name_and_extensions() {
     let adapter = JavaScriptAdapter::new();
     assert_eq!(adapter.name(), "javascript");
-    assert_eq!(
-        adapter.extensions(),
-        &["js", "jsx", "ts", "tsx", "mjs", "mts", "cjs", "cts"]
-    );
+    assert_eq!(adapter.extensions(), &["js", "jsx", "ts", "tsx", "mjs", "mts", "cjs", "cts"]);
 }
 
 #[test]
@@ -118,11 +115,7 @@ fn as_unknown_pattern_matches() {
     use crate::pattern::CompiledPattern;
 
     let adapter = JavaScriptAdapter::new();
-    let pattern = adapter
-        .default_escapes()
-        .iter()
-        .find(|p| p.name == "as_unknown")
-        .unwrap();
+    let pattern = adapter.default_escapes().iter().find(|p| p.name == "as_unknown").unwrap();
 
     let compiled = CompiledPattern::compile(pattern.pattern).unwrap();
 
@@ -140,21 +133,13 @@ fn ts_ignore_pattern_matches() {
     use crate::pattern::CompiledPattern;
 
     let adapter = JavaScriptAdapter::new();
-    let pattern = adapter
-        .default_escapes()
-        .iter()
-        .find(|p| p.name == "ts_ignore")
-        .unwrap();
+    let pattern = adapter.default_escapes().iter().find(|p| p.name == "ts_ignore").unwrap();
 
     let compiled = CompiledPattern::compile(pattern.pattern).unwrap();
 
     // Should match
     assert!(!compiled.find_all("// @ts-ignore").is_empty());
-    assert!(
-        !compiled
-            .find_all("// @ts-ignore next line is wrong")
-            .is_empty()
-    );
+    assert!(!compiled.find_all("// @ts-ignore next line is wrong").is_empty());
 
     // Should not match
     assert!(compiled.find_all("// @ts-expect-error").is_empty()); // allowed alternative

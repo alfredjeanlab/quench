@@ -169,14 +169,7 @@ pub fn parse_cover_profile(content: &str, duration: Duration) -> CoverageResult 
         None
     };
 
-    CoverageResult {
-        success: true,
-        error: None,
-        duration,
-        line_coverage,
-        files,
-        packages,
-    }
+    CoverageResult { success: true, error: None, duration, line_coverage, files, packages }
 }
 
 /// Parse a single line from Go's coverage profile.

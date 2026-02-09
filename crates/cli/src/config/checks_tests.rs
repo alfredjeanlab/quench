@@ -191,22 +191,8 @@ fn docs_commit_config_defaults() {
 fn docs_toc_config_defaults() {
     let config = parse_config("version = 1\n");
     assert!(config.check.docs.toc.check.is_none());
-    assert!(
-        config
-            .check
-            .docs
-            .toc
-            .include
-            .contains(&"**/*.md".to_string())
-    );
-    assert!(
-        config
-            .check
-            .docs
-            .toc
-            .exclude
-            .contains(&"plans/**".to_string())
-    );
+    assert!(config.check.docs.toc.include.contains(&"**/*.md".to_string()));
+    assert!(config.check.docs.toc.exclude.contains(&"plans/**".to_string()));
 }
 
 // =============================================================================

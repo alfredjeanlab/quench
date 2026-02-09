@@ -55,12 +55,7 @@ lint_changes = "standalone"
 ///
 /// Returns default npm-based items for consistency with other languages.
 pub fn javascript_landing_items() -> &'static [&'static str] {
-    &[
-        "npm run lint",
-        "npm run typecheck",
-        "npm test",
-        "npm run build",
-    ]
+    &["npm run lint", "npm run typecheck", "npm test", "npm run build"]
 }
 
 /// JavaScript-specific Landing the Plane checklist items with package manager detection.
@@ -79,12 +74,7 @@ pub fn javascript_landing_items_for(root: &Path) -> Vec<String> {
         }
     };
 
-    vec![
-        run_cmd("lint"),
-        run_cmd("typecheck"),
-        format!("{exe} test"),
-        run_cmd("build"),
-    ]
+    vec![run_cmd("lint"), run_cmd("typecheck"), format!("{exe} test"), run_cmd("build")]
 }
 
 /// Default Rust profile configuration for quench init.
@@ -106,12 +96,7 @@ lint_changes = "standalone"
 
 /// Rust-specific Landing the Plane checklist items.
 pub fn rust_landing_items() -> &'static [&'static str] {
-    &[
-        "cargo fmt --check",
-        "cargo clippy -- -D warnings",
-        "cargo test",
-        "cargo build",
-    ]
+    &["cargo fmt --check", "cargo clippy -- -D warnings", "cargo test", "cargo build"]
 }
 
 /// Default Shell profile configuration for quench init.
@@ -153,13 +138,7 @@ lint_changes = "standalone"
 
 /// Go-specific Landing the Plane checklist items.
 pub fn golang_landing_items() -> &'static [&'static str] {
-    &[
-        "go fmt ./...",
-        "go vet ./...",
-        "golangci-lint run",
-        "go test ./...",
-        "go build ./...",
-    ]
+    &["go fmt ./...", "go vet ./...", "golangci-lint run", "go test ./...", "go build ./..."]
 }
 
 /// Ruby profile configuration for quench init.
@@ -180,11 +159,7 @@ lint_changes = "standalone"
 
 /// Ruby-specific Landing the Plane checklist items.
 pub fn ruby_landing_items() -> &'static [&'static str] {
-    &[
-        "bundle exec rubocop",
-        "bundle exec rspec",
-        "bundle exec rake test",
-    ]
+    &["bundle exec rubocop", "bundle exec rspec", "bundle exec rake test"]
 }
 
 /// Python profile configuration for quench init.
@@ -262,11 +237,7 @@ pub fn python_landing_items_for(root: &Path) -> Vec<String> {
 
     // If nothing detected, return sensible defaults
     if items.is_empty() {
-        return vec![
-            cmd("ruff check ."),
-            cmd("ruff format --check ."),
-            cmd("pytest"),
-        ];
+        return vec![cmd("ruff check ."), cmd("ruff format --check ."), cmd("pytest")];
     }
 
     items
@@ -284,16 +255,7 @@ pub struct ProfileRegistry;
 impl ProfileRegistry {
     /// Get all available profile names.
     pub fn available() -> &'static [&'static str] {
-        &[
-            "rust",
-            "golang",
-            "javascript",
-            "ruby",
-            "python",
-            "shell",
-            "claude",
-            "cursor",
-        ]
+        &["rust", "golang", "javascript", "ruby", "python", "shell", "claude", "cursor"]
     }
 
     /// Get profile content by name.
@@ -526,12 +488,7 @@ pub fn agents_section(agents: &[DetectedAgent]) -> String {
 ///
 /// Matches docs/specs/templates/init.default.toml
 pub fn default_template() -> String {
-    format!(
-        "{}{}{}",
-        default_template_base(),
-        agents_section(&[]),
-        default_template_suffix()
-    )
+    format!("{}{}{}", default_template_base(), agents_section(&[]), default_template_suffix())
 }
 
 #[cfg(test)]

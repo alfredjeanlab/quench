@@ -164,13 +164,7 @@ fn parse_rust_policy_default() {
     let config = parse_with_warnings(content, &path).unwrap();
     assert_eq!(config.rust.policy.lint_changes, LintChangesPolicy::None);
     assert_eq!(config.rust.policy.lint_config.len(), 4);
-    assert!(
-        config
-            .rust
-            .policy
-            .lint_config
-            .contains(&"rustfmt.toml".to_string())
-    );
+    assert!(config.rust.policy.lint_config.contains(&"rustfmt.toml".to_string()));
 }
 
 #[test]
@@ -183,10 +177,7 @@ version = 1
 lint_changes = "standalone"
 "#;
     let config = parse_with_warnings(content, &path).unwrap();
-    assert_eq!(
-        config.rust.policy.lint_changes,
-        LintChangesPolicy::Standalone
-    );
+    assert_eq!(config.rust.policy.lint_changes, LintChangesPolicy::Standalone);
 }
 
 #[test]
@@ -200,18 +191,9 @@ lint_changes = "standalone"
 lint_config = ["rustfmt.toml", "custom-lint.toml"]
 "#;
     let config = parse_with_warnings(content, &path).unwrap();
-    assert_eq!(
-        config.rust.policy.lint_changes,
-        LintChangesPolicy::Standalone
-    );
+    assert_eq!(config.rust.policy.lint_changes, LintChangesPolicy::Standalone);
     assert_eq!(config.rust.policy.lint_config.len(), 2);
-    assert!(
-        config
-            .rust
-            .policy
-            .lint_config
-            .contains(&"custom-lint.toml".to_string())
-    );
+    assert!(config.rust.policy.lint_config.contains(&"custom-lint.toml".to_string()));
 }
 
 #[test]
@@ -268,22 +250,8 @@ version = 1
 allow = ["SC2034", "SC2086"]
 "#;
     let config = parse_with_warnings(content, &path).unwrap();
-    assert!(
-        config
-            .shell
-            .suppress
-            .source
-            .allow
-            .contains(&"SC2034".to_string())
-    );
-    assert!(
-        config
-            .shell
-            .suppress
-            .source
-            .allow
-            .contains(&"SC2086".to_string())
-    );
+    assert!(config.shell.suppress.source.allow.contains(&"SC2034".to_string()));
+    assert!(config.shell.suppress.source.allow.contains(&"SC2086".to_string()));
 }
 
 #[test]
@@ -296,14 +264,7 @@ version = 1
 forbid = ["SC2006"]
 "#;
     let config = parse_with_warnings(content, &path).unwrap();
-    assert!(
-        config
-            .shell
-            .suppress
-            .source
-            .forbid
-            .contains(&"SC2006".to_string())
-    );
+    assert!(config.shell.suppress.source.forbid.contains(&"SC2006".to_string()));
 }
 
 #[test]
@@ -335,12 +296,7 @@ fn shell_default_test_patterns() {
     let content = "version = 1\n";
     let config = parse_with_warnings(content, &path).unwrap();
     // Updated to use **/tests/** pattern for nested directory support
-    assert!(
-        config
-            .shell
-            .tests
-            .contains(&"**/tests/**/*.bats".to_string())
-    );
+    assert!(config.shell.tests.contains(&"**/tests/**/*.bats".to_string()));
     assert!(config.shell.tests.contains(&"**/*_test.sh".to_string()));
 }
 
@@ -357,14 +313,8 @@ check = "warn"
 "#;
     let config = parse_with_warnings(content, &path).unwrap();
     assert!(config.rust.cloc.is_some());
-    assert_eq!(
-        config.rust.cloc.as_ref().unwrap().check,
-        Some(CheckLevel::Warn)
-    );
-    assert_eq!(
-        config.cloc_check_level_for_language("rust"),
-        CheckLevel::Warn
-    );
+    assert_eq!(config.rust.cloc.as_ref().unwrap().check, Some(CheckLevel::Warn));
+    assert_eq!(config.cloc_check_level_for_language("rust"), CheckLevel::Warn);
 }
 
 #[test]
@@ -377,10 +327,7 @@ version = 1
 check = "off"
 "#;
     let config = parse_with_warnings(content, &path).unwrap();
-    assert_eq!(
-        config.cloc_check_level_for_language("rust"),
-        CheckLevel::Off
-    );
+    assert_eq!(config.cloc_check_level_for_language("rust"), CheckLevel::Off);
 }
 
 #[test]
@@ -394,10 +341,7 @@ check = "warn"
 "#;
     let config = parse_with_warnings(content, &path).unwrap();
     // No [rust.cloc] section, so should inherit global
-    assert_eq!(
-        config.cloc_check_level_for_language("rust"),
-        CheckLevel::Warn
-    );
+    assert_eq!(config.cloc_check_level_for_language("rust"), CheckLevel::Warn);
 }
 
 #[test]
@@ -414,10 +358,7 @@ cloc_advice = "Old style advice"
 "#;
     let config = parse_with_warnings(content, &path).unwrap();
     // New style [rust.cloc].advice should take precedence over old style [rust].cloc_advice
-    assert_eq!(
-        config.cloc_advice_for_language("rust", 750),
-        "New style advice"
-    );
+    assert_eq!(config.cloc_advice_for_language("rust", 750), "New style advice");
 }
 
 // cloc advice tests
@@ -429,13 +370,7 @@ fn default_cloc_advice_includes_avoid_removing() {
     let config = parse_with_warnings(content, &path).unwrap();
 
     assert!(config.check.cloc.advice.contains("Avoid removing"));
-    assert!(
-        config
-            .check
-            .cloc
-            .advice
-            .contains("extracting testable code blocks")
-    );
+    assert!(config.check.cloc.advice.contains("extracting testable code blocks"));
 }
 
 #[test]
@@ -445,23 +380,14 @@ fn cloc_advice_for_language_uses_language_defaults() {
     let config = parse_with_warnings(content, &path).unwrap();
 
     // Known languages should use their language-specific defaults
-    assert_eq!(
-        config.cloc_advice_for_language("rust", 750),
-        RustConfig::default_cloc_advice(750)
-    );
-    assert_eq!(
-        config.cloc_advice_for_language("go", 750),
-        GoConfig::default_cloc_advice(750)
-    );
+    assert_eq!(config.cloc_advice_for_language("rust", 750), RustConfig::default_cloc_advice(750));
+    assert_eq!(config.cloc_advice_for_language("go", 750), GoConfig::default_cloc_advice(750));
     assert_eq!(
         config.cloc_advice_for_language("shell", 750),
         ShellConfig::default_cloc_advice(750)
     );
     // Unknown languages fall back to generic advice
-    assert_eq!(
-        config.cloc_advice_for_language("unknown", 750),
-        config.check.cloc.advice
-    );
+    assert_eq!(config.cloc_advice_for_language("unknown", 750), config.check.cloc.advice);
 }
 
 #[test]
@@ -475,15 +401,9 @@ cloc_advice = "Custom Rust advice here"
 "#;
     let config = parse_with_warnings(content, &path).unwrap();
 
-    assert_eq!(
-        config.cloc_advice_for_language("rust", 750),
-        "Custom Rust advice here"
-    );
+    assert_eq!(config.cloc_advice_for_language("rust", 750), "Custom Rust advice here");
     // Other languages still use their defaults
-    assert_eq!(
-        config.cloc_advice_for_language("go", 750),
-        GoConfig::default_cloc_advice(750)
-    );
+    assert_eq!(config.cloc_advice_for_language("go", 750), GoConfig::default_cloc_advice(750));
 }
 
 #[test]
@@ -497,15 +417,9 @@ cloc_advice = "Custom Go advice here"
 "#;
     let config = parse_with_warnings(content, &path).unwrap();
 
-    assert_eq!(
-        config.cloc_advice_for_language("go", 750),
-        "Custom Go advice here"
-    );
+    assert_eq!(config.cloc_advice_for_language("go", 750), "Custom Go advice here");
     // Other languages still use their defaults
-    assert_eq!(
-        config.cloc_advice_for_language("rust", 750),
-        RustConfig::default_cloc_advice(750)
-    );
+    assert_eq!(config.cloc_advice_for_language("rust", 750), RustConfig::default_cloc_advice(750));
 }
 
 #[test]
@@ -519,15 +433,9 @@ cloc_advice = "Custom Shell advice here"
 "#;
     let config = parse_with_warnings(content, &path).unwrap();
 
-    assert_eq!(
-        config.cloc_advice_for_language("shell", 750),
-        "Custom Shell advice here"
-    );
+    assert_eq!(config.cloc_advice_for_language("shell", 750), "Custom Shell advice here");
     // Other languages still use their defaults
-    assert_eq!(
-        config.cloc_advice_for_language("rust", 750),
-        RustConfig::default_cloc_advice(750)
-    );
+    assert_eq!(config.cloc_advice_for_language("rust", 750), RustConfig::default_cloc_advice(750));
 }
 
 // Ignore config tests
@@ -542,10 +450,7 @@ version = 1
 exclude = ["*.snapshot", "testdata/**"]
 "#;
     let config = parse(content, &path).unwrap();
-    assert_eq!(
-        config.project.exclude.patterns,
-        vec!["*.snapshot", "testdata/**"]
-    );
+    assert_eq!(config.project.exclude.patterns, vec!["*.snapshot", "testdata/**"]);
 }
 
 #[test]
@@ -676,10 +581,7 @@ sections.required = ["Purpose", "Overview"]
     let config = parse(content, &path).unwrap();
     assert_eq!(config.check.docs.specs.sections.required.len(), 2);
     assert_eq!(config.check.docs.specs.sections.required[0].name, "Purpose");
-    assert_eq!(
-        config.check.docs.specs.sections.required[1].name,
-        "Overview"
-    );
+    assert_eq!(config.check.docs.specs.sections.required[1].name, "Overview");
 }
 
 #[test]
@@ -712,24 +614,8 @@ sections.forbid = ["TODO", "Draft*"]
 "#;
     let config = parse(content, &path).unwrap();
     assert_eq!(config.check.docs.specs.sections.forbid.len(), 2);
-    assert!(
-        config
-            .check
-            .docs
-            .specs
-            .sections
-            .forbid
-            .contains(&"TODO".to_string())
-    );
-    assert!(
-        config
-            .check
-            .docs
-            .specs
-            .sections
-            .forbid
-            .contains(&"Draft*".to_string())
-    );
+    assert!(config.check.docs.specs.sections.forbid.contains(&"TODO".to_string()));
+    assert!(config.check.docs.specs.sections.forbid.contains(&"Draft*".to_string()));
 }
 
 #[test]
@@ -764,43 +650,22 @@ check = "error"
 
     // Rust: off
     assert_eq!(config.rust.policy.check, Some(CheckLevel::Off));
-    assert_eq!(
-        config.policy_check_level_for_language("rust"),
-        CheckLevel::Off
-    );
+    assert_eq!(config.policy_check_level_for_language("rust"), CheckLevel::Off);
 
     // Go: warn (with alias)
     assert_eq!(config.golang.policy.check, Some(CheckLevel::Warn));
-    assert_eq!(
-        config.policy_check_level_for_language("go"),
-        CheckLevel::Warn
-    );
-    assert_eq!(
-        config.policy_check_level_for_language("golang"),
-        CheckLevel::Warn
-    );
+    assert_eq!(config.policy_check_level_for_language("go"), CheckLevel::Warn);
+    assert_eq!(config.policy_check_level_for_language("golang"), CheckLevel::Warn);
 
     // JavaScript: error (with alias)
     assert_eq!(config.javascript.policy.check, Some(CheckLevel::Error));
-    assert_eq!(
-        config.policy_check_level_for_language("javascript"),
-        CheckLevel::Error
-    );
-    assert_eq!(
-        config.policy_check_level_for_language("js"),
-        CheckLevel::Error
-    );
+    assert_eq!(config.policy_check_level_for_language("javascript"), CheckLevel::Error);
+    assert_eq!(config.policy_check_level_for_language("js"), CheckLevel::Error);
 
     // Shell: not configured, defaults to error (with alias)
     assert_eq!(config.shell.policy.check, None);
-    assert_eq!(
-        config.policy_check_level_for_language("shell"),
-        CheckLevel::Error
-    );
-    assert_eq!(
-        config.policy_check_level_for_language("sh"),
-        CheckLevel::Error
-    );
+    assert_eq!(config.policy_check_level_for_language("shell"), CheckLevel::Error);
+    assert_eq!(config.policy_check_level_for_language("sh"), CheckLevel::Error);
 }
 
 // Git skip_merge config tests
@@ -944,10 +809,7 @@ runner = "pytest"
 max_total = "2m"
 "#;
     let config = parse(content, &path).unwrap();
-    assert_eq!(
-        config.check.tests.suite[0].max_total,
-        Some(std::time::Duration::from_secs(120))
-    );
+    assert_eq!(config.check.tests.suite[0].max_total, Some(std::time::Duration::from_secs(120)));
 }
 
 #[test]
@@ -998,10 +860,7 @@ fn git_baseline_defaults_to_notes() {
 
 #[test]
 fn git_baseline_uses_notes_returns_true_for_notes() {
-    let config = GitConfig {
-        baseline: "notes".to_string(),
-        commit: GitCommitConfig::default(),
-    };
+    let config = GitConfig { baseline: "notes".to_string(), commit: GitCommitConfig::default() };
     assert!(config.uses_notes());
     assert!(config.baseline_path().is_none());
 }

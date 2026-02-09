@@ -79,12 +79,7 @@ fn javascript_exclude_defaults() {
     let path = PathBuf::from("quench.toml");
     let content = "version = 1\n";
     let config = parse(content, &path).unwrap();
-    assert!(
-        config
-            .javascript
-            .exclude
-            .contains(&"node_modules/**".to_string())
-    );
+    assert!(config.javascript.exclude.contains(&"node_modules/**".to_string()));
     assert!(config.javascript.exclude.contains(&"dist/**".to_string()));
 }
 

@@ -23,10 +23,7 @@ check = "comment"
 "#,
     );
 
-    temp.file(
-        "script.sh",
-        "#!/bin/bash\n# shellcheck disable=SC2086\necho $var",
-    );
+    temp.file("script.sh", "#!/bin/bash\n# shellcheck disable=SC2086\necho $var");
 
     check("escapes").pwd(temp.path()).fails().stdout_eq(
         r#"escapes: FAIL
@@ -55,10 +52,7 @@ comment = "# EXTERNAL:"
 "##,
     );
 
-    temp.file(
-        "script.sh",
-        "#!/bin/bash\n# shellcheck disable=SC2154\necho $external_var",
-    );
+    temp.file("script.sh", "#!/bin/bash\n# shellcheck disable=SC2154\necho $external_var");
 
     check("escapes").pwd(temp.path()).fails().stdout_eq(
         r##"escapes: FAIL
@@ -85,10 +79,7 @@ check = "comment"
 "#,
     );
 
-    temp.file(
-        "script.sh",
-        "#!/bin/bash\n# shellcheck disable=SC2034\nunused_var=1",
-    );
+    temp.file("script.sh", "#!/bin/bash\n# shellcheck disable=SC2034\nunused_var=1");
 
     check("escapes").pwd(temp.path()).fails().stdout_eq(
         r#"escapes: FAIL
@@ -114,10 +105,7 @@ check = "comment"
 "#,
     );
 
-    temp.file(
-        "script.sh",
-        "#!/bin/bash\n# shellcheck disable=SC9999\necho test",
-    );
+    temp.file("script.sh", "#!/bin/bash\n# shellcheck disable=SC9999\necho test");
 
     check("escapes").pwd(temp.path()).fails().stdout_eq(
         r#"escapes: FAIL
@@ -148,10 +136,7 @@ check = "comment"
     );
 
     temp.file("go.mod", "module test\ngo 1.21\n");
-    temp.file(
-        "main.go",
-        "package main\n//nolint:errcheck\nfunc test() { _ = doSomething() }",
-    );
+    temp.file("main.go", "package main\n//nolint:errcheck\nfunc test() { _ = doSomething() }");
 
     check("escapes").pwd(temp.path()).fails().stdout_eq(
         r#"escapes: FAIL

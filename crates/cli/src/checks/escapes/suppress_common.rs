@@ -167,15 +167,9 @@ pub fn check_suppress_violations_generic<C: SuppressConfigAccess>(
 
     // Get scope config and check level
     let (scope_config, scope_check) = if is_test_file {
-        (
-            config.test(),
-            config.test().check.unwrap_or(SuppressLevel::Allow),
-        )
+        (config.test(), config.test().check.unwrap_or(SuppressLevel::Allow))
     } else {
-        (
-            config.source(),
-            config.source().check.unwrap_or(config.check()),
-        )
+        (config.source(), config.source().check.unwrap_or(config.check()))
     };
 
     // If allow, no checking needed
@@ -189,11 +183,8 @@ pub fn check_suppress_violations_generic<C: SuppressConfigAccess>(
         }
 
         // Build params for shared checking logic
-        let params = SuppressCheckParams {
-            scope_config,
-            scope_check,
-            global_comment: config.comment(),
-        };
+        let params =
+            SuppressCheckParams { scope_config, scope_check, global_comment: config.comment() };
 
         let attr_info = SuppressAttrInfo {
             codes: &directive.codes,
@@ -211,10 +202,7 @@ pub fn check_suppress_violations_generic<C: SuppressConfigAccess>(
                     );
                     (format!("{}_forbidden", violation_type_prefix), advice)
                 }
-                SuppressViolationKind::MissingComment {
-                    ref lint_code,
-                    ref required_patterns,
-                } => {
+                SuppressViolationKind::MissingComment { ref lint_code, ref required_patterns } => {
                     let advice = build_suppress_missing_comment_advice(
                         language,
                         lint_code.as_deref(),
@@ -225,10 +213,7 @@ pub fn check_suppress_violations_generic<C: SuppressConfigAccess>(
                 SuppressViolationKind::AllForbidden => {
                     let advice =
                         "Lint suppressions are forbidden. Remove and fix the underlying issue.";
-                    (
-                        format!("{}_forbidden", violation_type_prefix),
-                        advice.to_string(),
-                    )
+                    (format!("{}_forbidden", violation_type_prefix), advice.to_string())
                 }
             };
 
@@ -396,10 +381,9 @@ fn get_python_fix_guidance(lint_code: &str) -> (&'static str, &'static str) {
             "Fix the type error instead of ignoring it.",
             "Add proper type annotations or fix the type mismatch.",
         ),
-        "missing-docstring" | "C0114" | "C0115" | "C0116" => (
-            "Add the missing docstring.",
-            "Document what the function/class/module does.",
-        ),
+        "missing-docstring" | "C0114" | "C0115" | "C0116" => {
+            ("Add the missing docstring.", "Document what the function/class/module does.")
+        }
         "coverage" => (
             "Add tests for this code instead of excluding it.",
             "Coverage exclusions should be rare and well-justified.",
@@ -422,21 +406,12 @@ fn format_suppression_fallback(patterns: &[String]) -> String {
 
     if patterns.len() == 1 {
         // Single pattern
-        format!(
-            "Only if fixing is not feasible, add:\n  {} ...",
-            patterns[0]
-        )
+        format!("Only if fixing is not feasible, add:\n  {} ...", patterns[0])
     } else {
         // Multiple patterns
-        let formatted_patterns = patterns
-            .iter()
-            .map(|p| format!("  {} ...", p))
-            .collect::<Vec<_>>()
-            .join("\n");
-        format!(
-            "Only if fixing is not feasible, add one of:\n{}",
-            formatted_patterns
-        )
+        let formatted_patterns =
+            patterns.iter().map(|p| format!("  {} ...", p)).collect::<Vec<_>>().join("\n");
+        format!("Only if fixing is not feasible, add one of:\n{}", formatted_patterns)
     }
 }
 
@@ -535,10 +510,7 @@ pub fn check_suppress_attr(
     if params.scope_check == SuppressLevel::Comment {
         let (lint_code, required_patterns) = find_required_patterns(params, attr);
         if !has_valid_comment(attr, &required_patterns) {
-            return Some(SuppressViolationKind::MissingComment {
-                lint_code,
-                required_patterns,
-            });
+            return Some(SuppressViolationKind::MissingComment { lint_code, required_patterns });
         }
     }
 
@@ -559,10 +531,7 @@ fn find_required_patterns(
         }
     }
     // Fall back to global pattern
-    let patterns = params
-        .global_comment
-        .map(|p| vec![p.to_string()])
-        .unwrap_or_default();
+    let patterns = params.global_comment.map(|p| vec![p.to_string()]).unwrap_or_default();
     (attr.codes.first().cloned(), patterns)
 }
 
@@ -593,21 +562,12 @@ fn has_valid_comment(attr: &SuppressAttrInfo, required_patterns: &[String]) -> b
 
 /// Normalize a comment pattern by stripping common prefixes.
 fn normalize_comment_pattern(pattern: &str) -> String {
-    pattern
-        .trim()
-        .trim_start_matches("//")
-        .trim_start_matches('#')
-        .trim()
-        .to_string()
+    pattern.trim().trim_start_matches("//").trim_start_matches('#').trim().to_string()
 }
 
 /// Normalize comment text by stripping common prefixes.
 fn normalize_comment_text(text: &str) -> String {
-    text.trim()
-        .trim_start_matches("//")
-        .trim_start_matches('#')
-        .trim()
-        .to_string()
+    text.trim().trim_start_matches("//").trim_start_matches('#').trim().to_string()
 }
 
 /// Check if a lint code matches any pattern in a list.

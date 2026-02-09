@@ -26,10 +26,7 @@ action = "forbid"
 "#,
     );
     // Pattern appears twice on same line: in code AND in comment
-    temp.file(
-        "src/lib.rs",
-        "pub fn f() { None::<i32>.unwrap() } // using .unwrap() here\n",
-    );
+    temp.file("src/lib.rs", "pub fn f() { None::<i32>.unwrap() } // using .unwrap() here\n");
 
     let escapes = check("escapes").pwd(temp.path()).json().fails();
     let violations = escapes.require("violations").as_array().unwrap();
@@ -58,10 +55,7 @@ comment = "// SAFETY:"
 "#,
     );
     // The // SAFETY: is embedded in another comment, not at comment start
-    temp.file(
-        "src/lib.rs",
-        "unsafe { }  // VIOLATION: missing // SAFETY: comment\n",
-    );
+    temp.file("src/lib.rs", "unsafe { }  // VIOLATION: missing // SAFETY: comment\n");
 
     // This should FAIL because the embedded // SAFETY: should not count
     let escapes = check("escapes").pwd(temp.path()).json().fails();
@@ -172,8 +166,5 @@ eval "$CMD"
     );
 
     // Should FAIL - actual eval in code without # OK: comment
-    check("escapes")
-        .pwd(temp.path())
-        .fails()
-        .stdout_has("missing_comment");
+    check("escapes").pwd(temp.path()).fails().stdout_has("missing_comment");
 }

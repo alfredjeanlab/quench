@@ -67,11 +67,7 @@ impl ShellKind {
             ShellKind::Fish => {
                 // Fish uses XDG config
                 let fish_config = config_dir()?.join("fish/config.fish");
-                if fish_config.exists() {
-                    Some(fish_config)
-                } else {
-                    None
-                }
+                if fish_config.exists() { Some(fish_config) } else { None }
             }
         }
     }
@@ -114,11 +110,7 @@ pub fn detect_shells() -> Vec<ShellKind> {
 
 /// Check if a shell binary exists.
 fn shell_exists(name: &str) -> bool {
-    Command::new("which")
-        .arg(name)
-        .output()
-        .map(|o| o.status.success())
-        .unwrap_or(false)
+    Command::new("which").arg(name).output().map(|o| o.status.success()).unwrap_or(false)
 }
 
 /// Get the directory for storing completion scripts.
@@ -134,16 +126,11 @@ fn write_completion_script(shell: ShellKind) -> Result<PathBuf> {
         path: None,
     })?;
 
-    fs::create_dir_all(&dir).map_err(|e| Error::Io {
-        path: dir.clone(),
-        source: e,
-    })?;
+    fs::create_dir_all(&dir).map_err(|e| Error::Io { path: dir.clone(), source: e })?;
 
     let path = dir.join(shell.script_filename());
-    let mut file = fs::File::create(&path).map_err(|e| Error::Io {
-        path: path.clone(),
-        source: e,
-    })?;
+    let mut file =
+        fs::File::create(&path).map_err(|e| Error::Io { path: path.clone(), source: e })?;
 
     let mut cmd = Cli::command();
     generate(shell.clap_shell(), &mut cmd, "quench", &mut file);
@@ -184,15 +171,9 @@ fn install_completion_source(shell: ShellKind, script_path: &Path) -> Result<()>
     let mut file = OpenOptions::new()
         .append(true)
         .open(&rc_path)
-        .map_err(|e| Error::Io {
-            path: rc_path.clone(),
-            source: e,
-        })?;
+        .map_err(|e| Error::Io { path: rc_path.clone(), source: e })?;
     file.write_all(source_line.as_bytes())
-        .map_err(|e| Error::Io {
-            path: rc_path.clone(),
-            source: e,
-        })?;
+        .map_err(|e| Error::Io { path: rc_path.clone(), source: e })?;
 
     Ok(())
 }
@@ -220,16 +201,12 @@ fn install_fish_completions() -> Result<()> {
         })?
         .join("fish/completions");
 
-    fs::create_dir_all(&fish_completions).map_err(|e| Error::Io {
-        path: fish_completions.clone(),
-        source: e,
-    })?;
+    fs::create_dir_all(&fish_completions)
+        .map_err(|e| Error::Io { path: fish_completions.clone(), source: e })?;
 
     let path = fish_completions.join("quench.fish");
-    let mut file = fs::File::create(&path).map_err(|e| Error::Io {
-        path: path.clone(),
-        source: e,
-    })?;
+    let mut file =
+        fs::File::create(&path).map_err(|e| Error::Io { path: path.clone(), source: e })?;
 
     let mut cmd = Cli::command();
     generate(clap_complete::Shell::Fish, &mut cmd, "quench", &mut file);
@@ -265,19 +242,13 @@ pub fn install_all() -> Result<()> {
 
     // Log warnings for failures but don't fail overall
     for (shell, error) in &errors {
-        eprintln!(
-            "Warning: could not install {:?} completions: {}",
-            shell, error
-        );
+        eprintln!("Warning: could not install {:?} completions: {}", shell, error);
     }
 
     if any_success || errors.is_empty() {
         Ok(())
     } else {
-        Err(Error::Config {
-            message: "Failed to install any shell completions".into(),
-            path: None,
-        })
+        Err(Error::Config { message: "Failed to install any shell completions".into(), path: None })
     }
 }
 

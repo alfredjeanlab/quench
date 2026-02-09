@@ -58,21 +58,13 @@ impl CargoWorkspace {
         let members = workspace
             .get("members")
             .and_then(|m| m.as_array())
-            .map(|arr| {
-                arr.iter()
-                    .filter_map(|v| v.as_str().map(String::from))
-                    .collect::<Vec<_>>()
-            })
+            .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect::<Vec<_>>())
             .unwrap_or_default();
 
         // Expand member patterns to find actual packages
         let packages = expand_workspace_members(&members, root);
 
-        Self {
-            is_workspace: true,
-            packages,
-            member_patterns: members,
-        }
+        Self { is_workspace: true, packages, member_patterns: members }
     }
 }
 
@@ -130,11 +122,7 @@ fn read_package_name(dir: &Path) -> Option<String> {
     let cargo_toml = dir.join("Cargo.toml");
     let content = fs::read_to_string(&cargo_toml).ok()?;
     let value: Value = toml::from_str(&content).ok()?;
-    value
-        .get("package")?
-        .get("name")?
-        .as_str()
-        .map(String::from)
+    value.get("package")?.get("name")?.as_str().map(String::from)
 }
 
 #[cfg(test)]
