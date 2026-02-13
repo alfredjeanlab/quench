@@ -7,6 +7,9 @@ on:
 permissions:
   contents: write
 
+env:
+  RUSTC_WRAPPER: ""
+
 jobs:
   build:
     name: Build ${{ matrix.name }}
@@ -28,7 +31,6 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
-      - uses: mozilla-actions/sccache-action@v0.0.9
       - name: Build
         run: cargo build --release --target ${{ matrix.target }}
       - name: Package
