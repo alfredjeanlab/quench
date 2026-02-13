@@ -16,7 +16,7 @@ clap = { version = "4", features = ["derive", "env", "color"] }
 clap_complete = "4"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-toml = "0.8"
+toml = "1.0"
 thiserror = "2"
 anyhow = "1"
 tracing = "0.1"
@@ -31,19 +31,19 @@ chrono = { version = "0.4", features = ["serde"] }
 rayon = "1.11"
 postcard = { version = "1", default-features = false, features = ["alloc"] }
 dashmap = "6"
-memchr = "2.7"
+memchr = "2.8"
 aho-corasick = "1"
 regex = "1"
 serde_yaml = "0.9"
-git2 = "0.19"
+git2 = "0.20"
 percent-encoding = "2"
 flate2 = "1"
 
 [dev-dependencies]
 assert_cmd = "2"
-criterion = { version = "0.5", features = ["html_reports"] }
+criterion = { version = "0.8", features = ["html_reports"] }
 ignore = "0.4"
-jsonschema = "0.29"
+jsonschema = "0.41"
 predicates = "3"
 proptest = "1"
 serde_json = "1"
