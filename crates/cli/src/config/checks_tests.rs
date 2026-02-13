@@ -47,7 +47,7 @@ check = "off"
 #[test]
 fn cloc_config_defaults() {
     let config = parse_config("version = 1\n");
-    assert_eq!(config.check.cloc.max_lines, 750);
+    assert_eq!(config.check.cloc.max_lines, 800);
     assert_eq!(config.check.cloc.max_lines_test, 1000);
     assert_eq!(config.check.cloc.max_tokens, Some(20000));
     assert_eq!(config.check.cloc.metric, LineMetric::Lines);

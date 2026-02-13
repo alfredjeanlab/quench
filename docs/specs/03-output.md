@@ -64,15 +64,15 @@ To improve readability and reduce token consumption, consecutive violations with
 
 ```
 cloc: FAIL
-  src/parser.rs:800: file_too_large (lines: 800 vs 750)
+  src/parser.rs:850: file_too_large (lines: 850 vs 800)
     Can the code be made more concise?
     Look for repetitive patterns that could be extracted into helper functions.
 
     If not, split large source files into sibling modules or submodules in a folder;
     consider refactoring to be more unit testable.
 
-  src/lexer.rs:850: file_too_large (lines: 850 vs 750)
-  src/ast.rs:775: file_too_large (lines: 775 vs 750)
+  src/lexer.rs:900: file_too_large (lines: 900 vs 800)
+  src/ast.rs:825: file_too_large (lines: 825 vs 800)
 ```
 
 In this example, the advice is only shown for the first violation. Subsequent consecutive violations with the same advice omit it to avoid repetition.
@@ -193,7 +193,7 @@ Checks may add context-specific fields alongside these (e.g., `pattern`, `thresh
           "line": null,
           "type": "file_too_large",
           "value": 923,
-          "threshold": 750,
+          "threshold": 800,
           "advice": "Split into smaller modules."
         }
       ],

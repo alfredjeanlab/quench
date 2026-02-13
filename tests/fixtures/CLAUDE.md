@@ -58,7 +58,7 @@ A minimal Rust library that passes all checks. Good baseline for testing default
 - `quench.toml` with version 1
 - `src/lib.rs` with simple function
 - `src/lib_tests.rs` with unit test
-- Under 750 lines (passes cloc)
+- Under 800 lines (passes cloc)
 - Proper test coverage (passes tests)
 
 ### rust-workspace/
@@ -77,7 +77,7 @@ A minimal Go project with idiomatic structure. Good baseline for testing Go dete
 - `cmd/app/main.go` with main function
 - `pkg/math/` with exported package and tests
 - `internal/config/` with internal package
-- Under 750 lines (passes cloc)
+- Under 800 lines (passes cloc)
 - Proper test coverage (passes tests)
 
 ### go-multi/
@@ -98,7 +98,7 @@ A minimal JavaScript/TypeScript project with idiomatic structure. Good baseline 
 - `src/index.ts` with main entry point
 - `src/utils.ts` with utility functions
 - `tests/index.test.ts` and `tests/utils.test.ts` with unit tests
-- Under 750 lines (passes cloc)
+- Under 800 lines (passes cloc)
 - Proper test coverage (passes tests)
 
 ### js-monorepo/
@@ -121,7 +121,7 @@ A minimal Python project using src-layout with `pyproject.toml`. Good baseline f
 - `src/example/` with package module
 - `tests/test_math.py` with pytest tests
 - Uses setuptools build backend
-- Under 750 lines (passes cloc)
+- Under 800 lines (passes cloc)
 
 ### python-poetry/
 
@@ -167,7 +167,7 @@ Project with intentional violations for every check type. Essential for testing 
 
 | Check | File | Violation |
 |-------|------|-----------|
-| cloc | `src/oversized.rs` | 800+ lines (max: 750) |
+| cloc | `src/oversized.rs` | 850+ lines (max: 800) |
 | escapes | `src/escapes.rs` | `.unwrap()`, `unsafe` without SAFETY |
 | escapes | `scripts/bad.sh` | `shellcheck disable`, `set +e` |
 | tests | `src/missing_tests.rs` | No corresponding test file |

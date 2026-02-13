@@ -1,5 +1,5 @@
 First, look for repetitive patterns that could be extracted into helper functions.
 
-Then split into multiple files in the same package by semantic concern (target 150–250 lines each), or extract reusable logic into internal packages.
+Then split into multiple files in the same package by semantic concern (target 160–260 lines each), or extract reusable logic into internal packages.
 
 Avoid removing individual lines to satisfy the linter; prefer extracting testable code blocks.

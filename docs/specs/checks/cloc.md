@@ -26,12 +26,12 @@ The `source_lines` and `test_lines` metrics count **non-blank lines** (lines wit
 File size violations report both total and non-blank line counts:
 
 ```
-file.rs: file_too_large (lines: 899 vs 750)
+file.rs: file_too_large (lines: 899 vs 800)
 ```
 
 JSON violations include both for convenience:
 ```json
-{"file": "file.rs", "type": "file_too_large", "value": 899, "threshold": 750, "lines": 899, "nonblank": 786}
+{"file": "file.rs", "type": "file_too_large", "value": 899, "threshold": 800, "lines": 899, "nonblank": 786}
 ```
 
 ### Metric Configuration
@@ -106,12 +106,12 @@ Text output only appears when file size limits are exceeded:
 
 ```
 cloc: FAIL
-  src/parser.rs: 923 lines (max: 750)
+  src/parser.rs: 923 lines (max: 800)
     First, look for repetitive patterns that could be extracted into helper
     functions, or refactor to be more unit testable and concise.
 
     Then split into sibling modules or submodules in a folder by semantic concern
-    (target 150–250 lines each).
+    (target 160–260 lines each).
 
     Avoid removing individual lines to satisfy the linter;
     prefer extracting testable code blocks.
@@ -143,8 +143,8 @@ Typical healthy ranges: `0.5x` to `2.0x` (project-dependent).
       "line": null,
       "type": "file_too_large",
       "value": 923,
-      "threshold": 750,
-      "advice": "First, look for repetitive patterns that could be extracted into helper functions, or refactor to be more unit testable and concise.\n\nThen split into sibling modules or submodules in a folder by semantic concern (target 150–250 lines each).\n\nAvoid removing individual lines to satisfy the linter; prefer extracting testable code blocks."
+      "threshold": 800,
+      "advice": "First, look for repetitive patterns that could be extracted into helper functions, or refactor to be more unit testable and concise.\n\nThen split into sibling modules or submodules in a folder by semantic concern (target 160–260 lines each).\n\nAvoid removing individual lines to satisfy the linter; prefer extracting testable code blocks."
     }
   ],
   "metrics": {
@@ -184,8 +184,8 @@ Per-file limits (enabled by default):
 
 ```toml
 [check.cloc]
-# Max lines per file (default: 750 source, 1000 test)
-max_lines = 750
+# Max lines per file (default: 800 source, 1000 test)
+max_lines = 800
 max_lines_test = 1000
 
 # Max tokens per file (default: 20000, use false to disable)
@@ -216,7 +216,7 @@ Average lines per file is **reported** in metrics but not enforced.
 check = "error"
 
 # File size limits (defaults shown)
-max_lines = 750
+max_lines = 800
 max_lines_test = 1000
 max_tokens = 20000               # use false to disable
 

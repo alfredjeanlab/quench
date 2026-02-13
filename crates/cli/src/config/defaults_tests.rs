@@ -6,7 +6,7 @@ use super::defaults;
 
 #[test]
 fn size_constants_are_sane() {
-    assert_eq!(defaults::size::MAX_LINES, 750);
+    assert_eq!(defaults::size::MAX_LINES, 800);
     assert_eq!(defaults::size::MAX_LINES_TEST, 1000);
     assert_eq!(defaults::size::MAX_TOKENS, 20000);
     assert_eq!(defaults::size::MAX_LINES_SPEC, 1000);

@@ -7,7 +7,7 @@ Configuration reference for the `cloc` check.
 ```toml
 [check.cloc]
 check = "error"
-max_lines = 750        # Source files
+max_lines = 800        # Source files
 max_lines_test = 1000  # Test files
 max_tokens = 20000     # Or false to disable
 ```
@@ -23,7 +23,7 @@ Controls which metric is checked against `max_lines`:
 [check.cloc]
 check = "error"
 metric = "lines"
-max_lines = 750
+max_lines = 800
 ```
 
 ## Custom Advice
@@ -33,7 +33,7 @@ Override the advice shown when source or test files exceed their limits.
 ```toml
 [check.cloc]
 check = "error"
-max_lines = 750
+max_lines = 800
 advice = """
 Can the code be made more concise?
 
@@ -53,7 +53,7 @@ Skip files matching these patterns from size checks.
 ```toml
 [check.cloc]
 check = "error"
-max_lines = 750
+max_lines = 800
 exclude = ["**/generated/**", "**/migrations/**", "**/vendor/**"]
 ```
 
@@ -62,7 +62,7 @@ exclude = ["**/generated/**", "**/migrations/**", "**/vendor/**"]
 ```toml
 [check.cloc]
 check = "error"
-max_lines = 750  # Default for all packages
+max_lines = 800  # Default for all packages
 
 [check.cloc.package.cli]
 max_lines = 500  # Stricter for CLI package
@@ -79,7 +79,7 @@ check = "off"    # Skip entirely
 ```toml
 [check.cloc]
 check = "error"
-max_lines = 750
+max_lines = 800
 max_tokens = false  # No token limit
 ```
 
@@ -89,7 +89,7 @@ max_tokens = false  # No token limit
 [check.cloc]
 check = "error"
 metric = "lines"
-max_lines = 750
+max_lines = 800
 max_lines_test = 1000
 max_tokens = 20000
 exclude = ["**/generated/**", "**/migrations/**"]

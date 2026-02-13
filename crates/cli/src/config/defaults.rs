@@ -8,8 +8,8 @@
 
 /// Default file size limits.
 pub mod size {
-    /// Default max lines for source files (750).
-    pub const MAX_LINES: usize = 750;
+    /// Default max lines for source files (800).
+    pub const MAX_LINES: usize = 800;
 
     /// Default max lines for test files (1000).
     pub const MAX_LINES_TEST: usize = 1000;

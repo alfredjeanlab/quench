@@ -1,4 +1,4 @@
 version = 1
 
 [check.cloc]
-max_lines = 750
+max_lines = 800

@@ -356,7 +356,7 @@ pub enum LineMetric {
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ClocConfig {
-    /// Maximum lines per file (default: 750).
+    /// Maximum lines per file (default: 800).
     #[serde(default = "ClocConfig::default_max_lines")]
     pub max_lines: usize,
 

@@ -135,7 +135,7 @@ fn cloc_violation_type_is_file_too_large() {
 
 /// Spec: docs/specs/checks/cloc.md#file-size-limits
 ///
-/// > max_lines = 750 (default for source files)
+/// > max_lines = 800 (default for source files)
 #[test]
 fn cloc_fails_on_source_file_over_max_lines() {
     let cloc = check("cloc").on("cloc/oversized-source").json().fails();
@@ -368,7 +368,7 @@ fn cloc_text_output_format_on_violation() {
         .stdout_has("cloc: FAIL")
         .stdout_has("big.rs")
         .stdout_has("file_too_large")
-        .stdout_has("750");
+        .stdout_has("800");
 }
 
 /// Spec: docs/specs/checks/cloc.md#json-output

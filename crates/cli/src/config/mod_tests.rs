@@ -380,14 +380,15 @@ fn cloc_advice_for_language_uses_language_defaults() {
     let config = parse_with_warnings(content, &path).unwrap();
 
     // Known languages should use their language-specific defaults
-    assert_eq!(config.cloc_advice_for_language("rust", 750), RustConfig::default_cloc_advice(750));
-    assert_eq!(config.cloc_advice_for_language("go", 750), GoConfig::default_cloc_advice(750));
+    let max = config.check.cloc.max_lines;
+    assert_eq!(config.cloc_advice_for_language("rust", max), RustConfig::default_cloc_advice(max));
+    assert_eq!(config.cloc_advice_for_language("go", max), GoConfig::default_cloc_advice(max));
     assert_eq!(
-        config.cloc_advice_for_language("shell", 750),
-        ShellConfig::default_cloc_advice(750)
+        config.cloc_advice_for_language("shell", max),
+        ShellConfig::default_cloc_advice(max)
     );
     // Unknown languages fall back to generic advice
-    assert_eq!(config.cloc_advice_for_language("unknown", 750), config.check.cloc.advice);
+    assert_eq!(config.cloc_advice_for_language("unknown", max), config.check.cloc.advice);
 }
 
 #[test]

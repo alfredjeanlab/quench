@@ -48,7 +48,7 @@ When configuration is needed, it's hierarchical (monorepo-friendly) and minimal.
 
 | Check | Fast | CI | Description |
 |-------|------|-----|-------------|
-| `cloc` | ✓ | ✓ | Lines of code, file size limits (750 source, 1000 test) |
+| `cloc` | ✓ | ✓ | Lines of code, file size limits (800 source, 1000 test) |
 | `escapes` | ✓ | ✓ | Pattern detection with count/comment/forbid actions |
 | `agents` | ✓ | ✓ | Agent file validation (CLAUDE.md, .cursorrules, sync) |
 | `docs` | ✓ | ✓ | File refs, specs validation + doc correlation (CI) |
@@ -91,7 +91,7 @@ See [04-ratcheting.md](04-ratcheting.md) for details.
 
 ```
 cloc: FAIL
-  src/parser.rs: 812 lines (max: 750)
+  src/parser.rs: 812 lines (max: 800)
     Split into smaller modules.
 
 escapes: FAIL
@@ -111,7 +111,7 @@ escapes: FAIL
         {
           "file": "src/parser.rs",
           "lines": 812,
-          "threshold": 750,
+          "threshold": 800,
           "advice": "Split into smaller modules."
         }
       ]
