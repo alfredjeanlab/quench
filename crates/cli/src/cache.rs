@@ -49,7 +49,8 @@ use crate::check::Violation;
 /// v36: Python suppress comments now detected above @decorator lines.
 /// v37: JavaScript suppress config no longer inherits Rust-specific lint patterns.
 /// v38: Only #[cfg(test)] mod blocks count as test LOC; non-module items stay as source.
-pub(crate) const CACHE_VERSION: u32 = 38;
+/// v39: TOC parsing strips trailing descriptions after 3+ consecutive spaces.
+pub(crate) const CACHE_VERSION: u32 = 39;
 
 /// Cache file name within .quench directory.
 pub const CACHE_FILE_NAME: &str = "cache.bin";

@@ -493,3 +493,53 @@ src/
     );
     check("docs").pwd(temp.path()).passes();
 }
+
+// =============================================================================
+// TRAILING DESCRIPTION SPECS
+// =============================================================================
+
+/// Spec: docs/specs/checks/docs.md#what-gets-validated
+///
+/// > Trailing descriptions after 3+ spaces are stripped from entry names.
+#[test]
+fn toc_entries_with_space_separated_descriptions_resolve() {
+    let temp = default_project();
+    temp.file("src/runner.rs", "// runner\n");
+    temp.file("src/heartbeat.rs", "// heartbeat\n");
+    temp.file("src/logs.rs", "// logs\n");
+    temp.file(
+        "CLAUDE.md",
+        r#"# Project
+
+```
+src/
+  runner.rs       command dispatch, container lifecycle
+  heartbeat.rs    periodic status reporting
+  logs.rs         ring buffer per allocation
+```
+"#,
+    );
+    check("docs").pwd(temp.path()).passes();
+}
+
+/// Spec: docs/specs/checks/docs.md#what-gets-validated
+///
+/// > Box-drawing trees with trailing descriptions after 3+ spaces are supported.
+#[test]
+fn toc_box_drawing_with_space_descriptions_resolve() {
+    let temp = default_project();
+    temp.file("src/lib.rs", "// lib\n");
+    temp.file("src/main.rs", "// main\n");
+    temp.file(
+        "CLAUDE.md",
+        r#"# Project
+
+```
+src/
+├── lib.rs       main library
+└── main.rs      entry point
+```
+"#,
+    );
+    check("docs").pwd(temp.path()).passes();
+}

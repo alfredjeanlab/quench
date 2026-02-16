@@ -220,9 +220,15 @@ fn extract_indent_and_name(line: &str) -> Option<(usize, String)> {
     }
 }
 
-/// Strip comment suffix (everything after #).
+/// Strip comment or trailing description from an entry name.
+///
+/// Strips both `# hash comments` and trailing descriptions after 3+ consecutive spaces.
+/// For example: `runner.rs       command dispatch` → `runner.rs`
 fn strip_comment(name: &str) -> &str {
-    if let Some(pos) = name.find('#') { name[..pos].trim() } else { name.trim() }
+    // Strip hash comments
+    let name = if let Some(pos) = name.find('#') { name[..pos].trim() } else { name.trim() };
+    // Strip trailing descriptions after 3+ consecutive spaces
+    if let Some(pos) = name.find("   ") { name[..pos].trim_end() } else { name }
 }
 
 /// Normalize a path by stripping `.`/`./` prefix when it represents current directory.

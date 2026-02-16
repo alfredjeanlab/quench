@@ -859,3 +859,85 @@ fn toc_handles_mixed_path_issues() {
         ResolutionStrategy::RelativeToRoot
     ));
 }
+
+// === Trailing description (3+ spaces) ===
+
+#[test]
+fn strip_comment_strips_space_separated_description() {
+    let block = FencedBlock {
+        start_line: 1,
+        lines: vec![
+            "src/".to_string(),
+            "├── lib.rs       main library".to_string(),
+            "└── main.rs      entry point".to_string(),
+        ],
+        language: None,
+    };
+    let entries = parse_tree_block(&block);
+    assert!(entries.iter().any(|e| e.path == "src/lib.rs"));
+    assert!(entries.iter().any(|e| e.path == "src/main.rs"));
+    assert!(!entries.iter().any(|e| e.path.contains("library")));
+    assert!(!entries.iter().any(|e| e.path.contains("entry")));
+}
+
+#[test]
+fn indentation_tree_with_space_descriptions() {
+    let block = FencedBlock {
+        start_line: 1,
+        lines: vec![
+            "crates/node/".to_string(),
+            "  src/".to_string(),
+            "    secondary/".to_string(),
+            "      runner.rs       command dispatch, container lifecycle".to_string(),
+            "      heartbeat.rs    periodic status reporting".to_string(),
+            "      logs.rs         ring buffer per allocation".to_string(),
+            "      mod.rs          secondary startup and event loop".to_string(),
+        ],
+        language: None,
+    };
+    let entries = parse_tree_block(&block);
+    assert!(entries.iter().any(|e| e.path == "crates/node/src/secondary/runner.rs"));
+    assert!(entries.iter().any(|e| e.path == "crates/node/src/secondary/heartbeat.rs"));
+    assert!(entries.iter().any(|e| e.path == "crates/node/src/secondary/mod.rs"));
+    assert!(!entries.iter().any(|e| e.path.contains("command")));
+}
+
+#[test]
+fn looks_like_tree_detects_files_with_space_descriptions() {
+    let block = FencedBlock {
+        start_line: 1,
+        lines: vec![
+            "src/".to_string(),
+            "  runner.rs       command dispatch".to_string(),
+            "  heartbeat.rs    periodic status reporting".to_string(),
+        ],
+        language: None,
+    };
+    assert!(looks_like_tree(&block));
+}
+
+#[test]
+fn looks_like_tree_detects_dirs_with_space_descriptions() {
+    let block = FencedBlock {
+        start_line: 1,
+        lines: vec![
+            "src/".to_string(),
+            "  rpc/            receive and execute commands".to_string(),
+            "  heartbeat/      periodic status reporting".to_string(),
+            "  logs/           ring buffer per allocation".to_string(),
+        ],
+        language: None,
+    };
+    assert!(looks_like_tree(&block));
+}
+
+#[test]
+fn single_space_in_filename_preserved() {
+    let block = FencedBlock {
+        start_line: 1,
+        lines: vec!["src/".to_string(), "├── my file.rs".to_string()],
+        language: None,
+    };
+    let entries = parse_tree_block(&block);
+    assert!(entries.iter().any(|e| e.path == "src/my file.rs"));
+}

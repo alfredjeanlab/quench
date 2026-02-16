@@ -180,6 +180,16 @@ fn is_tree_line(line: &str) -> bool {
         return false;
     }
 
+    // Entry with trailing description (3+ consecutive spaces)
+    // e.g., "runner.rs       command dispatch, container lifecycle"
+    // e.g., "rpc/            receive and execute commands from primary"
+    if let Some(pos) = trimmed.find("   ") {
+        let entry = trimmed[..pos].trim_end();
+        if !entry.is_empty() && !entry.contains(' ') && !entry.contains('=') {
+            return true;
+        }
+    }
+
     // Directory paths ending with /
     if trimmed.ends_with('/') && !trimmed.contains(' ') && !trimmed.contains('=') {
         return true;
