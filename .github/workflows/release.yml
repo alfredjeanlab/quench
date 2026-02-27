@@ -37,7 +37,7 @@ jobs:
         run: |
           cd target/${{ matrix.target }}/release
           tar czf ../../../${{ matrix.name }}.tar.gz quench
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.name }}
           path: ${{ matrix.name }}.tar.gz
@@ -63,7 +63,7 @@ jobs:
           git archive --format=tar.gz --prefix=quench-${VERSION}/ -o "dist/quench-${VERSION}.tar.gz" HEAD
           echo "Created dist/quench-${VERSION}.tar.gz"
 
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           path: dist
 
